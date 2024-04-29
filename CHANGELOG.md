@@ -1,7 +1,7 @@
 # Change Log
 
-## [v1.8.0](https://github.com/grayplex/varken/tree/v1.7.9) (2024-01-15)
-[Full Changelog](https://github.com/grayplex/Varken/compare/v1.7.9...v1.8.0)
+## [v1.8.0](https://github.com/navino16/varken/tree/v1.7.9) (2024-01-15)
+[Full Changelog](https://github.com/navino16/Varken/compare/v1.7.9...v1.8.0)
 
 **Fixed bugs:**
 - \[BUG\] Fixed API reference for Unifi.
@@ -10,8 +10,8 @@
 **Notes:**
 - Updated documentation for all API references for better API endpoint tracking.
 
-## [v1.7.9](https://github.com/grayplex/varken/tree/v1.7.9) (2024-01-12)
-[Full Changelog](https://github.com/grayplex/Varken/compare/v1.7.8...v1.7.9)
+## [v1.7.9](https://github.com/navino16/varken/tree/v1.7.9) (2024-01-12)
+[Full Changelog](https://github.com/navino16/Varken/compare/v1.7.8...v1.7.9)
 
 **Fixed bugs:**
 - \[BUG\] Fixed API reference for Radarr & Tautulli
@@ -19,7 +19,7 @@
 **Notes:**
 - Lidarr and Ombi have not yet been tested. Planning to test those soon, but don't have those services running on my VM. Planning for a v1.8.0 release with fully functional Varken package.
 
-## [v1.7.8](https://github.com/grayplex/varken/tree/v1.7.8) (2024-01-11)
+## [v1.7.8](https://github.com/navino16/varken/tree/v1.7.8) (2024-01-11)
 
 **Fixed bugs:**
 - \[BUG\] Fixed API reference for Sonarr

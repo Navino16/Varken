@@ -1,8 +1,8 @@
 <p align="center">
-<img width="800" src="https://raw.githubusercontent.com/grayplex/Varken/master/assets/varken_full_banner.jpg" alt="Logo Banner">
+<img width="800" src="https://raw.githubusercontent.com/navino16/Varken/master/assets/varken_full_banner.jpg" alt="Logo Banner">
 </p>
 
-[![Build Docker Image](https://github.com/grayplex/Varken/actions/workflows/build.yml/badge.svg)](https://github.com/grayplex/Varken/actions/workflows/build.yml)
+[![Build Docker Image](https://github.com/navino16/Varken/actions/workflows/build.yml/badge.svg)](https://github.com/navino16/Varken/actions/workflows/build.yml)
 
 *Due to the lack of updates in the original project this is just a bandaid fix*
 <br />
@@ -17,8 +17,8 @@ The Grafana Dashbard included has been updated to work with multiple arr's and O
 ## **The Original Things**
 <br />
 
-[![Release](https://img.shields.io/github/v/release/grayplex/varken?include_prereleases&style=flat-square)](https://github.com/grayplex/Varken/releases/latest)
-[![Docker Pulls](https://img.shields.io/docker/pulls/grayplex/varken.svg)](https://hub.docker.com/r/grayplex/varken)
+[![Release](https://img.shields.io/github/v/release/navino16/varken?include_prereleases&style=flat-square)](https://github.com/navino16/Varken/releases/latest)
+[![Docker Pulls](https://img.shields.io/docker/pulls/navino16/varken.svg)](https://hub.docker.com/r/navino16/varken)
 
 Dutch for PIG. PIG is an Acronym for Plex/InfluxDB/Grafana
 

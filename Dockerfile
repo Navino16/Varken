@@ -13,13 +13,13 @@ ENV DEBUG="True" \
     BRANCH="dev" \
     BUILD_DATE="1970-01-01"
 
-LABEL maintainer="grayplex" \
+LABEL maintainer="navino16" \
   org.opencontainers.image.created=$BUILD_DATE \
-  org.opencontainers.image.url="https://github.com/grayplex/Varken" \
-  org.opencontainers.image.source="https://github.com/grayplex/Varken" \
+  org.opencontainers.image.url="https://github.com/navino16/Varken" \
+  org.opencontainers.image.source="https://github.com/navino16/Varken" \
   org.opencontainers.image.version=$VERSION \
   org.opencontainers.image.revision=$VCS_REF \
-  org.opencontainers.image.vendor="grayplex" \
+  org.opencontainers.image.vendor="navino16" \
   org.opencontainers.image.title="varken" \
   org.opencontainers.image.description="Varken is a standalone application to aggregate data from the Plex ecosystem into InfluxDB using Grafana for a frontend" \
   org.opencontainers.image.licenses="MIT"

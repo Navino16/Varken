@@ -18,7 +18,7 @@ services:
   varken:
     hostname: varken
     container_name: varken
-    image: ghcr.io/grayplex/varken:develop
+    image: ghcr.io/navino16/varken:develop
     networks:
       - internal
     volumes:
