@@ -4,18 +4,19 @@ on:
   push:
     branches: 
       - 'develop'
-      - 'influxdbv2'
     tags:
       - 'v*.*.*'
+  pull_request:
+    branches: 
+      - 'main'
+
 
 jobs:
-
   build:
-  
     runs-on: ubuntu-latest
-  
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -31,25 +32,39 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: |
-            ghcr.io/thezak48/varken
+            ghcr.io/grayplex/varken
+            grayplex/varken
+          flavor: |
+            latest=true
           tags: |
-            type=schedule
-            type=ref,event=pr
+            # Run on push tag event
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-            type=sha
+            # Run on latest commit to dev branch
+            type=edge,enable=true,branch=dev,prefix=dev-
+            # Run on latest commit to main branch
             type=ref,event=branch
+            # RUn on latest PR to main branch
+            type=ref,event=pr
+            # Run on latest commit to any branch
+            type=sha,prefix={{branch}}-
             
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.CR_ZAK }}
+          password: ${{ secrets.CR_GRAYPLEX }}
+      
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_ACCESS_TOKEN}}
 
       - name: Docker build and push
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v5
         with:
           context: .
           platforms: linux/amd64,linux/arm64

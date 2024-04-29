@@ -1,8 +1,8 @@
 <p align="center">
-<img width="800" src="https://raw.githubusercontent.com/Boerderij/Varken/master/assets/varken_full_banner.jpg" alt="Logo Banner">
+<img width="800" src="https://raw.githubusercontent.com/grayplex/Varken/master/assets/varken_full_banner.jpg" alt="Logo Banner">
 </p>
 
-[![pipeline status](https://github.com/thezak48/varken/actions/workflows/build.yml/badge.svg)](https://gitlab.com/boerderij/Varken/commits/master)
+[![Build Docker Image](https://github.com/grayplex/Varken/actions/workflows/build.yml/badge.svg)](https://github.com/grayplex/Varken/actions/workflows/build.yml)
 
 *Due to the lack of updates in the original project this is just a bandaid fix*
 <br />
@@ -17,12 +17,8 @@ The Grafana Dashbard included has been updated to work with multiple arr's and O
 ## **The Original Things**
 <br />
 
-[![pipeline status](https://gitlab.com/boerderij/Varken/badges/master/pipeline.svg)](https://gitlab.com/boerderij/Varken/commits/master)
-[![Discord](https://img.shields.io/discord/518970285773422592.svg?colorB=7289DA&label=Discord&logo=Discord&logoColor=7289DA&style=flat-square)](https://discord.gg/VjZ6qSM)
-[![ko-fi](https://img.shields.io/badge/Buy%20Us%20A%20Coffee-Donate-ff813f.svg?logo=CoffeeScript&style=flat-square)](https://ko-fi.com/varken)
-[![Docker-Layers](https://images.microbadger.com/badges/image/boerderij/varken.svg)](https://microbadger.com/images/boerderij/varken)
-[![Release](https://img.shields.io/github/release/boerderij/varken.svg?style=flat-square)](https://github.com/Boerderij/Varken/releases/latest)
-[![Docker Pulls](https://img.shields.io/docker/pulls/boerderij/varken.svg)](https://hub.docker.com/r/boerderij/varken/)
+[![Release](https://img.shields.io/github/v/release/grayplex/varken?include_prereleases&style=flat-square)](https://github.com/grayplex/Varken/releases/latest)
+[![Docker Pulls](https://img.shields.io/docker/pulls/grayplex/varken.svg)](https://hub.docker.com/r/grayplex/varken)
 
 Dutch for PIG. PIG is an Acronym for Plex/InfluxDB/Grafana
 
@@ -43,7 +39,6 @@ Example Dashboard
 
 Supported Modules:
 * [Sonarr](https://sonarr.tv/) - Smart PVR for newsgroup and bittorrent users.
-* [SickChill](https://sickchill.github.io/) - SickChill is an automatic Video Library Manager for TV Shows.
 * [Radarr](https://radarr.video/) - A fork of Sonarr to work with movies à la Couchpotato.
 * [Tautulli](https://tautulli.com/) - A Python based monitoring and tracking tool for Plex Media Server.
 * [Ombi](https://ombi.io/) - Want a Movie or TV Show on Plex or Emby? Use Ombi!

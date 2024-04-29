@@ -154,7 +154,7 @@ class TautulliAPI(object):
                         "longitude": longitude,
                         "player_state": player_state,
                         "device_type": platform_name,
-                        "relayed": session.relayed,
+                        "relay": session.relay,
                         "secure": session.secure,
                         "server": self.server.id
                     },
@@ -382,7 +382,7 @@ class TautulliAPI(object):
                         "longitude": longitude,
                         "player_state": player_state,
                         "device_type": platform_name,
-                        "relayed": session.relayed,
+                        "relay": session.relay,
                         "secure": session.secure,
                         "server": self.server.id
                     },

@@ -1,18 +1,25 @@
-FROM python:3.10.5-alpine
+FROM python:3.10.13-alpine
+
+#ARG VERSION="0.0.0"
+#ARG BRANCH="dev"
+#ARG BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+#VERSION=$VERSION \
+#BRANCH=$BRANCH \
+#BUILD_DATE=$BUILD_DATE
 
 ENV DEBUG="True" \
     DATA_FOLDER="/config" \
     VERSION="0.0.0" \
-    BRANCH="edge" \
-    BUILD_DATE="1/1/1970"
+    BRANCH="dev" \
+    BUILD_DATE="1970-01-01"
 
-LABEL maintainer="thezak48" \
+LABEL maintainer="grayplex" \
   org.opencontainers.image.created=$BUILD_DATE \
-  org.opencontainers.image.url="https://github.com/thezak48/Varken" \
-  org.opencontainers.image.source="https://github.com/thezak48/Varken" \
+  org.opencontainers.image.url="https://github.com/grayplex/Varken" \
+  org.opencontainers.image.source="https://github.com/grayplex/Varken" \
   org.opencontainers.image.version=$VERSION \
   org.opencontainers.image.revision=$VCS_REF \
-  org.opencontainers.image.vendor="thezak48" \
+  org.opencontainers.image.vendor="grayplex" \
   org.opencontainers.image.title="varken" \
   org.opencontainers.image.description="Varken is a standalone application to aggregate data from the Plex ecosystem into InfluxDB using Grafana for a frontend" \
   org.opencontainers.image.licenses="MIT"
