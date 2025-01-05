@@ -30,6 +30,9 @@ class DBManager(object):
 
         try:
             version = self.influx.version()
+            # Alternative approach for victoria-metrics support
+            if not version:
+                version = self.influx.request('write', expected_response_code=204).headers['X-Influxdb-Version']
             self.logger.info('Influxdb version: %s', version)
             match = re.match(r'v?(\d+)\.', version)
             if match:
