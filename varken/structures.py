@@ -407,6 +407,7 @@ class RadarrQueue(NamedTuple):
     trackedDownloadStatus: str = None
     downloadClientHasPostImportCategory: bool = None
     requestedDate: str = None
+    keywords: list = None
 
 # Tautulli
 class TautulliStream(NamedTuple):
@@ -668,6 +669,7 @@ class LidarrAlbum(NamedTuple):
     secondaryTypes: list = None
     statistics: dict = {}
     title: str = None
+    lastSearchTime: str = None
     
 #TODO - Lidarr support
 # Lidarr /api/v1/artist
