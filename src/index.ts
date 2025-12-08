@@ -1,8 +1,14 @@
 import { createLogger } from './core/Logger';
 import { ConfigLoader } from './config';
+import { Orchestrator } from './core/Orchestrator';
+import { InputPluginFactory, OutputPluginFactory } from './core/PluginManager';
 
 const VERSION = '2.0.0';
 const logger = createLogger('Main');
+
+// Plugin registrations will be added here as they are implemented
+const inputPlugins = new Map<string, InputPluginFactory>();
+const outputPlugins = new Map<string, OutputPluginFactory>();
 
 async function main(): Promise<void> {
   const configFolder = process.env.CONFIG_FOLDER || './config';
@@ -16,12 +22,24 @@ async function main(): Promise<void> {
   const configLoader = new ConfigLoader(configFolder);
   const config = configLoader.load();
 
-  logger.debug('Configuration loaded:', config);
+  logger.debug('Configuration loaded');
 
   // dataFolder will be used for GeoIP database
 
-  // TODO: Initialize plugin manager
-  // TODO: Start orchestrator
+  // Create and configure orchestrator
+  const orchestrator = new Orchestrator(config);
+
+  // Register plugins
+  orchestrator.registerPlugins({
+    inputPlugins,
+    outputPlugins,
+  });
+
+  // Start orchestrator
+  await orchestrator.start();
+
+  // Keep process running
+  logger.info('Varken is running. Press Ctrl+C to stop.');
 }
 
 main().catch((error) => {

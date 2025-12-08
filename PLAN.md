@@ -154,12 +154,12 @@ interface DataPoint {
 - [x] Create Zod validation schemas (`src/config/schemas/config.schema.ts`)
 - [x] Create example config template (`config/varken.example.yaml`)
 
-### Phase 2: Plugin Infrastructure
+### Phase 2: Plugin Infrastructure ✅
 - [x] Define `InputPlugin` and `OutputPlugin` interfaces (`src/types/plugin.types.ts`)
-- [ ] Implement `BaseInputPlugin` (HTTP client, helpers)
-- [ ] Implement `BaseOutputPlugin`
-- [ ] Implement `PluginManager` (registration, scheduling)
-- [ ] Implement `Orchestrator` (coordination, graceful shutdown)
+- [x] Implement `BaseInputPlugin` (HTTP client, helpers)
+- [x] Implement `BaseOutputPlugin` (Line Protocol conversion)
+- [x] Implement `PluginManager` (registration, scheduling)
+- [x] Implement `Orchestrator` (coordination, graceful shutdown)
 
 ### Phase 3: Output Plugins (Destinations)
 

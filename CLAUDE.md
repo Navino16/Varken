@@ -41,6 +41,8 @@ docker-compose up -d
 
 **Core Modules** (`src/core/`):
 - `Logger.ts` - Winston-based logging with sensitive data filtering
+- `Orchestrator.ts` - Application lifecycle, graceful shutdown (SIGTERM/SIGINT)
+- `PluginManager.ts` - Plugin registration, instantiation, scheduling
 
 **Config** (`src/config/`):
 - `ConfigLoader.ts` - YAML parsing + env vars override
@@ -52,14 +54,17 @@ docker-compose up -d
 - `inputs/` - Type definitions per input plugin (sonarr, radarr, tautulli, etc.)
 - `outputs/` - Type definitions per output plugin (influxdb1, influxdb2, etc.)
 
-**Plugins** (`src/plugins/`) - To be implemented:
-- `inputs/` - Data source plugins (Sonarr, Radarr, Tautulli, Plex, Jellyfin, etc.)
-- `outputs/` - Destination plugins (InfluxDB 1.x/2.x, VictoriaMetrics, QuestDB, TimescaleDB)
+**Plugins** (`src/plugins/`):
+- `inputs/BaseInputPlugin.ts` - Abstract base class with HTTP client, DataPoint helpers
+- `outputs/BaseOutputPlugin.ts` - Abstract base class with Line Protocol conversion
+- `inputs/` - Data source plugins (Sonarr, Radarr, Tautulli, Plex, etc.)
+- `outputs/` - Destination plugins (InfluxDB 1.x/2.x, etc.)
 
 **Data Flow**:
 ```
-YAML Config → ConfigLoader → PluginManager → Scheduler
-→ Input Plugins → DataPoint[] → Output Plugins → Database
+YAML Config → ConfigLoader → Orchestrator → PluginManager
+→ Scheduler triggers → InputPlugin.collect() → DataPoint[]
+→ OutputPlugin.write() → Database
 ```
 
 ## Key Dependencies
@@ -96,8 +101,8 @@ Output format: `2024-01-15 10:30:00 info [ModuleName] Message`
 # Install dependencies
 npm install
 
-# Run tests
-npm test
+# Run tests (use --run to exit after completion)
+npm test -- --run
 
 # Lint
 npm run lint
@@ -105,6 +110,8 @@ npm run lint
 # Build
 npm run build
 ```
+
+**Important**: Always run tests with `--run` flag to prevent vitest from entering watch mode.
 
 ## Build & CI
 
