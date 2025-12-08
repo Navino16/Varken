@@ -1,0 +1,62 @@
+{
+  "name": "varken",
+  "version": "2.0.0",
+  "description": "Standalone application to aggregate data from the Plex ecosystem into time-series databases",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "build": "tsc",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Navino16/Varken.git"
+  },
+  "keywords": [
+    "plex",
+    "sonarr",
+    "radarr",
+    "tautulli",
+    "influxdb",
+    "grafana",
+    "monitoring",
+    "metrics"
+  ],
+  "author": "navino16",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Navino16/Varken/issues"
+  },
+  "homepage": "https://github.com/Navino16/Varken#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@influxdata/influxdb-client": "^1.35.0",
+    "@maxmind/geoip2-node": "^5.0.0",
+    "axios": "^1.7.0",
+    "influx": "^5.9.0",
+    "ini": "^5.0.0",
+    "pg": "^8.13.0",
+    "winston": "^3.17.0",
+    "yaml": "^2.6.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/ini": "^4.1.0",
+    "@types/node": "^22.0.0",
+    "@types/pg": "^8.11.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "@vitest/coverage-v8": "^2.1.0",
+    "eslint": "^9.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0"
+  }
+}
