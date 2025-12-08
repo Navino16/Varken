@@ -2,11 +2,11 @@ import winston from 'winston';
 import path from 'path';
 import fs from 'fs';
 
-const LOG_DIR = process.env.LOG_DIR || 'logs';
+const LOG_FOLDER = process.env.LOG_FOLDER || './logs';
 
 // Ensure log directory exists
-if (!fs.existsSync(LOG_DIR)) {
-  fs.mkdirSync(LOG_DIR, { recursive: true });
+if (!fs.existsSync(LOG_FOLDER)) {
+  fs.mkdirSync(LOG_FOLDER, { recursive: true });
 }
 
 // Sensitive data patterns to filter
@@ -58,14 +58,14 @@ const logger = winston.createLogger({
       format: consoleFormat,
     }),
     new winston.transports.File({
-      filename: path.join(LOG_DIR, 'error.log'),
+      filename: path.join(LOG_FOLDER, 'error.log'),
       level: 'error',
       format: fileFormat,
       maxsize: 5242880, // 5MB
       maxFiles: 5,
     }),
     new winston.transports.File({
-      filename: path.join(LOG_DIR, 'combined.log'),
+      filename: path.join(LOG_FOLDER, 'combined.log'),
       format: fileFormat,
       maxsize: 5242880, // 5MB
       maxFiles: 5,
@@ -76,11 +76,6 @@ const logger = winston.createLogger({
 // Create a child logger with module context
 export function createLogger(moduleName: string): winston.Logger {
   return logger.child({ module: moduleName });
-}
-
-// Set log level dynamically
-export function setLogLevel(level: string): void {
-  logger.level = level;
 }
 
 export default logger;

@@ -9,40 +9,50 @@ Varken (Dutch for "PIG" - Plex/InfluxDB/Grafana) is a standalone application tha
 ## Running the Application
 
 ```bash
-# Standard execution
-npm start
-
 # Development mode
 npm run dev
 
-# Debug mode
-npm run dev -- --debug
+# Build and run
+npm run build && npm start
 
 # Via Docker
 docker-compose up -d
 ```
 
+## Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CONFIG_FOLDER` | `./config` | YAML configuration files |
+| `DATA_FOLDER` | `./data` | GeoIP database storage |
+| `LOG_FOLDER` | `./logs` | Log files |
+| `LOG_LEVEL` | `info` | Winston log level (`error`, `warn`, `info`, `http`, `verbose`, `debug`, `silly`) |
+
 ## Configuration
 
-- Config file: `config/varken.yaml` (generated from template on first run)
-- Environment variables can override config (e.g., `VARKEN_OUTPUTS_INFLUXDB2_URL`)
+- Config file: `{CONFIG_FOLDER}/varken.yaml` (generated from template on first run)
+- Template: `config/varken.example.yaml`
+- Environment variables can override config values: `VARKEN_OUTPUTS_INFLUXDB2_URL`
 - Automatic migration from legacy `varken.ini` + `VRKN_*` env vars on first run
 
 ## Architecture
 
-**Entry Point**: `src/index.ts` - orchestrates plugin management and scheduling
+**Entry Point**: `src/index.ts`
 
 **Core Modules** (`src/core/`):
-- `Orchestrator.ts` - Main coordinator, graceful shutdown
-- `PluginManager.ts` - Plugin registration and scheduling
 - `Logger.ts` - Winston-based logging with sensitive data filtering
 
 **Config** (`src/config/`):
 - `ConfigLoader.ts` - YAML parsing + env vars override
 - `ConfigMigrator.ts` - Legacy INI/env migration to YAML
-- `schemas/` - Zod validation schemas
+- `schemas/config.schema.ts` - Zod validation schemas
 
-**Plugins** (`src/plugins/`):
+**Types** (`src/types/`):
+- `plugin.types.ts` - Plugin interfaces (InputPlugin, OutputPlugin, DataPoint)
+- `inputs/` - Type definitions per input plugin (sonarr, radarr, tautulli, etc.)
+- `outputs/` - Type definitions per output plugin (influxdb1, influxdb2, etc.)
+
+**Plugins** (`src/plugins/`) - To be implemented:
 - `inputs/` - Data source plugins (Sonarr, Radarr, Tautulli, Plex, Jellyfin, etc.)
 - `outputs/` - Destination plugins (InfluxDB 1.x/2.x, VictoriaMetrics, QuestDB, TimescaleDB)
 
@@ -62,11 +72,23 @@ YAML Config → ConfigLoader → PluginManager → Scheduler
 - `pg` - PostgreSQL/TimescaleDB client
 - `@maxmind/geoip2-node` - IP geolocation
 
-## Build & CI
+## Coding Conventions
 
-- Docker build via GitHub Actions (`.github/workflows/build.yml`)
-- Multi-platform: linux/amd64, linux/arm64
-- Published to ghcr.io on push to develop or version tags (v*.*.*)
+### Logger Instantiation
+
+Always use `createLogger` with the module name for consistent logging:
+
+```typescript
+import { createLogger } from '../core/Logger';
+
+const logger = createLogger('ModuleName');
+
+// Usage
+logger.info('Message');
+logger.debug('Debug info');
+```
+
+Output format: `2024-01-15 10:30:00 info [ModuleName] Message`
 
 ## Development
 
@@ -83,3 +105,9 @@ npm run lint
 # Build
 npm run build
 ```
+
+## Build & CI
+
+- Docker build via GitHub Actions (`.github/workflows/build.yml`)
+- Multi-platform: linux/amd64, linux/arm64
+- Published to ghcr.io on push to develop or version tags (v*.*.*)
