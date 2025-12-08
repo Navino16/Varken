@@ -35,3 +35,7 @@ coverage/
 
 # Logs
 logs/
+
+.env
+# Generated config
+config/varken.yaml

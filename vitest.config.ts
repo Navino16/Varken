@@ -7,9 +7,9 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      exclude: ['node_modules/', 'dist/', '_legacy/', '**/*.test.ts'],
+      exclude: ['node_modules/', 'dist/', '_legacy/', 'tests/'],
     },
-    include: ['src/**/*.test.ts'],
+    include: ['tests/**/*.test.ts'],
   },
   resolve: {
     alias: {

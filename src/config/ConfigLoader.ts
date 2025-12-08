@@ -153,6 +153,22 @@ inputs:
 `;
   }
 
+  // Mapping of lowercase env var keys to camelCase config keys
+  private static readonly KEY_MAPPINGS: Record<string, string> = {
+    apikey: 'apiKey',
+    verifyssl: 'verifySsl',
+    fallbackip: 'fallbackIp',
+    futuredays: 'futureDays',
+    missingdays: 'missingDays',
+    intervalseconds: 'intervalSeconds',
+    intervaldays: 'intervalDays',
+    licensekey: 'licenseKey',
+    requestcounts: 'requestCounts',
+    issuecounts: 'issueCounts',
+    latestrequests: 'latestRequests',
+    indexerstats: 'indexerStats',
+  };
+
   /**
    * Apply VARKEN_* environment variable overrides to configuration
    * Format: VARKEN_SECTION_SUBSECTION_KEY (e.g., VARKEN_OUTPUTS_INFLUXDB2_URL)
@@ -167,7 +183,8 @@ inputs:
       const pathParts = key
         .substring(7) // Remove 'VARKEN_'
         .toLowerCase()
-        .split('_');
+        .split('_')
+        .map((part) => ConfigLoader.KEY_MAPPINGS[part] || part);
 
       this.setNestedValue(config, pathParts, this.parseEnvValue(value));
       logger.debug(`Applied env override: ${key}`);

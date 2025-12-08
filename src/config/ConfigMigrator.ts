@@ -129,6 +129,10 @@ export class ConfigMigrator {
 
   /**
    * Apply legacy VRKN_* environment variable overrides
+   * Handles formats:
+   * - VRKN_GLOBAL_KEY -> [global].key
+   * - VRKN_INFLUXDB_KEY -> [influxdb].key
+   * - VRKN_SONARR_1_KEY -> [sonarr-1].key
    */
   private applyLegacyEnvOverrides(config: ParsedIni): ParsedIni {
     const envVars = Object.entries(process.env).filter(([key]) => key.startsWith('VRKN_'));
@@ -136,12 +140,25 @@ export class ConfigMigrator {
     for (const [key, value] of envVars) {
       if (!value) continue;
 
-      // Parse VRKN_SECTION_KEY format
+      // Parse VRKN_SECTION_KEY or VRKN_SECTION_ID_KEY format
       const parts = key.substring(5).toLowerCase().split('_');
 
       if (parts.length >= 2) {
-        const section = parts[0];
-        const configKey = parts.slice(1).join('_');
+        let section: string;
+        let configKey: string;
+
+        // Check if second part is a number (server ID)
+        if (parts.length >= 3 && /^\d+$/.test(parts[1])) {
+          // Format: VRKN_SONARR_1_URL -> [sonarr-1].url
+          section = `${parts[0]}-${parts[1]}`;
+          configKey = parts.slice(2).join('_');
+        } else {
+          // Format: VRKN_INFLUXDB_URL -> [influxdb].url
+          section = parts[0];
+          configKey = parts.slice(1).join('_');
+        }
+
+        if (!configKey) continue;
 
         if (!config[section]) {
           config[section] = {};
@@ -166,10 +183,18 @@ export class ConfigMigrator {
     // Parse global section
     const globalConfig = this.parseGlobalSection(ini['global'] || {});
 
-    // Convert InfluxDB config
+    // Convert InfluxDB config - detect v1 vs v2 based on 'org' field
     if (ini['influxdb']) {
-      const influxConfig = this.convertInfluxConfig(ini['influxdb']);
-      (config.outputs as Record<string, unknown>)['influxdb1'] = influxConfig;
+      const influxSection = ini['influxdb'];
+      const isInfluxDB2 = !!influxSection['org'] && influxSection['org'] !== '-';
+
+      if (isInfluxDB2) {
+        const influxConfig = this.convertInfluxDB2Config(influxSection);
+        (config.outputs as Record<string, unknown>)['influxdb2'] = influxConfig;
+      } else {
+        const influxConfig = this.convertInfluxDB1Config(influxSection);
+        (config.outputs as Record<string, unknown>)['influxdb1'] = influxConfig;
+      }
     }
 
     // Convert input plugins based on enabled IDs from global section
@@ -278,15 +303,31 @@ export class ConfigMigrator {
   }
 
   /**
-   * Convert InfluxDB config
+   * Convert InfluxDB 1.x config
    */
-  private convertInfluxConfig(section: ParsedIniSection): Record<string, unknown> {
+  private convertInfluxDB1Config(section: ParsedIniSection): Record<string, unknown> {
     return {
       url: section['url'] || 'localhost',
       port: this.parseInt(section['port'], 8086),
       username: section['username'] || 'root',
       password: section['password'] || 'root',
       database: 'varken',
+      ssl: this.parseBool(section['ssl']),
+      verifySsl: this.parseBool(section['verify_ssl']),
+    };
+  }
+
+  /**
+   * Convert InfluxDB 2.x config
+   */
+  private convertInfluxDB2Config(section: ParsedIniSection): Record<string, unknown> {
+    // In legacy format, password is used as token for InfluxDB 2.x
+    return {
+      url: section['url'] || 'localhost',
+      port: this.parseInt(section['port'], 8086),
+      token: section['password'] || '',
+      org: section['org'] || 'varken',
+      bucket: 'varken',
       ssl: this.parseBool(section['ssl']),
       verifySsl: this.parseBool(section['verify_ssl']),
     };
