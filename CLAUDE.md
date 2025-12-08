@@ -57,8 +57,9 @@ docker-compose up -d
 **Plugins** (`src/plugins/`):
 - `inputs/BaseInputPlugin.ts` - Abstract base class with HTTP client, DataPoint helpers
 - `outputs/BaseOutputPlugin.ts` - Abstract base class with Line Protocol conversion
+- `outputs/InfluxDB1Plugin.ts` - InfluxDB 1.x output (legacy API)
+- `outputs/InfluxDB2Plugin.ts` - InfluxDB 2.x output (Flux API, tokens)
 - `inputs/` - Data source plugins (Sonarr, Radarr, Tautulli, Plex, etc.)
-- `outputs/` - Destination plugins (InfluxDB 1.x/2.x, etc.)
 
 **Data Flow**:
 ```

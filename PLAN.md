@@ -161,11 +161,11 @@ interface DataPoint {
 - [x] Implement `PluginManager` (registration, scheduling)
 - [x] Implement `Orchestrator` (coordination, graceful shutdown)
 
-### Phase 3: Output Plugins (Destinations)
+### Phase 3: Output Plugins (Destinations) ✅
 
 #### InfluxDB
-- [ ] `InfluxDB1Plugin` - InfluxDB v1.x support (legacy API)
-- [ ] `InfluxDB2Plugin` - InfluxDB v2.x support (Flux, buckets, tokens)
+- [x] `InfluxDB1Plugin` - InfluxDB v1.x support (legacy API)
+- [x] `InfluxDB2Plugin` - InfluxDB v2.x support (Flux, buckets, tokens)
 
 #### VictoriaMetrics
 - [ ] `VictoriaMetricsPlugin` - InfluxDB line protocol compatible

@@ -3,12 +3,19 @@ import { ConfigLoader } from './config';
 import { Orchestrator } from './core/Orchestrator';
 import { InputPluginFactory, OutputPluginFactory } from './core/PluginManager';
 
+// Output plugins
+import { InfluxDB1Plugin, InfluxDB2Plugin } from './plugins/outputs';
+
 const VERSION = '2.0.0';
 const logger = createLogger('Main');
 
-// Plugin registrations will be added here as they are implemented
+// Plugin registrations
 const inputPlugins = new Map<string, InputPluginFactory>();
-const outputPlugins = new Map<string, OutputPluginFactory>();
+
+const outputPlugins = new Map<string, OutputPluginFactory>([
+  ['influxdb1', InfluxDB1Plugin],
+  ['influxdb2', InfluxDB2Plugin],
+]);
 
 async function main(): Promise<void> {
   const configFolder = process.env.CONFIG_FOLDER || './config';
