@@ -22,17 +22,17 @@ export interface ScheduleConfig {
   collector: () => Promise<DataPoint[]>;
 }
 
-export interface InputPlugin {
+export interface InputPlugin<TConfig = unknown> {
   readonly metadata: PluginMetadata;
-  initialize(config: unknown): Promise<void>;
+  initialize(config: TConfig): Promise<void>;
   collect(): Promise<DataPoint[]>;
   getSchedules(): ScheduleConfig[];
   shutdown(): Promise<void>;
 }
 
-export interface OutputPlugin {
+export interface OutputPlugin<TConfig = unknown> {
   readonly metadata: PluginMetadata;
-  initialize(config: unknown): Promise<void>;
+  initialize(config: TConfig): Promise<void>;
   write(points: DataPoint[]): Promise<void>;
   healthCheck(): Promise<boolean>;
   shutdown(): Promise<void>;

@@ -7,7 +7,8 @@ export interface TautulliConfig {
   id: number;
   url: string;
   apiKey: string;
-  verifySsl: boolean;
+  ssl?: boolean;
+  verifySsl?: boolean;
   fallbackIp?: string;
   activity: {
     enabled: boolean;
@@ -131,15 +132,6 @@ export interface TautulliLibrary {
   is_active: number;
 }
 
-// API Response Types - /api/v2?cmd=get_library_media_info
-export interface TautulliLibraryMediaInfo {
-  section_id: number;
-  section_type: string;
-  count: number;
-  filtered_file_size: number;
-  total_file_size: number;
-}
-
 // GeoIP information (added by Varken)
 export interface GeoIPInfo {
   city: string;
@@ -147,4 +139,16 @@ export interface GeoIPInfo {
   country: string;
   latitude: number;
   longitude: number;
+}
+
+// GeoIP lookup function type
+export type GeoIPLookupFn = (ip: string) => Promise<GeoIPInfo | null>;
+
+// API Response wrapper
+export interface TautulliApiResponse<T> {
+  response: {
+    result: string;
+    message?: string;
+    data: T;
+  };
 }

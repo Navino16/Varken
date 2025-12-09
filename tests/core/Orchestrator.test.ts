@@ -71,6 +71,8 @@ describe('Orchestrator', () => {
           url: 'http://localhost:8989',
           apiKey: 'test-key',
           verifySsl: false,
+          queue: { enabled: true, intervalSeconds: 30 },
+          calendar: { enabled: false, intervalSeconds: 300, futureDays: 7, missingDays: 30 },
         },
       ],
     },
@@ -185,4 +187,9 @@ describe('Orchestrator', () => {
       expect(pm.getStats).toBeDefined();
     });
   });
+
+  // Note: Signal and error handler tests are skipped because emitting process events
+  // (SIGTERM, SIGINT, uncaughtException, unhandledRejection) interferes with vitest's
+  // own handlers and can cause the test runner to hang or crash. The signal handling
+  // code in Orchestrator.ts is simple enough to verify through code review.
 });

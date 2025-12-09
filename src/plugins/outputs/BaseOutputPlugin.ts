@@ -16,7 +16,7 @@ export interface BaseOutputConfig {
  * Provides common functionality like logging and data formatting.
  */
 export abstract class BaseOutputPlugin<TConfig extends BaseOutputConfig = BaseOutputConfig>
-  implements OutputPlugin
+  implements OutputPlugin<TConfig>
 {
   protected config!: TConfig;
   protected logger = createLogger(this.constructor.name);
@@ -29,8 +29,8 @@ export abstract class BaseOutputPlugin<TConfig extends BaseOutputConfig = BaseOu
   /**
    * Initialize the plugin with configuration
    */
-  async initialize(config: unknown): Promise<void> {
-    this.config = config as TConfig;
+  async initialize(config: TConfig): Promise<void> {
+    this.config = config;
     this.logger.info(`Initialized ${this.metadata.name} plugin`);
   }
 

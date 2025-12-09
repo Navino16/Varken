@@ -84,6 +84,8 @@ describe('PluginManager', () => {
           url: 'http://localhost:8989',
           apiKey: 'test-key',
           verifySsl: false,
+          queue: { enabled: true, intervalSeconds: 30 },
+          calendar: { enabled: false, intervalSeconds: 300, futureDays: 7, missingDays: 30 },
         },
       ],
     },
@@ -153,7 +155,14 @@ describe('PluginManager', () => {
         ...minimalConfig,
         inputs: {
           ...minimalConfig.inputs,
-          radarr: [{ id: 1, url: 'http://localhost:7878', apiKey: 'key', verifySsl: false }],
+          radarr: [{
+            id: 1,
+            url: 'http://localhost:7878',
+            apiKey: 'key',
+            verifySsl: false,
+            queue: { enabled: true, intervalSeconds: 30 },
+            missing: { enabled: false, intervalSeconds: 300 },
+          }],
         },
       };
 
@@ -268,6 +277,149 @@ describe('PluginManager', () => {
       expect(stats.activeInputPlugins).toBe(0);
       expect(stats.activeOutputPlugins).toBe(0);
       expect(stats.activeSchedulers).toBe(0);
+    });
+  });
+
+  describe('error handling', () => {
+    it('should handle output plugin initialization failure', async () => {
+      class FailingOutputPlugin extends MockOutputPlugin {
+        async initialize(): Promise<void> {
+          throw new Error('Init failed');
+        }
+      }
+
+      pluginManager.registerInputPlugin('sonarr', MockInputPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', FailingOutputPlugin);
+
+      // Should throw with the initialization error (error is re-thrown)
+      await expect(pluginManager.initializeFromConfig(minimalConfig)).rejects.toThrow(
+        'Init failed'
+      );
+    });
+
+    it('should handle input plugin initialization failure', async () => {
+      class FailingInputPlugin extends MockInputPlugin {
+        async initialize(): Promise<void> {
+          throw new Error('Init failed');
+        }
+      }
+
+      pluginManager.registerInputPlugin('sonarr', FailingInputPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', MockOutputPlugin);
+
+      // Should throw because no input plugins were initialized
+      await expect(pluginManager.initializeFromConfig(minimalConfig)).rejects.toThrow(
+        'No input plugins were initialized'
+      );
+    });
+
+    it('should handle write errors gracefully', async () => {
+      class FailingWriteOutputPlugin extends MockOutputPlugin {
+        async write(): Promise<void> {
+          throw new Error('Write failed');
+        }
+      }
+
+      pluginManager.registerInputPlugin('sonarr', MockInputPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', FailingWriteOutputPlugin);
+      await pluginManager.initializeFromConfig(minimalConfig);
+      await pluginManager.startSchedulers();
+
+      // Advance time to trigger collection and write
+      await vi.advanceTimersByTimeAsync(2000);
+
+      // Should not throw, error is logged
+      const stats = pluginManager.getStats();
+      expect(stats.activeSchedulers).toBe(1);
+    });
+
+    it('should handle shutdown errors gracefully for input plugins', async () => {
+      class FailingShutdownInputPlugin extends MockInputPlugin {
+        async shutdown(): Promise<void> {
+          throw new Error('Shutdown failed');
+        }
+      }
+
+      pluginManager.registerInputPlugin('sonarr', FailingShutdownInputPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', MockOutputPlugin);
+      await pluginManager.initializeFromConfig(minimalConfig);
+
+      // Should not throw, error is logged
+      await pluginManager.shutdown();
+
+      const stats = pluginManager.getStats();
+      expect(stats.activeInputPlugins).toBe(0);
+    });
+
+    it('should handle shutdown errors gracefully for output plugins', async () => {
+      class FailingShutdownOutputPlugin extends MockOutputPlugin {
+        async shutdown(): Promise<void> {
+          throw new Error('Shutdown failed');
+        }
+      }
+
+      pluginManager.registerInputPlugin('sonarr', MockInputPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', FailingShutdownOutputPlugin);
+      await pluginManager.initializeFromConfig(minimalConfig);
+
+      // Should not throw, error is logged
+      await pluginManager.shutdown();
+
+      const stats = pluginManager.getStats();
+      expect(stats.activeOutputPlugins).toBe(0);
+    });
+
+    it('should handle non-Error exceptions in shutdown', async () => {
+      class FailingShutdownOutputPlugin extends MockOutputPlugin {
+        async shutdown(): Promise<void> {
+          throw 'String error'; // Non-Error exception
+        }
+      }
+
+      pluginManager.registerInputPlugin('sonarr', MockInputPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', FailingShutdownOutputPlugin);
+      await pluginManager.initializeFromConfig(minimalConfig);
+
+      // Should not throw, error is logged
+      await pluginManager.shutdown();
+
+      const stats = pluginManager.getStats();
+      expect(stats.activeOutputPlugins).toBe(0);
+    });
+  });
+
+  describe('multiple inputs', () => {
+    it('should initialize multiple instances of the same plugin type', async () => {
+      const configWithMultiple: VarkenConfig = {
+        outputs: minimalConfig.outputs,
+        inputs: {
+          sonarr: [
+            {
+              id: 1,
+              url: 'http://sonarr1:8989',
+              apiKey: 'key1',
+              verifySsl: false,
+              queue: { enabled: true, intervalSeconds: 30 },
+              calendar: { enabled: false, intervalSeconds: 300, futureDays: 7, missingDays: 30 },
+            },
+            {
+              id: 2,
+              url: 'http://sonarr2:8989',
+              apiKey: 'key2',
+              verifySsl: false,
+              queue: { enabled: true, intervalSeconds: 30 },
+              calendar: { enabled: false, intervalSeconds: 300, futureDays: 7, missingDays: 30 },
+            },
+          ],
+        },
+      };
+
+      pluginManager.registerInputPlugin('sonarr', MockInputPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', MockOutputPlugin);
+      await pluginManager.initializeFromConfig(configWithMultiple);
+
+      const stats = pluginManager.getStats();
+      expect(stats.activeInputPlugins).toBe(2);
     });
   });
 });

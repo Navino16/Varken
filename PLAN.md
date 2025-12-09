@@ -167,38 +167,12 @@ interface DataPoint {
 - [x] `InfluxDB1Plugin` - InfluxDB v1.x support (legacy API)
 - [x] `InfluxDB2Plugin` - InfluxDB v2.x support (Flux, buckets, tokens)
 
-#### VictoriaMetrics
-- [ ] `VictoriaMetricsPlugin` - InfluxDB line protocol compatible
-- [ ] Remote write API support
+### Phase 4: Input Plugins (Data Sources) ✅
 
-#### QuestDB
-- [ ] `QuestDBPlugin` - InfluxDB line protocol (ILP) support
-- [ ] PostgreSQL wire protocol support (optional)
-
-#### TimescaleDB
-- [ ] `TimescaleDBPlugin` - PostgreSQL with hypertables
-- [ ] Auto-create tables and hypertables
-- [ ] DataPoint → SQL INSERT mapping
-
-### Phase 4: Input Plugins (Data Sources)
-
-#### Arr Stack (Sonarr/Radarr-like APIs)
-- [ ] `SonarrPlugin` - queue, calendar (missing/future)
-- [ ] `RadarrPlugin` - queue, missing
-- [ ] `ReadarrPlugin` - queue, missing (eBooks)
-- [ ] `LidarrPlugin` - queue, missing
-- [ ] `ProwlarrPlugin` - indexer stats, search stats
-- [ ] `BazarrPlugin` - wanted subtitles, history
-
-#### Media Servers
-- [ ] `TautulliPlugin` - activity, libraries, stats + GeoIP
-- [ ] `PlexPlugin` - sessions, libraries, activity (direct API)
-- [ ] `JellyfinPlugin` - sessions, libraries, activity
-- [ ] `EmbyPlugin` - sessions, libraries, activity
-
-#### Request Management
-- [ ] `OmbiPlugin` - requests
-- [ ] `OverseerrPlugin` - requests
+- [x] `SonarrPlugin` - queue, calendar (missing/future)
+- [x] `RadarrPlugin` - queue, missing
+- [x] `TautulliPlugin` - activity, libraries, stats + GeoIP
+- [x] `OverseerrPlugin` - requests
 
 
 ### Phase 5: Utilities
@@ -212,6 +186,37 @@ interface DataPoint {
 - [ ] docker-compose.yml
 - [ ] Unit and integration tests
 - [ ] Documentation
+
+### Phase 7: Additional Output Plugins
+
+#### VictoriaMetrics
+- [ ] `VictoriaMetricsPlugin` - InfluxDB line protocol compatible
+- [ ] Remote write API support
+
+#### QuestDB
+- [ ] `QuestDBPlugin` - InfluxDB line protocol (ILP) support
+- [ ] PostgreSQL wire protocol support (optional)
+
+#### TimescaleDB
+- [ ] `TimescaleDBPlugin` - PostgreSQL with hypertables
+- [ ] Auto-create tables and hypertables
+- [ ] DataPoint → SQL INSERT mapping
+
+### Phase 8: Additional Input Plugins
+
+#### Arr Stack
+- [ ] `ReadarrPlugin` - queue, missing (eBooks)
+- [ ] `LidarrPlugin` - queue, missing
+- [ ] `ProwlarrPlugin` - indexer stats, search stats
+- [ ] `BazarrPlugin` - wanted subtitles, history
+
+#### Media Servers
+- [ ] `PlexPlugin` - sessions, libraries, activity (direct API)
+- [ ] `JellyfinPlugin` - sessions, libraries, activity
+- [ ] `EmbyPlugin` - sessions, libraries, activity
+
+#### Request Management
+- [ ] `OmbiPlugin` - requests
 
 ---
 

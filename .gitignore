@@ -39,3 +39,4 @@ logs/
 .env
 # Generated config
 config/varken.yaml
+config/varken.test.yaml

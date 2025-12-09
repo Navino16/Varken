@@ -24,7 +24,7 @@ export class InfluxDB2Plugin extends BaseOutputPlugin<InfluxDB2Config> {
   /**
    * Initialize the InfluxDB 2.x client
    */
-  async initialize(config: unknown): Promise<void> {
+  async initialize(config: InfluxDB2Config): Promise<void> {
     await super.initialize(config);
 
     const url = this.getBaseUrl();

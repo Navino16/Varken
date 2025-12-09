@@ -360,5 +360,108 @@ inputs:
       const loader = new ConfigLoader(testConfigFolder);
       expect(() => loader.load()).toThrow('Configuration validation failed');
     });
+
+    it('should create nested array structures from env vars', () => {
+      const yamlContent = `
+outputs:
+  influxdb1:
+    url: localhost
+
+inputs: {}
+`;
+      fs.writeFileSync(path.join(testConfigFolder, 'varken.yaml'), yamlContent);
+
+      // Create array item via env var (should create the array and object)
+      process.env.VARKEN_INPUTS_SONARR_0_ID = '1';
+      process.env.VARKEN_INPUTS_SONARR_0_URL = 'http://sonarr.local:8989';
+      process.env.VARKEN_INPUTS_SONARR_0_APIKEY = 'env-api-key';
+
+      const loader = new ConfigLoader(testConfigFolder);
+      const config = loader.load();
+
+      expect(config.inputs.sonarr).toBeDefined();
+      expect(config.inputs.sonarr?.[0].url).toBe('http://sonarr.local:8989');
+      expect(config.inputs.sonarr?.[0].apiKey).toBe('env-api-key');
+    });
+
+    it('should handle deeply nested env var paths', () => {
+      const yamlContent = `
+outputs:
+  influxdb1:
+    url: localhost
+
+inputs:
+  sonarr:
+    - id: 1
+      url: http://localhost:8989
+      apiKey: test-key
+      queue:
+        enabled: true
+        intervalSeconds: 30
+`;
+      fs.writeFileSync(path.join(testConfigFolder, 'varken.yaml'), yamlContent);
+
+      // Override nested value
+      process.env.VARKEN_INPUTS_SONARR_0_QUEUE_INTERVALSECONDS = '60';
+      process.env.VARKEN_INPUTS_SONARR_0_QUEUE_ENABLED = 'false';
+
+      const loader = new ConfigLoader(testConfigFolder);
+      const config = loader.load();
+
+      expect(config.inputs.sonarr?.[0].queue.intervalSeconds).toBe(60);
+      expect(config.inputs.sonarr?.[0].queue.enabled).toBe(false);
+    });
+
+    it('should create new nested objects from env vars', () => {
+      const yamlContent = `
+outputs:
+  influxdb1:
+    url: localhost
+
+inputs:
+  sonarr:
+    - id: 1
+      url: http://localhost:8989
+      apiKey: test-key
+`;
+      fs.writeFileSync(path.join(testConfigFolder, 'varken.yaml'), yamlContent);
+
+      // Create nested object that doesn't exist in YAML
+      process.env.VARKEN_INPUTS_SONARR_0_CALENDAR_ENABLED = 'true';
+      process.env.VARKEN_INPUTS_SONARR_0_CALENDAR_FUTUREDAYS = '14';
+
+      const loader = new ConfigLoader(testConfigFolder);
+      const config = loader.load();
+
+      expect(config.inputs.sonarr?.[0].calendar).toBeDefined();
+      expect(config.inputs.sonarr?.[0].calendar.enabled).toBe(true);
+      expect(config.inputs.sonarr?.[0].calendar.futureDays).toBe(14);
+    });
+
+    it('should support adding multiple array items via env vars', () => {
+      const yamlContent = `
+outputs:
+  influxdb1:
+    url: localhost
+
+inputs:
+  sonarr:
+    - id: 1
+      url: http://sonarr1:8989
+      apiKey: key1
+`;
+      fs.writeFileSync(path.join(testConfigFolder, 'varken.yaml'), yamlContent);
+
+      // Add second array item via env var
+      process.env.VARKEN_INPUTS_SONARR_1_ID = '2';
+      process.env.VARKEN_INPUTS_SONARR_1_URL = 'http://sonarr2:8989';
+      process.env.VARKEN_INPUTS_SONARR_1_APIKEY = 'key2';
+
+      const loader = new ConfigLoader(testConfigFolder);
+      const config = loader.load();
+
+      expect(config.inputs.sonarr).toHaveLength(2);
+      expect(config.inputs.sonarr?.[1].url).toBe('http://sonarr2:8989');
+    });
   });
 });

@@ -7,7 +7,8 @@ export interface OverseerrConfig {
   id: number;
   url: string;
   apiKey: string;
-  verifySsl: boolean;
+  ssl?: boolean;
+  verifySsl?: boolean;
   requestCounts: {
     enabled: boolean;
     intervalSeconds: number;
@@ -124,10 +125,18 @@ export interface OverseerrSeasonRequest {
   updatedAt: string;
 }
 
-// API Response Types - /api/v1/status
-export interface OverseerrStatus {
-  version: string;
-  commitTag: string;
-  updateAvailable: boolean;
-  commitsBehind: number;
+// API Response Types - /api/v1/movie/{id} and /api/v1/tv/{id}
+export interface OverseerrMediaDetails {
+  id: number;
+  title?: string; // For movies
+  name?: string; // For TV shows
+  mediaInfo?: {
+    status: number;
+    requests?: Array<{
+      requestedBy: {
+        displayName: string;
+      };
+      createdAt: string;
+    }>;
+  };
 }

@@ -1,21 +1,11 @@
 import { createLogger } from './core/Logger';
 import { ConfigLoader } from './config';
 import { Orchestrator } from './core/Orchestrator';
-import { InputPluginFactory, OutputPluginFactory } from './core/PluginManager';
-
-// Output plugins
-import { InfluxDB1Plugin, InfluxDB2Plugin } from './plugins/outputs';
+import { getInputPluginRegistry } from './plugins/inputs';
+import { getOutputPluginRegistry } from './plugins/outputs';
 
 const VERSION = '2.0.0';
 const logger = createLogger('Main');
-
-// Plugin registrations
-const inputPlugins = new Map<string, InputPluginFactory>();
-
-const outputPlugins = new Map<string, OutputPluginFactory>([
-  ['influxdb1', InfluxDB1Plugin],
-  ['influxdb2', InfluxDB2Plugin],
-]);
 
 async function main(): Promise<void> {
   const configFolder = process.env.CONFIG_FOLDER || './config';
@@ -36,7 +26,13 @@ async function main(): Promise<void> {
   // Create and configure orchestrator
   const orchestrator = new Orchestrator(config);
 
-  // Register plugins
+  // Register plugins automatically from registries
+  const inputPlugins = getInputPluginRegistry();
+  const outputPlugins = getOutputPluginRegistry();
+
+  logger.info(`Discovered ${inputPlugins.size} input plugins: ${[...inputPlugins.keys()].join(', ')}`);
+  logger.info(`Discovered ${outputPlugins.size} output plugins: ${[...outputPlugins.keys()].join(', ')}`);
+
   orchestrator.registerPlugins({
     inputPlugins,
     outputPlugins,

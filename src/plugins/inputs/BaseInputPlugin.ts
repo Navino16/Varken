@@ -24,7 +24,7 @@ export interface BaseInputConfig {
  * Provides common functionality like HTTP client, logging, and data point creation.
  */
 export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInputConfig>
-  implements InputPlugin
+  implements InputPlugin<TConfig>
 {
   protected config!: TConfig;
   protected httpClient!: AxiosInstance;
@@ -38,8 +38,8 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
   /**
    * Initialize the plugin with configuration
    */
-  async initialize(config: unknown): Promise<void> {
-    this.config = config as TConfig;
+  async initialize(config: TConfig): Promise<void> {
+    this.config = config;
     this.httpClient = this.createHttpClient();
     this.logger.info(`Initialized ${this.metadata.name} plugin (id: ${this.config.id})`);
   }

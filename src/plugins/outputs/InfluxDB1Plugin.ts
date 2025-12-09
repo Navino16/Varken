@@ -1,4 +1,4 @@
-import { InfluxDB, IPoint, FieldType, ISingleHostConfig } from 'influx';
+import { InfluxDB, IPoint, ISingleHostConfig } from 'influx';
 import * as https from 'https';
 import { BaseOutputPlugin } from './BaseOutputPlugin';
 import { DataPoint, PluginMetadata } from '../../types/plugin.types';
@@ -23,7 +23,7 @@ export class InfluxDB1Plugin extends BaseOutputPlugin<InfluxDB1Config> {
   /**
    * Initialize the InfluxDB 1.x client
    */
-  async initialize(config: unknown): Promise<void> {
+  async initialize(config: InfluxDB1Config): Promise<void> {
     await super.initialize(config);
 
     const protocol = this.config.ssl ? 'https' : 'http';
@@ -95,20 +95,10 @@ export class InfluxDB1Plugin extends BaseOutputPlugin<InfluxDB1Config> {
    * Convert a DataPoint to InfluxDB IPoint format
    */
   private convertToInfluxPoint(point: DataPoint): IPoint {
-    const fields: Record<string, { value: unknown; type: FieldType }> = {};
-
+    // Fields can be passed directly - the influx library handles type coercion
+    const fields: Record<string, string | number | boolean> = {};
     for (const [key, value] of Object.entries(point.fields)) {
-      if (typeof value === 'boolean') {
-        fields[key] = { value, type: FieldType.BOOLEAN };
-      } else if (typeof value === 'number') {
-        if (Number.isInteger(value)) {
-          fields[key] = { value, type: FieldType.INTEGER };
-        } else {
-          fields[key] = { value, type: FieldType.FLOAT };
-        }
-      } else {
-        fields[key] = { value: String(value), type: FieldType.STRING };
-      }
+      fields[key] = value;
     }
 
     // Convert tags to strings
