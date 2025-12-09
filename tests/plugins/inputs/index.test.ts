@@ -6,6 +6,7 @@ import {
   RadarrPlugin,
   TautulliPlugin,
   OverseerrPlugin,
+  OmbiPlugin,
 } from '../../../src/plugins/inputs';
 
 describe('Input Plugins Index', () => {
@@ -21,11 +22,12 @@ describe('Input Plugins Index', () => {
       expect(registry.has('radarr')).toBe(true);
       expect(registry.has('tautulli')).toBe(true);
       expect(registry.has('overseerr')).toBe(true);
+      expect(registry.has('ombi')).toBe(true);
     });
 
     it('should have correct number of plugins', () => {
       const registry = getInputPluginRegistry();
-      expect(registry.size).toBe(4);
+      expect(registry.size).toBe(5);
     });
 
     it('should return plugin classes that can be instantiated', () => {
@@ -69,6 +71,10 @@ describe('Input Plugins Index', () => {
 
     it('should export OverseerrPlugin', () => {
       expect(OverseerrPlugin).toBeDefined();
+    });
+
+    it('should export OmbiPlugin', () => {
+      expect(OmbiPlugin).toBeDefined();
     });
   });
 });

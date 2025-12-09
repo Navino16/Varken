@@ -5,6 +5,7 @@ import { SonarrPlugin } from './SonarrPlugin';
 import { RadarrPlugin } from './RadarrPlugin';
 import { TautulliPlugin } from './TautulliPlugin';
 import { OverseerrPlugin } from './OverseerrPlugin';
+import { OmbiPlugin } from './OmbiPlugin';
 
 // Re-exports for direct usage
 export { BaseInputPlugin, BaseInputConfig } from './BaseInputPlugin';
@@ -12,6 +13,7 @@ export { SonarrPlugin } from './SonarrPlugin';
 export { RadarrPlugin } from './RadarrPlugin';
 export { TautulliPlugin } from './TautulliPlugin';
 export { OverseerrPlugin } from './OverseerrPlugin';
+export { OmbiPlugin } from './OmbiPlugin';
 export type { GeoIPLookupFn } from '../../types/inputs/tautulli.types';
 
 /**
@@ -23,6 +25,7 @@ const inputPluginClasses: InputPluginFactory[] = [
   RadarrPlugin,
   TautulliPlugin,
   OverseerrPlugin,
+  OmbiPlugin,
 ];
 
 /**

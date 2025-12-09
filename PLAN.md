@@ -175,10 +175,10 @@ interface DataPoint {
 - [x] `OverseerrPlugin` - requests
 
 
-### Phase 5: Utilities
-- [ ] GeoIP Handler (MaxMind)
-- [ ] HTTP utilities (retry, error handling)
-- [ ] SHA-256 hash (deterministic unique ID generation)
+### Phase 5: Utilities ✅
+- [x] GeoIP Handler (MaxMind) - auto-download, update, lookup
+- [x] HTTP utilities (retry, error handling) - axios wrapper with exponential backoff
+- [x] SHA-256 hash (deterministic unique ID generation)
 
 ### Phase 6: Finalization
 - [ ] Main entry point (`index.ts`)
@@ -216,7 +216,7 @@ interface DataPoint {
 - [ ] `EmbyPlugin` - sessions, libraries, activity
 
 #### Request Management
-- [ ] `OmbiPlugin` - requests
+- [x] `OmbiPlugin` - requests
 
 ---
 
