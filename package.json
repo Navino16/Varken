@@ -45,16 +45,12 @@
     "@maxmind/geoip2-node": "^5.0.0",
     "axios": "^1.7.0",
     "influx": "^5.9.0",
-    "ini": "^5.0.0",
-    "pg": "^8.13.0",
     "winston": "^3.17.0",
     "yaml": "^2.6.0",
     "zod": "^3.24.0"
   },
   "devDependencies": {
-    "@types/ini": "^4.1.0",
     "@types/node": "^22.0.0",
-    "@types/pg": "^8.11.0",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
     "@vitest/coverage-v8": "^2.1.0",
