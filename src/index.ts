@@ -3,6 +3,7 @@ import { ConfigLoader } from './config';
 import { Orchestrator } from './core/Orchestrator';
 import { getInputPluginRegistry } from './plugins/inputs';
 import { getOutputPluginRegistry } from './plugins/outputs';
+import { GeoIPHandler } from './utils/geoip';
 
 const VERSION = '2.0.0';
 const logger = createLogger('Main');
@@ -21,10 +22,25 @@ async function main(): Promise<void> {
 
   logger.debug('Configuration loaded');
 
-  // dataFolder will be used for GeoIP database
+  // Initialize GeoIP handler if any Tautulli config has geoip enabled
+  let geoipHandler: GeoIPHandler | undefined;
+  const tautulliConfigs = config.inputs.tautulli || [];
+  const needsGeoIP = tautulliConfigs.some((t) => t.geoip?.enabled && t.geoip?.licenseKey);
+
+  if (needsGeoIP) {
+    const geoipLicenseKey = tautulliConfigs.find((t) => t.geoip?.licenseKey)?.geoip?.licenseKey;
+    if (geoipLicenseKey) {
+      geoipHandler = new GeoIPHandler({
+        enabled: true,
+        licenseKey: geoipLicenseKey,
+        dataFolder,
+      });
+      await geoipHandler.initialize();
+    }
+  }
 
   // Create and configure orchestrator
-  const orchestrator = new Orchestrator(config);
+  const orchestrator = new Orchestrator(config, geoipHandler);
 
   // Register plugins automatically from registries
   const inputPlugins = getInputPluginRegistry();

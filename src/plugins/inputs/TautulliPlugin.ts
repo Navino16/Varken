@@ -46,6 +46,7 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
    */
   setGeoIPLookup(lookupFn: GeoIPLookupFn): void {
     this.geoipLookup = lookupFn;
+    this.logger.info('GeoIP lookup function enabled');
   }
 
   /**
@@ -168,11 +169,17 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
       if (ip) {
         try {
           geoData = await this.geoipLookup(ip);
+          if (geoData) {
+            this.logger.debug(`GeoIP: ${ip} -> ${geoData.city}, ${geoData.region}, ${geoData.country}`);
+          }
         } catch {
           this.logger.debug(`GeoIP lookup failed for ${ip}, trying fallback...`);
           if (this.config.fallbackIp) {
             try {
               geoData = await this.geoipLookup(this.config.fallbackIp);
+              if (geoData) {
+                this.logger.debug(`GeoIP fallback: ${this.config.fallbackIp} -> ${geoData.city}, ${geoData.region}, ${geoData.country}`);
+              }
             } catch {
               this.logger.debug('Fallback IP lookup also failed');
             }

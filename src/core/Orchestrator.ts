@@ -1,6 +1,7 @@
 import { createLogger } from './Logger';
 import { PluginManager, InputPluginFactory, OutputPluginFactory } from './PluginManager';
 import { VarkenConfig } from '../config/schemas/config.schema';
+import { GeoIPHandler } from '../utils/geoip';
 
 const logger = createLogger('Orchestrator');
 
@@ -19,12 +20,14 @@ interface PluginRegistration {
 export class Orchestrator {
   private pluginManager: PluginManager;
   private config: VarkenConfig;
+  private geoipHandler?: GeoIPHandler;
   private isRunning = false;
   private shutdownPromise: Promise<void> | null = null;
 
-  constructor(config: VarkenConfig) {
+  constructor(config: VarkenConfig, geoipHandler?: GeoIPHandler) {
     this.config = config;
-    this.pluginManager = new PluginManager();
+    this.geoipHandler = geoipHandler;
+    this.pluginManager = new PluginManager(geoipHandler);
   }
 
   /**
@@ -111,6 +114,12 @@ export class Orchestrator {
 
     try {
       await this.pluginManager.shutdown();
+
+      // Shutdown GeoIP handler if initialized
+      if (this.geoipHandler) {
+        await this.geoipHandler.shutdown();
+      }
+
       logger.info('Varken stopped successfully');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';

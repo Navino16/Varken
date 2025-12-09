@@ -6,6 +6,8 @@ import {
   ScheduleConfig,
 } from '../types/plugin.types';
 import { VarkenConfig } from '../config/schemas/config.schema';
+import { GeoIPHandler } from '../utils/geoip';
+import { TautulliPlugin } from '../plugins/inputs/TautulliPlugin';
 
 const logger = createLogger('PluginManager');
 
@@ -42,6 +44,11 @@ export class PluginManager {
 
   private schedulers: Map<string, ActiveScheduler> = new Map();
   private isRunning = false;
+  private geoipHandler?: GeoIPHandler;
+
+  constructor(geoipHandler?: GeoIPHandler) {
+    this.geoipHandler = geoipHandler;
+  }
 
   /**
    * Register an input plugin factory
@@ -127,6 +134,16 @@ export class PluginManager {
         try {
           const plugin = new factory();
           await plugin.initialize(inputConfig);
+
+          // Inject GeoIP lookup function for Tautulli plugins
+          if (type === 'tautulli' && plugin instanceof TautulliPlugin && this.geoipHandler) {
+            const lookupFn = this.geoipHandler.getLookupFunction();
+            if (lookupFn) {
+              plugin.setGeoIPLookup(lookupFn);
+              logger.debug(`Injected GeoIP lookup into Tautulli plugin (id: ${inputConfig.id})`);
+            }
+          }
+
           plugins.push(plugin);
           logger.info(`Initialized input plugin: ${type} (id: ${inputConfig.id})`);
         } catch (error) {
