@@ -37,3 +37,4 @@ data/
 # Generated config
 config/varken.yaml
 config/varken.test.yaml
+ANALYSIS.md
