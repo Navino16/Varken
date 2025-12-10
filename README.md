@@ -413,8 +413,6 @@ src/
 ## Support
 
 - **GitHub Issues**: [Bug reports and feature requests](https://github.com/navino16/Varken/issues)
-- **Wiki**: [Documentation](https://wiki.cajun.pro/books/varken)
-- **Discord**: [Community support](http://cyborg.decreator.dev/channels/518970285773422592/530424560504537105/)
 
 ## License
 
