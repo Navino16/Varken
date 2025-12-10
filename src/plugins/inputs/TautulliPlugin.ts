@@ -1,7 +1,7 @@
 import { createHash } from 'crypto';
 import { BaseInputPlugin } from './BaseInputPlugin';
-import { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
-import {
+import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
+import type {
   TautulliConfig,
   TautulliActivity,
   TautulliSession,
@@ -369,7 +369,7 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
    * Convert string to Title Case
    */
   private titleCase(str: string): string {
-    if (!str) return '';
+    if (!str) {return '';}
     return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
   }
 }

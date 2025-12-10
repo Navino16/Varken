@@ -1,5 +1,5 @@
 import { createLogger } from '../../core/Logger';
-import { OutputPlugin, PluginMetadata, DataPoint } from '../../types/plugin.types';
+import type { OutputPlugin, PluginMetadata, DataPoint } from '../../types/plugin.types';
 
 /**
  * Base configuration interface for output plugins

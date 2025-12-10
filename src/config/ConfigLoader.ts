@@ -3,7 +3,8 @@ import * as path from 'path';
 import * as yaml from 'yaml';
 import { createLogger } from '../core/Logger';
 import { ConfigMigrator } from './ConfigMigrator';
-import { VarkenConfigSchema, VarkenConfig } from './schemas/config.schema';
+import type { VarkenConfig } from './schemas/config.schema';
+import { VarkenConfigSchema } from './schemas/config.schema';
 
 const logger = createLogger('ConfigLoader');
 
@@ -177,7 +178,7 @@ inputs:
     const envVars = Object.entries(process.env).filter(([key]) => key.startsWith('VARKEN_'));
 
     for (const [key, value] of envVars) {
-      if (!value) continue;
+      if (!value) {continue;}
 
       // Parse VARKEN_PATH_TO_KEY format
       const pathParts = key
@@ -233,12 +234,12 @@ inputs:
    */
   private parseEnvValue(value: string): unknown {
     // Boolean
-    if (value.toLowerCase() === 'true') return true;
-    if (value.toLowerCase() === 'false') return false;
+    if (value.toLowerCase() === 'true') {return true;}
+    if (value.toLowerCase() === 'false') {return false;}
 
     // Number
     const num = Number(value);
-    if (!isNaN(num) && value.trim() !== '') return num;
+    if (!isNaN(num) && value.trim() !== '') {return num;}
 
     // String (default)
     return value;

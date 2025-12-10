@@ -1,7 +1,8 @@
 import { createLogger } from './Logger';
-import { PluginManager, InputPluginFactory, OutputPluginFactory } from './PluginManager';
-import { VarkenConfig } from '../config/schemas/config.schema';
-import { GeoIPHandler } from '../utils/geoip';
+import type { InputPluginFactory, OutputPluginFactory } from './PluginManager';
+import { PluginManager } from './PluginManager';
+import type { VarkenConfig } from '../config/schemas/config.schema';
+import type { GeoIPHandler } from '../utils/geoip';
 
 const logger = createLogger('Orchestrator');
 

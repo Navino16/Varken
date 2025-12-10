@@ -1,7 +1,7 @@
 import { createHash } from 'crypto';
 import { BaseInputPlugin } from './BaseInputPlugin';
-import { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
-import {
+import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
+import type {
   OmbiConfig,
   OmbiRequestCounts,
   OmbiIssuesCounts,
@@ -24,9 +24,9 @@ function hashit(input: string): string {
  * 3 = Pending
  */
 function getRequestStatus(approved: boolean, available: boolean, denied: boolean): number {
-  if (denied) return 0;
-  if (approved && available) return 2;
-  if (approved) return 1;
+  if (denied) {return 0;}
+  if (approved && available) {return 2;}
+  if (approved) {return 1;}
   return 3;
 }
 

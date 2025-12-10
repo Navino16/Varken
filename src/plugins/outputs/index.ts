@@ -1,4 +1,4 @@
-import { OutputPluginFactory } from '../../core/PluginManager';
+import type { OutputPluginFactory } from '../../core/PluginManager';
 
 // Plugin imports
 import { InfluxDB1Plugin } from './InfluxDB1Plugin';

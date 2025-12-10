@@ -1,12 +1,12 @@
 import { createLogger } from './Logger';
-import {
+import type {
   InputPlugin,
   OutputPlugin,
   DataPoint,
   ScheduleConfig,
 } from '../types/plugin.types';
-import { VarkenConfig } from '../config/schemas/config.schema';
-import { GeoIPHandler } from '../utils/geoip';
+import type { VarkenConfig } from '../config/schemas/config.schema';
+import type { GeoIPHandler } from '../utils/geoip';
 import { TautulliPlugin } from '../plugins/inputs/TautulliPlugin';
 
 const logger = createLogger('PluginManager');
@@ -88,7 +88,7 @@ export class PluginManager {
     outputs: VarkenConfig['outputs']
   ): Promise<void> {
     for (const [type, outputConfig] of Object.entries(outputs)) {
-      if (!outputConfig) continue;
+      if (!outputConfig) {continue;}
 
       const factory = this.outputFactories.get(type);
       if (!factory) {
@@ -120,7 +120,7 @@ export class PluginManager {
     inputs: VarkenConfig['inputs']
   ): Promise<void> {
     for (const [type, inputConfigs] of Object.entries(inputs)) {
-      if (!inputConfigs || inputConfigs.length === 0) continue;
+      if (!inputConfigs || inputConfigs.length === 0) {continue;}
 
       const factory = this.inputFactories.get(type);
       if (!factory) {
@@ -177,7 +177,7 @@ export class PluginManager {
     logger.info('Starting schedulers...');
     this.isRunning = true;
 
-    for (const [_type, plugins] of this.inputPlugins) {
+    for (const [, plugins] of this.inputPlugins) {
       for (const plugin of plugins) {
         const schedules = plugin.getSchedules();
 

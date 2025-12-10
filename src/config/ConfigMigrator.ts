@@ -138,7 +138,7 @@ export class ConfigMigrator {
     const envVars = Object.entries(process.env).filter(([key]) => key.startsWith('VRKN_'));
 
     for (const [key, value] of envVars) {
-      if (!value) continue;
+      if (!value) {continue;}
 
       // Parse VRKN_SECTION_KEY or VRKN_SECTION_ID_KEY format
       const parts = key.substring(5).toLowerCase().split('_');
@@ -158,7 +158,7 @@ export class ConfigMigrator {
           configKey = parts.slice(1).join('_');
         }
 
-        if (!configKey) continue;
+        if (!configKey) {continue;}
 
         if (!config[section]) {
           config[section] = {};
@@ -279,7 +279,7 @@ export class ConfigMigrator {
    * Parse boolean from INI value
    */
   private parseBool(value: string | undefined): boolean {
-    if (!value) return false;
+    if (!value) {return false;}
     return value.toLowerCase() === 'true' || value === '1';
   }
 
@@ -287,7 +287,7 @@ export class ConfigMigrator {
    * Parse number from INI value
    */
   private parseInt(value: string | undefined, defaultValue: number): number {
-    if (!value) return defaultValue;
+    if (!value) {return defaultValue;}
     const parsed = parseInt(value, 10);
     return isNaN(parsed) ? defaultValue : parsed;
   }

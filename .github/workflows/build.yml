@@ -6,12 +6,12 @@ env:
 
 on:
   push:
-    branches: 
+    branches:
       - 'develop'
     tags:
       - 'v*.*.*'
   pull_request:
-    branches: 
+    branches:
       - 'main'
 
 permissions:
@@ -19,8 +19,49 @@ permissions:
   packages: write
 
 jobs:
-  build:
+  # Run CI checks before building Docker image
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test -- --run
+
+  docker:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: [lint, test]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -32,7 +73,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /tmp/.buildx-cache
-          key: buildx
+          key: buildx-${{ github.sha }}
+          restore-keys: |
+            buildx-
 
       - name: Docker meta
         id: meta
@@ -40,20 +83,14 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           flavor: |
-            latest=true
+            latest=auto
           tags: |
-            # Run on push tag event
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            # Run on latest commit to dev branch
-            type=edge,enable=true,branch=dev,prefix=dev-
-            # Run on latest commit to main branch
             type=ref,event=branch
-            # RUn on latest PR to main branch
             type=ref,event=pr
-            # Run on latest commit to any branch
             type=sha,prefix={{branch}}-
-            
+
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -70,4 +107,9 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new
+
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache

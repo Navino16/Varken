@@ -1,9 +1,10 @@
-import { InfluxDB, WriteApi, Point, HttpError } from '@influxdata/influxdb-client';
+import type { WriteApi} from '@influxdata/influxdb-client';
+import { InfluxDB, Point, HttpError } from '@influxdata/influxdb-client';
 import { HealthAPI } from '@influxdata/influxdb-client-apis';
 import { BaseOutputPlugin } from './BaseOutputPlugin';
-import { DataPoint, PluginMetadata } from '../../types/plugin.types';
-import { z } from 'zod';
-import { InfluxDB2ConfigSchema } from '../../config/schemas/config.schema';
+import type { DataPoint, PluginMetadata } from '../../types/plugin.types';
+import type { z } from 'zod';
+import type { InfluxDB2ConfigSchema } from '../../config/schemas/config.schema';
 
 export type InfluxDB2Config = z.infer<typeof InfluxDB2ConfigSchema>;
 

@@ -1,7 +1,8 @@
-import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
+import type { AxiosInstance, AxiosRequestConfig } from 'axios';
+import axios from 'axios';
 import * as https from 'https';
 import { createLogger } from '../../core/Logger';
-import {
+import type {
   InputPlugin,
   PluginMetadata,
   DataPoint,

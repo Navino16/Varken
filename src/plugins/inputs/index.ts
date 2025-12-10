@@ -1,4 +1,4 @@
-import { InputPluginFactory } from '../../core/PluginManager';
+import type { InputPluginFactory } from '../../core/PluginManager';
 
 // Plugin imports
 import { SonarrPlugin } from './SonarrPlugin';

@@ -1,13 +1,14 @@
-import axios, {
+import type {
   AxiosInstance,
   AxiosRequestConfig,
   AxiosResponse,
   AxiosError,
   InternalAxiosRequestConfig,
 } from 'axios';
+import axios from 'axios';
 import https from 'https';
 import { createLogger } from '../core/Logger';
-import { HttpClientConfig, RetryConfig } from '../types/http.types';
+import type { HttpClientConfig, RetryConfig } from '../types/http.types';
 
 const logger = createLogger('HTTP');
 

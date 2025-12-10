@@ -1,9 +1,10 @@
-import { InfluxDB, IPoint, ISingleHostConfig } from 'influx';
+import type { IPoint, ISingleHostConfig } from 'influx';
+import { InfluxDB } from 'influx';
 import * as https from 'https';
 import { BaseOutputPlugin } from './BaseOutputPlugin';
-import { DataPoint, PluginMetadata } from '../../types/plugin.types';
-import { z } from 'zod';
-import { InfluxDB1ConfigSchema } from '../../config/schemas/config.schema';
+import type { DataPoint, PluginMetadata } from '../../types/plugin.types';
+import type { z } from 'zod';
+import type { InfluxDB1ConfigSchema } from '../../config/schemas/config.schema';
 
 export type InfluxDB1Config = z.infer<typeof InfluxDB1ConfigSchema>;
 

@@ -8,6 +8,7 @@
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
     "build": "tsc",
+    "clean": "rm -rf dist .reports node_modules logs data",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
     "test": "vitest",

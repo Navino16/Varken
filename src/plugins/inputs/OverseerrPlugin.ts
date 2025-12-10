@@ -1,7 +1,7 @@
 import { createHash } from 'crypto';
 import { BaseInputPlugin } from './BaseInputPlugin';
-import { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
-import {
+import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
+import type {
   OverseerrConfig,
   OverseerrRequestCounts,
   OverseerrIssuesCounts,

@@ -6,8 +6,13 @@ export default defineConfig({
     environment: 'node',
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json', 'html'],
+      reportsDirectory: '.reports/coverage',
+      reporter: ['text', 'json', 'html', 'cobertura'],
       exclude: ['node_modules/', 'dist/', '_legacy/', 'tests/', 'src/types/**', '*.config.js', '*.config.ts' ],
+    },
+    reporters: ['default', 'junit'],
+    outputFile: {
+      junit: '.reports/junit.xml',
     },
     include: ['tests/**/*.test.ts'],
   },

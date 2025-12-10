@@ -1,11 +1,12 @@
-import { Reader, ReaderModel, City } from '@maxmind/geoip2-node';
+import type { ReaderModel, City } from '@maxmind/geoip2-node';
+import { Reader } from '@maxmind/geoip2-node';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as https from 'https';
 import * as zlib from 'zlib';
 import { createLogger } from '../core/Logger';
-import { GeoIPInfo } from '../types/inputs/tautulli.types';
-import { GeoIPConfig } from '../types/geoip.types';
+import type { GeoIPInfo } from '../types/inputs/tautulli.types';
+import type { GeoIPConfig } from '../types/geoip.types';
 
 const logger = createLogger('GeoIP');
 

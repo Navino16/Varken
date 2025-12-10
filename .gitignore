@@ -14,29 +14,26 @@ _legacy/
 GeoLite2-City.mmdb
 GeoLite2-City.tar.gz
 
-# Config
-config/varken.yaml
-
 # IDE
 .idea/
 .vscode/
 
-# Python (legacy)
-varken-venv/
-venv/
-__pycache__/
-
 # Node.js
 node_modules/
 dist/
-coverage/
+.reports/
 *.log
 .env
 
 # Logs
 logs/
 
+# Data
+data/
+
+# Environment variables
 .env
+
 # Generated config
 config/varken.yaml
 config/varken.test.yaml
