@@ -550,6 +550,16 @@ tests/
 - **JUnit**: `.reports/junit.xml` (for CI)
 - **Current**: 394 tests passing
 
+## Contributing
+
+### Pull Requests
+
+**Always use the PR template** located at `.github/PULL_REQUEST_TEMPLATE.md` when creating pull requests. The template includes:
+- Description section
+- Type of change checkboxes
+- Checklist for testing and quality
+- Related issues section
+
 ## Build & CI
 
 ### GitHub Actions
