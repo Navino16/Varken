@@ -68,7 +68,7 @@ varken/
 │       ├── geoip.ts                 # MaxMind GeoIP2 download & lookup
 │       ├── http.ts                  # HTTP utilities, error classification
 │       └── index.ts
-├── tests/                           # 394 tests, ~70% coverage
+├── tests/                           # 396 tests, ~70% coverage
 │   ├── config/
 │   ├── core/
 │   ├── plugins/
@@ -229,7 +229,7 @@ interface ScheduleConfig {
 - [x] Main entry point (`index.ts`)
 - [x] Dockerfile (multi-stage, ~190MB)
 - [x] docker-compose.yml (Varken + InfluxDB 2.x + Grafana)
-- [x] Unit tests (394 tests passing)
+- [x] Unit tests (396 tests passing)
 - [x] CI/CD workflows (GitHub Actions)
 - [x] Codecov integration
 - [x] Documentation (README.md, CLAUDE.md)

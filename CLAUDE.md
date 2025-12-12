@@ -548,7 +548,7 @@ tests/
 - **Framework**: Vitest 2.1.0
 - **Coverage**: v8 provider, reports to `.reports/coverage/`
 - **JUnit**: `.reports/junit.xml` (for CI)
-- **Current**: 394 tests passing
+- **Current**: 396 tests passing
 
 ## Contributing
 

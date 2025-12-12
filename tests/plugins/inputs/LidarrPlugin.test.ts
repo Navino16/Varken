@@ -69,6 +69,14 @@ describe('LidarrPlugin', () => {
     });
   });
 
+  describe('getHealthEndpoint', () => {
+    it('should return the correct health endpoint', () => {
+      // Access protected method via any cast for testing
+      const endpoint = (plugin as unknown as { getHealthEndpoint: () => string }).getHealthEndpoint();
+      expect(endpoint).toBe('/api/v1/system/status');
+    });
+  });
+
   describe('initialize', () => {
     it('should initialize with API key header', async () => {
       await plugin.initialize(testConfig);
@@ -301,12 +309,23 @@ describe('LidarrPlugin', () => {
       expect(points).toEqual([]);
     });
 
-    it('should handle API errors gracefully', async () => {
-      mockHttpClient.get.mockRejectedValueOnce(new Error('API Error'));
+    it('should handle queue API errors gracefully', async () => {
+      mockHttpClient.get.mockRejectedValueOnce(new Error('Queue API Error'));
       mockHttpClient.get.mockResolvedValueOnce({ data: { records: [] } });
 
       const points = await plugin.collect();
       expect(points).toBeDefined();
+    });
+
+    it('should handle missing albums API errors gracefully', async () => {
+      mockHttpClient.get.mockResolvedValueOnce({
+        data: { totalRecords: 0, records: [] },
+      });
+      mockHttpClient.get.mockRejectedValueOnce(new Error('Missing API Error'));
+
+      const points = await plugin.collect();
+      expect(points).toBeDefined();
+      expect(points).toEqual([]);
     });
 
     it('should skip queue items without album data', async () => {
