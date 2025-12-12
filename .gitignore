@@ -1,3 +1,4 @@
+# OS
 .DS_Store
 .DS_Store?
 ._*
@@ -5,12 +6,35 @@
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Legacy Python sources (reference only)
+_legacy/
+
+# GeoIP
 GeoLite2-City.mmdb
 GeoLite2-City.tar.gz
-data/varken.ini
+
+# IDE
 .idea/
 .vscode/
-varken-venv/
-venv/
+
+# Node.js
+node_modules/
+dist/
+.reports/
+*.log
+.env
+
+# Logs
 logs/
-__pycache__
+
+# Data
+data/
+
+# Environment variables
+.env
+
+# Generated config
+config/varken.yaml
+config/varken.test.yaml
+ANALYSIS.md

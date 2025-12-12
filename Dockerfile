@@ -1,42 +1,84 @@
-FROM python:3.10.13-alpine
-
-#ARG VERSION="0.0.0"
-#ARG BRANCH="dev"
-#ARG BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-#VERSION=$VERSION \
-#BRANCH=$BRANCH \
-#BUILD_DATE=$BUILD_DATE
-
-ENV DEBUG="True" \
-    DATA_FOLDER="/config" \
-    VERSION="0.0.0" \
-    BRANCH="dev" \
-    BUILD_DATE="1970-01-01"
-
-LABEL maintainer="navino16" \
-  org.opencontainers.image.created=$BUILD_DATE \
-  org.opencontainers.image.url="https://github.com/navino16/Varken" \
-  org.opencontainers.image.source="https://github.com/navino16/Varken" \
-  org.opencontainers.image.version=$VERSION \
-  org.opencontainers.image.revision=$VCS_REF \
-  org.opencontainers.image.vendor="navino16" \
-  org.opencontainers.image.title="varken" \
-  org.opencontainers.image.description="Varken is a standalone application to aggregate data from the Plex ecosystem into InfluxDB using Grafana for a frontend" \
-  org.opencontainers.image.licenses="MIT"
+# Build stage
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-COPY /requirements.txt /Varken.py /app/
+# Copy package files
+COPY package*.json ./
 
-COPY /varken /app/varken
+# Install all dependencies (including devDependencies for build)
+RUN npm ci
 
-COPY /data /app/data
+# Copy source code
+COPY tsconfig.json ./
+COPY src/ ./src/
 
-COPY /utilities /app/data/utilities
+# Build TypeScript
+RUN npm run build
 
-RUN \
-  apk add --no-cache tzdata \
-  && pip install --no-cache-dir -r /app/requirements.txt \
-  && sed -i "s/0.0.0/${VERSION}/;s/develop/${BRANCH}/;s/1\/1\/1970/${BUILD_DATE//\//\\/}/" varken/__init__.py
+# Production stage
+FROM node:22-alpine AS production
 
-CMD cp /app/data/varken.example.ini /config/varken.example.ini && python3 /app/Varken.py
+# Build arguments for versioning
+ARG VERSION="2.0.0"
+ARG BRANCH="develop"
+ARG BUILD_DATE=""
+
+# Environment variables
+ENV NODE_ENV="production" \
+    CONFIG_FOLDER="/config" \
+    DATA_FOLDER="/data" \
+    LOG_FOLDER="/logs" \
+    LOG_LEVEL="info" \
+    TZ="UTC" \
+    HEALTH_PORT="9090" \
+    HEALTH_ENABLED="true"
+
+# Labels
+LABEL maintainer="navino16" \
+    org.opencontainers.image.created="${BUILD_DATE}" \
+    org.opencontainers.image.url="https://github.com/Navino16/Varken" \
+    org.opencontainers.image.source="https://github.com/Navino16/Varken" \
+    org.opencontainers.image.version="${VERSION}" \
+    org.opencontainers.image.vendor="navino16" \
+    org.opencontainers.image.title="varken" \
+    org.opencontainers.image.description="Standalone application to aggregate data from the Plex ecosystem into time-series databases" \
+    org.opencontainers.image.licenses="MIT"
+
+WORKDIR /app
+
+# Install timezone data
+RUN apk add --no-cache tzdata
+
+# Copy package files
+COPY package*.json ./
+
+# Install production dependencies only
+RUN npm ci --only=production && npm cache clean --force
+
+# Copy built application from builder stage
+COPY --from=builder /app/dist ./dist
+
+# Copy example config
+COPY config/varken.example.yaml /app/config/
+
+# Create volumes directories
+RUN mkdir -p /config /data /logs
+
+# Use existing node user (uid 1000, gid 1000) for security
+RUN chown -R node:node /app /config /data /logs
+
+USER node
+
+# Volumes for persistent data
+VOLUME ["/config", "/data", "/logs"]
+
+# Expose health check port
+EXPOSE 9090
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD wget -q -O /dev/null http://localhost:9090/health || exit 1
+
+# Start application
+CMD ["node", "dist/index.js"]
