@@ -18,14 +18,16 @@ const mockGetDatabaseNames = vi.fn().mockResolvedValue(['varken']);
 const mockCreateDatabase = vi.fn().mockResolvedValue(undefined);
 const mockWritePoints = vi.fn().mockResolvedValue(undefined);
 
-// Mock the influx package
+// Mock the influx package - use function() instead of arrow function for constructor compatibility with Vitest 4
 vi.mock('influx', () => ({
-  InfluxDB: vi.fn().mockImplementation(() => ({
-    getDatabaseNames: mockGetDatabaseNames,
-    createDatabase: mockCreateDatabase,
-    writePoints: mockWritePoints,
-    ping: mockPing,
-  })),
+  InfluxDB: vi.fn().mockImplementation(function () {
+    return {
+      getDatabaseNames: mockGetDatabaseNames,
+      createDatabase: mockCreateDatabase,
+      writePoints: mockWritePoints,
+      ping: mockPing,
+    };
+  }),
   FieldType: {
     BOOLEAN: 'BOOLEAN',
     INTEGER: 'INTEGER',
