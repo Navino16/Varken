@@ -1,6 +1,7 @@
 import type { AxiosInstance, AxiosRequestConfig } from 'axios';
 import axios from 'axios';
 import * as https from 'https';
+import { createHash } from 'crypto';
 import { createLogger } from '../../core/Logger';
 import type {
   InputPlugin,
@@ -176,5 +177,12 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
       enabled,
       collector: collector.bind(this),
     };
+  }
+
+  /**
+   * Generate MD5 hash for deterministic unique IDs (matching legacy behavior)
+   */
+  protected hashit(input: string): string {
+    return createHash('md5').update(input).digest('hex');
   }
 }

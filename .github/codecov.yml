@@ -15,7 +15,10 @@ coverage:
 comment:
   layout: "reach,diff,flags,files"
   behavior: default
-  require_changes: true
+  require_changes: false
+  require_base: false
+  require_head: true
+  hide_project_coverage: false
 
 ignore:
   - "src/types/**/*"

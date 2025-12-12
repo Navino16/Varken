@@ -1,4 +1,3 @@
-import { createHash } from 'crypto';
 import { BaseInputPlugin } from './BaseInputPlugin';
 import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
 import type {
@@ -7,13 +6,6 @@ import type {
   SonarrQueue,
   SonarrEpisode,
 } from '../../types/inputs/sonarr.types';
-
-/**
- * Generate MD5 hash for deterministic unique IDs (matching legacy behavior)
- */
-function hashit(input: string): string {
-  return createHash('md5').update(input).digest('hex');
-}
 
 /**
  * Sonarr input plugin
@@ -140,7 +132,7 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
         const protocolId = protocol === 'USENET' ? 1 : 0;
         const quality = queueItem.quality?.quality?.name || 'Unknown';
 
-        const hashId = hashit(`${this.config.id}${seriesTitle}${sxe}`);
+        const hashId = this.hashit(`${this.config.id}${seriesTitle}${sxe}`);
 
         points.push(
           this.createDataPoint(
@@ -223,7 +215,7 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
 
         const seriesTitle = episode.series.title;
         const sxe = this.formatSXE(episode.seasonNumber, episode.episodeNumber);
-        const hashId = hashit(`${this.config.id}${seriesTitle}${sxe}`);
+        const hashId = this.hashit(`${this.config.id}${seriesTitle}${sxe}`);
 
         points.push(
           this.createDataPoint(
