@@ -10,9 +10,19 @@ on:
       - 'develop'
     tags:
       - '*'
+    paths-ignore:
+      - '**.md'
+      - '.github/**'
+      - 'tests/**'
+      - 'scripts/**'
   pull_request:
     branches:
       - 'main'
+    paths-ignore:
+      - '**.md'
+      - '.github/**'
+      - 'tests/**'
+      - 'scripts/**'
 
 permissions:
   contents: write
