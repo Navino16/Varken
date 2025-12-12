@@ -1,0 +1,228 @@
+# Varken Configuration
+# Copy this file to varken.yaml and customize
+
+# =============================================================================
+# OUTPUT PLUGINS - Where to send collected data
+# =============================================================================
+outputs:
+  # InfluxDB 2.x (recommended)
+  # influxdb2:
+  #   url: "localhost"
+  #   port: 8086
+  #   token: "your-token-here"
+  #   org: "varken"
+  #   bucket: "varken"
+  #   ssl: false
+  #   verifySsl: false
+
+  # InfluxDB 1.x (legacy)
+  # influxdb1:
+  #   url: "localhost"
+  #   port: 8086
+  #   username: "root"
+  #   password: "root"
+  #   database: "varken"
+  #   ssl: false
+  #   verifySsl: false
+
+  # VictoriaMetrics
+  # victoriametrics:
+  #   url: "localhost"
+  #   port: 8428
+  #   ssl: false
+  #   verifySsl: false
+
+  # QuestDB
+  # questdb:
+  #   url: "localhost"
+  #   port: 9000
+  #   ssl: false
+  #   verifySsl: false
+
+  # TimescaleDB
+  # timescaledb:
+  #   host: "localhost"
+  #   port: 5432
+  #   database: "varken"
+  #   username: "varken"
+  #   password: "varken"
+  #   ssl: false
+
+# =============================================================================
+# INPUT PLUGINS - Data sources to collect from
+# =============================================================================
+inputs:
+  # ---------------------------------------------------------------------------
+  # Arr Stack
+  # ---------------------------------------------------------------------------
+
+  # Sonarr - TV Show management
+  # sonarr:
+  #   - id: 1
+  #     url: "http://localhost:8989"
+  #     apiKey: "your-api-key"
+  #     verifySsl: false
+  #     queue:
+  #       enabled: true
+  #       intervalSeconds: 30
+  #     calendar:
+  #       enabled: true
+  #       futureDays: 7
+  #       missingDays: 30
+  #       intervalSeconds: 300
+
+  # Radarr - Movie management
+  # radarr:
+  #   - id: 1
+  #     url: "http://localhost:7878"
+  #     apiKey: "your-api-key"
+  #     verifySsl: false
+  #     queue:
+  #       enabled: true
+  #       intervalSeconds: 30
+  #     missing:
+  #       enabled: true
+  #       intervalSeconds: 300
+
+  # Readarr - eBook management
+  # readarr:
+  #   - id: 1
+  #     url: "http://localhost:8787"
+  #     apiKey: "your-api-key"
+  #     verifySsl: false
+  #     queue:
+  #       enabled: true
+  #       intervalSeconds: 30
+  #     missing:
+  #       enabled: true
+  #       intervalSeconds: 300
+
+  # Lidarr - Music management
+  # lidarr:
+  #   - id: 1
+  #     url: "http://localhost:8686"
+  #     apiKey: "your-api-key"
+  #     verifySsl: false
+  #     queue:
+  #       enabled: true
+  #       intervalSeconds: 30
+  #     missing:
+  #       enabled: true
+  #       intervalSeconds: 300
+
+  # Prowlarr - Indexer management
+  # prowlarr:
+  #   - id: 1
+  #     url: "http://localhost:9696"
+  #     apiKey: "your-api-key"
+  #     verifySsl: false
+  #     indexerStats:
+  #       enabled: true
+  #       intervalSeconds: 300
+
+  # Bazarr - Subtitle management
+  # bazarr:
+  #   - id: 1
+  #     url: "http://localhost:6767"
+  #     apiKey: "your-api-key"
+  #     verifySsl: false
+  #     wanted:
+  #       enabled: true
+  #       intervalSeconds: 300
+  #     history:
+  #       enabled: true
+  #       intervalSeconds: 300
+
+  # ---------------------------------------------------------------------------
+  # Media Servers
+  # ---------------------------------------------------------------------------
+
+  # Tautulli - Plex monitoring (via Tautulli)
+  # tautulli:
+  #   - id: 1
+  #     url: "http://localhost:8181"
+  #     apiKey: "your-api-key"
+  #     verifySsl: false
+  #     fallbackIp: "1.1.1.1"
+  #     activity:
+  #       enabled: true
+  #       intervalSeconds: 30
+  #     libraries:
+  #       enabled: true
+  #       intervalDays: 1
+  #     stats:
+  #       enabled: true
+  #       intervalSeconds: 300
+  #     geoip:
+  #       enabled: true
+  #       licenseKey: "your-maxmind-license-key"
+
+  # Plex - Direct Plex monitoring
+  # plex:
+  #   - id: 1
+  #     url: "http://localhost:32400"
+  #     token: "your-plex-token"
+  #     verifySsl: false
+  #     sessions:
+  #       enabled: true
+  #       intervalSeconds: 30
+  #     libraries:
+  #       enabled: true
+  #       intervalSeconds: 3600
+
+  # Jellyfin
+  # jellyfin:
+  #   - id: 1
+  #     url: "http://localhost:8096"
+  #     apiKey: "your-api-key"
+  #     verifySsl: false
+  #     sessions:
+  #       enabled: true
+  #       intervalSeconds: 30
+  #     libraries:
+  #       enabled: true
+  #       intervalSeconds: 3600
+
+  # Emby
+  # emby:
+  #   - id: 1
+  #     url: "http://localhost:8096"
+  #     apiKey: "your-api-key"
+  #     verifySsl: false
+  #     sessions:
+  #       enabled: true
+  #       intervalSeconds: 30
+  #     libraries:
+  #       enabled: true
+  #       intervalSeconds: 3600
+
+  # ---------------------------------------------------------------------------
+  # Request Management
+  # ---------------------------------------------------------------------------
+
+  # Ombi
+  # ombi:
+  #   - id: 1
+  #     url: "http://localhost:3579"
+  #     apiKey: "your-api-key"
+  #     verifySsl: false
+  #     requestCounts:
+  #       enabled: true
+  #       intervalSeconds: 300
+  #     issueCounts:
+  #       enabled: true
+  #       intervalSeconds: 300
+
+  # Overseerr
+  # overseerr:
+  #   - id: 1
+  #     url: "http://localhost:5055"
+  #     apiKey: "your-api-key"
+  #     verifySsl: false
+  #     requestCounts:
+  #       enabled: true
+  #       intervalSeconds: 300
+  #     latestRequests:
+  #       enabled: true
+  #       count: 10
+  #       intervalSeconds: 300

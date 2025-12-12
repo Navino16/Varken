@@ -1,0 +1,65 @@
+name: Plugin Request
+description: Request a new input or output plugin
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new plugin!
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Plugin Type
+      options:
+        - Input (data source)
+        - Output (database)
+    validations:
+      required: true
+
+  - type: input
+    id: service
+    attributes:
+      label: Service Name
+      description: Name of the service/database
+      placeholder: "e.g., Jellyfin, QuestDB"
+    validations:
+      required: true
+
+  - type: input
+    id: api_docs
+    attributes:
+      label: API Documentation
+      description: Link to the API documentation (if available)
+      placeholder: "https://..."
+    validations:
+      required: false
+
+  - type: textarea
+    id: data
+    attributes:
+      label: Data to Collect
+      description: What data should be collected/sent?
+      placeholder: |
+        - Active sessions
+        - Library statistics
+        - ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: usecase
+    attributes:
+      label: Use Case
+      description: Why would this plugin be useful?
+      placeholder: This would allow users to...
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other context or examples
+    validations:
+      required: false
