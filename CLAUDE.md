@@ -567,6 +567,7 @@ tests/
 **Always add appropriate labels** to pull requests:
 - `enhancement` - New features or plugins
 - `bug` - Bug fixes
+- `breaking change` - Breaking changes requiring user action
 - `documentation` - Documentation updates
 - `dependencies` - Dependency updates
 
