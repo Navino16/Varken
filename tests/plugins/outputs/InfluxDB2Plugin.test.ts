@@ -20,12 +20,14 @@ const mockWriteApi = {
   useDefaultTags: vi.fn(),
 };
 
-// Mock InfluxDB client
+// Mock InfluxDB client - use function() instead of arrow function for constructor compatibility with Vitest 4
 vi.mock('@influxdata/influxdb-client', () => ({
-  InfluxDB: vi.fn().mockImplementation(() => ({
-    getWriteApi: vi.fn().mockReturnValue(mockWriteApi),
-  })),
-  Point: vi.fn().mockImplementation((measurement: string) => {
+  InfluxDB: vi.fn().mockImplementation(function () {
+    return {
+      getWriteApi: vi.fn().mockReturnValue(mockWriteApi),
+    };
+  }),
+  Point: vi.fn().mockImplementation(function (measurement: string) {
     const point = {
       _measurement: measurement,
       _tags: {} as Record<string, string>,
@@ -67,11 +69,13 @@ vi.mock('@influxdata/influxdb-client', () => ({
   },
 }));
 
-// Mock Health API
+// Mock Health API - use function() instead of arrow function for constructor compatibility with Vitest 4
 vi.mock('@influxdata/influxdb-client-apis', () => ({
-  HealthAPI: vi.fn().mockImplementation(() => ({
-    getHealth: vi.fn().mockResolvedValue({ status: 'pass' }),
-  })),
+  HealthAPI: vi.fn().mockImplementation(function () {
+    return {
+      getHealth: vi.fn().mockResolvedValue({ status: 'pass' }),
+    };
+  }),
 }));
 
 describe('InfluxDB2Plugin', () => {
