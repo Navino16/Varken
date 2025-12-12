@@ -88,7 +88,7 @@ YAML Config → ConfigLoader → Orchestrator → PluginManager
 
 ## Implemented Plugins
 
-### Input Plugins (7)
+### Input Plugins (8)
 
 | Plugin | Config Key | Data Collected |
 |--------|------------|----------------|
@@ -98,6 +98,7 @@ YAML Config → ConfigLoader → Orchestrator → PluginManager
 | `TautulliPlugin` | `tautulli` | Activity, Libraries, Stats + GeoIP |
 | `OverseerrPlugin` | `overseerr` | Request counts, Latest requests |
 | `LidarrPlugin` | `lidarr` | Queue, Missing albums |
+| `BazarrPlugin` | `bazarr` | Wanted subtitles, History |
 | `OmbiPlugin` | `ombi` | Request counts, Issue counts |
 
 ### Output Plugins (2)
@@ -109,7 +110,7 @@ YAML Config → ConfigLoader → Orchestrator → PluginManager
 
 ### Not Yet Implemented (types exist)
 
-- **Inputs**: Prowlarr, Bazarr, Plex, Jellyfin, Emby
+- **Inputs**: Prowlarr, Plex, Jellyfin, Emby
 - **Outputs**: VictoriaMetrics, QuestDB, TimescaleDB
 
 ## Key Dependencies
@@ -191,16 +192,18 @@ The `BaseInputPlugin` class provides these protected methods:
 |--------|-------------|
 | `httpGet<T>(path, params?)` | Make HTTP GET request |
 | `httpPost<T>(path, data?)` | Make HTTP POST request |
-| `createDataPoint(measurement, tags, fields)` | Create a DataPoint with timestamp |
+| `createDataPoint(measurement, tags, fields, timestamp?)` | Create a DataPoint with optional custom timestamp |
 | `createSchedule(name, interval, enabled, collector)` | Create a ScheduleConfig |
 | `hashit(input)` | Generate MD5 hash for unique IDs (legacy compatibility) |
 | `getHealthEndpoint()` | Override to specify health check endpoint |
 
 ## Adding a New Input Plugin
 
-### Step 1: Create Type Definitions
+### Step 1: Create or Verify Type Definitions
 
-Create `src/types/inputs/<plugin>.types.ts`:
+**Important**: Types may already exist in `src/types/inputs/`. Always check first and verify they match the actual API responses before implementing the plugin.
+
+Create or update `src/types/inputs/<plugin>.types.ts`:
 
 ```typescript
 // Configuration interface
@@ -548,7 +551,7 @@ tests/
 - **Framework**: Vitest 2.1.0
 - **Coverage**: v8 provider, reports to `.reports/coverage/`
 - **JUnit**: `.reports/junit.xml` (for CI)
-- **Current**: 396 tests passing
+- **Current**: 414 tests passing
 
 ## Contributing
 

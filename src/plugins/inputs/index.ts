@@ -5,6 +5,7 @@ import { SonarrPlugin } from './SonarrPlugin';
 import { RadarrPlugin } from './RadarrPlugin';
 import { ReadarrPlugin } from './ReadarrPlugin';
 import { LidarrPlugin } from './LidarrPlugin';
+import { BazarrPlugin } from './BazarrPlugin';
 import { TautulliPlugin } from './TautulliPlugin';
 import { OverseerrPlugin } from './OverseerrPlugin';
 import { OmbiPlugin } from './OmbiPlugin';
@@ -15,6 +16,7 @@ export { SonarrPlugin } from './SonarrPlugin';
 export { RadarrPlugin } from './RadarrPlugin';
 export { ReadarrPlugin } from './ReadarrPlugin';
 export { LidarrPlugin } from './LidarrPlugin';
+export { BazarrPlugin } from './BazarrPlugin';
 export { TautulliPlugin } from './TautulliPlugin';
 export { OverseerrPlugin } from './OverseerrPlugin';
 export { OmbiPlugin } from './OmbiPlugin';
@@ -29,6 +31,7 @@ const inputPluginClasses: InputPluginFactory[] = [
   RadarrPlugin,
   ReadarrPlugin,
   LidarrPlugin,
+  BazarrPlugin,
   TautulliPlugin,
   OverseerrPlugin,
   OmbiPlugin,

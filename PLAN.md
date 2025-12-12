@@ -33,6 +33,7 @@ varken/
 │   │   │   ├── OverseerrPlugin.ts   # ✅ Request counts, Latest requests
 │   │   │   ├── ReadarrPlugin.ts     # ✅ Queue, Missing (books)
 │   │   │   ├── LidarrPlugin.ts      # ✅ Queue, Missing (albums)
+│   │   │   ├── BazarrPlugin.ts      # ✅ Wanted subtitles, History
 │   │   │   ├── OmbiPlugin.ts        # ✅ Request counts, Issue counts
 │   │   │   └── index.ts             # Registry auto-building
 │   │   └── outputs/                 # Destination plugins
@@ -68,7 +69,7 @@ varken/
 │       ├── geoip.ts                 # MaxMind GeoIP2 download & lookup
 │       ├── http.ts                  # HTTP utilities, error classification
 │       └── index.ts
-├── tests/                           # 396 tests, ~70% coverage
+├── tests/                           # 414 tests, ~70% coverage
 │   ├── config/
 │   ├── core/
 │   ├── plugins/
@@ -229,7 +230,7 @@ interface ScheduleConfig {
 - [x] Main entry point (`index.ts`)
 - [x] Dockerfile (multi-stage, ~190MB)
 - [x] docker-compose.yml (Varken + InfluxDB 2.x + Grafana)
-- [x] Unit tests (396 tests passing)
+- [x] Unit tests (414 tests passing)
 - [x] CI/CD workflows (GitHub Actions)
 - [x] Codecov integration
 - [x] Documentation (README.md, CLAUDE.md)
@@ -297,13 +298,11 @@ interface ScheduleConfig {
 #### Arr Stack
 - [x] `ReadarrPlugin` - queue, missing (eBooks) ✅
 - [x] `LidarrPlugin` - queue, missing (Music) ✅
+- [x] `BazarrPlugin` - wanted subtitles, history ✅
 - [ ] `ProwlarrPlugin` - indexer stats, search stats
   - API /api/v1
   - Types already defined in `src/types/inputs/prowlarr.types.ts`
   - Effort: ~6h
-- [ ] `BazarrPlugin` - wanted subtitles, history
-  - Types already defined in `src/types/inputs/bazarr.types.ts`
-  - Effort: ~4h
 
 #### Media Servers
 - [ ] `PlexPlugin` - sessions, libraries, activity (direct API)
@@ -466,6 +465,7 @@ interface ScheduleConfig {
 | `src/plugins/inputs/OverseerrPlugin.ts` | 96% | ✅ |
 | `src/plugins/inputs/ReadarrPlugin.ts` | 96% | ✅ |
 | `src/plugins/inputs/LidarrPlugin.ts` | 96% | ✅ |
+| `src/plugins/inputs/BazarrPlugin.ts` | 96% | ✅ |
 | `src/plugins/outputs/InfluxDB1Plugin.ts` | 86% | 90% |
 | `src/plugins/outputs/InfluxDB2Plugin.ts` | 84% | 90% |
 | `src/plugins/inputs/BaseInputPlugin.ts` | 89% | 90% |
@@ -482,7 +482,7 @@ interface ScheduleConfig {
 | **Readarr** | /api/v1 | Queue, Missing | ✅ |
 | **Lidarr** | /api/v1 | Queue, Missing | ✅ |
 | **Prowlarr** | /api/v1 | Indexer stats, Search history | 🚧 Types ready |
-| **Bazarr** | /api | Wanted subtitles, History | 🚧 Types ready |
+| **Bazarr** | /api | Wanted subtitles, History | ✅ |
 | **Tautulli** | /api/v2 | Activity, Libraries, Stats + GeoIP | ✅ |
 | **Plex** | /api | Sessions, Libraries (direct API) | 🚧 Types ready |
 | **Jellyfin** | /api | Sessions, Libraries, Activity | 🚧 Types ready |
@@ -532,7 +532,7 @@ DataPoint (internal format)
 |------|--------|--------|
 | Prometheus metrics | ~8h | Observability |
 | Config hot-reload | ~8h | Operations |
-| Prowlarr, Bazarr inputs | ~10h | More data sources |
+| Prowlarr input | ~6h | More data sources |
 | QuestDB, TimescaleDB outputs | ~14h | More DB options |
 | Structured logging | ~4h | Debugging |
 | Dry-run mode | ~2h | Testing |
