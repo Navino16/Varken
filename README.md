@@ -288,7 +288,7 @@ The Docker image includes a built-in `HEALTHCHECK` instruction using these endpo
 | **Overseerr** | Request counts, Latest requests | v1 | ✅ Implemented |
 | **Readarr** | Queue, Missing (eBooks) | v1 | ✅ Implemented |
 | **Lidarr** | Queue, Missing (Music) | v1 | ✅ Implemented |
-| **Prowlarr** | Indexer stats, Search history | v1 | 🚧 Planned |
+| **Prowlarr** | Indexer stats | v1 | ✅ Implemented |
 | **Bazarr** | Wanted subtitles, History | - | ✅ Implemented |
 | **Plex** | Sessions, Libraries (Direct API) | - | 🚧 Planned |
 | **Jellyfin** | Sessions, Libraries, Activity | - | 🚧 Planned |
