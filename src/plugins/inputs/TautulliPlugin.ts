@@ -50,6 +50,23 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
   }
 
   /**
+   * Health check for Tautulli - uses API key as query param
+   */
+  async healthCheck(): Promise<boolean> {
+    try {
+      await this.httpClient.get('/api/v2', {
+        params: { apikey: this.config.apiKey, cmd: 'get_server_info' },
+        timeout: 5000,
+      });
+      return true;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.debug(`Health check failed for ${this.metadata.name} (id: ${this.config.id}): ${message}`);
+      return false;
+    }
+  }
+
+  /**
    * Collect all enabled data from Tautulli
    */
   async collect(): Promise<DataPoint[]> {

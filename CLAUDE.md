@@ -27,6 +27,8 @@ docker compose up -d
 | `DATA_FOLDER` | `./data` | GeoIP database storage |
 | `LOG_FOLDER` | `./logs` | Log files |
 | `LOG_LEVEL` | `info` | Winston log level (`error`, `warn`, `info`, `http`, `verbose`, `debug`, `silly`) |
+| `HEALTH_PORT` | `9090` | Health check HTTP server port |
+| `HEALTH_ENABLED` | `true` | Enable/disable health check server (`true`/`false`) |
 
 ## Configuration
 
@@ -44,7 +46,8 @@ src/
 ├── core/
 │   ├── Logger.ts                # Winston logging with sensitive data filtering
 │   ├── Orchestrator.ts          # Application lifecycle, graceful shutdown
-│   └── PluginManager.ts         # Plugin registration, scheduling, data routing
+│   ├── PluginManager.ts         # Plugin registration, scheduling, data routing
+│   └── HealthServer.ts          # HTTP health check endpoints
 ├── config/
 │   ├── ConfigLoader.ts          # YAML parsing + env vars override
 │   ├── ConfigMigrator.ts        # Legacy INI/env migration to YAML
@@ -66,6 +69,7 @@ src/
 ├── types/
 │   ├── plugin.types.ts          # InputPlugin, OutputPlugin, DataPoint
 │   ├── common.types.ts          # Shared types (QualityInfo, etc.)
+│   ├── health.types.ts          # Health check types (HealthStatus, etc.)
 │   ├── inputs/                  # Per-plugin type definitions
 │   └── outputs/                 # Per-output type definitions
 └── utils/
@@ -218,7 +222,7 @@ tests/
 - **Framework**: Vitest 2.1.0
 - **Coverage**: v8 provider, reports to `.reports/coverage/`
 - **JUnit**: `.reports/junit.xml` (for CI)
-- **Current**: 355 tests passing
+- **Current**: 379 tests passing
 
 ## Build & CI
 

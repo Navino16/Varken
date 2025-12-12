@@ -37,6 +37,13 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
   }
 
   /**
+   * Health check endpoint for Overseerr
+   */
+  protected getHealthEndpoint(): string {
+    return '/api/v1/status';
+  }
+
+  /**
    * Collect all enabled data from Overseerr
    */
   async collect(): Promise<DataPoint[]> {

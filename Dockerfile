@@ -30,7 +30,9 @@ ENV NODE_ENV="production" \
     DATA_FOLDER="/data" \
     LOG_FOLDER="/logs" \
     LOG_LEVEL="info" \
-    TZ="UTC"
+    TZ="UTC" \
+    HEALTH_PORT="9090" \
+    HEALTH_ENABLED="true"
 
 # Labels
 LABEL maintainer="navino16" \
@@ -70,6 +72,13 @@ USER node
 
 # Volumes for persistent data
 VOLUME ["/config", "/data", "/logs"]
+
+# Expose health check port
+EXPOSE 9090
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD wget -q -O /dev/null http://localhost:9090/health || exit 1
 
 # Start application
 CMD ["node", "dist/index.js"]

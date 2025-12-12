@@ -1,6 +1,7 @@
 import { createLogger } from './Logger';
 import type { InputPluginFactory, OutputPluginFactory } from './PluginManager';
 import { PluginManager } from './PluginManager';
+import { HealthServer, type HealthServerConfig } from './HealthServer';
 import type { VarkenConfig } from '../config/schemas/config.schema';
 import type { GeoIPHandler } from '../utils/geoip';
 
@@ -20,14 +21,17 @@ interface PluginRegistration {
  */
 export class Orchestrator {
   private pluginManager: PluginManager;
+  private healthServer: HealthServer | null = null;
   private config: VarkenConfig;
+  private healthConfig?: HealthServerConfig;
   private geoipHandler?: GeoIPHandler;
   private isRunning = false;
   private shutdownPromise: Promise<void> | null = null;
 
-  constructor(config: VarkenConfig, geoipHandler?: GeoIPHandler) {
+  constructor(config: VarkenConfig, geoipHandler?: GeoIPHandler, healthConfig?: HealthServerConfig) {
     this.config = config;
     this.geoipHandler = geoipHandler;
+    this.healthConfig = healthConfig;
     this.pluginManager = new PluginManager(geoipHandler);
   }
 
@@ -77,6 +81,13 @@ export class Orchestrator {
       // Start schedulers
       await this.pluginManager.startSchedulers();
 
+      // Start health server if configured
+      if (this.healthConfig) {
+        this.healthServer = new HealthServer(this.healthConfig);
+        this.healthServer.setPluginManager(this.pluginManager);
+        await this.healthServer.start();
+      }
+
       this.isRunning = true;
       const stats = this.pluginManager.getStats();
       logger.info(
@@ -114,6 +125,12 @@ export class Orchestrator {
     this.isRunning = false;
 
     try {
+      // Stop health server first
+      if (this.healthServer) {
+        await this.healthServer.stop();
+        this.healthServer = null;
+      }
+
       await this.pluginManager.shutdown();
 
       // Shutdown GeoIP handler if initialized

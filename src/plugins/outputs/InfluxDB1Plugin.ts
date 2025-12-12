@@ -121,9 +121,16 @@ export class InfluxDB1Plugin extends BaseOutputPlugin<InfluxDB1Config> {
    */
   async healthCheck(): Promise<boolean> {
     try {
-      await this.client.ping(5000);
-      return true;
-    } catch {
+      const results = await this.client.ping(5000);
+      // ping returns an array of host results, check if any are online
+      const online = results.some((r) => r.online);
+      if (!online) {
+        this.logger.debug('InfluxDB 1.x health check: all hosts offline');
+      }
+      return online;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.debug(`InfluxDB 1.x health check failed: ${message}`);
       return false;
     }
   }

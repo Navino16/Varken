@@ -36,6 +36,13 @@ export class RadarrPlugin extends BaseInputPlugin<RadarrConfig> {
   }
 
   /**
+   * Health check endpoint for Radarr
+   */
+  protected getHealthEndpoint(): string {
+    return '/api/v3/system/status';
+  }
+
+  /**
    * Collect all enabled data from Radarr
    */
   async collect(): Promise<DataPoint[]> {

@@ -67,7 +67,7 @@ varken/
 │       ├── http.ts                  # HTTP utilities, error classification
 │       ├── hash.ts                  # SHA256, MD5, unique ID generation
 │       └── index.ts
-├── tests/                           # 355 tests, ~70% coverage
+├── tests/                           # 379 tests, ~70% coverage
 │   ├── config/
 │   ├── core/
 │   ├── plugins/
@@ -239,13 +239,13 @@ interface ScheduleConfig {
 
 ### Phase 7: Observability & Resilience (High Priority)
 
-#### Health Endpoint
-- [ ] Create `src/core/HealthServer.ts` - HTTP server (Express/Fastify)
+#### Health Endpoint ✅
+- [x] Create `src/core/HealthServer.ts` - HTTP server (native Node.js http)
   - `GET /health` → Overall status (healthy/degraded/unhealthy)
   - `GET /health/plugins` → Per-plugin status
   - `GET /status` → Running schedules, last collection times
   - Add `HEALTH_PORT` env var (default: 9090)
-  - Effort: ~6h
+  - Add `HEALTH_ENABLED` env var (default: true)
 
 #### Prometheus Metrics
 - [ ] Create `src/core/Metrics.ts` - Metrics collection
@@ -527,7 +527,7 @@ DataPoint (internal format)
 ### High Priority (Do First)
 | Item | Effort | Impact |
 |------|--------|--------|
-| Health endpoint | ~6h | Production readiness |
+| ~~Health endpoint~~ | ~~✅~~ | ~~Production readiness~~ |
 | VictoriaMetrics output | ~4h | Popular alternative DB |
 | Readarr input | ~4h | Complete Arr stack |
 | Circuit breaker | ~6h | Reliability |

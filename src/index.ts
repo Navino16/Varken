@@ -4,17 +4,24 @@ import { Orchestrator } from './core/Orchestrator';
 import { getInputPluginRegistry } from './plugins/inputs';
 import { getOutputPluginRegistry } from './plugins/outputs';
 import { GeoIPHandler } from './utils/geoip';
+import type { HealthServerConfig } from './core/HealthServer';
 
 const VERSION = '2.0.0';
+const DEFAULT_HEALTH_PORT = 9090;
 const logger = createLogger('Main');
 
 async function main(): Promise<void> {
   const configFolder = process.env.CONFIG_FOLDER || './config';
   const dataFolder = process.env.DATA_FOLDER || './data';
+  const healthPort = parseInt(process.env.HEALTH_PORT || String(DEFAULT_HEALTH_PORT), 10);
+  const healthEnabled = process.env.HEALTH_ENABLED !== 'false';
 
   logger.info(`Varken v${VERSION} starting...`);
   logger.info(`Config folder: ${configFolder}`);
   logger.info(`Data folder: ${dataFolder}`);
+  if (healthEnabled) {
+    logger.info(`Health endpoint: http://0.0.0.0:${healthPort}/health`);
+  }
 
   // Load and validate configuration
   const configLoader = new ConfigLoader(configFolder);
@@ -39,8 +46,13 @@ async function main(): Promise<void> {
     }
   }
 
+  // Create health server configuration
+  const healthConfig: HealthServerConfig | undefined = healthEnabled
+    ? { port: healthPort, version: VERSION }
+    : undefined;
+
   // Create and configure orchestrator
-  const orchestrator = new Orchestrator(config, geoipHandler);
+  const orchestrator = new Orchestrator(config, geoipHandler, healthConfig);
 
   // Register plugins automatically from registries
   const inputPlugins = getInputPluginRegistry();

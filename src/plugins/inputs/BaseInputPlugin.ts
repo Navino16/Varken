@@ -56,6 +56,30 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
   abstract getSchedules(): ScheduleConfig[];
 
   /**
+   * Check if the service is healthy/reachable.
+   * Subclasses should override getHealthEndpoint() to specify the endpoint.
+   */
+  async healthCheck(): Promise<boolean> {
+    try {
+      const endpoint = this.getHealthEndpoint();
+      await this.httpClient.get(endpoint, { timeout: 5000 });
+      return true;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.debug(`Health check failed for ${this.metadata.name} (id: ${this.config.id}): ${message}`);
+      return false;
+    }
+  }
+
+  /**
+   * Get the health check endpoint path.
+   * Subclasses should override this to return the appropriate endpoint.
+   */
+  protected getHealthEndpoint(): string {
+    return '/';
+  }
+
+  /**
    * Shutdown the plugin
    */
   async shutdown(): Promise<void> {

@@ -27,6 +27,7 @@ export interface InputPlugin<TConfig = unknown> {
   initialize(config: TConfig): Promise<void>;
   collect(): Promise<DataPoint[]>;
   getSchedules(): ScheduleConfig[];
+  healthCheck(): Promise<boolean>;
   shutdown(): Promise<void>;
 }
 

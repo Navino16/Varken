@@ -5,6 +5,7 @@ import type {
   DataPoint,
   ScheduleConfig,
 } from '../types/plugin.types';
+import type { SchedulerStatus, PluginStatus } from '../types/health.types';
 import type { VarkenConfig } from '../config/schemas/config.schema';
 import type { GeoIPHandler } from '../utils/geoip';
 import { TautulliPlugin } from '../plugins/inputs/TautulliPlugin';
@@ -29,6 +30,9 @@ interface ActiveScheduler {
   plugin: InputPlugin;
   timer: NodeJS.Timeout;
   isRunning: boolean;
+  lastRunAt?: Date;
+  lastError?: string;
+  consecutiveErrors: number;
 }
 
 /**
@@ -214,6 +218,7 @@ export class PluginManager {
       plugin,
       timer,
       isRunning: false,
+      consecutiveErrors: 0,
     };
 
     this.schedulers.set(schedule.name, activeScheduler);
@@ -258,9 +263,23 @@ export class PluginManager {
       } else {
         logger.debug(`Schedule ${schedule.name} collected no data`);
       }
+
+      // Reset error tracking on success
+      if (scheduler) {
+        scheduler.lastRunAt = new Date();
+        scheduler.lastError = undefined;
+        scheduler.consecutiveErrors = 0;
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       logger.error(`Schedule ${schedule.name} failed: ${message}`);
+
+      // Track error
+      if (scheduler) {
+        scheduler.lastRunAt = new Date();
+        scheduler.lastError = message;
+        scheduler.consecutiveErrors++;
+      }
     } finally {
       if (scheduler) {
         scheduler.isRunning = false;
@@ -411,5 +430,88 @@ export class PluginManager {
       activeOutputPlugins: this.outputPlugins.size,
       activeSchedulers: this.schedulers.size,
     };
+  }
+
+  /**
+   * Get scheduler statuses for health checks
+   */
+  getSchedulerStatuses(): SchedulerStatus[] {
+    const statuses: SchedulerStatus[] = [];
+
+    for (const [, scheduler] of this.schedulers) {
+      statuses.push({
+        name: scheduler.schedule.name,
+        pluginName: scheduler.plugin.metadata.name,
+        intervalSeconds: scheduler.schedule.intervalSeconds,
+        isRunning: scheduler.isRunning,
+        lastRunAt: scheduler.lastRunAt,
+        lastError: scheduler.lastError,
+        consecutiveErrors: scheduler.consecutiveErrors,
+      });
+    }
+
+    return statuses;
+  }
+
+  /**
+   * Get input plugin statuses with health check results
+   */
+  async getInputPluginStatuses(): Promise<PluginStatus[]> {
+    const statuses: PluginStatus[] = [];
+
+    for (const [type, plugins] of this.inputPlugins) {
+      for (const plugin of plugins) {
+        try {
+          const healthy = await plugin.healthCheck();
+          statuses.push({
+            type,
+            name: plugin.metadata.name,
+            version: plugin.metadata.version,
+            healthy,
+          });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Unknown error';
+          statuses.push({
+            type,
+            name: plugin.metadata.name,
+            version: plugin.metadata.version,
+            healthy: false,
+            error: message,
+          });
+        }
+      }
+    }
+
+    return statuses;
+  }
+
+  /**
+   * Get output plugin statuses with health check results
+   */
+  async getOutputPluginStatuses(): Promise<PluginStatus[]> {
+    const statuses: PluginStatus[] = [];
+
+    for (const [type, plugin] of this.outputPlugins) {
+      try {
+        const healthy = await plugin.healthCheck();
+        statuses.push({
+          type,
+          name: plugin.metadata.name,
+          version: plugin.metadata.version,
+          healthy,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        statuses.push({
+          type,
+          name: plugin.metadata.name,
+          version: plugin.metadata.version,
+          healthy: false,
+          error: message,
+        });
+      }
+    }
+
+    return statuses;
   }
 }

@@ -157,4 +157,33 @@ describe('BaseInputPlugin', () => {
       await expect(plugin.shutdown()).resolves.toBeUndefined();
     });
   });
+
+  describe('healthCheck', () => {
+    it('should return true when service is reachable', async () => {
+      await plugin.initialize(testConfig);
+      // Mock the HTTP client get method
+      plugin.getHttpClient().get = vi.fn().mockResolvedValue({ data: {} });
+
+      const result = await plugin.healthCheck();
+      expect(result).toBe(true);
+    });
+
+    it('should return false when service is unreachable', async () => {
+      await plugin.initialize(testConfig);
+      // Mock the HTTP client get method to throw
+      plugin.getHttpClient().get = vi.fn().mockRejectedValue(new Error('Connection refused'));
+
+      const result = await plugin.healthCheck();
+      expect(result).toBe(false);
+    });
+
+    it('should use the default health endpoint', async () => {
+      await plugin.initialize(testConfig);
+      const getSpy = vi.fn().mockResolvedValue({ data: {} });
+      plugin.getHttpClient().get = getSpy;
+
+      await plugin.healthCheck();
+      expect(getSpy).toHaveBeenCalledWith('/', expect.objectContaining({ timeout: 5000 }));
+    });
+  });
 });

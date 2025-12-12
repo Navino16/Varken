@@ -36,6 +36,13 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
   }
 
   /**
+   * Health check endpoint for Sonarr
+   */
+  protected getHealthEndpoint(): string {
+    return '/api/v3/system/status';
+  }
+
+  /**
    * Collect all enabled data from Sonarr
    */
   async collect(): Promise<DataPoint[]> {

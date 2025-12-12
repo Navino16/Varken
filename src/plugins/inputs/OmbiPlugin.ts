@@ -51,6 +51,13 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
   }
 
   /**
+   * Health check endpoint for Ombi
+   */
+  protected getHealthEndpoint(): string {
+    return '/api/v1/Status';
+  }
+
+  /**
    * Collect all enabled data from Ombi
    */
   async collect(): Promise<DataPoint[]> {

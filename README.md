@@ -20,6 +20,7 @@
 - **Multiple outputs** - InfluxDB 1.x and InfluxDB 2.x
 - **GeoIP mapping** - Automatic geolocation of streaming sessions via MaxMind GeoLite2
 - **Multi-instance support** - Connect multiple instances of each service
+- **Health checks** - Built-in HTTP health endpoints for monitoring and orchestration
 - **Docker ready** - Multi-platform images for amd64 and arm64
 - **Easy configuration** - Simple YAML configuration with environment variable overrides
 
@@ -35,6 +36,7 @@
   - [Environment Variables](#environment-variables)
   - [GeoIP Setup](#geoip-setup)
   - [Multiple Instances](#multiple-instances)
+- [Health Checks](#health-checks)
 - [Supported Services](#supported-services)
 - [Grafana Setup](#grafana-setup)
 - [Migration from Python Version](#migration-from-python-version)
@@ -183,6 +185,8 @@ inputs:
 | `LOG_FOLDER` | `/logs` | Path to log files |
 | `LOG_LEVEL` | `info` | Log level: `error`, `warn`, `info`, `debug` |
 | `TZ` | `UTC` | Timezone (e.g., `Europe/Paris`, `America/New_York`) |
+| `HEALTH_PORT` | `9090` | Port for the health check HTTP server |
+| `HEALTH_ENABLED` | `true` | Enable/disable the health check server |
 
 #### Configuration Overrides
 
@@ -244,6 +248,32 @@ inputs:
 ```
 
 Each instance must have a unique `id`.
+
+## Health Checks
+
+Varken exposes HTTP endpoints for monitoring on port `9090` (configurable via `HEALTH_PORT`):
+
+- `GET /health` - Overall status: `healthy`, `degraded`, or `unhealthy`
+- `GET /health/plugins` - Per-plugin health status (inputs and outputs)
+- `GET /status` - Detailed status with scheduler information
+
+The Docker image includes a built-in `HEALTHCHECK` instruction using these endpoints.
+
+### HTTP Response Codes
+
+| Status | HTTP Code |
+|--------|-----------|
+| `healthy` | 200 |
+| `degraded` | 200 |
+| `unhealthy` | 503 |
+
+### Status Calculation
+
+| Status | Condition |
+|--------|-----------|
+| `healthy` | All outputs healthy + all inputs healthy + no scheduler with 3+ consecutive errors |
+| `degraded` | At least one output healthy + at least one input healthy or scheduler working |
+| `unhealthy` | No outputs configured, all outputs/inputs unreachable |
 
 ## Supported Services
 

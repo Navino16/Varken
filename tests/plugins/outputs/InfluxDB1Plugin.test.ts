@@ -12,13 +12,19 @@ vi.mock('../../../src/core/Logger', () => ({
   }),
 }));
 
+// Create mock functions that can be controlled per-test
+const mockPing = vi.fn().mockResolvedValue([{ online: true }]);
+const mockGetDatabaseNames = vi.fn().mockResolvedValue(['varken']);
+const mockCreateDatabase = vi.fn().mockResolvedValue(undefined);
+const mockWritePoints = vi.fn().mockResolvedValue(undefined);
+
 // Mock the influx package
 vi.mock('influx', () => ({
   InfluxDB: vi.fn().mockImplementation(() => ({
-    getDatabaseNames: vi.fn().mockResolvedValue(['varken']),
-    createDatabase: vi.fn().mockResolvedValue(undefined),
-    writePoints: vi.fn().mockResolvedValue(undefined),
-    ping: vi.fn().mockResolvedValue([{ online: true }]),
+    getDatabaseNames: mockGetDatabaseNames,
+    createDatabase: mockCreateDatabase,
+    writePoints: mockWritePoints,
+    ping: mockPing,
   })),
   FieldType: {
     BOOLEAN: 'BOOLEAN',
@@ -145,6 +151,20 @@ describe('InfluxDB1Plugin', () => {
     it('should return true when healthy', async () => {
       const result = await plugin.healthCheck();
       expect(result).toBe(true);
+    });
+
+    it('should return false when host is offline', async () => {
+      mockPing.mockResolvedValueOnce([{ online: false }]);
+
+      const result = await plugin.healthCheck();
+      expect(result).toBe(false);
+    });
+
+    it('should return false when ping throws', async () => {
+      mockPing.mockRejectedValueOnce(new Error('Connection refused'));
+
+      const result = await plugin.healthCheck();
+      expect(result).toBe(false);
     });
   });
 
