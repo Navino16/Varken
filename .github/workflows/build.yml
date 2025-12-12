@@ -100,7 +100,7 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=ref,event=branch
             type=ref,event=pr
-            type=sha,prefix={{branch}}-
+            type=sha,prefix=sha-
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
