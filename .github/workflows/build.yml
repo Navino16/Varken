@@ -11,11 +11,6 @@ on:
       - 'develop'
     tags:
       - '*'
-    paths-ignore:
-      - '**.md'
-      - '.github/**'
-      - 'tests/**'
-      - 'scripts/**'
   pull_request:
     branches:
       - 'main'
