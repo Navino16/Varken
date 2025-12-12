@@ -144,12 +144,13 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
   }
 
   /**
-   * Create a DataPoint with the current timestamp
+   * Create a DataPoint with optional custom timestamp
    */
   protected createDataPoint(
     measurement: string,
     tags: Record<string, string | number>,
-    fields: Record<string, string | number | boolean>
+    fields: Record<string, string | number | boolean>,
+    timestamp?: Date
   ): DataPoint {
     return {
       measurement,
@@ -158,7 +159,7 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
         ...tags,
       },
       fields,
-      timestamp: new Date(),
+      timestamp: timestamp || new Date(),
     };
   }
 

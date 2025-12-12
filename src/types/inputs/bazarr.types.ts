@@ -89,3 +89,15 @@ export interface BazarrHealthStatus {
   object: string;
   issue: string;
 }
+
+// Paginated response wrapper
+export interface BazarrPaginatedResponse<T> {
+  data: T[];
+  total: number;
+}
+
+// Type aliases for specific responses
+export type BazarrWantedMoviesResponse = BazarrPaginatedResponse<BazarrWantedMovie>;
+export type BazarrWantedEpisodesResponse = BazarrPaginatedResponse<BazarrWantedEpisode>;
+export type BazarrMovieHistoryResponse = BazarrPaginatedResponse<BazarrMovieHistory>;
+export type BazarrSeriesHistoryResponse = BazarrPaginatedResponse<BazarrSeriesHistory>;
