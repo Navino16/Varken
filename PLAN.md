@@ -31,6 +31,8 @@ varken/
 │   │   │   ├── RadarrPlugin.ts      # ✅ Queue, Missing
 │   │   │   ├── TautulliPlugin.ts    # ✅ Activity, Libraries, Stats + GeoIP
 │   │   │   ├── OverseerrPlugin.ts   # ✅ Request counts, Latest requests
+│   │   │   ├── ReadarrPlugin.ts     # ✅ Queue, Missing (books)
+│   │   │   ├── LidarrPlugin.ts      # ✅ Queue, Missing (albums)
 │   │   │   ├── OmbiPlugin.ts        # ✅ Request counts, Issue counts
 │   │   │   └── index.ts             # Registry auto-building
 │   │   └── outputs/                 # Destination plugins
@@ -46,8 +48,8 @@ varken/
 │   │   ├── inputs/                  # Per-plugin type definitions
 │   │   │   ├── sonarr.types.ts
 │   │   │   ├── radarr.types.ts
-│   │   │   ├── readarr.types.ts     # Types ready, plugin not implemented
-│   │   │   ├── lidarr.types.ts      # Types ready, plugin not implemented
+│   │   │   ├── readarr.types.ts
+│   │   │   ├── lidarr.types.ts
 │   │   │   ├── prowlarr.types.ts    # Types ready, plugin not implemented
 │   │   │   ├── bazarr.types.ts      # Types ready, plugin not implemented
 │   │   │   ├── tautulli.types.ts
@@ -65,9 +67,8 @@ varken/
 │   └── utils/
 │       ├── geoip.ts                 # MaxMind GeoIP2 download & lookup
 │       ├── http.ts                  # HTTP utilities, error classification
-│       ├── hash.ts                  # SHA256, MD5, unique ID generation
 │       └── index.ts
-├── tests/                           # 379 tests, ~70% coverage
+├── tests/                           # 396 tests, ~70% coverage
 │   ├── config/
 │   ├── core/
 │   ├── plugins/
@@ -228,7 +229,7 @@ interface ScheduleConfig {
 - [x] Main entry point (`index.ts`)
 - [x] Dockerfile (multi-stage, ~190MB)
 - [x] docker-compose.yml (Varken + InfluxDB 2.x + Grafana)
-- [x] Unit tests (355 tests passing)
+- [x] Unit tests (396 tests passing)
 - [x] CI/CD workflows (GitHub Actions)
 - [x] Codecov integration
 - [x] Documentation (README.md, CLAUDE.md)
@@ -294,14 +295,8 @@ interface ScheduleConfig {
 ### Phase 9: Additional Input Plugins
 
 #### Arr Stack
-- [ ] `ReadarrPlugin` - queue, missing (eBooks)
-  - Similar to RadarrPlugin, API /api/v1
-  - Types already defined in `src/types/inputs/readarr.types.ts`
-  - Effort: ~4h
-- [ ] `LidarrPlugin` - queue, missing (Music)
-  - Similar to RadarrPlugin, API /api/v1
-  - Types already defined in `src/types/inputs/lidarr.types.ts`
-  - Effort: ~4h
+- [x] `ReadarrPlugin` - queue, missing (eBooks) ✅
+- [x] `LidarrPlugin` - queue, missing (Music) ✅
 - [ ] `ProwlarrPlugin` - indexer stats, search stats
   - API /api/v1
   - Types already defined in `src/types/inputs/prowlarr.types.ts`
@@ -431,11 +426,10 @@ interface ScheduleConfig {
   - Semantic versioning
   - Effort: ~2h
 
-#### GitHub PR Template
-- [ ] Create `.github/pull_request_template.md`
+#### GitHub PR Template ✅
+- [x] Create `.github/pull_request_template.md`
   - Checklist for type of change
   - Testing instructions
-  - Effort: ~1h
 
 #### Deployment Documentation
 - [ ] Add `docs/` directory
@@ -465,12 +459,13 @@ interface ScheduleConfig {
 | `src/config/ConfigMigrator.ts` | 63% | 85% |
 | `src/utils/http.ts` | 69% | 85% |
 | `src/utils/geoip.ts` | 67% | 85% |
-| `src/utils/hash.ts` | 100% | ✅ |
 | `src/plugins/inputs/SonarrPlugin.ts` | 96% | ✅ |
 | `src/plugins/inputs/RadarrPlugin.ts` | 99% | ✅ |
 | `src/plugins/inputs/TautulliPlugin.ts` | 97% | ✅ |
 | `src/plugins/inputs/OmbiPlugin.ts` | 98% | ✅ |
 | `src/plugins/inputs/OverseerrPlugin.ts` | 96% | ✅ |
+| `src/plugins/inputs/ReadarrPlugin.ts` | 96% | ✅ |
+| `src/plugins/inputs/LidarrPlugin.ts` | 96% | ✅ |
 | `src/plugins/outputs/InfluxDB1Plugin.ts` | 86% | 90% |
 | `src/plugins/outputs/InfluxDB2Plugin.ts` | 84% | 90% |
 | `src/plugins/inputs/BaseInputPlugin.ts` | 89% | 90% |
@@ -484,8 +479,8 @@ interface ScheduleConfig {
 |--------|-----|----------------|--------|
 | **Sonarr** | /api/v3 | Queue, Calendar (missing/future) | ✅ |
 | **Radarr** | /api/v3 | Queue, Missing | ✅ |
-| **Readarr** | /api/v1 | Queue, Missing | 🚧 Types ready |
-| **Lidarr** | /api/v1 | Queue, Missing | 🚧 Types ready |
+| **Readarr** | /api/v1 | Queue, Missing | ✅ |
+| **Lidarr** | /api/v1 | Queue, Missing | ✅ |
 | **Prowlarr** | /api/v1 | Indexer stats, Search history | 🚧 Types ready |
 | **Bazarr** | /api | Wanted subtitles, History | 🚧 Types ready |
 | **Tautulli** | /api/v2 | Activity, Libraries, Stats + GeoIP | ✅ |
@@ -529,7 +524,6 @@ DataPoint (internal format)
 |------|--------|--------|
 | ~~Health endpoint~~ | ~~✅~~ | ~~Production readiness~~ |
 | VictoriaMetrics output | ~4h | Popular alternative DB |
-| Readarr input | ~4h | Complete Arr stack |
 | Circuit breaker | ~6h | Reliability |
 | Test entry point | ~2h | Coverage |
 
@@ -538,7 +532,7 @@ DataPoint (internal format)
 |------|--------|--------|
 | Prometheus metrics | ~8h | Observability |
 | Config hot-reload | ~8h | Operations |
-| Lidarr, Prowlarr, Bazarr inputs | ~14h | More data sources |
+| Prowlarr, Bazarr inputs | ~10h | More data sources |
 | QuestDB, TimescaleDB outputs | ~14h | More DB options |
 | Structured logging | ~4h | Debugging |
 | Dry-run mode | ~2h | Testing |

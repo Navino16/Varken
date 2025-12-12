@@ -88,7 +88,7 @@ YAML Config → ConfigLoader → Orchestrator → PluginManager
 
 ## Implemented Plugins
 
-### Input Plugins (6)
+### Input Plugins (7)
 
 | Plugin | Config Key | Data Collected |
 |--------|------------|----------------|
@@ -97,6 +97,7 @@ YAML Config → ConfigLoader → Orchestrator → PluginManager
 | `ReadarrPlugin` | `readarr` | Queue, Missing books |
 | `TautulliPlugin` | `tautulli` | Activity, Libraries, Stats + GeoIP |
 | `OverseerrPlugin` | `overseerr` | Request counts, Latest requests |
+| `LidarrPlugin` | `lidarr` | Queue, Missing albums |
 | `OmbiPlugin` | `ombi` | Request counts, Issue counts |
 
 ### Output Plugins (2)
@@ -108,7 +109,7 @@ YAML Config → ConfigLoader → Orchestrator → PluginManager
 
 ### Not Yet Implemented (types exist)
 
-- **Inputs**: Readarr, Lidarr, Prowlarr, Bazarr, Plex, Jellyfin, Emby
+- **Inputs**: Prowlarr, Bazarr, Plex, Jellyfin, Emby
 - **Outputs**: VictoriaMetrics, QuestDB, TimescaleDB
 
 ## Key Dependencies
@@ -547,7 +548,17 @@ tests/
 - **Framework**: Vitest 2.1.0
 - **Coverage**: v8 provider, reports to `.reports/coverage/`
 - **JUnit**: `.reports/junit.xml` (for CI)
-- **Current**: 376 tests passing
+- **Current**: 396 tests passing
+
+## Contributing
+
+### Pull Requests
+
+**Always use the PR template** located at `.github/PULL_REQUEST_TEMPLATE.md` when creating pull requests. The template includes:
+- Description section
+- Type of change checkboxes
+- Checklist for testing and quality
+- Related issues section
 
 ## Build & CI
 
