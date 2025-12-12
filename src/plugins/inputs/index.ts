@@ -3,6 +3,7 @@ import type { InputPluginFactory } from '../../core/PluginManager';
 // Plugin imports
 import { SonarrPlugin } from './SonarrPlugin';
 import { RadarrPlugin } from './RadarrPlugin';
+import { ReadarrPlugin } from './ReadarrPlugin';
 import { TautulliPlugin } from './TautulliPlugin';
 import { OverseerrPlugin } from './OverseerrPlugin';
 import { OmbiPlugin } from './OmbiPlugin';
@@ -11,6 +12,7 @@ import { OmbiPlugin } from './OmbiPlugin';
 export { BaseInputPlugin, BaseInputConfig } from './BaseInputPlugin';
 export { SonarrPlugin } from './SonarrPlugin';
 export { RadarrPlugin } from './RadarrPlugin';
+export { ReadarrPlugin } from './ReadarrPlugin';
 export { TautulliPlugin } from './TautulliPlugin';
 export { OverseerrPlugin } from './OverseerrPlugin';
 export { OmbiPlugin } from './OmbiPlugin';
@@ -23,6 +25,7 @@ export type { GeoIPLookupFn } from '../../types/inputs/tautulli.types';
 const inputPluginClasses: InputPluginFactory[] = [
   SonarrPlugin,
   RadarrPlugin,
+  ReadarrPlugin,
   TautulliPlugin,
   OverseerrPlugin,
   OmbiPlugin,

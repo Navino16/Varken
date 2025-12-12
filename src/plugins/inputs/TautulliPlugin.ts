@@ -1,4 +1,3 @@
-import { createHash } from 'crypto';
 import { BaseInputPlugin } from './BaseInputPlugin';
 import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
 import type {
@@ -13,13 +12,6 @@ import type {
 
 // Re-export for external use
 export type { GeoIPLookupFn } from '../../types/inputs/tautulli.types';
-
-/**
- * Generate MD5 hash for deterministic unique IDs (matching legacy behavior)
- */
-function hashit(input: string): string {
-  return createHash('md5').update(input).digest('hex');
-}
 
 /**
  * Tautulli input plugin
@@ -277,7 +269,7 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
       productVersion = productVersion.split('-')[0];
     }
 
-    const hashId = hashit(
+    const hashId = this.hashit(
       `${session.session_id}${session.session_key}${session.username}${session.full_title}`
     );
 

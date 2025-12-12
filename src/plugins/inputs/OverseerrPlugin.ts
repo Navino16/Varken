@@ -1,4 +1,3 @@
-import { createHash } from 'crypto';
 import { BaseInputPlugin } from './BaseInputPlugin';
 import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
 import type {
@@ -8,13 +7,6 @@ import type {
   OverseerrRequestsResponse,
   OverseerrMediaDetails,
 } from '../../types/inputs/overseerr.types';
-
-/**
- * Generate MD5 hash for deterministic unique IDs (matching legacy behavior)
- */
-function hashit(input: string): string {
-  return createHash('md5').update(input).digest('hex');
-}
 
 /**
  * Overseerr input plugin
@@ -219,7 +211,7 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
             continue;
           }
 
-          const hashId = hashit(`${mediaInfo.id}${title}`);
+          const hashId = this.hashit(`${mediaInfo.id}${title}`);
           const requestedBy =
             mediaInfo.mediaInfo?.requests?.[0]?.requestedBy?.displayName || 'Unknown';
           const requestedDate = mediaInfo.mediaInfo?.requests?.[0]?.createdAt || '';

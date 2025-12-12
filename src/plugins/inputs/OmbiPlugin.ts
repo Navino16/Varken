@@ -1,4 +1,3 @@
-import { createHash } from 'crypto';
 import { BaseInputPlugin } from './BaseInputPlugin';
 import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
 import type {
@@ -8,13 +7,6 @@ import type {
   OmbiMovieRequest,
   OmbiTVRequest,
 } from '../../types/inputs/ombi.types';
-
-/**
- * Generate MD5 hash for deterministic unique IDs (matching legacy behavior)
- */
-function hashit(input: string): string {
-  return createHash('md5').update(input).digest('hex');
-}
 
 /**
  * Request status codes (matching legacy behavior)
@@ -248,7 +240,7 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
       childRequest.denied || false
     );
 
-    const hashId = hashit(`${request.id}${request.tvDbId}${request.title}`);
+    const hashId = this.hashit(`${request.id}${request.tvDbId}${request.title}`);
     const requestedUser = childRequest.requestedByAlias || 'Unknown';
     const requestedDate = childRequest.requestedDate || '';
 
@@ -275,7 +267,7 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
   private processMovieRequest(request: OmbiMovieRequest): DataPoint | null {
     const status = getRequestStatus(request.approved, request.available, request.denied || false);
 
-    const hashId = hashit(`${request.id}${request.theMovieDbId}${request.title}`);
+    const hashId = this.hashit(`${request.id}${request.theMovieDbId}${request.title}`);
     const requestedUser = request.requestedByAlias || 'Unknown';
     const requestedDate = request.requestedDate || '';
 

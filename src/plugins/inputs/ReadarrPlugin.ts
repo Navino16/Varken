@@ -1,41 +1,41 @@
 import { BaseInputPlugin } from './BaseInputPlugin';
 import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
 import type {
-  RadarrConfig,
-  RadarrQueueResponse,
-  RadarrQueue,
-  RadarrMovie,
-} from '../../types/inputs/radarr.types';
+  ReadarrConfig,
+  ReadarrQueueResponse,
+  ReadarrQueue,
+  ReadarrBook,
+} from '../../types/inputs/readarr.types';
 
 /**
- * Radarr input plugin
- * Collects queue and missing movies data from Radarr v3 API
+ * Readarr input plugin
+ * Collects queue and missing books data from Readarr v1 API
  */
-export class RadarrPlugin extends BaseInputPlugin<RadarrConfig> {
+export class ReadarrPlugin extends BaseInputPlugin<ReadarrConfig> {
   readonly metadata: PluginMetadata = {
-    name: 'Radarr',
+    name: 'Readarr',
     version: '1.0.0',
-    description: 'Collects queue and missing movies data from Radarr',
+    description: 'Collects queue and missing books data from Readarr',
   };
 
   /**
    * Initialize the plugin and configure the HTTP client with API key header
    */
-  async initialize(config: RadarrConfig): Promise<void> {
+  async initialize(config: ReadarrConfig): Promise<void> {
     await super.initialize(config);
-    // Add API key header for Radarr
+    // Add API key header for Readarr
     this.httpClient.defaults.headers.common['X-Api-Key'] = this.config.apiKey;
   }
 
   /**
-   * Health check endpoint for Radarr
+   * Health check endpoint for Readarr
    */
   protected getHealthEndpoint(): string {
-    return '/api/v3/system/status';
+    return '/api/v1/system/status';
   }
 
   /**
-   * Collect all enabled data from Radarr
+   * Collect all enabled data from Readarr
    */
   async collect(): Promise<DataPoint[]> {
     const points: DataPoint[] = [];
@@ -75,23 +75,24 @@ export class RadarrPlugin extends BaseInputPlugin<RadarrConfig> {
   }
 
   /**
-   * Collect queue data from Radarr
+   * Collect queue data from Readarr
    */
   private async collectQueue(): Promise<DataPoint[]> {
     const points: DataPoint[] = [];
     const pageSize = 250;
     let page = 1;
     let totalRecords = 0;
-    const allRecords: RadarrQueue[] = [];
+    const allRecords: ReadarrQueue[] = [];
 
     try {
       // Fetch all pages of the queue
       do {
-        const response = await this.httpGet<RadarrQueueResponse>('/api/v3/queue', {
+        const response = await this.httpGet<ReadarrQueueResponse>('/api/v1/queue', {
           pageSize,
           page,
-          includeMovie: true,
-          includeUnknownMovieItems: false,
+          includeBook: true,
+          includeAuthor: true,
+          includeUnknownBookItems: false,
         });
 
         totalRecords = response.totalRecords;
@@ -100,18 +101,19 @@ export class RadarrPlugin extends BaseInputPlugin<RadarrConfig> {
       } while (allRecords.length < totalRecords);
 
       if (allRecords.length === 0) {
-        this.logger.debug('No items in Radarr queue');
+        this.logger.debug('No items in Readarr queue');
         return points;
       }
 
       for (const queueItem of allRecords) {
-        if (!queueItem.movie) {
-          this.logger.debug('Skipping queue item with missing movie data');
+        if (!queueItem.book) {
+          this.logger.debug('Skipping queue item with missing book data');
           continue;
         }
 
-        const movie = queueItem.movie;
-        const name = `${movie.title} (${movie.year})`;
+        const book = queueItem.book;
+        const authorName = queueItem.author?.authorName || 'Unknown Author';
+        const name = `${book.title} - ${authorName}`;
         const protocol = queueItem.protocol.toUpperCase();
         const protocolId = protocol === 'USENET' ? 1 : 0;
         const quality = queueItem.quality?.quality?.name || 'Unknown';
@@ -120,16 +122,16 @@ export class RadarrPlugin extends BaseInputPlugin<RadarrConfig> {
 
         points.push(
           this.createDataPoint(
-            'Radarr',
+            'Readarr',
             {
               type: 'Queue',
-              tmdbId: queueItem.id,
+              bookId: queueItem.bookId,
               server: this.config.id,
               name,
               quality,
               protocol,
               protocol_id: protocolId,
-              titleSlug: movie.titleSlug,
+              titleSlug: book.titleSlug,
             },
             {
               hash: hashId,
@@ -138,50 +140,49 @@ export class RadarrPlugin extends BaseInputPlugin<RadarrConfig> {
         );
       }
 
-      this.logger.info(`Collected ${points.length} queue items from Radarr`);
+      this.logger.info(`Collected ${points.length} queue items from Readarr`);
     } catch (error) {
-      this.logger.error(`Failed to collect Radarr queue: ${error}`);
+      this.logger.error(`Failed to collect Readarr queue: ${error}`);
     }
 
     return points;
   }
 
   /**
-   * Collect missing movies from Radarr
+   * Collect missing books from Readarr
    */
   private async collectMissing(): Promise<DataPoint[]> {
     const points: DataPoint[] = [];
 
     try {
-      const movies = await this.httpGet<RadarrMovie[]>('/api/v3/movie');
+      const books = await this.httpGet<ReadarrBook[]>('/api/v1/wanted/missing', {
+        pageSize: 1000,
+        sortKey: 'releaseDate',
+        sortDirection: 'descending',
+        monitored: true,
+      });
 
-      if (!movies || movies.length === 0) {
-        this.logger.debug('No movies found in Radarr');
+      if (!books || books.length === 0) {
+        this.logger.debug('No missing books found in Readarr');
         return points;
       }
 
-      for (const movie of movies) {
-        // Only include monitored movies without files
-        if (!movie.monitored || movie.hasFile) {
-          continue;
-        }
+      for (const book of books) {
+        const authorName = book.author?.authorName || 'Unknown Author';
+        const bookName = `${book.title} - ${authorName}`;
 
-        // Missing_Available: 0 if available, 1 if not available yet
-        const missingAvailable = movie.isAvailable ? 0 : 1;
-        const movieName = `${movie.title} (${movie.year})`;
-
-        const hashId = this.hashit(`${this.config.id}${movieName}${movie.tmdbId}`);
+        const hashId = this.hashit(`${this.config.id}${bookName}${book.foreignBookId}`);
 
         points.push(
           this.createDataPoint(
-            'Radarr',
+            'Readarr',
             {
               type: 'Missing',
-              Missing_Available: missingAvailable,
-              tmdbId: movie.tmdbId,
+              bookId: book.id,
+              foreignBookId: book.foreignBookId,
               server: this.config.id,
-              name: movieName,
-              titleSlug: movie.titleSlug,
+              name: bookName,
+              titleSlug: book.titleSlug,
             },
             {
               hash: hashId,
@@ -190,9 +191,9 @@ export class RadarrPlugin extends BaseInputPlugin<RadarrConfig> {
         );
       }
 
-      this.logger.info(`Collected ${points.length} missing movies from Radarr`);
+      this.logger.info(`Collected ${points.length} missing books from Readarr`);
     } catch (error) {
-      this.logger.error(`Failed to collect Radarr missing movies: ${error}`);
+      this.logger.error(`Failed to collect Readarr missing books: ${error}`);
     }
 
     return points;
