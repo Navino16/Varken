@@ -88,7 +88,7 @@ YAML Config → ConfigLoader → Orchestrator → PluginManager
 
 ## Implemented Plugins
 
-### Input Plugins (8)
+### Input Plugins (9)
 
 | Plugin | Config Key | Data Collected |
 |--------|------------|----------------|
@@ -99,6 +99,7 @@ YAML Config → ConfigLoader → Orchestrator → PluginManager
 | `OverseerrPlugin` | `overseerr` | Request counts, Latest requests |
 | `LidarrPlugin` | `lidarr` | Queue, Missing albums |
 | `BazarrPlugin` | `bazarr` | Wanted subtitles, History |
+| `ProwlarrPlugin` | `prowlarr` | Indexer statistics |
 | `OmbiPlugin` | `ombi` | Request counts, Issue counts |
 
 ### Output Plugins (2)
@@ -110,7 +111,7 @@ YAML Config → ConfigLoader → Orchestrator → PluginManager
 
 ### Not Yet Implemented (types exist)
 
-- **Inputs**: Prowlarr, Plex, Jellyfin, Emby
+- **Inputs**: Plex, Jellyfin, Emby
 - **Outputs**: VictoriaMetrics, QuestDB, TimescaleDB
 
 ## Key Dependencies
@@ -551,7 +552,7 @@ tests/
 - **Framework**: Vitest 2.1.0
 - **Coverage**: v8 provider, reports to `.reports/coverage/`
 - **JUnit**: `.reports/junit.xml` (for CI)
-- **Current**: 414 tests passing
+- **Current**: 428 tests passing
 
 ## Contributing
 
@@ -562,6 +563,14 @@ tests/
 - Type of change checkboxes
 - Checklist for testing and quality
 - Related issues section
+
+**Always add appropriate labels** to pull requests:
+- `enhancement` - New features or plugins
+- `bug` - Bug fixes
+- `documentation` - Documentation updates
+- `dependencies` - Dependency updates
+
+Use `gh pr edit <number> --add-label "label1,label2"` to add labels.
 
 ## Build & CI
 
