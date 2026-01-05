@@ -51,7 +51,7 @@ export class ConfigLoader {
     const result = VarkenConfigSchema.safeParse(rawConfig);
 
     if (!result.success) {
-      const errors = result.error.errors
+      const errors = result.error.issues
         .map((e) => `  - ${e.path.join('.')}: ${e.message}`)
         .join('\n');
       throw new Error(`Configuration validation failed:\n${errors}`);
