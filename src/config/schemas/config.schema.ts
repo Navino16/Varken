@@ -61,6 +61,10 @@ const ScheduleConfigDaysSchema = z.object({
   intervalDays: z.number().default(1),
 });
 
+// Default values for reuse
+const scheduleDefault = { enabled: false, intervalSeconds: 30 };
+const scheduleDaysDefault = { enabled: false, intervalDays: 1 };
+
 // =============================================================================
 // Input Schemas - Arr Stack
 // =============================================================================
@@ -70,13 +74,13 @@ export const SonarrConfigSchema = z.object({
   url: z.string(),
   apiKey: z.string(),
   verifySsl: z.boolean().default(false),
-  queue: ScheduleConfigSchema.default({}),
+  queue: ScheduleConfigSchema.default(scheduleDefault),
   calendar: z.object({
     enabled: z.boolean().default(false),
     futureDays: z.number().default(7),
     missingDays: z.number().default(30),
     intervalSeconds: z.number().default(300),
-  }).default({}),
+  }).default({ enabled: false, futureDays: 7, missingDays: 30, intervalSeconds: 300 }),
 });
 
 export const RadarrConfigSchema = z.object({
@@ -84,8 +88,8 @@ export const RadarrConfigSchema = z.object({
   url: z.string(),
   apiKey: z.string(),
   verifySsl: z.boolean().default(false),
-  queue: ScheduleConfigSchema.default({}),
-  missing: ScheduleConfigSchema.default({}),
+  queue: ScheduleConfigSchema.default(scheduleDefault),
+  missing: ScheduleConfigSchema.default(scheduleDefault),
 });
 
 export const ReadarrConfigSchema = z.object({
@@ -93,8 +97,8 @@ export const ReadarrConfigSchema = z.object({
   url: z.string(),
   apiKey: z.string(),
   verifySsl: z.boolean().default(false),
-  queue: ScheduleConfigSchema.default({}),
-  missing: ScheduleConfigSchema.default({}),
+  queue: ScheduleConfigSchema.default(scheduleDefault),
+  missing: ScheduleConfigSchema.default(scheduleDefault),
 });
 
 export const LidarrConfigSchema = z.object({
@@ -102,8 +106,8 @@ export const LidarrConfigSchema = z.object({
   url: z.string(),
   apiKey: z.string(),
   verifySsl: z.boolean().default(false),
-  queue: ScheduleConfigSchema.default({}),
-  missing: ScheduleConfigSchema.default({}),
+  queue: ScheduleConfigSchema.default(scheduleDefault),
+  missing: ScheduleConfigSchema.default(scheduleDefault),
 });
 
 export const ProwlarrConfigSchema = z.object({
@@ -111,7 +115,7 @@ export const ProwlarrConfigSchema = z.object({
   url: z.string(),
   apiKey: z.string(),
   verifySsl: z.boolean().default(false),
-  indexerStats: ScheduleConfigSchema.default({}),
+  indexerStats: ScheduleConfigSchema.default(scheduleDefault),
 });
 
 export const BazarrConfigSchema = z.object({
@@ -119,8 +123,8 @@ export const BazarrConfigSchema = z.object({
   url: z.string(),
   apiKey: z.string(),
   verifySsl: z.boolean().default(false),
-  wanted: ScheduleConfigSchema.default({}),
-  history: ScheduleConfigSchema.default({}),
+  wanted: ScheduleConfigSchema.default(scheduleDefault),
+  history: ScheduleConfigSchema.default(scheduleDefault),
 });
 
 // =============================================================================
@@ -133,13 +137,13 @@ export const TautulliConfigSchema = z.object({
   apiKey: z.string(),
   verifySsl: z.boolean().default(false),
   fallbackIp: z.string().optional(),
-  activity: ScheduleConfigSchema.default({}),
-  libraries: ScheduleConfigDaysSchema.default({}),
-  stats: ScheduleConfigSchema.default({}),
+  activity: ScheduleConfigSchema.default(scheduleDefault),
+  libraries: ScheduleConfigDaysSchema.default(scheduleDaysDefault),
+  stats: ScheduleConfigSchema.default(scheduleDefault),
   geoip: z.object({
     enabled: z.boolean().default(false),
     licenseKey: z.string().optional(),
-  }).default({}),
+  }).default({ enabled: false }),
 });
 
 export const PlexConfigSchema = z.object({
@@ -147,8 +151,8 @@ export const PlexConfigSchema = z.object({
   url: z.string(),
   token: z.string(),
   verifySsl: z.boolean().default(false),
-  sessions: ScheduleConfigSchema.default({}),
-  libraries: ScheduleConfigSchema.default({}),
+  sessions: ScheduleConfigSchema.default(scheduleDefault),
+  libraries: ScheduleConfigSchema.default(scheduleDefault),
 });
 
 export const JellyfinConfigSchema = z.object({
@@ -156,8 +160,8 @@ export const JellyfinConfigSchema = z.object({
   url: z.string(),
   apiKey: z.string(),
   verifySsl: z.boolean().default(false),
-  sessions: ScheduleConfigSchema.default({}),
-  libraries: ScheduleConfigSchema.default({}),
+  sessions: ScheduleConfigSchema.default(scheduleDefault),
+  libraries: ScheduleConfigSchema.default(scheduleDefault),
 });
 
 export const EmbyConfigSchema = z.object({
@@ -165,8 +169,8 @@ export const EmbyConfigSchema = z.object({
   url: z.string(),
   apiKey: z.string(),
   verifySsl: z.boolean().default(false),
-  sessions: ScheduleConfigSchema.default({}),
-  libraries: ScheduleConfigSchema.default({}),
+  sessions: ScheduleConfigSchema.default(scheduleDefault),
+  libraries: ScheduleConfigSchema.default(scheduleDefault),
 });
 
 // =============================================================================
@@ -178,8 +182,8 @@ export const OmbiConfigSchema = z.object({
   url: z.string(),
   apiKey: z.string(),
   verifySsl: z.boolean().default(false),
-  requestCounts: ScheduleConfigSchema.default({}),
-  issueCounts: ScheduleConfigSchema.default({}),
+  requestCounts: ScheduleConfigSchema.default(scheduleDefault),
+  issueCounts: ScheduleConfigSchema.default(scheduleDefault),
 });
 
 export const OverseerrConfigSchema = z.object({
@@ -187,12 +191,12 @@ export const OverseerrConfigSchema = z.object({
   url: z.string(),
   apiKey: z.string(),
   verifySsl: z.boolean().default(false),
-  requestCounts: ScheduleConfigSchema.default({}),
+  requestCounts: ScheduleConfigSchema.default(scheduleDefault),
   latestRequests: z.object({
     enabled: z.boolean().default(false),
     count: z.number().default(10),
     intervalSeconds: z.number().default(300),
-  }).default({}),
+  }).default({ enabled: false, count: 10, intervalSeconds: 300 }),
 });
 
 // =============================================================================
