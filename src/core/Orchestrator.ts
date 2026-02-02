@@ -106,8 +106,10 @@ export class Orchestrator {
       return this.shutdownPromise;
     }
 
+    // If not running, create resolved promise to prevent race conditions
     if (!this.isRunning) {
-      return;
+      this.shutdownPromise = Promise.resolve();
+      return this.shutdownPromise;
     }
 
     this.shutdownPromise = this.performShutdown();

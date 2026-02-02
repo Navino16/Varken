@@ -11,10 +11,26 @@ if (!fs.existsSync(LOG_FOLDER)) {
 
 // Sensitive data patterns to filter
 const SENSITIVE_PATTERNS = [
+  // Key=value and key:value patterns
   /apikey[=:]\s*["']?[\w-]+["']?/gi,
+  /api_key[=:]\s*["']?[\w-]+["']?/gi,
   /token[=:]\s*["']?[\w-]+["']?/gi,
   /password[=:]\s*["']?[^"'\s]+["']?/gi,
   /secret[=:]\s*["']?[\w-]+["']?/gi,
+
+  // URL query parameters
+  /[?&]apikey=[^&\s]+/gi,
+  /[?&]api_key=[^&\s]+/gi,
+  /[?&]token=[^&\s]+/gi,
+  /[?&]access_token=[^&\s]+/gi,
+
+  // HTTP headers
+  /X-Api-Key:\s*\S+/gi,
+  /Authorization:\s*Bearer\s+\S+/gi,
+  /Authorization:\s*Basic\s+\S+/gi,
+
+  // Credentials in URLs (//user:pass@host)
+  /:\/\/[^:]+:[^@]+@/gi,
 ];
 
 // Filter sensitive data from logs

@@ -107,6 +107,10 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
 
     // Handle SSL verification
     if (this.config.ssl && !this.config.verifySsl) {
+      this.logger.warn(
+        `SSL verification disabled for ${baseURL}. ` +
+          'This exposes connections to MITM attacks. Do not use in production!'
+      );
       axiosConfig.httpsAgent = new https.Agent({
         rejectUnauthorized: false,
       });

@@ -40,6 +40,10 @@ export class InfluxDB1Plugin extends BaseOutputPlugin<InfluxDB1Config> {
 
     // Handle SSL verification
     if (this.config.ssl && !this.config.verifySsl) {
+      this.logger.warn(
+        `SSL verification disabled for ${protocol}://${this.config.url}:${this.config.port}. ` +
+          'This exposes connections to MITM attacks. Do not use in production!'
+      );
       options.options = {
         agent: new https.Agent({
           rejectUnauthorized: false,
