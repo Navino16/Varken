@@ -1,4 +1,55 @@
 services:
+  # ===================
+  # Varken (auto-build from source)
+  # ===================
+  # Production build (from Dockerfile)
+  varken:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: varken
+    environment:
+      - TZ=Europe/Paris
+      - LOG_LEVEL=debug
+      - CONFIG_FOLDER=/config
+      - DATA_FOLDER=/data
+      - LOG_FOLDER=/logs
+    volumes:
+      - ./config/varken.test.yaml:/config/varken.yaml:ro
+      - ./data:/data
+      - ./logs:/logs
+    depends_on:
+      influxdb2:
+        condition: service_healthy
+    profiles:
+      - varken
+      - all
+
+  # Development mode (hot-reload with source mount)
+  varken-dev:
+    image: node:22-alpine
+    container_name: varken-dev
+    working_dir: /app
+    command: sh -c "npm install && npm run dev"
+    environment:
+      - TZ=Europe/Paris
+      - LOG_LEVEL=debug
+      - CONFIG_FOLDER=/config
+      - DATA_FOLDER=/app/data
+      - LOG_FOLDER=/app/logs
+    volumes:
+      - .:/app
+      - ./config/varken.test.yaml:/config/varken.yaml:ro
+      - varken-node-modules:/app/node_modules
+    depends_on:
+      influxdb2:
+        condition: service_healthy
+    profiles:
+      - dev
+
+  # ===================
+  # Database Services
+  # ===================
   influxdb1:
     image: influxdb:1.8
     container_name: varken-influxdb1
@@ -17,6 +68,10 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    profiles:
+      - influxdb1
+      - databases
+      - all
 
   influxdb2:
     image: influxdb:2.7
@@ -37,7 +92,191 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    profiles:
+      - influxdb2
+      - databases
+      - all
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: varken-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    volumes:
+      - grafana-data:/var/lib/grafana
+    profiles:
+      - grafana
+      - databases
+      - all
+
+  # ===================
+  # Media Services
+  # ===================
+  ombi:
+    image: lscr.io/linuxserver/ombi:latest
+    container_name: varken-ombi
+    ports:
+      - "3579:3579"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Paris
+    volumes:
+      - ombi-data:/config
+    profiles:
+      - ombi
+      - media
+      - all
+
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: varken-sonarr
+    ports:
+      - "8989:8989"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Paris
+    volumes:
+      - sonarr-data:/config
+    profiles:
+      - sonarr
+      - arr
+      - media
+      - all
+
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: varken-radarr
+    ports:
+      - "7878:7878"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Paris
+    volumes:
+      - radarr-data:/config
+    profiles:
+      - radarr
+      - arr
+      - media
+      - all
+
+  lidarr:
+    image: lscr.io/linuxserver/lidarr:latest
+    container_name: varken-lidarr
+    ports:
+      - "8686:8686"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Paris
+    volumes:
+      - lidarr-data:/config
+    profiles:
+      - lidarr
+      - arr
+      - media
+      - all
+
+  readarr:
+    image: lscr.io/linuxserver/readarr:develop
+    container_name: varken-readarr
+    ports:
+      - "8787:8787"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Paris
+    volumes:
+      - readarr-data:/config
+    profiles:
+      - readarr
+      - arr
+      - media
+      - all
+
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: varken-prowlarr
+    ports:
+      - "9696:9696"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Paris
+    volumes:
+      - prowlarr-data:/config
+    profiles:
+      - prowlarr
+      - arr
+      - media
+      - all
+
+  bazarr:
+    image: lscr.io/linuxserver/bazarr:latest
+    container_name: varken-bazarr
+    ports:
+      - "6767:6767"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Paris
+    volumes:
+      - bazarr-data:/config
+    profiles:
+      - bazarr
+      - arr
+      - media
+      - all
+
+  overseerr:
+    image: lscr.io/linuxserver/overseerr:latest
+    container_name: varken-overseerr
+    ports:
+      - "5055:5055"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Paris
+    volumes:
+      - overseerr-data:/config
+    profiles:
+      - overseerr
+      - media
+      - all
+
+  tautulli:
+    image: lscr.io/linuxserver/tautulli:latest
+    container_name: varken-tautulli
+    ports:
+      - "8181:8181"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Paris
+    volumes:
+      - tautulli-data:/config
+    profiles:
+      - tautulli
+      - media
+      - all
 
 volumes:
   influxdb1-data:
   influxdb2-data:
+  grafana-data:
+  ombi-data:
+  sonarr-data:
+  radarr-data:
+  lidarr-data:
+  readarr-data:
+  prowlarr-data:
+  bazarr-data:
+  overseerr-data:
+  tautulli-data:
+  varken-node-modules:

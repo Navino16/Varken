@@ -6,6 +6,7 @@ import type {
   OmbiIssuesCounts,
   OmbiMovieRequest,
   OmbiTVRequest,
+  OmbiUser,
 } from '../../types/inputs/ombi.types';
 
 /**
@@ -169,21 +170,35 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
   }
 
   /**
+   * Fetch users and build a map of userId -> displayName
+   */
+  private async fetchUserMap(): Promise<Map<string, string>> {
+    try {
+      const users = await this.httpGet<OmbiUser[]>('/api/v1/Identity/Users');
+      return new Map(users.map((u) => [u.id, u.alias || u.userName]));
+    } catch (error) {
+      this.logger.warn(`Failed to fetch Ombi users, falling back to alias: ${error}`);
+      return new Map();
+    }
+  }
+
+  /**
    * Collect all requests (TV and movie) from Ombi
    */
   private async collectAllRequests(): Promise<DataPoint[]> {
     const points: DataPoint[] = [];
 
     try {
-      // Fetch TV and movie requests in parallel
-      const [tvRequests, movieRequests] = await Promise.all([
+      // Fetch users and requests in parallel
+      const [userMap, tvRequests, movieRequests] = await Promise.all([
+        this.fetchUserMap(),
         this.httpGet<OmbiTVRequest[]>('/api/v1/Request/tv'),
         this.httpGet<OmbiMovieRequest[]>('/api/v1/Request/movie'),
       ]);
 
       // Process TV requests
       for (const request of tvRequests || []) {
-        const tvPoint = this.processTVRequest(request);
+        const tvPoint = this.processTVRequest(request, userMap);
         if (tvPoint) {
           points.push(tvPoint);
         }
@@ -191,7 +206,7 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
 
       // Process movie requests
       for (const request of movieRequests || []) {
-        const moviePoint = this.processMovieRequest(request);
+        const moviePoint = this.processMovieRequest(request, userMap);
         if (moviePoint) {
           points.push(moviePoint);
         }
@@ -224,9 +239,24 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
   }
 
   /**
+   * Resolve the requested user's display name
+   * Priority: userMap lookup > requestedByAlias > 'Unknown'
+   */
+  private resolveUserName(
+    userId: string | undefined,
+    alias: string | undefined,
+    userMap: Map<string, string>
+  ): string {
+    if (userId && userMap.has(userId)) {
+      return userMap.get(userId)!;
+    }
+    return alias || 'Unknown';
+  }
+
+  /**
    * Process a TV request into a DataPoint
    */
-  private processTVRequest(request: OmbiTVRequest): DataPoint | null {
+  private processTVRequest(request: OmbiTVRequest, userMap: Map<string, string>): DataPoint | null {
     if (!request.childRequests || request.childRequests.length === 0) {
       return null;
     }
@@ -241,7 +271,11 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
     );
 
     const hashId = this.hashit(`${request.id}${request.tvDbId}${request.title}`);
-    const requestedUser = childRequest.requestedByAlias || 'Unknown';
+    const requestedUser = this.resolveUserName(
+      childRequest.requestedUserId,
+      childRequest.requestedByAlias,
+      userMap
+    );
     const requestedDate = childRequest.requestedDate || '';
 
     return this.createDataPoint(
@@ -264,11 +298,18 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
   /**
    * Process a movie request into a DataPoint
    */
-  private processMovieRequest(request: OmbiMovieRequest): DataPoint | null {
+  private processMovieRequest(
+    request: OmbiMovieRequest,
+    userMap: Map<string, string>
+  ): DataPoint | null {
     const status = getRequestStatus(request.approved, request.available, request.denied || false);
 
     const hashId = this.hashit(`${request.id}${request.theMovieDbId}${request.title}`);
-    const requestedUser = request.requestedByAlias || 'Unknown';
+    const requestedUser = this.resolveUserName(
+      request.requestedUserId,
+      request.requestedByAlias,
+      userMap
+    );
     const requestedDate = request.requestedDate || '';
 
     return this.createDataPoint(

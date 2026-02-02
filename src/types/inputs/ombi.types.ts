@@ -18,6 +18,15 @@ export interface OmbiConfig {
   };
 }
 
+// API Response Types - /api/v1/Identity/Users
+export interface OmbiUser {
+  id: string;
+  userName: string;
+  alias?: string;
+  email?: string;
+  userType: number;
+}
+
 // API Response Types - /api/v1/Request/count
 export interface OmbiRequestCounts {
   approved: number;
