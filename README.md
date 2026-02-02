@@ -149,6 +149,8 @@ inputs:
         intervalSeconds: 30
       calendar:
         enabled: true
+        futureDays: 7
+        missingDays: 30
         intervalSeconds: 300
 
   radarr:
