@@ -418,16 +418,12 @@ interface ScheduleConfig {
   - `varken status`
   - Effort: ~8h
 
-#### Pre-commit Hooks
-- [ ] Add `husky` + `lint-staged`
+#### Pre-commit Hooks ✅
+- [x] Add `husky` + `lint-staged`
   - Run lint and format before commit
-  - Effort: ~1h
 
-#### CHANGELOG Auto-Generation
-- [ ] Use `standard-version` or `conventional-commits`
-  - Auto-generate changelog from commit messages
-  - Semantic versioning
-  - Effort: ~2h
+#### CHANGELOG Auto-Generation ✅
+- [x] Handled by GitHub Actions on tag creation
 
 #### GitHub PR Template ✅
 - [x] Create `.github/PULL_REQUEST_TEMPLATE.md`
@@ -552,8 +548,8 @@ DataPoint (internal format)
 |------|--------|--------|
 | Plex, Jellyfin, Emby inputs | ~24h | Alternative to Tautulli |
 | CLI tool | ~8h | Admin UX |
-| Pre-commit hooks | ~1h | DX |
-| CHANGELOG auto-generation | ~2h | Maintenance |
+| ~~Pre-commit hooks~~ | ~~✅~~ | ~~DX - husky + lint-staged~~ |
+| ~~CHANGELOG auto-generation~~ | ~~✅~~ | ~~GitHub Actions on tag~~ |
 | Deployment docs | ~8h | Documentation |
 | Performance benchmarks | ~4h | Optimization |
 
