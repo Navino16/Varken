@@ -36,6 +36,11 @@ class MockInputPlugin extends BaseInputPlugin<BaseInputConfig> {
       this.createSchedule('mock', 1, true, this.collect),
     ];
   }
+
+  // Override to avoid HTTP requests in tests
+  async healthCheck(): Promise<boolean> {
+    return true;
+  }
 }
 
 // Test output plugin implementation
@@ -420,6 +425,441 @@ describe('PluginManager', () => {
 
       const stats = pluginManager.getStats();
       expect(stats.activeInputPlugins).toBe(2);
+    });
+  });
+
+  describe('getSchedulerStatuses', () => {
+    it('should return empty array when no schedulers', () => {
+      const statuses = pluginManager.getSchedulerStatuses();
+      expect(statuses).toEqual([]);
+    });
+
+    it('should return status for each active scheduler', async () => {
+      pluginManager.registerInputPlugin('sonarr', MockInputPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', MockOutputPlugin);
+      await pluginManager.initializeFromConfig(minimalConfig);
+      await pluginManager.startSchedulers();
+
+      const statuses = pluginManager.getSchedulerStatuses();
+
+      expect(statuses.length).toBe(1);
+      // Schedule name is formatted as: {pluginName}_{instanceId}_{scheduleName}
+      expect(statuses[0].name).toBe('MockInput_1_mock');
+      expect(statuses[0].pluginName).toBe('MockInput');
+      expect(statuses[0].intervalSeconds).toBe(1);
+      expect(statuses[0].isRunning).toBeDefined();
+      expect(statuses[0].consecutiveErrors).toBe(0);
+    });
+
+    it('should track scheduler last run time after interval', async () => {
+      pluginManager.registerInputPlugin('sonarr', MockInputPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', MockOutputPlugin);
+      await pluginManager.initializeFromConfig(minimalConfig);
+      await pluginManager.startSchedulers();
+
+      // Advance past one interval (1 second) to ensure at least one execution completes
+      await vi.advanceTimersByTimeAsync(1100);
+
+      const statuses = pluginManager.getSchedulerStatuses();
+      expect(statuses[0].lastRunAt).toBeDefined();
+    });
+
+    it('should track scheduler errors after interval', async () => {
+      class FailingCollectorPlugin extends MockInputPlugin {
+        async collect(): Promise<DataPoint[]> {
+          throw new Error('Collector failed');
+        }
+      }
+
+      pluginManager.registerInputPlugin('sonarr', FailingCollectorPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', MockOutputPlugin);
+      await pluginManager.initializeFromConfig(minimalConfig);
+      await pluginManager.startSchedulers();
+
+      // Advance past one interval to ensure execution completes
+      await vi.advanceTimersByTimeAsync(1100);
+
+      const statuses = pluginManager.getSchedulerStatuses();
+      expect(statuses[0].lastError).toBe('Collector failed');
+      expect(statuses[0].consecutiveErrors).toBeGreaterThan(0);
+    });
+  });
+
+  describe('getInputPluginStatuses', () => {
+    it('should return empty array when no plugins', async () => {
+      const statuses = await pluginManager.getInputPluginStatuses();
+      expect(statuses).toEqual([]);
+    });
+
+    it('should return status for each input plugin', async () => {
+      pluginManager.registerInputPlugin('sonarr', MockInputPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', MockOutputPlugin);
+      await pluginManager.initializeFromConfig(minimalConfig);
+
+      const statuses = await pluginManager.getInputPluginStatuses();
+
+      expect(statuses.length).toBe(1);
+      expect(statuses[0].type).toBe('sonarr');
+      expect(statuses[0].name).toBe('MockInput');
+      expect(statuses[0].version).toBe('1.0.0');
+      expect(statuses[0].healthy).toBe(true);
+    });
+
+    it('should handle health check failure', async () => {
+      class UnhealthyInputPlugin extends MockInputPlugin {
+        async healthCheck(): Promise<boolean> {
+          return false;
+        }
+      }
+
+      pluginManager.registerInputPlugin('sonarr', UnhealthyInputPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', MockOutputPlugin);
+      await pluginManager.initializeFromConfig(minimalConfig);
+
+      const statuses = await pluginManager.getInputPluginStatuses();
+
+      expect(statuses[0].healthy).toBe(false);
+    });
+
+    it('should handle health check exception', async () => {
+      class ExceptionHealthPlugin extends MockInputPlugin {
+        async healthCheck(): Promise<boolean> {
+          throw new Error('Health check failed');
+        }
+      }
+
+      pluginManager.registerInputPlugin('sonarr', ExceptionHealthPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', MockOutputPlugin);
+      await pluginManager.initializeFromConfig(minimalConfig);
+
+      const statuses = await pluginManager.getInputPluginStatuses();
+
+      expect(statuses[0].healthy).toBe(false);
+      expect(statuses[0].error).toBe('Health check failed');
+    });
+
+    it('should handle non-Error exception in health check', async () => {
+      class NonErrorHealthPlugin extends MockInputPlugin {
+        async healthCheck(): Promise<boolean> {
+          throw 'String exception';
+        }
+      }
+
+      pluginManager.registerInputPlugin('sonarr', NonErrorHealthPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', MockOutputPlugin);
+      await pluginManager.initializeFromConfig(minimalConfig);
+
+      const statuses = await pluginManager.getInputPluginStatuses();
+
+      expect(statuses[0].healthy).toBe(false);
+      expect(statuses[0].error).toBe('Unknown error');
+    });
+  });
+
+  describe('getOutputPluginStatuses', () => {
+    it('should return empty array when no plugins', async () => {
+      const statuses = await pluginManager.getOutputPluginStatuses();
+      expect(statuses).toEqual([]);
+    });
+
+    it('should return status for each output plugin', async () => {
+      pluginManager.registerInputPlugin('sonarr', MockInputPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', MockOutputPlugin);
+      await pluginManager.initializeFromConfig(minimalConfig);
+
+      const statuses = await pluginManager.getOutputPluginStatuses();
+
+      expect(statuses.length).toBe(1);
+      expect(statuses[0].type).toBe('influxdb1');
+      expect(statuses[0].name).toBe('MockOutput');
+      expect(statuses[0].version).toBe('1.0.0');
+      expect(statuses[0].healthy).toBe(true);
+    });
+
+    it('should handle health check failure', async () => {
+      class UnhealthyOutputPlugin extends MockOutputPlugin {
+        async healthCheck(): Promise<boolean> {
+          return false;
+        }
+      }
+
+      pluginManager.registerInputPlugin('sonarr', MockInputPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', UnhealthyOutputPlugin);
+      await pluginManager.initializeFromConfig(minimalConfig);
+
+      const statuses = await pluginManager.getOutputPluginStatuses();
+
+      expect(statuses[0].healthy).toBe(false);
+    });
+
+    it('should handle health check exception', async () => {
+      class ExceptionHealthOutputPlugin extends MockOutputPlugin {
+        async healthCheck(): Promise<boolean> {
+          throw new Error('Output health check failed');
+        }
+      }
+
+      pluginManager.registerInputPlugin('sonarr', MockInputPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', ExceptionHealthOutputPlugin);
+      await pluginManager.initializeFromConfig(minimalConfig);
+
+      const statuses = await pluginManager.getOutputPluginStatuses();
+
+      expect(statuses[0].healthy).toBe(false);
+      expect(statuses[0].error).toBe('Output health check failed');
+    });
+
+    it('should handle non-Error exception in output health check', async () => {
+      class NonErrorHealthOutputPlugin extends MockOutputPlugin {
+        async healthCheck(): Promise<boolean> {
+          throw { code: 'UNEXPECTED' };
+        }
+      }
+
+      pluginManager.registerInputPlugin('sonarr', MockInputPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', NonErrorHealthOutputPlugin);
+      await pluginManager.initializeFromConfig(minimalConfig);
+
+      const statuses = await pluginManager.getOutputPluginStatuses();
+
+      expect(statuses[0].healthy).toBe(false);
+      expect(statuses[0].error).toBe('Unknown error');
+    });
+  });
+
+  describe('healthCheck edge cases', () => {
+    it('should return false for output that throws in healthCheck', async () => {
+      class ThrowingHealthOutputPlugin extends MockOutputPlugin {
+        async healthCheck(): Promise<boolean> {
+          throw new Error('Connection failed');
+        }
+      }
+
+      pluginManager.registerInputPlugin('sonarr', MockInputPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', ThrowingHealthOutputPlugin);
+      await pluginManager.initializeFromConfig(minimalConfig);
+
+      const health = await pluginManager.healthCheck();
+
+      expect(health.get('influxdb1')).toBe(false);
+    });
+  });
+
+  describe('scheduler statuses', () => {
+    it('should have isRunning field set to false when not executing', async () => {
+      pluginManager.registerInputPlugin('sonarr', MockInputPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', MockOutputPlugin);
+      await pluginManager.initializeFromConfig(minimalConfig);
+      await pluginManager.startSchedulers();
+
+      // Wait for execution to complete
+      await vi.advanceTimersByTimeAsync(1100);
+
+      // After execution completes, isRunning should be false
+      const statuses = pluginManager.getSchedulerStatuses();
+      expect(statuses[0].isRunning).toBe(false);
+    });
+
+    it('should reset consecutiveErrors on successful execution', async () => {
+      let shouldFail = true;
+
+      class SometimesFailingPlugin extends MockInputPlugin {
+        async collect(): Promise<DataPoint[]> {
+          if (shouldFail) {
+            throw new Error('Temporary failure');
+          }
+          return [];
+        }
+      }
+
+      pluginManager.registerInputPlugin('sonarr', SometimesFailingPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', MockOutputPlugin);
+      await pluginManager.initializeFromConfig(minimalConfig);
+      await pluginManager.startSchedulers();
+
+      // First execution fails
+      await vi.advanceTimersByTimeAsync(1100);
+      let statuses = pluginManager.getSchedulerStatuses();
+      expect(statuses[0].consecutiveErrors).toBeGreaterThan(0);
+
+      // Now make it succeed
+      shouldFail = false;
+      await vi.advanceTimersByTimeAsync(1000);
+      statuses = pluginManager.getSchedulerStatuses();
+      expect(statuses[0].consecutiveErrors).toBe(0);
+      expect(statuses[0].lastError).toBeUndefined();
+    });
+  });
+
+  describe('disabled schedules', () => {
+    it('should not start disabled schedules', async () => {
+      class DisabledSchedulePlugin extends MockInputPlugin {
+        getSchedules(): ScheduleConfig[] {
+          return [
+            this.createSchedule('disabled', 1, false, this.collect),
+          ];
+        }
+      }
+
+      pluginManager.registerInputPlugin('sonarr', DisabledSchedulePlugin);
+      pluginManager.registerOutputPlugin('influxdb1', MockOutputPlugin);
+      await pluginManager.initializeFromConfig(minimalConfig);
+      await pluginManager.startSchedulers();
+
+      const stats = pluginManager.getStats();
+      expect(stats.activeSchedulers).toBe(0);
+    });
+  });
+
+  describe('data flow', () => {
+    it('should write collected data points to outputs', async () => {
+      const writtenPoints: DataPoint[] = [];
+
+      class DataProducerPlugin extends MockInputPlugin {
+        async collect(): Promise<DataPoint[]> {
+          return [
+            {
+              measurement: 'test',
+              tags: { server_id: 1 },
+              fields: { value: 42 },
+              timestamp: new Date(),
+            },
+          ];
+        }
+      }
+
+      class RecordingOutputPlugin extends MockOutputPlugin {
+        async write(points: DataPoint[]): Promise<void> {
+          writtenPoints.push(...points);
+        }
+      }
+
+      pluginManager.registerInputPlugin('sonarr', DataProducerPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', RecordingOutputPlugin);
+      await pluginManager.initializeFromConfig(minimalConfig);
+      await pluginManager.startSchedulers();
+
+      // Wait for collection and write to complete
+      await vi.advanceTimersByTimeAsync(1100);
+
+      expect(writtenPoints.length).toBeGreaterThan(0);
+      expect(writtenPoints[0].measurement).toBe('test');
+      expect(writtenPoints[0].fields.value).toBe(42);
+    });
+
+    it('should write to multiple outputs', async () => {
+      const output1Points: DataPoint[] = [];
+      const output2Points: DataPoint[] = [];
+
+      class DataProducerPlugin extends MockInputPlugin {
+        async collect(): Promise<DataPoint[]> {
+          return [
+            {
+              measurement: 'test',
+              tags: { server_id: 1 },
+              fields: { value: 42 },
+              timestamp: new Date(),
+            },
+          ];
+        }
+      }
+
+      class Output1Plugin extends MockOutputPlugin {
+        async write(points: DataPoint[]): Promise<void> {
+          output1Points.push(...points);
+        }
+      }
+
+      class Output2Plugin extends MockOutputPlugin {
+        async write(points: DataPoint[]): Promise<void> {
+          output2Points.push(...points);
+        }
+      }
+
+      // Config with two outputs
+      const configWithTwoOutputs: VarkenConfig = {
+        outputs: {
+          influxdb1: minimalConfig.outputs.influxdb1,
+          influxdb2: {
+            url: 'localhost',
+            port: 8087,
+            token: 'test-token',
+            org: 'test-org',
+            bucket: 'varken',
+            ssl: false,
+            verifySsl: false,
+          },
+        },
+        inputs: minimalConfig.inputs,
+      };
+
+      pluginManager.registerInputPlugin('sonarr', DataProducerPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', Output1Plugin);
+      pluginManager.registerOutputPlugin('influxdb2', Output2Plugin);
+      await pluginManager.initializeFromConfig(configWithTwoOutputs);
+      await pluginManager.startSchedulers();
+
+      // Wait for collection and write
+      await vi.advanceTimersByTimeAsync(1100);
+
+      expect(output1Points.length).toBeGreaterThan(0);
+      expect(output2Points.length).toBeGreaterThan(0);
+    });
+
+    it('should continue writing to other outputs if one fails', async () => {
+      const successfulWrites: DataPoint[] = [];
+
+      class DataProducerPlugin extends MockInputPlugin {
+        async collect(): Promise<DataPoint[]> {
+          return [
+            {
+              measurement: 'test',
+              tags: { server_id: 1 },
+              fields: { value: 42 },
+              timestamp: new Date(),
+            },
+          ];
+        }
+      }
+
+      class FailingOutputPlugin extends MockOutputPlugin {
+        async write(): Promise<void> {
+          throw new Error('Write failed');
+        }
+      }
+
+      class SuccessfulOutputPlugin extends MockOutputPlugin {
+        async write(points: DataPoint[]): Promise<void> {
+          successfulWrites.push(...points);
+        }
+      }
+
+      const configWithTwoOutputs: VarkenConfig = {
+        outputs: {
+          influxdb1: minimalConfig.outputs.influxdb1,
+          influxdb2: {
+            url: 'localhost',
+            port: 8087,
+            token: 'test-token',
+            org: 'test-org',
+            bucket: 'varken',
+            ssl: false,
+            verifySsl: false,
+          },
+        },
+        inputs: minimalConfig.inputs,
+      };
+
+      pluginManager.registerInputPlugin('sonarr', DataProducerPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', FailingOutputPlugin);
+      pluginManager.registerOutputPlugin('influxdb2', SuccessfulOutputPlugin);
+      await pluginManager.initializeFromConfig(configWithTwoOutputs);
+      await pluginManager.startSchedulers();
+
+      await vi.advanceTimersByTimeAsync(1100);
+
+      // Second output should still receive data despite first failing
+      expect(successfulWrites.length).toBeGreaterThan(0);
     });
   });
 });
