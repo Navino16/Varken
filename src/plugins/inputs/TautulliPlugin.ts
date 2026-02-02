@@ -6,12 +6,9 @@ import type {
   TautulliSession,
   TautulliLibrary,
   GeoIPInfo,
-  GeoIPLookupFn,
+  TautulliGeoIPResponse,
   TautulliApiResponse,
 } from '../../types/inputs/tautulli.types';
-
-// Re-export for external use
-export type { GeoIPLookupFn } from '../../types/inputs/tautulli.types';
 
 /**
  * Tautulli input plugin
@@ -24,21 +21,23 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
     description: 'Collects activity, libraries, and stats from Tautulli',
   };
 
-  private geoipLookup?: GeoIPLookupFn;
-
   /**
    * Initialize the plugin and configure the HTTP client
    */
   async initialize(config: TautulliConfig): Promise<void> {
     await super.initialize(config);
-  }
 
-  /**
-   * Set the GeoIP lookup function (injected by PluginManager)
-   */
-  setGeoIPLookup(lookupFn: GeoIPLookupFn): void {
-    this.geoipLookup = lookupFn;
-    this.logger.info('GeoIP lookup function enabled');
+    // Log deprecation warnings for old config options
+    if (config.geoip?.licenseKey) {
+      this.logger.warn(
+        'geoip.licenseKey is deprecated and ignored. GeoIP is now handled by Tautulli API.'
+      );
+    }
+    if (config.fallbackIp) {
+      this.logger.warn(
+        'fallbackIp is deprecated and ignored. Use geoip.localCoordinates for LAN streams.'
+      );
+    }
   }
 
   /**
@@ -168,48 +167,126 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
   }
 
   /**
-   * Process a single Tautulli session into a DataPoint
+   * Perform GeoIP lookup using Tautulli API
    */
-  private async processSession(session: TautulliSession): Promise<DataPoint | null> {
-    // Get GeoIP data if enabled
-    let geoData: GeoIPInfo | null = null;
-    if (this.config.geoip.enabled && this.geoipLookup) {
-      const ip = session.ip_address_public || session.ip_address;
-      if (ip) {
-        try {
-          geoData = await this.geoipLookup(ip);
-          if (geoData) {
-            this.logger.debug(`GeoIP: ${ip} -> ${geoData.city}, ${geoData.region}, ${geoData.country}`);
-          }
-        } catch {
-          this.logger.debug(`GeoIP lookup failed for ${ip}, trying fallback...`);
-          if (this.config.fallbackIp) {
-            try {
-              geoData = await this.geoipLookup(this.config.fallbackIp);
-              if (geoData) {
-                this.logger.debug(`GeoIP fallback: ${this.config.fallbackIp} -> ${geoData.city}, ${geoData.region}, ${geoData.country}`);
-              }
-            } catch {
-              this.logger.debug('Fallback IP lookup also failed');
-            }
-          }
+  private async geoipLookup(ip: string): Promise<GeoIPInfo | null> {
+    try {
+      const response = await this.httpGet<TautulliApiResponse<TautulliGeoIPResponse>>(
+        '/api/v2',
+        {
+          apikey: this.config.apiKey,
+          cmd: 'get_geoip_lookup',
+          ip_address: ip,
         }
+      );
+
+      if (response?.response?.result !== 'success' || !response?.response?.data) {
+        return null;
+      }
+
+      const data = response.response.data;
+      return {
+        city: data.city || '',
+        region: data.region || '',
+        country: data.country || '',
+        latitude: data.latitude || 0,
+        longitude: data.longitude || 0,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.debug(`GeoIP lookup failed for ${ip}: ${message}`);
+      return null;
+    }
+  }
+
+  /**
+   * Check if an IP address is private/local (RFC 1918, loopback, link-local, etc.)
+   */
+  private isPrivateIP(ip: string): boolean {
+    // IPv4 private ranges
+    const privateRanges = [
+      /^10\./, // 10.0.0.0/8
+      /^172\.(1[6-9]|2[0-9]|3[0-1])\./, // 172.16.0.0/12
+      /^192\.168\./, // 192.168.0.0/16
+      /^127\./, // Loopback
+      /^0\./, // Zero network
+      /^169\.254\./, // Link-local
+      /^224\./, // Multicast
+      /^255\./, // Broadcast
+    ];
+
+    // IPv6 private ranges
+    const privateIPv6Ranges = [
+      /^::1$/, // Loopback
+      /^fe80:/i, // Link-local
+      /^fc00:/i, // Unique local
+      /^fd00:/i, // Unique local
+    ];
+
+    for (const range of privateRanges) {
+      if (range.test(ip)) {
+        return true;
       }
     }
 
-    // Default geo values (Area 51 coordinates as in legacy)
-    let latitude = 37.234332396;
-    let longitude = -115.80666344;
-    let location = '👽';
-    let regionCode = '';
-    let fullLocation = '';
+    for (const range of privateIPv6Ranges) {
+      if (range.test(ip)) {
+        return true;
+      }
+    }
 
-    if (geoData) {
-      latitude = geoData.latitude || latitude;
-      longitude = geoData.longitude || longitude;
-      location = geoData.city || location;
-      regionCode = geoData.region || '';
-      fullLocation = `${geoData.region || ''} - ${geoData.city || ''}`;
+    return false;
+  }
+
+  /**
+   * Process a single Tautulli session into a DataPoint
+   */
+  private async processSession(session: TautulliSession): Promise<DataPoint | null> {
+    // Check if this is a local stream
+    // Tautulli may return local as string '1' or number 1
+    const tautulliSaysLocal = session.local === '1' || session.local === 1;
+    const ip = session.ip_address_public || session.ip_address;
+    const ipIsPrivate = ip ? this.isPrivateIP(ip) : false;
+
+    // Determine if stream is local: either Tautulli says so, or IP is private
+    const isLocal = tautulliSaysLocal || ipIsPrivate;
+
+    // Get GeoIP data if enabled and not a local stream
+    let geoData: GeoIPInfo | null = null;
+    if (this.config.geoip.enabled && !isLocal && ip) {
+      geoData = await this.geoipLookup(ip);
+      if (geoData) {
+        this.logger.debug(`GeoIP: ${ip} -> ${geoData.city}, ${geoData.region}, ${geoData.country}`);
+      }
+    } else if (this.config.geoip.enabled && isLocal && ip) {
+      this.logger.debug(`Local stream detected: ${ip} (private IP: ${ipIsPrivate}, tautulli local: ${tautulliSaysLocal})`);
+    }
+
+    // Determine location values
+    let latitude: number | undefined;
+    let longitude: number | undefined;
+    let location = 'unknown';
+    let regionCode = 'unknown';
+    let fullLocation = 'unknown';
+
+    if (isLocal) {
+      // Local stream
+      location = 'Local';
+      fullLocation = 'Local Network';
+      regionCode = 'LAN';
+      if (this.config.geoip.localCoordinates) {
+        latitude = this.config.geoip.localCoordinates.latitude;
+        longitude = this.config.geoip.localCoordinates.longitude;
+      }
+    } else if (geoData) {
+      // Remote stream with GeoIP data
+      latitude = geoData.latitude;
+      longitude = geoData.longitude;
+      location = geoData.city || 'unknown';
+      regionCode = geoData.region || 'unknown';
+      const regionPart = geoData.region || '';
+      const cityPart = geoData.city || '';
+      fullLocation = regionPart && cityPart ? `${regionPart} - ${cityPart}` : regionPart || cityPart || 'unknown';
     }
 
     // Transcode decision normalization
@@ -273,43 +350,46 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
       `${session.session_id}${session.session_key}${session.username}${session.full_title}`
     );
 
-    return this.createDataPoint(
-      'Tautulli',
-      {
-        type: 'Session',
-        session_id: session.session_id || 'unknown',
-        ip_address: session.ip_address || 'unknown',
-        friendly_name: session.friendly_name || 'unknown',
-        username: session.username || 'unknown',
-        title: session.full_title || 'unknown',
-        product: session.product || 'unknown',
-        platform: platformName || 'unknown',
-        product_version: productVersion || 'unknown',
-        quality: quality || 'unknown',
-        video_decision: this.titleCase(videoDecision) || 'unknown',
-        transcode_decision: this.titleCase(transcodeDecision) || 'unknown',
-        transcode_hw_decoding: session.transcode_hw_decoding || 0,
-        transcode_hw_encoding: session.transcode_hw_encoding || 0,
-        media_type: this.titleCase(session.media_type || '') || 'unknown',
-        audio_codec: (session.audio_codec || '').toUpperCase() || 'unknown',
-        stream_audio_codec: (session.stream_audio_codec || '').toUpperCase() || 'unknown',
-        quality_profile: session.quality_profile || 'unknown',
-        progress_percent: session.progress_percent || '0',
-        region_code: regionCode || 'unknown',
-        location,
-        full_location: fullLocation || 'unknown',
-        latitude,
-        longitude,
-        player_state: playerState,
-        device_type: platformName || 'unknown',
-        relay: session.relayed || 0,
-        secure: session.secure || '0',
-        server: this.config.id,
-      },
-      {
-        hash: hashId,
-      }
-    );
+    // Build tags object with optional latitude/longitude
+    const tags: Record<string, string | number> = {
+      type: 'Session',
+      session_id: session.session_id || 'unknown',
+      ip_address: session.ip_address || 'unknown',
+      friendly_name: session.friendly_name || 'unknown',
+      username: session.username || 'unknown',
+      title: session.full_title || 'unknown',
+      product: session.product || 'unknown',
+      platform: platformName || 'unknown',
+      product_version: productVersion || 'unknown',
+      quality: quality || 'unknown',
+      video_decision: this.titleCase(videoDecision) || 'unknown',
+      transcode_decision: this.titleCase(transcodeDecision) || 'unknown',
+      transcode_hw_decoding: session.transcode_hw_decoding || 0,
+      transcode_hw_encoding: session.transcode_hw_encoding || 0,
+      media_type: this.titleCase(session.media_type || '') || 'unknown',
+      audio_codec: (session.audio_codec || '').toUpperCase() || 'unknown',
+      stream_audio_codec: (session.stream_audio_codec || '').toUpperCase() || 'unknown',
+      quality_profile: session.quality_profile || 'unknown',
+      progress_percent: session.progress_percent || '0',
+      region_code: regionCode,
+      location,
+      full_location: fullLocation,
+      player_state: playerState,
+      device_type: platformName || 'unknown',
+      relay: session.relayed || 0,
+      secure: session.secure || '0',
+      server: this.config.id,
+    };
+
+    // Only add coordinates if they are defined
+    if (latitude !== undefined) {
+      tags.latitude = latitude;
+    }
+    if (longitude !== undefined) {
+      tags.longitude = longitude;
+    }
+
+    return this.createDataPoint('Tautulli', tags, { hash: hashId });
   }
 
   /**

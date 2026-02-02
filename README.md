@@ -18,7 +18,7 @@
 
 - **Multiple data sources** - Sonarr, Radarr, Tautulli, Ombi, Overseerr (more coming soon)
 - **Multiple outputs** - InfluxDB 1.x and InfluxDB 2.x
-- **GeoIP mapping** - Automatic geolocation of streaming sessions via MaxMind GeoLite2
+- **GeoIP mapping** - Automatic geolocation of streaming sessions via Tautulli API (no external license required)
 - **Multi-instance support** - Connect multiple instances of each service
 - **Health checks** - Built-in HTTP health endpoints for monitoring and orchestration
 - **Docker ready** - Multi-platform images for amd64 and arm64
@@ -183,7 +183,7 @@ inputs:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `CONFIG_FOLDER` | `/config` | Path to configuration files |
-| `DATA_FOLDER` | `/data` | Path to data storage (GeoIP database) |
+| `DATA_FOLDER` | `/data` | Path to data storage |
 | `LOG_FOLDER` | `/logs` | Path to log files |
 | `LOG_LEVEL` | `info` | Log level: `error`, `warn`, `info`, `debug` |
 | `TZ` | `UTC` | Timezone (e.g., `Europe/Paris`, `America/New_York`) |
@@ -206,13 +206,9 @@ VARKEN_INPUTS_SONARR_0_URL="http://sonarr:8989"
 
 ### GeoIP Setup
 
+GeoIP geolocation is now handled directly by the Tautulli API - no external license or database download required!
+
 To enable geolocation of streaming sessions on a world map:
-
-1. **Create a free MaxMind account** at https://www.maxmind.com/en/geolite2/signup
-
-2. **Generate a license key** in your MaxMind account settings
-
-3. **Add the license key to your Tautulli configuration:**
 
 ```yaml
 inputs:
@@ -222,10 +218,18 @@ inputs:
       apiKey: "your-api-key"
       geoip:
         enabled: true
-        licenseKey: "your-maxmind-license-key"
+        # Optional: set coordinates for local/LAN streams
+        localCoordinates:
+          latitude: 48.8566
+          longitude: 2.3522
 ```
 
-The GeoIP database will be automatically downloaded and updated weekly.
+**How it works:**
+- **Remote streams**: Varken calls Tautulli's `get_geoip_lookup` API to get location data
+- **Local streams** (LAN): Automatically detected and labeled as "Local Network"
+- **localCoordinates** (optional): Custom coordinates to display for local streams on world maps
+
+> **Note**: If upgrading from a previous version with `licenseKey` or `fallbackIp`, these options are now deprecated and will be ignored with a warning.
 
 ### Multiple Instances
 
@@ -357,9 +361,9 @@ Legacy `VRKN_*` environment variables are also automatically migrated.
 - Ensure at least one input is enabled with `enabled: true`
 
 **GeoIP not working:**
-- Verify your MaxMind license key is valid
-- Check the `data` folder for the GeoIP database
-- Review logs for download errors
+- Ensure `geoip.enabled: true` is set in your Tautulli configuration
+- Verify Tautulli is accessible and the API key is correct
+- Check Varken logs for GeoIP lookup errors
 
 ### Viewing Logs
 
@@ -422,7 +426,7 @@ src/
 │   ├── inputs/     # Data source plugins (Sonarr, Radarr, etc.)
 │   └── outputs/    # Database plugins (InfluxDB, etc.)
 ├── types/          # TypeScript type definitions
-└── utils/          # Utilities (HTTP, GeoIP, hashing)
+└── utils/          # Utilities (HTTP, hashing)
 ```
 
 ### Adding a New Input Plugin

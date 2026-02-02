@@ -1,6 +1,3 @@
-// GeoIP utilities
-export { GeoIPHandler, createGeoIPHandler } from './geoip';
-
 // HTTP utilities
 export {
   createHttpClient,
@@ -14,5 +11,4 @@ export {
 } from './http';
 
 // Re-export types
-export type { GeoIPConfig } from '../types/geoip.types';
 export type { HttpClientConfig, RetryConfig } from '../types/http.types';

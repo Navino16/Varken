@@ -22,7 +22,6 @@ export { ProwlarrPlugin } from './ProwlarrPlugin';
 export { TautulliPlugin } from './TautulliPlugin';
 export { OverseerrPlugin } from './OverseerrPlugin';
 export { OmbiPlugin } from './OmbiPlugin';
-export type { GeoIPLookupFn } from '../../types/inputs/tautulli.types';
 
 /**
  * All available input plugin classes
