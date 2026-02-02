@@ -15,7 +15,8 @@
     "test:coverage": "vitest run --coverage",
     "docker-test:start": "docker compose -f docker-compose.test.yaml up -d",
     "docker-test:stop": "docker compose -f docker-compose.test.yaml down",
-    "docker-test:check": "./scripts/check-data.sh"
+    "docker-test:check": "./scripts/check-data.sh",
+    "prepare": "husky"
   },
   "repository": {
     "type": "git",
@@ -55,8 +56,15 @@
     "@typescript-eslint/parser": "^8.0.0",
     "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^9.39.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0",
     "vitest": "^4.0.15"
+  },
+  "lint-staged": {
+    "src/**/*.ts": [
+      "eslint --fix"
+    ]
   }
 }
