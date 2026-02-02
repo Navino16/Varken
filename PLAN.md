@@ -52,8 +52,8 @@ varken/
 │   │   │   ├── radarr.types.ts
 │   │   │   ├── readarr.types.ts
 │   │   │   ├── lidarr.types.ts
-│   │   │   ├── prowlarr.types.ts    # Types ready, plugin not implemented
-│   │   │   ├── bazarr.types.ts      # Types ready, plugin not implemented
+│   │   │   ├── prowlarr.types.ts    # ✅ Plugin implemented
+│   │   │   ├── bazarr.types.ts      # ✅ Plugin implemented
 │   │   │   ├── tautulli.types.ts
 │   │   │   ├── plex.types.ts        # Types ready, plugin not implemented
 │   │   │   ├── jellyfin.types.ts    # Types ready, plugin not implemented
@@ -70,7 +70,7 @@ varken/
 │       ├── geoip.ts                 # MaxMind GeoIP2 download & lookup
 │       ├── http.ts                  # HTTP utilities, error classification
 │       └── index.ts
-├── tests/                           # 428 tests, ~70% coverage
+├── tests/                           # 428 tests, ~82% coverage
 │   ├── config/
 │   ├── core/
 │   ├── plugins/
@@ -185,7 +185,7 @@ interface ScheduleConfig {
 
 | Feature | npm Package | Notes |
 |---------|-------------|-------|
-| Health endpoint | `express` ou `fastify` | HTTP server |
+| ~~Health endpoint~~ | ~~`express` ou `fastify`~~ | ✅ Uses native Node.js `http` |
 | Prometheus metrics | `prom-client` | Metrics collection |
 | TimescaleDB | `pg` | PostgreSQL driver |
 
@@ -257,13 +257,14 @@ interface ScheduleConfig {
   - Add `prom-client` dependency
   - Effort: ~8h
 
-#### Circuit Breaker & Error Recovery
-- [ ] Add circuit breaker pattern to scheduler
-  - Track consecutive failures per schedule
-  - Exponential backoff after failures
-  - Auto-disable failing plugins after N errors (configurable)
-  - Mark plugin as degraded, log degradation events
-  - Effort: ~6h
+#### Circuit Breaker & Error Recovery (Partially Done)
+- [x] Track consecutive failures per schedule (`PluginManager.ts:281`)
+- [x] Exponential backoff on HTTP retries (`http.ts:84`)
+- [x] Mark plugin as degraded after 3+ errors (`HealthServer.ts:239`)
+- [ ] Add scheduler-level backoff (increase interval after failures)
+- [ ] Auto-disable failing plugins after N errors (configurable)
+- [ ] Re-enable plugins after cooldown period
+- Effort: ~4h (remaining work)
 
 #### Config Hot-Reload
 - [ ] Watch config file for changes with `fs.watch()`
@@ -324,16 +325,23 @@ interface ScheduleConfig {
   - Test plugin registry population
   - Test orchestrator startup success/failure
   - Effort: ~2h
-- [ ] **Improve ConfigMigrator tests** (63% → 90%)
+- [ ] **Improve Logger tests** (42% → 90%) ⚠️ Critical gap
+  - Test various sensitive patterns
+  - Test file rotation
+  - Effort: ~3h
+- [ ] **Improve ConfigMigrator tests** (72% → 85%)
   - Edge cases: malformed INI, missing sections
   - Effort: ~2h
-- [ ] **Improve Logger tests** (75% → 90%)
-  - Test various sensitive patterns
-  - Effort: ~1h
-- [ ] **Improve GeoIP tests** (67% → 85%)
+- [ ] **Improve Orchestrator tests** (65% → 85%)
+  - Test startup/shutdown sequences
+  - Effort: ~2h
+- [ ] **Improve PluginManager tests** (69% → 90%)
+  - Test scheduler edge cases
+  - Effort: ~2h
+- [ ] **Improve GeoIP tests** (60% → 85%)
   - Network failures, update logic
   - Effort: ~2h
-- [ ] **Improve HTTP utils tests** (69% → 85%)
+- [ ] **Improve HTTP utils tests** (62% → 85%)
   - Timeout handling, edge cases
   - Effort: ~1h
 
@@ -381,10 +389,9 @@ interface ScheduleConfig {
 ### Phase 12: Code Quality
 
 #### BaseInputPlugin Improvements
-- [ ] Add `createSchedule()` helper method
+- [x] Add `createSchedule()` helper method (`BaseInputPlugin.ts:169`)
   - Reduce duplication across plugins
   - Standardize schedule naming
-  - Effort: ~2h
 - [ ] Add `safeFetch()` wrapper with standard error handling
   - Reduce try/catch boilerplate
   - Effort: ~2h
@@ -424,7 +431,7 @@ interface ScheduleConfig {
   - Effort: ~2h
 
 #### GitHub PR Template ✅
-- [x] Create `.github/pull_request_template.md`
+- [x] Create `.github/PULL_REQUEST_TEMPLATE.md`
   - Checklist for type of change
   - Testing instructions
 
@@ -446,29 +453,32 @@ interface ScheduleConfig {
 
 ## Test Coverage Summary
 
-| File | Coverage | Target |
-|------|----------|--------|
-| `src/index.ts` | 0% | 80% |
-| `src/core/Orchestrator.ts` | 73% | 85% |
-| `src/core/PluginManager.ts` | 82% | 90% |
-| `src/core/Logger.ts` | 75% | 90% |
-| `src/config/ConfigLoader.ts` | 86% | 90% |
-| `src/config/ConfigMigrator.ts` | 63% | 85% |
-| `src/utils/http.ts` | 69% | 85% |
-| `src/utils/geoip.ts` | 67% | 85% |
-| `src/plugins/inputs/SonarrPlugin.ts` | 96% | ✅ |
-| `src/plugins/inputs/RadarrPlugin.ts` | 99% | ✅ |
-| `src/plugins/inputs/TautulliPlugin.ts` | 97% | ✅ |
-| `src/plugins/inputs/OmbiPlugin.ts` | 98% | ✅ |
-| `src/plugins/inputs/OverseerrPlugin.ts` | 96% | ✅ |
-| `src/plugins/inputs/ReadarrPlugin.ts` | 96% | ✅ |
-| `src/plugins/inputs/LidarrPlugin.ts` | 96% | ✅ |
-| `src/plugins/inputs/BazarrPlugin.ts` | 96% | ✅ |
-| `src/plugins/inputs/ProwlarrPlugin.ts` | 96% | ✅ |
-| `src/plugins/outputs/InfluxDB1Plugin.ts` | 86% | 90% |
-| `src/plugins/outputs/InfluxDB2Plugin.ts` | 84% | 90% |
-| `src/plugins/inputs/BaseInputPlugin.ts` | 89% | 90% |
-| `src/plugins/outputs/BaseOutputPlugin.ts` | 100% | ✅ |
+> **Last updated**: 2026-02-02 | **Global coverage**: 81.72%
+
+| File | Coverage | Target | Status |
+|------|----------|--------|--------|
+| `src/index.ts` | 0% | 80% | ❌ |
+| `src/core/HealthServer.ts` | 90.47% | 90% | ✅ |
+| `src/core/Orchestrator.ts` | 65.38% | 85% | ⚠️ |
+| `src/core/PluginManager.ts` | 68.64% | 90% | ⚠️ |
+| `src/core/Logger.ts` | 42.1% | 90% | ❌ |
+| `src/config/ConfigLoader.ts` | 81.81% | 90% | ⚠️ |
+| `src/config/ConfigMigrator.ts` | 72.18% | 85% | ⚠️ |
+| `src/utils/http.ts` | 62.22% | 85% | ⚠️ |
+| `src/utils/geoip.ts` | 60% | 85% | ⚠️ |
+| `src/plugins/inputs/SonarrPlugin.ts` | 91.66% | 90% | ✅ |
+| `src/plugins/inputs/RadarrPlugin.ts` | 96.77% | 90% | ✅ |
+| `src/plugins/inputs/TautulliPlugin.ts` | 90.62% | 90% | ✅ |
+| `src/plugins/inputs/OmbiPlugin.ts` | 94.11% | 90% | ✅ |
+| `src/plugins/inputs/OverseerrPlugin.ts` | 91.04% | 90% | ✅ |
+| `src/plugins/inputs/ReadarrPlugin.ts` | 96.72% | 90% | ✅ |
+| `src/plugins/inputs/LidarrPlugin.ts` | 100% | 90% | ✅ |
+| `src/plugins/inputs/BazarrPlugin.ts` | 100% | 90% | ✅ |
+| `src/plugins/inputs/ProwlarrPlugin.ts` | 100% | 90% | ✅ |
+| `src/plugins/outputs/InfluxDB1Plugin.ts` | 83.33% | 90% | ⚠️ |
+| `src/plugins/outputs/InfluxDB2Plugin.ts` | 82.22% | 90% | ⚠️ |
+| `src/plugins/inputs/BaseInputPlugin.ts` | 82.35% | 90% | ⚠️ |
+| `src/plugins/outputs/BaseOutputPlugin.ts` | 100% | 90% | ✅ |
 
 ---
 
@@ -522,8 +532,10 @@ DataPoint (internal format)
 | Item | Effort | Impact |
 |------|--------|--------|
 | ~~Health endpoint~~ | ~~✅~~ | ~~Production readiness~~ |
+| ~~Circuit breaker (partial)~~ | ~~✅~~ | ~~Error tracking, degraded status~~ |
 | VictoriaMetrics output | ~4h | Popular alternative DB |
-| Circuit breaker | ~6h | Reliability |
+| Circuit breaker (complete) | ~4h | Auto-disable, scheduler backoff |
+| Test Logger (42% coverage) | ~3h | Critical coverage gap |
 | Test entry point | ~2h | Coverage |
 
 ### Medium Priority
@@ -535,7 +547,7 @@ DataPoint (internal format)
 | Structured logging | ~4h | Debugging |
 | Dry-run mode | ~2h | Testing |
 | Better error messages | ~4h | UX |
-| Improve test coverage | ~8h | Quality |
+| Improve test coverage | ~12h | Quality (Logger, Orchestrator, PluginManager) |
 
 ### Low Priority
 | Item | Effort | Impact |
