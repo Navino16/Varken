@@ -138,8 +138,8 @@ export abstract class BaseOutputPlugin<TConfig extends BaseOutputConfig = BaseOu
       return String(value);
     }
 
-    // Strings need to be quoted
-    const escaped = String(value).replace(/"/g, '\\"');
+    // Strings need to be quoted and escaped (backslashes first, then quotes)
+    const escaped = String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
     return `"${escaped}"`;
   }
 

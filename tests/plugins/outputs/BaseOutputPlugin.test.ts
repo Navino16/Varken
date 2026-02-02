@@ -186,6 +186,30 @@ describe('BaseOutputPlugin', () => {
       expect(result).toContain('message="He said \\"hello\\""');
     });
 
+    it('should escape backslashes in string fields', () => {
+      const point: DataPoint = {
+        measurement: 'test',
+        tags: {},
+        fields: { path: 'C:\\Users\\test' },
+        timestamp: new Date('2024-01-15T10:30:00.000Z'),
+      };
+
+      const result = plugin.testToLineProtocol(point);
+      expect(result).toContain('path="C:\\\\Users\\\\test"');
+    });
+
+    it('should escape both backslashes and quotes in string fields', () => {
+      const point: DataPoint = {
+        measurement: 'test',
+        tags: {},
+        fields: { value: 'path "C:\\test"' },
+        timestamp: new Date('2024-01-15T10:30:00.000Z'),
+      };
+
+      const result = plugin.testToLineProtocol(point);
+      expect(result).toContain('value="path \\"C:\\\\test\\""');
+    });
+
     it('should skip null/undefined/empty tag values', () => {
       const point: DataPoint = {
         measurement: 'test',
