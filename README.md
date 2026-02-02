@@ -21,6 +21,7 @@
 - **GeoIP mapping** - Automatic geolocation of streaming sessions via Tautulli API (no external license required)
 - **Multi-instance support** - Connect multiple instances of each service
 - **Health checks** - Built-in HTTP health endpoints for monitoring and orchestration
+- **Circuit breaker** - Automatic error recovery with backoff and self-healing
 - **Docker ready** - Multi-platform images for amd64 and arm64
 - **Easy configuration** - Simple YAML configuration with environment variable overrides
 
@@ -36,6 +37,7 @@
   - [Environment Variables](#environment-variables)
   - [GeoIP Setup](#geoip-setup)
   - [Multiple Instances](#multiple-instances)
+  - [Circuit Breaker](#circuit-breaker)
 - [Health Checks](#health-checks)
 - [Supported Services](#supported-services)
 - [Grafana Setup](#grafana-setup)
@@ -255,6 +257,95 @@ inputs:
 
 Each instance must have a unique `id`.
 
+### Circuit Breaker
+
+Varken includes a built-in circuit breaker to handle failing services gracefully. When a scheduler encounters repeated errors, the circuit breaker:
+
+1. **Applies backoff** - Increases the interval between retries (exponential backoff)
+2. **Opens the circuit** - Temporarily disables the failing scheduler after too many errors
+3. **Attempts recovery** - After a cooldown period, tests if the service has recovered
+4. **Closes the circuit** - Returns to normal operation after successful recovery
+
+#### Configuration
+
+The circuit breaker is optional and has sensible defaults:
+
+```yaml
+circuitBreaker:
+  # Errors before disabling scheduler (default: 10)
+  maxConsecutiveErrors: 10
+
+  # Interval multiplier per failure (default: 2)
+  # Example: 30s → 60s → 120s → 240s...
+  backoffMultiplier: 2
+
+  # Maximum interval cap in seconds (default: 600 = 10 min)
+  maxIntervalSeconds: 600
+
+  # Cooldown before recovery attempt in seconds (default: 300 = 5 min)
+  cooldownSeconds: 300
+
+  # Successes needed to fully recover (default: 3)
+  recoverySuccesses: 3
+```
+
+#### State Machine
+
+```
+CLOSED (normal) ──[errors]──► OPEN (disabled)
+                                    │
+                              [cooldown]
+                                    │
+                                    ▼
+                              HALF-OPEN (testing)
+                                    │
+                    ┌───────────────┼───────────────┐
+                    │               │               │
+              [success x N]    [failure]      [success]
+                    │               │               │
+                    ▼               ▼               │
+                 CLOSED          OPEN              │
+                                    ▲               │
+                                    └───────────────┘
+```
+
+#### Monitoring
+
+Circuit breaker states are visible in the `/status` endpoint:
+
+```json
+{
+  "schedulers": [
+    {
+      "name": "sonarr_1_queue",
+      "circuitState": "closed",
+      "currentIntervalSeconds": 30,
+      "consecutiveErrors": 0,
+      "recoverySuccesses": 0,
+      "nextRunAt": "2024-01-15T10:30:30.000Z"
+    }
+  ]
+}
+```
+
+When a circuit is open:
+
+```json
+{
+  "schedulers": [
+    {
+      "name": "sonarr_1_queue",
+      "circuitState": "open",
+      "currentIntervalSeconds": 120,
+      "consecutiveErrors": 10,
+      "disabledAt": "2024-01-15T10:30:00.000Z",
+      "nextAttemptAt": "2024-01-15T10:35:00.000Z",
+      "nextRunAt": "2024-01-15T10:35:00.000Z"
+    }
+  ]
+}
+```
+
 ## Health Checks
 
 Varken exposes HTTP endpoints for monitoring on port `9090` (configurable via `HEALTH_PORT`):
@@ -277,9 +368,9 @@ The Docker image includes a built-in `HEALTHCHECK` instruction using these endpo
 
 | Status | Condition |
 |--------|-----------|
-| `healthy` | All outputs healthy + all inputs healthy + no scheduler with 3+ consecutive errors |
-| `degraded` | At least one output healthy + at least one input healthy or scheduler working |
-| `unhealthy` | No outputs configured, all outputs/inputs unreachable |
+| `healthy` | All outputs healthy + all inputs healthy + all schedulers in `closed` state with < 3 errors |
+| `degraded` | At least one output healthy + at least one scheduler not in `open` state |
+| `unhealthy` | No outputs configured, all outputs unreachable, or all schedulers in `open` state |
 
 ## Supported Services
 

@@ -5,7 +5,12 @@ import type {
   DataPoint,
   ScheduleConfig,
 } from '../types/plugin.types';
-import type { SchedulerStatus, PluginStatus } from '../types/health.types';
+import type {
+  SchedulerStatus,
+  PluginStatus,
+  CircuitBreakerState,
+  CircuitBreakerConfig,
+} from '../types/health.types';
 import type { VarkenConfig } from '../config/schemas/config.schema';
 
 const logger = createLogger('PluginManager');
@@ -21,6 +26,17 @@ export type InputPluginFactory = new () => InputPlugin;
 export type OutputPluginFactory = new () => OutputPlugin;
 
 /**
+ * Default circuit breaker configuration
+ */
+const DEFAULT_CIRCUIT_BREAKER_CONFIG: CircuitBreakerConfig = {
+  maxConsecutiveErrors: 10,
+  backoffMultiplier: 2,
+  maxIntervalSeconds: 600,
+  cooldownSeconds: 300,
+  recoverySuccesses: 3,
+};
+
+/**
  * Active scheduler information
  */
 interface ActiveScheduler {
@@ -31,6 +47,18 @@ interface ActiveScheduler {
   lastRunAt?: Date;
   lastError?: string;
   consecutiveErrors: number;
+  /** Circuit breaker state */
+  circuitState: CircuitBreakerState;
+  /** Current interval in milliseconds (may differ from base due to backoff) */
+  currentIntervalMs: number;
+  /** Base interval in milliseconds */
+  baseIntervalMs: number;
+  /** When the circuit was opened (disabled) */
+  disabledAt?: Date;
+  /** When the next recovery attempt will be made */
+  nextAttemptAt?: Date;
+  /** Number of successful recoveries in half-open state */
+  recoverySuccesses: number;
 }
 
 /**
@@ -46,6 +74,7 @@ export class PluginManager {
 
   private schedulers: Map<string, ActiveScheduler> = new Map();
   private isRunning = false;
+  private circuitBreakerConfig: CircuitBreakerConfig = DEFAULT_CIRCUIT_BREAKER_CONFIG;
 
   constructor() {
     // No longer needs GeoIP handler - handled by TautulliPlugin via Tautulli API
@@ -72,6 +101,14 @@ export class PluginManager {
    */
   async initializeFromConfig(config: VarkenConfig): Promise<void> {
     logger.info('Initializing plugins from configuration...');
+
+    // Store circuit breaker config with defaults
+    if (config.circuitBreaker) {
+      this.circuitBreakerConfig = {
+        ...DEFAULT_CIRCUIT_BREAKER_CONFIG,
+        ...config.circuitBreaker,
+      };
+    }
 
     // Initialize output plugins first
     await this.initializeOutputPlugins(config.outputs);
@@ -193,26 +230,50 @@ export class PluginManager {
   private startScheduler(schedule: ScheduleConfig, plugin: InputPlugin): void {
     const intervalMs = schedule.intervalSeconds * 1000;
 
-    // Run immediately on start
-    this.executeSchedule(schedule, plugin);
-
-    // Then run on interval
-    const timer = setInterval(() => {
-      this.executeSchedule(schedule, plugin);
-    }, intervalMs);
-
     const activeScheduler: ActiveScheduler = {
       schedule,
       plugin,
-      timer,
+      timer: null as unknown as NodeJS.Timeout, // Will be set by scheduleNextRun
       isRunning: false,
       consecutiveErrors: 0,
+      circuitState: 'closed',
+      currentIntervalMs: intervalMs,
+      baseIntervalMs: intervalMs,
+      recoverySuccesses: 0,
     };
 
     this.schedulers.set(schedule.name, activeScheduler);
+
+    // Run immediately on start
+    this.executeSchedule(schedule, plugin);
+
+    // Then schedule next run
+    activeScheduler.timer = this.scheduleNextRun(schedule, plugin, intervalMs);
+
     logger.info(
       `Started scheduler: ${schedule.name} (every ${schedule.intervalSeconds}s)`
     );
+  }
+
+  /**
+   * Schedule the next run using setTimeout for dynamic intervals
+   */
+  private scheduleNextRun(
+    schedule: ScheduleConfig,
+    plugin: InputPlugin,
+    intervalMs: number
+  ): NodeJS.Timeout {
+    return setTimeout(async () => {
+      await this.executeSchedule(schedule, plugin);
+      const scheduler = this.schedulers.get(schedule.name);
+      if (scheduler && this.isRunning) {
+        scheduler.timer = this.scheduleNextRun(
+          schedule,
+          plugin,
+          scheduler.currentIntervalMs
+        );
+      }
+    }, intervalMs);
   }
 
   /**
@@ -223,16 +284,28 @@ export class PluginManager {
     _plugin: InputPlugin
   ): Promise<void> {
     const scheduler = this.schedulers.get(schedule.name);
+    if (!scheduler) {return;}
 
     // Skip if already running (prevent overlap)
-    if (scheduler?.isRunning) {
+    if (scheduler.isRunning) {
       logger.debug(`Schedule ${schedule.name} is already running, skipping`);
       return;
     }
 
-    if (scheduler) {
-      scheduler.isRunning = true;
+    // Handle circuit breaker states
+    if (scheduler.circuitState === 'open') {
+      const now = Date.now();
+      if (scheduler.nextAttemptAt && now < scheduler.nextAttemptAt.getTime()) {
+        logger.debug(
+          `Schedule ${schedule.name} circuit is open, waiting until ${scheduler.nextAttemptAt.toISOString()}`
+        );
+        return;
+      }
+      // Cooldown period has passed, transition to half-open
+      this.transitionToHalfOpen(scheduler);
     }
+
+    scheduler.isRunning = true;
 
     try {
       logger.debug(`Executing schedule: ${schedule.name}`);
@@ -252,27 +325,131 @@ export class PluginManager {
         logger.debug(`Schedule ${schedule.name} collected no data`);
       }
 
-      // Reset error tracking on success
-      if (scheduler) {
-        scheduler.lastRunAt = new Date();
-        scheduler.lastError = undefined;
-        scheduler.consecutiveErrors = 0;
-      }
+      // Handle success
+      this.handleScheduleSuccess(scheduler);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       logger.error(`Schedule ${schedule.name} failed: ${message}`);
 
-      // Track error
-      if (scheduler) {
-        scheduler.lastRunAt = new Date();
-        scheduler.lastError = message;
-        scheduler.consecutiveErrors++;
-      }
+      // Handle failure
+      this.handleScheduleFailure(scheduler, message);
     } finally {
-      if (scheduler) {
-        scheduler.isRunning = false;
+      scheduler.isRunning = false;
+    }
+  }
+
+  /**
+   * Handle successful schedule execution
+   */
+  private handleScheduleSuccess(scheduler: ActiveScheduler): void {
+    scheduler.lastRunAt = new Date();
+    scheduler.lastError = undefined;
+
+    if (scheduler.circuitState === 'half-open') {
+      scheduler.recoverySuccesses++;
+      logger.debug(
+        `Schedule ${scheduler.schedule.name} recovery success ${scheduler.recoverySuccesses}/${this.circuitBreakerConfig.recoverySuccesses}`
+      );
+
+      if (scheduler.recoverySuccesses >= this.circuitBreakerConfig.recoverySuccesses) {
+        // Fully recovered, close the circuit
+        this.closeCircuit(scheduler);
+      }
+    } else {
+      // Normal operation, reset everything
+      scheduler.consecutiveErrors = 0;
+      scheduler.currentIntervalMs = scheduler.baseIntervalMs;
+    }
+  }
+
+  /**
+   * Handle failed schedule execution
+   */
+  private handleScheduleFailure(scheduler: ActiveScheduler, errorMessage: string): void {
+    scheduler.lastRunAt = new Date();
+    scheduler.lastError = errorMessage;
+    scheduler.consecutiveErrors++;
+
+    if (scheduler.circuitState === 'half-open') {
+      // Recovery failed, go back to open state
+      logger.warn(
+        `Schedule ${scheduler.schedule.name} recovery failed, reopening circuit`
+      );
+      this.openCircuit(scheduler);
+    } else if (scheduler.circuitState === 'closed') {
+      // Check if we should open the circuit
+      if (scheduler.consecutiveErrors >= this.circuitBreakerConfig.maxConsecutiveErrors) {
+        this.openCircuit(scheduler);
+      } else {
+        // Apply backoff
+        this.applyBackoff(scheduler);
       }
     }
+  }
+
+  /**
+   * Apply exponential backoff to scheduler interval
+   */
+  private applyBackoff(scheduler: ActiveScheduler): void {
+    const maxIntervalMs = this.circuitBreakerConfig.maxIntervalSeconds * 1000;
+    const newIntervalMs = Math.min(
+      scheduler.currentIntervalMs * this.circuitBreakerConfig.backoffMultiplier,
+      maxIntervalMs
+    );
+
+    if (newIntervalMs !== scheduler.currentIntervalMs) {
+      scheduler.currentIntervalMs = newIntervalMs;
+      logger.debug(
+        `Schedule ${scheduler.schedule.name} backoff applied, interval now ${newIntervalMs / 1000}s`
+      );
+    }
+  }
+
+  /**
+   * Open the circuit (disable scheduler temporarily)
+   */
+  private openCircuit(scheduler: ActiveScheduler): void {
+    scheduler.circuitState = 'open';
+    scheduler.disabledAt = new Date();
+    scheduler.nextAttemptAt = new Date(
+      Date.now() + this.circuitBreakerConfig.cooldownSeconds * 1000
+    );
+    scheduler.recoverySuccesses = 0;
+
+    logger.warn(
+      `Schedule ${scheduler.schedule.name} circuit opened after ${scheduler.consecutiveErrors} errors, ` +
+      `next attempt at ${scheduler.nextAttemptAt.toISOString()}`
+    );
+  }
+
+  /**
+   * Transition circuit to half-open state for recovery testing
+   */
+  private transitionToHalfOpen(scheduler: ActiveScheduler): void {
+    scheduler.circuitState = 'half-open';
+    scheduler.recoverySuccesses = 0;
+    // Reset to base interval for recovery testing
+    scheduler.currentIntervalMs = scheduler.baseIntervalMs;
+
+    logger.info(
+      `Schedule ${scheduler.schedule.name} circuit transitioning to half-open for recovery testing`
+    );
+  }
+
+  /**
+   * Close the circuit (return to normal operation)
+   */
+  private closeCircuit(scheduler: ActiveScheduler): void {
+    scheduler.circuitState = 'closed';
+    scheduler.consecutiveErrors = 0;
+    scheduler.currentIntervalMs = scheduler.baseIntervalMs;
+    scheduler.disabledAt = undefined;
+    scheduler.nextAttemptAt = undefined;
+    scheduler.recoverySuccesses = 0;
+
+    logger.info(
+      `Schedule ${scheduler.schedule.name} circuit closed, resuming normal operation`
+    );
   }
 
   /**
@@ -307,7 +484,7 @@ export class PluginManager {
 
     // Clear all timers
     for (const [name, scheduler] of this.schedulers) {
-      clearInterval(scheduler.timer);
+      clearTimeout(scheduler.timer);
       logger.debug(`Stopped scheduler: ${name}`);
     }
 
@@ -427,6 +604,14 @@ export class PluginManager {
     const statuses: SchedulerStatus[] = [];
 
     for (const [, scheduler] of this.schedulers) {
+      // Calculate next run time
+      let nextRunAt: Date | undefined;
+      if (scheduler.circuitState === 'open') {
+        nextRunAt = scheduler.nextAttemptAt;
+      } else if (scheduler.lastRunAt) {
+        nextRunAt = new Date(scheduler.lastRunAt.getTime() + scheduler.currentIntervalMs);
+      }
+
       statuses.push({
         name: scheduler.schedule.name,
         pluginName: scheduler.plugin.metadata.name,
@@ -435,6 +620,12 @@ export class PluginManager {
         lastRunAt: scheduler.lastRunAt,
         lastError: scheduler.lastError,
         consecutiveErrors: scheduler.consecutiveErrors,
+        circuitState: scheduler.circuitState,
+        currentIntervalSeconds: scheduler.currentIntervalMs / 1000,
+        disabledAt: scheduler.disabledAt,
+        nextAttemptAt: scheduler.nextAttemptAt,
+        recoverySuccesses: scheduler.recoverySuccesses,
+        nextRunAt,
       });
     }
 

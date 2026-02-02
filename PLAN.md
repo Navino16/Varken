@@ -68,7 +68,7 @@ varken/
 │   └── utils/
 │       ├── http.ts                  # HTTP utilities, error classification
 │       └── index.ts
-├── tests/                           # 453 tests, 90% coverage
+├── tests/                           # 468 tests, 90% coverage
 │   ├── config/
 │   ├── core/
 │   ├── plugins/
@@ -254,14 +254,13 @@ interface ScheduleConfig {
   - Add `prom-client` dependency
   - Effort: ~8h
 
-#### Circuit Breaker & Error Recovery (Partially Done)
-- [x] Track consecutive failures per schedule (`PluginManager.ts:281`)
+#### Circuit Breaker & Error Recovery ✅
+- [x] Track consecutive failures per schedule (`PluginManager.ts`)
 - [x] Exponential backoff on HTTP retries (`http.ts:84`)
-- [x] Mark plugin as degraded after 3+ errors (`HealthServer.ts:239`)
-- [ ] Add scheduler-level backoff (increase interval after failures)
-- [ ] Auto-disable failing plugins after N errors (configurable)
-- [ ] Re-enable plugins after cooldown period
-- Effort: ~4h (remaining work)
+- [x] Mark plugin as degraded after 3+ errors (`HealthServer.ts`)
+- [x] Scheduler-level backoff (increase interval after failures)
+- [x] Auto-disable failing plugins after N errors (configurable)
+- [x] Re-enable plugins after cooldown period with half-open recovery
 
 #### Config Hot-Reload
 - [ ] Watch config file for changes with `fs.watch()`
@@ -526,9 +525,8 @@ DataPoint (internal format)
 | Item | Effort | Impact |
 |------|--------|--------|
 | ~~Health endpoint~~ | ~~✅~~ | ~~Production readiness~~ |
-| ~~Circuit breaker (partial)~~ | ~~✅~~ | ~~Error tracking, degraded status~~ |
+| ~~Circuit breaker~~ | ~~✅~~ | ~~Error tracking, auto-disable, scheduler backoff~~ |
 | VictoriaMetrics output | ~4h | Popular alternative DB |
-| Circuit breaker (complete) | ~4h | Auto-disable, scheduler backoff |
 | ~~Test Logger (42% → 84%)~~ | ~~✅~~ | ~~Critical coverage gap~~ |
 | ~~Test entry point (0% → 100%)~~ | ~~✅~~ | ~~Coverage~~ |
 

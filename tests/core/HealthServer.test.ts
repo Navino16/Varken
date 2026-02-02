@@ -64,6 +64,9 @@ function createMockPluginManager(overrides: {
       isRunning: false,
       lastRunAt: new Date(),
       consecutiveErrors: 0,
+      circuitState: 'closed',
+      currentIntervalSeconds: 30,
+      recoverySuccesses: 0,
     },
   ];
   const defaultInputStatuses: PluginStatus[] = [
@@ -164,8 +167,8 @@ describe('HealthServer', () => {
     it('should return degraded status when some schedulers have errors', async () => {
       const mockPm = createMockPluginManager({
         schedulerStatuses: [
-          { name: 'sonarr_1_queue', pluginName: 'Sonarr', intervalSeconds: 30, isRunning: false, consecutiveErrors: 5 },
-          { name: 'radarr_1_queue', pluginName: 'Radarr', intervalSeconds: 30, isRunning: false, consecutiveErrors: 0 },
+          { name: 'sonarr_1_queue', pluginName: 'Sonarr', intervalSeconds: 30, isRunning: false, consecutiveErrors: 5, circuitState: 'closed', currentIntervalSeconds: 30, recoverySuccesses: 0 },
+          { name: 'radarr_1_queue', pluginName: 'Radarr', intervalSeconds: 30, isRunning: false, consecutiveErrors: 0, circuitState: 'closed', currentIntervalSeconds: 30, recoverySuccesses: 0 },
         ],
       });
       healthServer.setPluginManager(mockPm);
@@ -207,7 +210,7 @@ describe('HealthServer', () => {
       const mockPm = createMockPluginManager({
         healthCheck: new Map([['influxdb2', false]]),
         schedulerStatuses: [
-          { name: 'sonarr_1_queue', pluginName: 'Sonarr', intervalSeconds: 30, isRunning: false, consecutiveErrors: 5 },
+          { name: 'sonarr_1_queue', pluginName: 'Sonarr', intervalSeconds: 30, isRunning: false, consecutiveErrors: 5, circuitState: 'closed', currentIntervalSeconds: 30, recoverySuccesses: 0 },
         ],
       });
       healthServer.setPluginManager(mockPm);
@@ -306,6 +309,9 @@ describe('HealthServer', () => {
             lastRunAt: new Date(),
             lastError: 'Connection refused',
             consecutiveErrors: 3,
+            circuitState: 'closed',
+            currentIntervalSeconds: 30,
+            recoverySuccesses: 0,
           },
         ],
       });
@@ -363,6 +369,91 @@ describe('HealthServer', () => {
 
       expect(response.statusCode).toBe(405);
       expect(body.error).toBe('Method Not Allowed');
+    });
+  });
+
+  describe('circuit breaker status reporting', () => {
+    it('should return degraded status when some schedulers have open circuits', async () => {
+      const mockPm = createMockPluginManager({
+        schedulerStatuses: [
+          { name: 'sonarr_1_queue', pluginName: 'Sonarr', intervalSeconds: 30, isRunning: false, consecutiveErrors: 10, circuitState: 'open', currentIntervalSeconds: 30, recoverySuccesses: 0, disabledAt: new Date(), nextAttemptAt: new Date(Date.now() + 300000) },
+          { name: 'radarr_1_queue', pluginName: 'Radarr', intervalSeconds: 30, isRunning: false, consecutiveErrors: 0, circuitState: 'closed', currentIntervalSeconds: 30, recoverySuccesses: 0 },
+        ],
+      });
+      healthServer.setPluginManager(mockPm);
+      await healthServer.start();
+
+      const response = await httpGet(testPort, '/health');
+      const body = JSON.parse(response.body);
+
+      expect(response.statusCode).toBe(200);
+      expect(body.status).toBe('degraded');
+    });
+
+    it('should return unhealthy status when all schedulers have open circuits', async () => {
+      const mockPm = createMockPluginManager({
+        schedulerStatuses: [
+          { name: 'sonarr_1_queue', pluginName: 'Sonarr', intervalSeconds: 30, isRunning: false, consecutiveErrors: 10, circuitState: 'open', currentIntervalSeconds: 30, recoverySuccesses: 0, disabledAt: new Date(), nextAttemptAt: new Date(Date.now() + 300000) },
+          { name: 'radarr_1_queue', pluginName: 'Radarr', intervalSeconds: 30, isRunning: false, consecutiveErrors: 10, circuitState: 'open', currentIntervalSeconds: 30, recoverySuccesses: 0, disabledAt: new Date(), nextAttemptAt: new Date(Date.now() + 300000) },
+        ],
+      });
+      healthServer.setPluginManager(mockPm);
+      await healthServer.start();
+
+      const response = await httpGet(testPort, '/health');
+      const body = JSON.parse(response.body);
+
+      expect(response.statusCode).toBe(503);
+      expect(body.status).toBe('unhealthy');
+    });
+
+    it('should return degraded status when scheduler is in half-open state (recovering)', async () => {
+      const mockPm = createMockPluginManager({
+        schedulerStatuses: [
+          { name: 'sonarr_1_queue', pluginName: 'Sonarr', intervalSeconds: 30, isRunning: false, consecutiveErrors: 0, circuitState: 'half-open', currentIntervalSeconds: 30, recoverySuccesses: 1 },
+        ],
+      });
+      healthServer.setPluginManager(mockPm);
+      await healthServer.start();
+
+      const response = await httpGet(testPort, '/health');
+      const body = JSON.parse(response.body);
+
+      // Half-open means still recovering, not fully healthy
+      expect(response.statusCode).toBe(200);
+      expect(body.status).toBe('degraded');
+    });
+
+    it('should include circuit breaker fields in status response', async () => {
+      const disabledAt = new Date();
+      const nextAttemptAt = new Date(Date.now() + 300000);
+      const mockPm = createMockPluginManager({
+        schedulerStatuses: [
+          {
+            name: 'sonarr_1_queue',
+            pluginName: 'Sonarr',
+            intervalSeconds: 30,
+            isRunning: false,
+            consecutiveErrors: 10,
+            circuitState: 'open',
+            currentIntervalSeconds: 120,
+            recoverySuccesses: 0,
+            disabledAt,
+            nextAttemptAt,
+          },
+        ],
+      });
+      healthServer.setPluginManager(mockPm);
+      await healthServer.start();
+
+      const response = await httpGet(testPort, '/status');
+      const body = JSON.parse(response.body);
+
+      expect(body.schedulers[0].circuitState).toBe('open');
+      expect(body.schedulers[0].currentIntervalSeconds).toBe(120);
+      expect(body.schedulers[0].recoverySuccesses).toBe(0);
+      expect(body.schedulers[0].disabledAt).toBeDefined();
+      expect(body.schedulers[0].nextAttemptAt).toBeDefined();
     });
   });
 

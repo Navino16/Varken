@@ -18,6 +18,8 @@ services:
       - ./config/varken.test.yaml:/config/varken.yaml:ro
       - ./data:/data
       - ./logs:/logs
+    ports:
+      - "9090:9090"
     depends_on:
       influxdb2:
         condition: service_healthy
@@ -41,6 +43,8 @@ services:
       - .:/app
       - ./config/varken.test.yaml:/config/varken.yaml:ro
       - varken-node-modules:/app/node_modules
+    ports:
+      - "9090:9090"
     depends_on:
       influxdb2:
         condition: service_healthy

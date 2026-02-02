@@ -234,11 +234,20 @@ export class HealthServer {
     const inputsHealthy = inputHealthValues.length === 0 || inputHealthValues.every((h) => h);
     const someInputsHealthy = inputHealthValues.length === 0 || inputHealthValues.some((h) => h);
 
-    // Check if any scheduler has consecutive errors (3+ = failing)
+    // Check if any scheduler has consecutive errors (3+ = failing) or circuit is open
     const schedulersHealthy = schedulerStatuses.length === 0 ||
-      schedulerStatuses.every((s) => s.consecutiveErrors < 3);
+      schedulerStatuses.every((s) => s.consecutiveErrors < 3 && s.circuitState === 'closed');
     const someSchedulersHealthy = schedulerStatuses.length === 0 ||
-      schedulerStatuses.some((s) => s.consecutiveErrors < 3);
+      schedulerStatuses.some((s) => s.consecutiveErrors < 3 && s.circuitState !== 'open');
+
+    // Check if all schedulers have open circuits (all disabled)
+    const allSchedulersDisabled = schedulerStatuses.length > 0 &&
+      schedulerStatuses.every((s) => s.circuitState === 'open');
+
+    // All schedulers disabled = unhealthy
+    if (allSchedulersDisabled) {
+      return 'unhealthy';
+    }
 
     if (outputsHealthy && inputsHealthy && schedulersHealthy) {
       return 'healthy';

@@ -122,6 +122,7 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
       this.logger.info('Collected request counts from Overseerr');
     } catch (error) {
       this.logger.error(`Failed to collect Overseerr request counts: ${error}`);
+      throw error;
     }
 
     return points;
@@ -158,6 +159,7 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
       this.logger.info('Collected issue counts from Overseerr');
     } catch (error) {
       this.logger.error(`Failed to collect Overseerr issue counts: ${error}`);
+      throw error;
     }
 
     return points;
@@ -241,6 +243,7 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
       this.logger.info(`Collected ${points.length} latest requests from Overseerr`);
     } catch (error) {
       this.logger.error(`Failed to collect Overseerr latest requests: ${error}`);
+      throw error;
     }
 
     return points;

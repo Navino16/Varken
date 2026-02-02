@@ -158,6 +158,7 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
       this.logger.info(`Collected ${points.length} queue items from Sonarr`);
     } catch (error) {
       this.logger.error(`Failed to collect Sonarr queue: ${error}`);
+      throw error;
     }
 
     return points;
@@ -240,6 +241,7 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
       this.logger.info(`Collected ${points.length} ${queryType.toLowerCase()} episodes from Sonarr`);
     } catch (error) {
       this.logger.error(`Failed to collect Sonarr calendar (${queryType}): ${error}`);
+      throw error;
     }
 
     return points;

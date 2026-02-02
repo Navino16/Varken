@@ -206,6 +206,23 @@ export const OverseerrConfigSchema = z.object({
 });
 
 // =============================================================================
+// Circuit Breaker Schema
+// =============================================================================
+
+export const CircuitBreakerConfigSchema = z.object({
+  /** Number of consecutive errors before disabling scheduler */
+  maxConsecutiveErrors: z.number().min(1).default(10),
+  /** Interval multiplier per failure */
+  backoffMultiplier: z.number().min(1).default(2),
+  /** Maximum interval cap in seconds */
+  maxIntervalSeconds: z.number().min(1).default(600),
+  /** Wait time before recovery attempt in seconds */
+  cooldownSeconds: z.number().min(1).default(300),
+  /** Number of successes needed to fully recover */
+  recoverySuccesses: z.number().min(1).default(3),
+});
+
+// =============================================================================
 // Main Config Schema
 // =============================================================================
 
@@ -241,6 +258,7 @@ export const InputsConfigSchema = z.object({
 export const VarkenConfigSchema = z.object({
   outputs: OutputsConfigSchema,
   inputs: InputsConfigSchema,
+  circuitBreaker: CircuitBreakerConfigSchema.optional(),
 });
 
 // Type exports
