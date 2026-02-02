@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import { TautulliPlugin } from '../../../src/plugins/inputs/TautulliPlugin';
-import { TautulliConfig, GeoIPInfo, GeoIPLookupFn } from '../../../src/types/inputs/tautulli.types';
+import { TautulliConfig } from '../../../src/types/inputs/tautulli.types';
 import axios from 'axios';
 
 // Mock the logger
@@ -37,7 +37,6 @@ describe('TautulliPlugin', () => {
     apiKey: 'tautulli-api-key',
     ssl: false,
     verifySsl: false,
-    fallbackIp: '8.8.8.8',
     activity: {
       enabled: true,
       intervalSeconds: 30,
@@ -82,58 +81,26 @@ describe('TautulliPlugin', () => {
     it('should initialize successfully', async () => {
       await expect(plugin.initialize(testConfig)).resolves.toBeUndefined();
     });
-  });
 
-  describe('setGeoIPLookup', () => {
-    it('should set the GeoIP lookup function', async () => {
-      await plugin.initialize(testConfig);
-      const mockLookup: GeoIPLookupFn = vi.fn().mockResolvedValue({
-        latitude: 40.7128,
-        longitude: -74.006,
-        city: 'New York',
-        region: 'NY',
-      });
-
-      plugin.setGeoIPLookup(mockLookup);
-
-      // GeoIP function is set internally, verify it works in collect
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          response: {
-            data: {
-              stream_count: '1',
-              total_bandwidth: 5000,
-              wan_bandwidth: 3000,
-              lan_bandwidth: 2000,
-              stream_count_transcode: 1,
-              stream_count_direct_play: 0,
-              stream_count_direct_stream: 0,
-              sessions: [
-                {
-                  session_id: 'abc123',
-                  session_key: 'key1',
-                  username: 'testuser',
-                  ip_address_public: '1.2.3.4',
-                  full_title: 'Test Movie',
-                  state: 'playing',
-                  transcode_decision: 'transcode',
-                  video_decision: 'transcode',
-                  media_type: 'movie',
-                },
-              ],
-            },
-          },
+    it('should log deprecation warning for licenseKey', async () => {
+      const configWithLicenseKey: TautulliConfig = {
+        ...testConfig,
+        geoip: {
+          enabled: true,
+          licenseKey: 'old-maxmind-key',
         },
-      });
+      };
+      await plugin.initialize(configWithLicenseKey);
+      // Warning is logged internally, plugin should still work
+    });
 
-      // Mock libraries (disabled for this test)
-      const configNoLibraries = { ...testConfig, libraries: { ...testConfig.libraries, enabled: false }, stats: { ...testConfig.stats, enabled: false } };
-      await plugin.initialize(configNoLibraries);
-      plugin.setGeoIPLookup(mockLookup);
-
-      await plugin.collect();
-
-      expect(mockLookup).toHaveBeenCalledWith('1.2.3.4');
+    it('should log deprecation warning for fallbackIp', async () => {
+      const configWithFallbackIp: TautulliConfig = {
+        ...testConfig,
+        fallbackIp: '8.8.8.8',
+      };
+      await plugin.initialize(configWithFallbackIp);
+      // Warning is logged internally, plugin should still work
     });
   });
 
@@ -179,6 +146,7 @@ describe('TautulliPlugin', () => {
       mockHttpClient.get.mockResolvedValueOnce({
         data: {
           response: {
+            result: 'success',
             data: {
               stream_count: '2',
               total_bandwidth: 10000,
@@ -211,6 +179,7 @@ describe('TautulliPlugin', () => {
                   transcode_hw_encoding: 1,
                   relayed: 0,
                   secure: '1',
+                  local: '1', // Local stream
                 },
               ],
             },
@@ -222,6 +191,7 @@ describe('TautulliPlugin', () => {
       mockHttpClient.get.mockResolvedValueOnce({
         data: {
           response: {
+            result: 'success',
             data: [],
           },
         },
@@ -242,10 +212,371 @@ describe('TautulliPlugin', () => {
       expect(statsPoint?.fields.total_bandwidth).toBe(10000);
     });
 
+    it('should detect local streams and set Local Network location', async () => {
+      mockHttpClient.get.mockResolvedValueOnce({
+        data: {
+          response: {
+            result: 'success',
+            data: {
+              stream_count: '1',
+              total_bandwidth: 5000,
+              wan_bandwidth: 0,
+              lan_bandwidth: 5000,
+              stream_count_transcode: 0,
+              stream_count_direct_play: 1,
+              stream_count_direct_stream: 0,
+              sessions: [
+                {
+                  session_id: 'session1',
+                  session_key: 'key1',
+                  username: 'user1',
+                  ip_address: '192.168.1.100',
+                  full_title: 'Test Movie',
+                  state: 'playing',
+                  local: '1', // Local stream
+                },
+              ],
+            },
+          },
+        },
+      });
+
+      mockHttpClient.get.mockResolvedValueOnce({
+        data: { response: { result: 'success', data: [] } },
+      });
+
+      const points = await plugin.collect();
+      const sessionPoint = points.find((p) => p.tags.type === 'Session');
+
+      expect(sessionPoint?.tags.location).toBe('Local');
+      expect(sessionPoint?.tags.full_location).toBe('Local Network');
+      expect(sessionPoint?.tags.region_code).toBe('LAN');
+      // No coordinates for local streams without localCoordinates config
+      expect(sessionPoint?.tags.latitude).toBeUndefined();
+      expect(sessionPoint?.tags.longitude).toBeUndefined();
+    });
+
+    it('should use localCoordinates for local streams when configured', async () => {
+      const configWithLocalCoords: TautulliConfig = {
+        ...testConfig,
+        geoip: {
+          enabled: true,
+          localCoordinates: {
+            latitude: 48.8566,
+            longitude: 2.3522,
+          },
+        },
+      };
+
+      await plugin.initialize(configWithLocalCoords);
+
+      mockHttpClient.get.mockResolvedValueOnce({
+        data: {
+          response: {
+            result: 'success',
+            data: {
+              stream_count: '1',
+              total_bandwidth: 5000,
+              wan_bandwidth: 0,
+              lan_bandwidth: 5000,
+              stream_count_transcode: 0,
+              stream_count_direct_play: 1,
+              stream_count_direct_stream: 0,
+              sessions: [
+                {
+                  session_id: 'session1',
+                  session_key: 'key1',
+                  username: 'user1',
+                  ip_address: '192.168.1.100',
+                  full_title: 'Test Movie',
+                  state: 'playing',
+                  local: '1',
+                },
+              ],
+            },
+          },
+        },
+      });
+
+      mockHttpClient.get.mockResolvedValueOnce({
+        data: { response: { result: 'success', data: [] } },
+      });
+
+      const points = await plugin.collect();
+      const sessionPoint = points.find((p) => p.tags.type === 'Session');
+
+      expect(sessionPoint?.tags.location).toBe('Local');
+      expect(sessionPoint?.tags.full_location).toBe('Local Network');
+      expect(sessionPoint?.tags.latitude).toBe(48.8566);
+      expect(sessionPoint?.tags.longitude).toBe(2.3522);
+    });
+
+    it('should call Tautulli GeoIP API for remote streams', async () => {
+      // First call: get_activity
+      mockHttpClient.get.mockResolvedValueOnce({
+        data: {
+          response: {
+            result: 'success',
+            data: {
+              stream_count: '1',
+              total_bandwidth: 5000,
+              wan_bandwidth: 5000,
+              lan_bandwidth: 0,
+              stream_count_transcode: 0,
+              stream_count_direct_play: 1,
+              stream_count_direct_stream: 0,
+              sessions: [
+                {
+                  session_id: 'session1',
+                  session_key: 'key1',
+                  username: 'user1',
+                  ip_address_public: '82.64.1.1',
+                  full_title: 'Test Movie',
+                  state: 'playing',
+                  local: '0', // Remote stream
+                },
+              ],
+            },
+          },
+        },
+      });
+
+      // Second call: get_geoip_lookup
+      mockHttpClient.get.mockResolvedValueOnce({
+        data: {
+          response: {
+            result: 'success',
+            data: {
+              city: 'Paris',
+              code: 'FR',
+              continent: 'Europe',
+              country: 'France',
+              latitude: 48.8566,
+              longitude: 2.3522,
+              postal_code: '75001',
+              region: 'Île-de-France',
+              timezone: 'Europe/Paris',
+              accuracy: 100,
+            },
+          },
+        },
+      });
+
+      // Third call: get_libraries
+      mockHttpClient.get.mockResolvedValueOnce({
+        data: { response: { result: 'success', data: [] } },
+      });
+
+      const points = await plugin.collect();
+      const sessionPoint = points.find((p) => p.tags.type === 'Session');
+
+      expect(sessionPoint?.tags.latitude).toBe(48.8566);
+      expect(sessionPoint?.tags.longitude).toBe(2.3522);
+      expect(sessionPoint?.tags.location).toBe('Paris');
+      expect(sessionPoint?.tags.region_code).toBe('Île-de-France');
+      expect(sessionPoint?.tags.full_location).toBe('Île-de-France - Paris');
+
+      // Verify GeoIP API was called
+      expect(mockHttpClient.get).toHaveBeenCalledWith('/api/v2', expect.objectContaining({
+        params: expect.objectContaining({
+          cmd: 'get_geoip_lookup',
+          ip_address: '82.64.1.1',
+        }),
+      }));
+    });
+
+    it('should handle GeoIP API failure gracefully', async () => {
+      mockHttpClient.get.mockResolvedValueOnce({
+        data: {
+          response: {
+            result: 'success',
+            data: {
+              stream_count: '1',
+              total_bandwidth: 5000,
+              wan_bandwidth: 5000,
+              lan_bandwidth: 0,
+              stream_count_transcode: 0,
+              stream_count_direct_play: 1,
+              stream_count_direct_stream: 0,
+              sessions: [
+                {
+                  session_id: 'session1',
+                  session_key: 'key1',
+                  username: 'user1',
+                  ip_address_public: '1.2.3.4',
+                  full_title: 'Test',
+                  state: 'playing',
+                  local: '0',
+                },
+              ],
+            },
+          },
+        },
+      });
+
+      // GeoIP lookup fails
+      mockHttpClient.get.mockRejectedValueOnce(new Error('GeoIP API error'));
+
+      mockHttpClient.get.mockResolvedValueOnce({
+        data: { response: { result: 'success', data: [] } },
+      });
+
+      const points = await plugin.collect();
+      const sessionPoint = points.find((p) => p.tags.type === 'Session');
+
+      // Should use unknown values when GeoIP fails
+      expect(sessionPoint?.tags.location).toBe('unknown');
+      expect(sessionPoint?.tags.full_location).toBe('unknown');
+      expect(sessionPoint?.tags.latitude).toBeUndefined();
+      expect(sessionPoint?.tags.longitude).toBeUndefined();
+    });
+
+    it('should handle GeoIP API returning error result', async () => {
+      mockHttpClient.get.mockResolvedValueOnce({
+        data: {
+          response: {
+            result: 'success',
+            data: {
+              stream_count: '1',
+              total_bandwidth: 5000,
+              wan_bandwidth: 5000,
+              lan_bandwidth: 0,
+              stream_count_transcode: 0,
+              stream_count_direct_play: 1,
+              stream_count_direct_stream: 0,
+              sessions: [
+                {
+                  session_id: 'session1',
+                  session_key: 'key1',
+                  username: 'user1',
+                  ip_address_public: '1.2.3.4',
+                  full_title: 'Test',
+                  state: 'playing',
+                  local: '0',
+                },
+              ],
+            },
+          },
+        },
+      });
+
+      // GeoIP returns error result
+      mockHttpClient.get.mockResolvedValueOnce({
+        data: {
+          response: {
+            result: 'error',
+            message: 'Invalid IP address',
+          },
+        },
+      });
+
+      mockHttpClient.get.mockResolvedValueOnce({
+        data: { response: { result: 'success', data: [] } },
+      });
+
+      const points = await plugin.collect();
+      const sessionPoint = points.find((p) => p.tags.type === 'Session');
+
+      expect(sessionPoint?.tags.location).toBe('unknown');
+      expect(sessionPoint?.tags.full_location).toBe('unknown');
+    });
+
+    it('should not call GeoIP API for local streams', async () => {
+      mockHttpClient.get.mockResolvedValueOnce({
+        data: {
+          response: {
+            result: 'success',
+            data: {
+              stream_count: '1',
+              total_bandwidth: 5000,
+              wan_bandwidth: 0,
+              lan_bandwidth: 5000,
+              stream_count_transcode: 0,
+              stream_count_direct_play: 1,
+              stream_count_direct_stream: 0,
+              sessions: [
+                {
+                  session_id: 'session1',
+                  session_key: 'key1',
+                  username: 'user1',
+                  ip_address: '192.168.1.100',
+                  ip_address_public: '82.64.1.1', // Even with public IP, should skip if local
+                  full_title: 'Test',
+                  state: 'playing',
+                  local: '1', // Local stream
+                },
+              ],
+            },
+          },
+        },
+      });
+
+      mockHttpClient.get.mockResolvedValueOnce({
+        data: { response: { result: 'success', data: [] } },
+      });
+
+      await plugin.collect();
+
+      // Should only have 2 calls: get_activity and get_libraries
+      // No get_geoip_lookup for local streams
+      const geoipCalls = mockHttpClient.get.mock.calls.filter(
+        (call) => call[1]?.params?.cmd === 'get_geoip_lookup'
+      );
+      expect(geoipCalls.length).toBe(0);
+    });
+
+    it('should not call GeoIP API when geoip is disabled', async () => {
+      const configNoGeoip: TautulliConfig = {
+        ...testConfig,
+        geoip: { enabled: false },
+      };
+      await plugin.initialize(configNoGeoip);
+
+      mockHttpClient.get.mockResolvedValueOnce({
+        data: {
+          response: {
+            result: 'success',
+            data: {
+              stream_count: '1',
+              total_bandwidth: 5000,
+              wan_bandwidth: 5000,
+              lan_bandwidth: 0,
+              stream_count_transcode: 0,
+              stream_count_direct_play: 1,
+              stream_count_direct_stream: 0,
+              sessions: [
+                {
+                  session_id: 'session1',
+                  session_key: 'key1',
+                  username: 'user1',
+                  ip_address_public: '82.64.1.1',
+                  full_title: 'Test',
+                  state: 'playing',
+                  local: '0',
+                },
+              ],
+            },
+          },
+        },
+      });
+
+      mockHttpClient.get.mockResolvedValueOnce({
+        data: { response: { result: 'success', data: [] } },
+      });
+
+      await plugin.collect();
+
+      const geoipCalls = mockHttpClient.get.mock.calls.filter(
+        (call) => call[1]?.params?.cmd === 'get_geoip_lookup'
+      );
+      expect(geoipCalls.length).toBe(0);
+    });
+
     it('should normalize platform names', async () => {
       mockHttpClient.get.mockResolvedValueOnce({
         data: {
           response: {
+            result: 'success',
             data: {
               stream_count: '1',
               total_bandwidth: 5000,
@@ -262,6 +593,7 @@ describe('TautulliPlugin', () => {
                   full_title: 'Test',
                   platform: 'osx',
                   state: 'playing',
+                  local: '1',
                 },
               ],
             },
@@ -270,7 +602,7 @@ describe('TautulliPlugin', () => {
       });
 
       mockHttpClient.get.mockResolvedValueOnce({
-        data: { response: { data: [] } },
+        data: { response: { result: 'success', data: [] } },
       });
 
       const points = await plugin.collect();
@@ -282,6 +614,7 @@ describe('TautulliPlugin', () => {
       mockHttpClient.get.mockResolvedValueOnce({
         data: {
           response: {
+            result: 'success',
             data: {
               stream_count: '1',
               total_bandwidth: 5000,
@@ -299,6 +632,7 @@ describe('TautulliPlugin', () => {
                   state: 'playing',
                   transcode_decision: 'copy',
                   video_decision: 'copy',
+                  local: '1',
                 },
               ],
             },
@@ -307,7 +641,7 @@ describe('TautulliPlugin', () => {
       });
 
       mockHttpClient.get.mockResolvedValueOnce({
-        data: { response: { data: [] } },
+        data: { response: { result: 'success', data: [] } },
       });
 
       const points = await plugin.collect();
@@ -328,6 +662,7 @@ describe('TautulliPlugin', () => {
         mockHttpClient.get.mockResolvedValueOnce({
           data: {
             response: {
+              result: 'success',
               data: {
                 stream_count: '1',
                 total_bandwidth: 0,
@@ -343,6 +678,7 @@ describe('TautulliPlugin', () => {
                     username: 'user1',
                     full_title: 'Test',
                     state,
+                    local: '1',
                   },
                 ],
               },
@@ -351,7 +687,7 @@ describe('TautulliPlugin', () => {
         });
 
         mockHttpClient.get.mockResolvedValueOnce({
-          data: { response: { data: [] } },
+          data: { response: { result: 'success', data: [] } },
         });
 
         const points = await plugin.collect();
@@ -365,6 +701,7 @@ describe('TautulliPlugin', () => {
       mockHttpClient.get.mockResolvedValueOnce({
         data: {
           response: {
+            result: 'success',
             data: {
               stream_count: '0',
               total_bandwidth: 0,
@@ -383,6 +720,7 @@ describe('TautulliPlugin', () => {
       mockHttpClient.get.mockResolvedValueOnce({
         data: {
           response: {
+            result: 'success',
             data: [
               {
                 section_id: '1',
@@ -430,97 +768,6 @@ describe('TautulliPlugin', () => {
       expect(musicLib?.fields.tracks).toBe(10000);
     });
 
-    it('should use GeoIP data when available', async () => {
-      const mockGeoIP: GeoIPLookupFn = vi.fn().mockResolvedValue({
-        latitude: 48.8566,
-        longitude: 2.3522,
-        city: 'Paris',
-        region: 'IDF',
-      } as GeoIPInfo);
-
-      plugin.setGeoIPLookup(mockGeoIP);
-
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          response: {
-            data: {
-              stream_count: '1',
-              total_bandwidth: 5000,
-              wan_bandwidth: 5000,
-              lan_bandwidth: 0,
-              stream_count_transcode: 0,
-              stream_count_direct_play: 1,
-              stream_count_direct_stream: 0,
-              sessions: [
-                {
-                  session_id: 'session1',
-                  session_key: 'key1',
-                  username: 'user1',
-                  ip_address_public: '82.64.1.1',
-                  full_title: 'Test',
-                  state: 'playing',
-                },
-              ],
-            },
-          },
-        },
-      });
-
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { response: { data: [] } },
-      });
-
-      const points = await plugin.collect();
-      const sessionPoint = points.find((p) => p.tags.type === 'Session');
-
-      expect(sessionPoint?.tags.latitude).toBe(48.8566);
-      expect(sessionPoint?.tags.longitude).toBe(2.3522);
-      expect(sessionPoint?.tags.location).toBe('Paris');
-      expect(sessionPoint?.tags.region_code).toBe('IDF');
-    });
-
-    it('should use default coordinates when GeoIP fails', async () => {
-      const mockGeoIP: GeoIPLookupFn = vi.fn().mockRejectedValue(new Error('GeoIP error'));
-      plugin.setGeoIPLookup(mockGeoIP);
-
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          response: {
-            data: {
-              stream_count: '1',
-              total_bandwidth: 5000,
-              wan_bandwidth: 5000,
-              lan_bandwidth: 0,
-              stream_count_transcode: 0,
-              stream_count_direct_play: 1,
-              stream_count_direct_stream: 0,
-              sessions: [
-                {
-                  session_id: 'session1',
-                  session_key: 'key1',
-                  username: 'user1',
-                  ip_address_public: '1.2.3.4',
-                  full_title: 'Test',
-                  state: 'playing',
-                },
-              ],
-            },
-          },
-        },
-      });
-
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { response: { data: [] } },
-      });
-
-      const points = await plugin.collect();
-      const sessionPoint = points.find((p) => p.tags.type === 'Session');
-
-      // Should use Area 51 coordinates as default
-      expect(sessionPoint?.tags.latitude).toBe(37.234332396);
-      expect(sessionPoint?.tags.longitude).toBe(-115.80666344);
-    });
-
     it('should handle API errors gracefully', async () => {
       mockHttpClient.get.mockRejectedValueOnce(new Error('API Error'));
       mockHttpClient.get.mockRejectedValueOnce(new Error('API Error'));
@@ -535,7 +782,7 @@ describe('TautulliPlugin', () => {
         data: { response: null },
       });
       mockHttpClient.get.mockResolvedValueOnce({
-        data: { response: { data: [] } },
+        data: { response: { result: 'success', data: [] } },
       });
 
       const points = await plugin.collect();

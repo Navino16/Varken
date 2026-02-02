@@ -3,7 +3,6 @@ import { ConfigLoader } from './config';
 import { Orchestrator } from './core/Orchestrator';
 import { getInputPluginRegistry } from './plugins/inputs';
 import { getOutputPluginRegistry } from './plugins/outputs';
-import { GeoIPHandler } from './utils/geoip';
 import type { HealthServerConfig } from './core/HealthServer';
 
 const VERSION = '2.0.0';
@@ -29,30 +28,14 @@ async function main(): Promise<void> {
 
   logger.debug('Configuration loaded');
 
-  // Initialize GeoIP handler if any Tautulli config has geoip enabled
-  let geoipHandler: GeoIPHandler | undefined;
-  const tautulliConfigs = config.inputs.tautulli || [];
-  const needsGeoIP = tautulliConfigs.some((t) => t.geoip?.enabled && t.geoip?.licenseKey);
-
-  if (needsGeoIP) {
-    const geoipLicenseKey = tautulliConfigs.find((t) => t.geoip?.licenseKey)?.geoip?.licenseKey;
-    if (geoipLicenseKey) {
-      geoipHandler = new GeoIPHandler({
-        enabled: true,
-        licenseKey: geoipLicenseKey,
-        dataFolder,
-      });
-      await geoipHandler.initialize();
-    }
-  }
-
   // Create health server configuration
   const healthConfig: HealthServerConfig | undefined = healthEnabled
     ? { port: healthPort, version: VERSION }
     : undefined;
 
   // Create and configure orchestrator
-  const orchestrator = new Orchestrator(config, geoipHandler, healthConfig);
+  // Note: GeoIP is now handled directly by TautulliPlugin via Tautulli API
+  const orchestrator = new Orchestrator(config, healthConfig);
 
   // Register plugins automatically from registries
   const inputPlugins = getInputPluginRegistry();

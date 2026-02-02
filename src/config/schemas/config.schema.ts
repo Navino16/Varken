@@ -136,13 +136,19 @@ export const TautulliConfigSchema = z.object({
   url: z.string(),
   apiKey: z.string(),
   verifySsl: z.boolean().default(false),
+  /** @deprecated Use geoip.localCoordinates instead */
   fallbackIp: z.string().optional(),
   activity: ScheduleConfigSchema.default(scheduleDefault),
   libraries: ScheduleConfigDaysSchema.default(scheduleDaysDefault),
   stats: ScheduleConfigSchema.default(scheduleDefault),
   geoip: z.object({
     enabled: z.boolean().default(false),
+    /** @deprecated GeoIP is now handled by Tautulli API */
     licenseKey: z.string().optional(),
+    localCoordinates: z.object({
+      latitude: z.number(),
+      longitude: z.number(),
+    }).optional(),
   }).default({ enabled: false }),
 });
 
