@@ -5,7 +5,14 @@ import {
   OmbiIssuesCounts,
   OmbiMovieRequest,
   OmbiTVRequest,
+  OmbiUser,
 } from '../../../src/types/inputs/ombi.types';
+
+// Mock users data
+const mockUsers: OmbiUser[] = [
+  { id: 'user1', userName: 'john_doe', alias: 'John', email: 'john@test.com', userType: 1 },
+  { id: 'user2', userName: 'jane_smith', email: 'jane@test.com', userType: 1 },
+];
 
 // Mock the logger
 vi.mock('../../../src/core/Logger', () => ({
@@ -113,6 +120,7 @@ describe('OmbiPlugin', () => {
         if (path === '/api/v1/Request/tv') return mockTVRequests;
         if (path === '/api/v1/Request/movie') return mockMovieRequests;
         if (path === '/api/v1/Issues/count') return { pending: 0, inProgress: 0, resolved: 0 };
+        if (path === '/api/v1/Identity/Users') return mockUsers;
         return null;
       });
 
@@ -138,6 +146,7 @@ describe('OmbiPlugin', () => {
         if (path === '/api/v1/Request/count') return { pending: 0, approved: 0, available: 0 };
         if (path === '/api/v1/Request/tv') return [];
         if (path === '/api/v1/Request/movie') return [];
+        if (path === '/api/v1/Identity/Users') return mockUsers;
         return null;
       });
 
@@ -174,6 +183,7 @@ describe('OmbiPlugin', () => {
         if (path === '/api/v1/Request/tv') return [];
         if (path === '/api/v1/Request/count') return { pending: 0, approved: 1, available: 1 };
         if (path === '/api/v1/Issues/count') return { pending: 0, inProgress: 0, resolved: 0 };
+        if (path === '/api/v1/Identity/Users') return mockUsers;
         return null;
       });
 
@@ -183,7 +193,8 @@ describe('OmbiPlugin', () => {
       expect(requestPoint).toBeDefined();
       expect(requestPoint?.tags.title).toBe('Test Movie');
       expect(requestPoint?.tags.status).toBe(2); // Completed (approved + available)
-      expect(requestPoint?.tags.requested_user).toBe('TestUser');
+      // user1 has alias 'John' in mockUsers, but requestedByAlias takes precedence when present
+      expect(requestPoint?.tags.requested_user).toBe('John');
       expect(requestPoint?.fields.hash).toBeDefined();
     });
 
@@ -221,6 +232,7 @@ describe('OmbiPlugin', () => {
         if (path === '/api/v1/Request/movie') return [];
         if (path === '/api/v1/Request/count') return { pending: 1, approved: 0, available: 0 };
         if (path === '/api/v1/Issues/count') return { pending: 0, inProgress: 0, resolved: 0 };
+        if (path === '/api/v1/Identity/Users') return mockUsers;
         return null;
       });
 
@@ -230,7 +242,8 @@ describe('OmbiPlugin', () => {
       expect(requestPoint).toBeDefined();
       expect(requestPoint?.tags.title).toBe('Test Show');
       expect(requestPoint?.tags.status).toBe(3); // Pending
-      expect(requestPoint?.tags.requested_user).toBe('AnotherUser');
+      // user2 has no alias, so userName 'jane_smith' should be used
+      expect(requestPoint?.tags.requested_user).toBe('jane_smith');
     });
 
     it('should create Request_Total summary', async () => {
@@ -291,6 +304,7 @@ describe('OmbiPlugin', () => {
         if (path === '/api/v1/Request/movie') return mockMovieRequests;
         if (path === '/api/v1/Request/count') return { pending: 3, approved: 0, available: 0 };
         if (path === '/api/v1/Issues/count') return { pending: 0, inProgress: 0, resolved: 0 };
+        if (path === '/api/v1/Identity/Users') return mockUsers;
         return null;
       });
 
@@ -327,6 +341,7 @@ describe('OmbiPlugin', () => {
         if (path === '/api/v1/Request/tv') return [];
         if (path === '/api/v1/Request/count') return { pending: 0, approved: 0, available: 0 };
         if (path === '/api/v1/Issues/count') return { pending: 0, inProgress: 0, resolved: 0 };
+        if (path === '/api/v1/Identity/Users') return mockUsers;
         return null;
       });
 
@@ -358,6 +373,7 @@ describe('OmbiPlugin', () => {
         if (path === '/api/v1/Request/tv') return [];
         if (path === '/api/v1/Request/count') return { pending: 0, approved: 1, available: 0 };
         if (path === '/api/v1/Issues/count') return { pending: 0, inProgress: 0, resolved: 0 };
+        if (path === '/api/v1/Identity/Users') return mockUsers;
         return null;
       });
 
@@ -386,6 +402,7 @@ describe('OmbiPlugin', () => {
         if (path === '/api/v1/Request/movie') return [];
         if (path === '/api/v1/Request/count') return { pending: 0, approved: 0, available: 0 };
         if (path === '/api/v1/Issues/count') return { pending: 0, inProgress: 0, resolved: 0 };
+        if (path === '/api/v1/Identity/Users') return mockUsers;
         return null;
       });
 
@@ -405,7 +422,7 @@ describe('OmbiPlugin', () => {
       expect(points).toEqual([]);
     });
 
-    it('should use Unknown for missing requestedByAlias', async () => {
+    it('should resolve userName from Identity API when alias is missing', async () => {
       const mockMovieRequests: OmbiMovieRequest[] = [
         {
           id: 1,
@@ -416,7 +433,7 @@ describe('OmbiPlugin', () => {
           approved: false,
           available: false,
           requestedDate: '2024-01-15',
-          requestedUserId: 'user1',
+          requestedUserId: 'user2', // user2 has no alias in mockUsers
           requestType: 1,
           // requestedByAlias is undefined
         },
@@ -428,6 +445,108 @@ describe('OmbiPlugin', () => {
         if (path === '/api/v1/Request/tv') return [];
         if (path === '/api/v1/Request/count') return { pending: 1, approved: 0, available: 0 };
         if (path === '/api/v1/Issues/count') return { pending: 0, inProgress: 0, resolved: 0 };
+        if (path === '/api/v1/Identity/Users') return mockUsers;
+        return null;
+      });
+
+      const points = await plugin.collect();
+
+      const requestPoint = points.find(p => p.tags.type === 'Requests');
+      // user2 has userName 'jane_smith' and no alias
+      expect(requestPoint?.tags.requested_user).toBe('jane_smith');
+    });
+
+    it('should use alias from Identity API when user has one', async () => {
+      const mockMovieRequests: OmbiMovieRequest[] = [
+        {
+          id: 1,
+          theMovieDbId: 123,
+          title: 'Movie With User Alias',
+          status: 'Pending',
+          requestStatus: 'Pending',
+          approved: false,
+          available: false,
+          requestedDate: '2024-01-15',
+          requestedUserId: 'user1', // user1 has alias 'John' in mockUsers
+          requestType: 1,
+        },
+      ];
+
+      const httpGetSpy = vi.spyOn(plugin as unknown as { httpGet: <T>(path: string) => Promise<T> }, 'httpGet');
+      httpGetSpy.mockImplementation(async (path: string) => {
+        if (path === '/api/v1/Request/movie') return mockMovieRequests;
+        if (path === '/api/v1/Request/tv') return [];
+        if (path === '/api/v1/Request/count') return { pending: 1, approved: 0, available: 0 };
+        if (path === '/api/v1/Issues/count') return { pending: 0, inProgress: 0, resolved: 0 };
+        if (path === '/api/v1/Identity/Users') return mockUsers;
+        return null;
+      });
+
+      const points = await plugin.collect();
+
+      const requestPoint = points.find(p => p.tags.type === 'Requests');
+      // user1 has alias 'John'
+      expect(requestPoint?.tags.requested_user).toBe('John');
+    });
+
+    it('should fallback to requestedByAlias when Identity API fails', async () => {
+      const mockMovieRequests: OmbiMovieRequest[] = [
+        {
+          id: 1,
+          theMovieDbId: 123,
+          title: 'Movie Fallback Alias',
+          status: 'Pending',
+          requestStatus: 'Pending',
+          approved: false,
+          available: false,
+          requestedDate: '2024-01-15',
+          requestedUserId: 'user1',
+          requestedByAlias: 'FallbackAlias',
+          requestType: 1,
+        },
+      ];
+
+      const httpGetSpy = vi.spyOn(plugin as unknown as { httpGet: <T>(path: string) => Promise<T> }, 'httpGet');
+      httpGetSpy.mockImplementation(async (path: string) => {
+        if (path === '/api/v1/Request/movie') return mockMovieRequests;
+        if (path === '/api/v1/Request/tv') return [];
+        if (path === '/api/v1/Request/count') return { pending: 1, approved: 0, available: 0 };
+        if (path === '/api/v1/Issues/count') return { pending: 0, inProgress: 0, resolved: 0 };
+        if (path === '/api/v1/Identity/Users') throw new Error('API Error');
+        return null;
+      });
+
+      const points = await plugin.collect();
+
+      const requestPoint = points.find(p => p.tags.type === 'Requests');
+      // Falls back to requestedByAlias when Identity API fails
+      expect(requestPoint?.tags.requested_user).toBe('FallbackAlias');
+    });
+
+    it('should use Unknown when userId not in userMap and no alias', async () => {
+      const mockMovieRequests: OmbiMovieRequest[] = [
+        {
+          id: 1,
+          theMovieDbId: 123,
+          title: 'Movie Unknown User',
+          status: 'Pending',
+          requestStatus: 'Pending',
+          approved: false,
+          available: false,
+          requestedDate: '2024-01-15',
+          requestedUserId: 'unknown_user', // Not in mockUsers
+          requestType: 1,
+          // requestedByAlias is undefined
+        },
+      ];
+
+      const httpGetSpy = vi.spyOn(plugin as unknown as { httpGet: <T>(path: string) => Promise<T> }, 'httpGet');
+      httpGetSpy.mockImplementation(async (path: string) => {
+        if (path === '/api/v1/Request/movie') return mockMovieRequests;
+        if (path === '/api/v1/Request/tv') return [];
+        if (path === '/api/v1/Request/count') return { pending: 1, approved: 0, available: 0 };
+        if (path === '/api/v1/Issues/count') return { pending: 0, inProgress: 0, resolved: 0 };
+        if (path === '/api/v1/Identity/Users') return mockUsers;
         return null;
       });
 
@@ -461,6 +580,7 @@ describe('OmbiPlugin', () => {
         if (path === '/api/v1/Request/tv') return [];
         if (path === '/api/v1/Request/count') return { pending: 1, approved: 0, available: 0 };
         if (path === '/api/v1/Issues/count') return { pending: 0, inProgress: 0, resolved: 0 };
+        if (path === '/api/v1/Identity/Users') return mockUsers;
         return null;
       });
 
