@@ -143,6 +143,7 @@ export class ReadarrPlugin extends BaseInputPlugin<ReadarrConfig> {
       this.logger.info(`Collected ${points.length} queue items from Readarr`);
     } catch (error) {
       this.logger.error(`Failed to collect Readarr queue: ${error}`);
+      throw error;
     }
 
     return points;
@@ -194,6 +195,7 @@ export class ReadarrPlugin extends BaseInputPlugin<ReadarrConfig> {
       this.logger.info(`Collected ${points.length} missing books from Readarr`);
     } catch (error) {
       this.logger.error(`Failed to collect Readarr missing books: ${error}`);
+      throw error;
     }
 
     return points;

@@ -132,6 +132,7 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
       this.logger.info('Collected request counts from Ombi');
     } catch (error) {
       this.logger.error(`Failed to collect Ombi request counts: ${error}`);
+      throw error;
     }
 
     return points;
@@ -164,6 +165,7 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
       this.logger.info('Collected issue counts from Ombi');
     } catch (error) {
       this.logger.error(`Failed to collect Ombi issue counts: ${error}`);
+      throw error;
     }
 
     return points;
@@ -233,6 +235,7 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
       );
     } catch (error) {
       this.logger.error(`Failed to collect Ombi requests: ${error}`);
+      throw error;
     }
 
     return points;

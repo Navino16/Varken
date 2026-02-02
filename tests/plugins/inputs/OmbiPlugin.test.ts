@@ -412,14 +412,11 @@ describe('OmbiPlugin', () => {
       expect(requestPoints).toHaveLength(0);
     });
 
-    it('should handle API errors gracefully', async () => {
+    it('should propagate API errors for circuit breaker', async () => {
       const httpGetSpy = vi.spyOn(plugin as unknown as { httpGet: <T>(path: string) => Promise<T> }, 'httpGet');
       httpGetSpy.mockRejectedValue(new Error('API Error'));
 
-      const points = await plugin.collect();
-
-      // Should return empty array without throwing
-      expect(points).toEqual([]);
+      await expect(plugin.collect()).rejects.toThrow('API Error');
     });
 
     it('should resolve userName from Identity API when alias is missing', async () => {

@@ -302,12 +302,10 @@ describe('ReadarrPlugin', () => {
       expect(points).toEqual([]);
     });
 
-    it('should handle API errors gracefully', async () => {
+    it('should propagate API errors for circuit breaker', async () => {
       mockHttpClient.get.mockRejectedValueOnce(new Error('API Error'));
-      mockHttpClient.get.mockResolvedValueOnce({ data: [] });
 
-      const points = await plugin.collect();
-      expect(points).toBeDefined();
+      await expect(plugin.collect()).rejects.toThrow('API Error');
     });
 
     it('should skip queue items without book data', async () => {

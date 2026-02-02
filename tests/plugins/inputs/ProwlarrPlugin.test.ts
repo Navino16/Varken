@@ -201,12 +201,10 @@ describe('ProwlarrPlugin', () => {
       expect(points).toEqual([]);
     });
 
-    it('should handle API errors gracefully', async () => {
+    it('should propagate API errors for circuit breaker', async () => {
       mockHttpClient.get.mockRejectedValueOnce(new Error('API Error'));
 
-      const points = await plugin.collect();
-      expect(points).toBeDefined();
-      expect(points).toEqual([]);
+      await expect(plugin.collect()).rejects.toThrow('API Error');
     });
 
     it('should generate deterministic hash IDs', async () => {

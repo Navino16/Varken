@@ -768,13 +768,10 @@ describe('TautulliPlugin', () => {
       expect(musicLib?.fields.tracks).toBe(10000);
     });
 
-    it('should handle API errors gracefully', async () => {
-      mockHttpClient.get.mockRejectedValueOnce(new Error('API Error'));
+    it('should propagate API errors for circuit breaker', async () => {
       mockHttpClient.get.mockRejectedValueOnce(new Error('API Error'));
 
-      const points = await plugin.collect();
-      expect(points).toBeDefined();
-      expect(points.length).toBe(0);
+      await expect(plugin.collect()).rejects.toThrow('API Error');
     });
 
     it('should handle invalid API responses', async () => {

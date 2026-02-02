@@ -228,3 +228,29 @@ inputs:
   #       enabled: true
   #       count: 10
   #       intervalSeconds: 300
+
+# =============================================================================
+# CIRCUIT BREAKER - Error recovery configuration (optional)
+# =============================================================================
+# The circuit breaker automatically handles failing schedulers by:
+# 1. Applying exponential backoff on errors (increasing interval between retries)
+# 2. Disabling schedulers after too many consecutive errors
+# 3. Re-enabling them after a cooldown period with gradual recovery
+#
+# State machine: CLOSED (normal) → OPEN (disabled) → HALF-OPEN (recovery) → CLOSED
+
+# circuitBreaker:
+#   # Number of consecutive errors before disabling a scheduler
+#   maxConsecutiveErrors: 10
+#
+#   # Interval multiplier applied after each failure (e.g., 30s → 60s → 120s)
+#   backoffMultiplier: 2
+#
+#   # Maximum interval cap in seconds (prevents intervals from growing too large)
+#   maxIntervalSeconds: 600  # 10 minutes
+#
+#   # How long to wait before attempting recovery (in seconds)
+#   cooldownSeconds: 300  # 5 minutes
+#
+#   # Number of successful executions needed to fully recover from half-open state
+#   recoverySuccesses: 3

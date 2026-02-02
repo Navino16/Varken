@@ -677,14 +677,15 @@ describe('PluginManager', () => {
       await pluginManager.initializeFromConfig(minimalConfig);
       await pluginManager.startSchedulers();
 
-      // First execution fails
-      await vi.advanceTimersByTimeAsync(1100);
+      // First execution fails (immediate run on start)
+      await vi.advanceTimersByTimeAsync(100);
       let statuses = pluginManager.getSchedulerStatuses();
       expect(statuses[0].consecutiveErrors).toBeGreaterThan(0);
 
       // Now make it succeed
       shouldFail = false;
-      await vi.advanceTimersByTimeAsync(1000);
+      // Wait for next scheduled run (with backoff, interval is now 2s)
+      await vi.advanceTimersByTimeAsync(2100);
       statuses = pluginManager.getSchedulerStatuses();
       expect(statuses[0].consecutiveErrors).toBe(0);
       expect(statuses[0].lastError).toBeUndefined();
@@ -708,6 +709,327 @@ describe('PluginManager', () => {
 
       const stats = pluginManager.getStats();
       expect(stats.activeSchedulers).toBe(0);
+    });
+  });
+
+  describe('circuit breaker', () => {
+    it('should apply backoff on consecutive errors', async () => {
+      class FailingPlugin extends MockInputPlugin {
+        async collect(): Promise<DataPoint[]> {
+          throw new Error('Always fails');
+        }
+      }
+
+      pluginManager.registerInputPlugin('sonarr', FailingPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', MockOutputPlugin);
+      await pluginManager.initializeFromConfig(minimalConfig);
+      await pluginManager.startSchedulers();
+
+      // Initial run fails, backoff applied (interval doubles from 1s to 2s)
+      await vi.advanceTimersByTimeAsync(100);
+      let statuses = pluginManager.getSchedulerStatuses();
+      expect(statuses[0].consecutiveErrors).toBe(1);
+      expect(statuses[0].currentIntervalSeconds).toBe(2); // 1s * 2 = 2s
+
+      // Wait for second execution (2s interval)
+      await vi.advanceTimersByTimeAsync(2100);
+      statuses = pluginManager.getSchedulerStatuses();
+      expect(statuses[0].consecutiveErrors).toBe(2);
+      expect(statuses[0].currentIntervalSeconds).toBe(4); // 2s * 2 = 4s
+    });
+
+    it('should cap backoff at maxIntervalSeconds', async () => {
+      class FailingPlugin extends MockInputPlugin {
+        async collect(): Promise<DataPoint[]> {
+          throw new Error('Always fails');
+        }
+      }
+
+      // Configure with very low max interval for testing
+      const configWithCircuitBreaker = {
+        ...minimalConfig,
+        circuitBreaker: {
+          maxConsecutiveErrors: 10,
+          backoffMultiplier: 2,
+          maxIntervalSeconds: 4, // Cap at 4 seconds
+          cooldownSeconds: 300,
+          recoverySuccesses: 3,
+        },
+      };
+
+      pluginManager.registerInputPlugin('sonarr', FailingPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', MockOutputPlugin);
+      await pluginManager.initializeFromConfig(configWithCircuitBreaker);
+      await pluginManager.startSchedulers();
+
+      // First failure: 1s * 2 = 2s
+      await vi.advanceTimersByTimeAsync(100);
+      let statuses = pluginManager.getSchedulerStatuses();
+      expect(statuses[0].currentIntervalSeconds).toBe(2);
+
+      // Second failure: 2s * 2 = 4s (at cap)
+      await vi.advanceTimersByTimeAsync(2100);
+      statuses = pluginManager.getSchedulerStatuses();
+      expect(statuses[0].currentIntervalSeconds).toBe(4);
+
+      // Third failure: should stay at 4s (capped)
+      await vi.advanceTimersByTimeAsync(4100);
+      statuses = pluginManager.getSchedulerStatuses();
+      expect(statuses[0].currentIntervalSeconds).toBe(4);
+    });
+
+    it('should open circuit after maxConsecutiveErrors', async () => {
+      class FailingPlugin extends MockInputPlugin {
+        async collect(): Promise<DataPoint[]> {
+          throw new Error('Always fails');
+        }
+      }
+
+      // Configure with low maxConsecutiveErrors for testing
+      const configWithCircuitBreaker = {
+        ...minimalConfig,
+        circuitBreaker: {
+          maxConsecutiveErrors: 3,
+          backoffMultiplier: 1, // No backoff for simpler test timing
+          maxIntervalSeconds: 600,
+          cooldownSeconds: 60,
+          recoverySuccesses: 3,
+        },
+      };
+
+      pluginManager.registerInputPlugin('sonarr', FailingPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', MockOutputPlugin);
+      await pluginManager.initializeFromConfig(configWithCircuitBreaker);
+      await pluginManager.startSchedulers();
+
+      // Three failures (immediate + 2 intervals)
+      await vi.advanceTimersByTimeAsync(100); // First execution
+      await vi.advanceTimersByTimeAsync(1100); // Second
+      await vi.advanceTimersByTimeAsync(1100); // Third
+
+      const statuses = pluginManager.getSchedulerStatuses();
+      expect(statuses[0].circuitState).toBe('open');
+      expect(statuses[0].consecutiveErrors).toBe(3);
+      expect(statuses[0].disabledAt).toBeDefined();
+      expect(statuses[0].nextAttemptAt).toBeDefined();
+    });
+
+    it('should skip execution when circuit is open', async () => {
+      let callCount = 0;
+      class CountingFailingPlugin extends MockInputPlugin {
+        async collect(): Promise<DataPoint[]> {
+          callCount++;
+          throw new Error('Always fails');
+        }
+      }
+
+      const configWithCircuitBreaker = {
+        ...minimalConfig,
+        circuitBreaker: {
+          maxConsecutiveErrors: 2,
+          backoffMultiplier: 1,
+          maxIntervalSeconds: 600,
+          cooldownSeconds: 60,
+          recoverySuccesses: 3,
+        },
+      };
+
+      pluginManager.registerInputPlugin('sonarr', CountingFailingPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', MockOutputPlugin);
+      await pluginManager.initializeFromConfig(configWithCircuitBreaker);
+      await pluginManager.startSchedulers();
+
+      // Two failures to open circuit
+      await vi.advanceTimersByTimeAsync(100);
+      await vi.advanceTimersByTimeAsync(1100);
+
+      const callsBeforeOpen = callCount;
+      expect(callsBeforeOpen).toBe(2);
+
+      // Circuit should be open, further executions should be skipped
+      await vi.advanceTimersByTimeAsync(1100);
+      await vi.advanceTimersByTimeAsync(1100);
+
+      // Call count should not increase while circuit is open
+      expect(callCount).toBe(callsBeforeOpen);
+    });
+
+    it('should transition to half-open after cooldown', async () => {
+      class FailingPlugin extends MockInputPlugin {
+        async collect(): Promise<DataPoint[]> {
+          throw new Error('Always fails');
+        }
+      }
+
+      const configWithCircuitBreaker = {
+        ...minimalConfig,
+        circuitBreaker: {
+          maxConsecutiveErrors: 2,
+          backoffMultiplier: 1,
+          maxIntervalSeconds: 600,
+          cooldownSeconds: 5, // Short cooldown for testing
+          recoverySuccesses: 3,
+        },
+      };
+
+      pluginManager.registerInputPlugin('sonarr', FailingPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', MockOutputPlugin);
+      await pluginManager.initializeFromConfig(configWithCircuitBreaker);
+      await pluginManager.startSchedulers();
+
+      // Open the circuit
+      await vi.advanceTimersByTimeAsync(100);
+      await vi.advanceTimersByTimeAsync(1100);
+
+      let statuses = pluginManager.getSchedulerStatuses();
+      expect(statuses[0].circuitState).toBe('open');
+
+      // Wait for cooldown (5 seconds) + next execution
+      await vi.advanceTimersByTimeAsync(6100);
+
+      statuses = pluginManager.getSchedulerStatuses();
+      // Circuit should transition to half-open, then back to open due to failure
+      expect(statuses[0].circuitState).toBe('open');
+    });
+
+    it('should close circuit after recoverySuccesses in half-open state', async () => {
+      let shouldFail = true;
+
+      class RecoverablePlugin extends MockInputPlugin {
+        async collect(): Promise<DataPoint[]> {
+          if (shouldFail) {
+            throw new Error('Temporary failure');
+          }
+          return [];
+        }
+      }
+
+      const configWithCircuitBreaker = {
+        ...minimalConfig,
+        circuitBreaker: {
+          maxConsecutiveErrors: 2,
+          backoffMultiplier: 1,
+          maxIntervalSeconds: 600,
+          cooldownSeconds: 5, // Longer cooldown
+          recoverySuccesses: 3, // Need 3 successes to recover
+        },
+      };
+
+      pluginManager.registerInputPlugin('sonarr', RecoverablePlugin);
+      pluginManager.registerOutputPlugin('influxdb1', MockOutputPlugin);
+      await pluginManager.initializeFromConfig(configWithCircuitBreaker);
+      await pluginManager.startSchedulers();
+
+      // Open the circuit with 2 failures (immediate run + first interval)
+      await vi.advanceTimersByTimeAsync(100);
+      await vi.advanceTimersByTimeAsync(1100);
+
+      let statuses = pluginManager.getSchedulerStatuses();
+      expect(statuses[0].circuitState).toBe('open');
+
+      // Now make it succeed
+      shouldFail = false;
+
+      // Wait for cooldown (5s) + first execution
+      await vi.advanceTimersByTimeAsync(5100);
+
+      statuses = pluginManager.getSchedulerStatuses();
+      expect(statuses[0].circuitState).toBe('half-open');
+      expect(statuses[0].recoverySuccesses).toBe(1);
+
+      // Second recovery success
+      await vi.advanceTimersByTimeAsync(1100);
+
+      statuses = pluginManager.getSchedulerStatuses();
+      expect(statuses[0].circuitState).toBe('half-open');
+      expect(statuses[0].recoverySuccesses).toBe(2);
+
+      // Third recovery success - should close the circuit
+      await vi.advanceTimersByTimeAsync(1100);
+
+      statuses = pluginManager.getSchedulerStatuses();
+      expect(statuses[0].circuitState).toBe('closed');
+      expect(statuses[0].consecutiveErrors).toBe(0);
+      expect(statuses[0].recoverySuccesses).toBe(0);
+    });
+
+    it('should return to open state on failure in half-open', async () => {
+      let failCount = 0;
+      const maxFailures = 3; // Fail first 3 times (2 to open + 1 recovery fail)
+
+      class SometimesRecoverablePlugin extends MockInputPlugin {
+        async collect(): Promise<DataPoint[]> {
+          failCount++;
+          if (failCount <= maxFailures) {
+            throw new Error('Failure');
+          }
+          return [];
+        }
+      }
+
+      const configWithCircuitBreaker = {
+        ...minimalConfig,
+        circuitBreaker: {
+          maxConsecutiveErrors: 2,
+          backoffMultiplier: 1,
+          maxIntervalSeconds: 600,
+          cooldownSeconds: 2,
+          recoverySuccesses: 3,
+        },
+      };
+
+      pluginManager.registerInputPlugin('sonarr', SometimesRecoverablePlugin);
+      pluginManager.registerOutputPlugin('influxdb1', MockOutputPlugin);
+      await pluginManager.initializeFromConfig(configWithCircuitBreaker);
+      await pluginManager.startSchedulers();
+
+      // Open the circuit with 2 failures
+      await vi.advanceTimersByTimeAsync(100);
+      await vi.advanceTimersByTimeAsync(1100);
+
+      let statuses = pluginManager.getSchedulerStatuses();
+      expect(statuses[0].circuitState).toBe('open');
+
+      // Wait for cooldown, then fail recovery
+      await vi.advanceTimersByTimeAsync(3100);
+
+      statuses = pluginManager.getSchedulerStatuses();
+      // Should be back to open after failed recovery
+      expect(statuses[0].circuitState).toBe('open');
+    });
+
+    it('should include circuit breaker fields in scheduler statuses', async () => {
+      pluginManager.registerInputPlugin('sonarr', MockInputPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', MockOutputPlugin);
+      await pluginManager.initializeFromConfig(minimalConfig);
+      await pluginManager.startSchedulers();
+
+      const statuses = pluginManager.getSchedulerStatuses();
+
+      expect(statuses[0]).toHaveProperty('circuitState');
+      expect(statuses[0]).toHaveProperty('currentIntervalSeconds');
+      expect(statuses[0]).toHaveProperty('recoverySuccesses');
+      expect(statuses[0].circuitState).toBe('closed');
+      expect(statuses[0].currentIntervalSeconds).toBe(1);
+      expect(statuses[0].recoverySuccesses).toBe(0);
+    });
+
+    it('should use default circuit breaker config when not specified', async () => {
+      class FailingPlugin extends MockInputPlugin {
+        async collect(): Promise<DataPoint[]> {
+          throw new Error('Always fails');
+        }
+      }
+
+      pluginManager.registerInputPlugin('sonarr', FailingPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', MockOutputPlugin);
+      await pluginManager.initializeFromConfig(minimalConfig);
+      await pluginManager.startSchedulers();
+
+      // With default config: backoffMultiplier=2
+      await vi.advanceTimersByTimeAsync(100);
+      const statuses = pluginManager.getSchedulerStatuses();
+      expect(statuses[0].currentIntervalSeconds).toBe(2); // 1s * 2
     });
   });
 
