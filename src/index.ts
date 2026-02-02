@@ -5,11 +5,27 @@ import { getInputPluginRegistry } from './plugins/inputs';
 import { getOutputPluginRegistry } from './plugins/outputs';
 import type { HealthServerConfig } from './core/HealthServer';
 
-const VERSION = '2.0.0';
-const DEFAULT_HEALTH_PORT = 9090;
-const logger = createLogger('Main');
+export const VERSION = '2.0.0';
+export const DEFAULT_HEALTH_PORT = 9090;
 
-async function main(): Promise<void> {
+export interface MainDependencies {
+  createLogger: typeof createLogger;
+  ConfigLoader: typeof ConfigLoader;
+  Orchestrator: typeof Orchestrator;
+  getInputPluginRegistry: typeof getInputPluginRegistry;
+  getOutputPluginRegistry: typeof getOutputPluginRegistry;
+}
+
+const defaultDependencies: MainDependencies = {
+  createLogger,
+  ConfigLoader,
+  Orchestrator,
+  getInputPluginRegistry,
+  getOutputPluginRegistry,
+};
+
+export async function main(deps: MainDependencies = defaultDependencies): Promise<void> {
+  const logger = deps.createLogger('Main');
   const configFolder = process.env.CONFIG_FOLDER || './config';
   const dataFolder = process.env.DATA_FOLDER || './data';
   const healthPort = parseInt(process.env.HEALTH_PORT || String(DEFAULT_HEALTH_PORT), 10);
@@ -23,7 +39,7 @@ async function main(): Promise<void> {
   }
 
   // Load and validate configuration
-  const configLoader = new ConfigLoader(configFolder);
+  const configLoader = new deps.ConfigLoader(configFolder);
   const config = configLoader.load();
 
   logger.debug('Configuration loaded');
@@ -35,11 +51,11 @@ async function main(): Promise<void> {
 
   // Create and configure orchestrator
   // Note: GeoIP is now handled directly by TautulliPlugin via Tautulli API
-  const orchestrator = new Orchestrator(config, healthConfig);
+  const orchestrator = new deps.Orchestrator(config, healthConfig);
 
   // Register plugins automatically from registries
-  const inputPlugins = getInputPluginRegistry();
-  const outputPlugins = getOutputPluginRegistry();
+  const inputPlugins = deps.getInputPluginRegistry();
+  const outputPlugins = deps.getOutputPluginRegistry();
 
   logger.info(`Discovered ${inputPlugins.size} input plugins: ${[...inputPlugins.keys()].join(', ')}`);
   logger.info(`Discovered ${outputPlugins.size} output plugins: ${[...outputPlugins.keys()].join(', ')}`);
@@ -56,7 +72,13 @@ async function main(): Promise<void> {
   logger.info('Varken is running. Press Ctrl+C to stop.');
 }
 
-main().catch((error) => {
-  logger.error('Fatal error:', error);
-  process.exit(1);
-});
+// Only run main() when executed directly (not when imported for testing)
+/* c8 ignore start */
+if (process.env.NODE_ENV !== 'test') {
+  const logger = createLogger('Main');
+  main().catch((error) => {
+    logger.error('Fatal error:', error);
+    process.exit(1);
+  });
+}
+/* c8 ignore stop */
