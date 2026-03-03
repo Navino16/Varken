@@ -528,12 +528,14 @@ export class PluginManager {
    * Write data points to all output plugins
    */
   private async writeToOutputs(points: DataPoint[]): Promise<void> {
+    let failureCount = 0;
     const writePromises = Array.from(this.outputPlugins.entries()).map(
       async ([type, plugin]) => {
         try {
           await plugin.write(points);
           logger.debug(`Wrote ${points.length} points to ${type}`);
         } catch (error) {
+          failureCount++;
           const message = error instanceof Error ? error.message : 'Unknown error';
           logger.error(`Failed to write to output ${type}: ${message}`);
           // Don't throw - continue with other outputs
@@ -541,9 +543,8 @@ export class PluginManager {
       }
     );
 
-    const results = await Promise.allSettled(writePromises);
-    const failureCount = results.filter((r) => r.status === 'rejected').length;
-    if (failureCount === results.length && results.length > 0) {
+    await Promise.allSettled(writePromises);
+    if (failureCount === writePromises.length && writePromises.length > 0) {
       logger.error(`All ${failureCount} output plugins failed — data points may be lost`);
     }
   }

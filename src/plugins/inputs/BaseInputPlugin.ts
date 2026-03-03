@@ -218,9 +218,7 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
   ): DataPoint {
     return {
       measurement,
-      tags: {
-        ...tags,
-      },
+      tags,
       fields,
       timestamp: timestamp || new Date(),
     };
