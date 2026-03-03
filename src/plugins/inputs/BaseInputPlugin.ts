@@ -219,7 +219,6 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
     return {
       measurement,
       tags: {
-        server_id: this.config.id,
         ...tags,
       },
       fields,
