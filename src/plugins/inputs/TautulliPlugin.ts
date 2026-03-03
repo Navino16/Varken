@@ -15,6 +15,24 @@ import type {
  * Collects activity, libraries, and stats from Tautulli API v2
  */
 export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
+  private static readonly PRIVATE_IPV4_RANGES = [
+    /^10\./, // 10.0.0.0/8
+    /^172\.(1[6-9]|2[0-9]|3[0-1])\./, // 172.16.0.0/12
+    /^192\.168\./, // 192.168.0.0/16
+    /^127\./, // Loopback
+    /^0\./, // Zero network
+    /^169\.254\./, // Link-local
+    /^224\./, // Multicast
+    /^255\./, // Broadcast
+  ];
+
+  private static readonly PRIVATE_IPV6_RANGES = [
+    /^::1$/, // Loopback
+    /^fe80:/i, // Link-local
+    /^fc00:/i, // Unique local
+    /^fd00:/i, // Unique local
+  ];
+
   readonly metadata: PluginMetadata = {
     name: 'Tautulli',
     version: '1.0.0',
@@ -211,33 +229,13 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
    * Check if an IP address is private/local (RFC 1918, loopback, link-local, etc.)
    */
   private isPrivateIP(ip: string): boolean {
-    // IPv4 private ranges
-    const privateRanges = [
-      /^10\./, // 10.0.0.0/8
-      /^172\.(1[6-9]|2[0-9]|3[0-1])\./, // 172.16.0.0/12
-      /^192\.168\./, // 192.168.0.0/16
-      /^127\./, // Loopback
-      /^0\./, // Zero network
-      /^169\.254\./, // Link-local
-      /^224\./, // Multicast
-      /^255\./, // Broadcast
-    ];
-
-    // IPv6 private ranges
-    const privateIPv6Ranges = [
-      /^::1$/, // Loopback
-      /^fe80:/i, // Link-local
-      /^fc00:/i, // Unique local
-      /^fd00:/i, // Unique local
-    ];
-
-    for (const range of privateRanges) {
+    for (const range of TautulliPlugin.PRIVATE_IPV4_RANGES) {
       if (range.test(ip)) {
         return true;
       }
     }
 
-    for (const range of privateIPv6Ranges) {
+    for (const range of TautulliPlugin.PRIVATE_IPV6_RANGES) {
       if (range.test(ip)) {
         return true;
       }
