@@ -250,8 +250,8 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
     alias: string | undefined,
     userMap: Map<string, string>
   ): string {
-    if (userId && userMap.has(userId)) {
-      return userMap.get(userId)!;
+    if (userId) {
+      return userMap.get(userId) ?? alias ?? 'Unknown';
     }
     return alias || 'Unknown';
   }
