@@ -341,12 +341,14 @@ export class PluginManager {
         `Collector ${schedule.name} timed out after ${collectorTimeout}ms`
       );
 
-      if (points.length > 0) {
+      const validPoints = this.validateDataPoints(points);
+
+      if (validPoints.length > 0) {
         // Write to all output plugins
-        await this.writeToOutputs(points);
+        await this.writeToOutputs(validPoints);
         const duration = Date.now() - startTime;
         logger.debug(
-          `Schedule ${schedule.name} collected ${points.length} points in ${duration}ms`
+          `Schedule ${schedule.name} collected ${validPoints.length} points in ${duration}ms`
         );
       } else {
         logger.debug(`Schedule ${schedule.name} collected no data`);
@@ -477,6 +479,27 @@ export class PluginManager {
     logger.info(
       `Schedule ${scheduler.schedule.name} circuit closed, resuming normal operation`
     );
+  }
+
+  /**
+   * Validate data points and filter out invalid ones
+   */
+  private validateDataPoints(points: DataPoint[]): DataPoint[] {
+    return points.filter((point) => {
+      if (!point.measurement || typeof point.measurement !== 'string') {
+        logger.warn('Filtered out data point with empty or invalid measurement');
+        return false;
+      }
+      if (!point.fields || Object.keys(point.fields).length === 0) {
+        logger.warn(`Filtered out data point "${point.measurement}" with no fields`);
+        return false;
+      }
+      if (!(point.timestamp instanceof Date) || isNaN(point.timestamp.getTime())) {
+        logger.warn(`Filtered out data point "${point.measurement}" with invalid timestamp`);
+        return false;
+      }
+      return true;
+    });
   }
 
   /**
