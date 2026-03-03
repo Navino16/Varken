@@ -913,6 +913,82 @@ describe('TautulliPlugin', () => {
       vi.useRealTimers();
     });
 
+    describe('quality normalization', () => {
+      const qualityCases = [
+        {
+          desc: 'appends "p" to numeric resolution',
+          session: { stream_video_resolution: '1080' },
+          expected: '1080p',
+        },
+        {
+          desc: 'uppercases "SD"',
+          session: { stream_video_resolution: 'SD' },
+          expected: 'SD',
+        },
+        {
+          desc: 'uppercases "sd"',
+          session: { stream_video_resolution: 'sd' },
+          expected: 'SD',
+        },
+        {
+          desc: 'uppercases "4k"',
+          session: { stream_video_resolution: '4k' },
+          expected: '4K',
+        },
+        {
+          desc: 'uses stream_video_full_resolution when available',
+          session: { stream_video_resolution: '1080', stream_video_full_resolution: '1080p60' },
+          expected: '1080p60',
+        },
+        {
+          desc: 'falls back to container when resolution is empty',
+          session: { stream_video_resolution: '', container: 'flac' },
+          expected: 'FLAC',
+        },
+      ];
+
+      it.each(qualityCases)(
+        'should produce "$expected" when $desc',
+        async ({ session, expected }) => {
+          mockHttpClient.get.mockResolvedValueOnce({
+            data: {
+              response: {
+                result: 'success',
+                data: {
+                  stream_count: '1',
+                  total_bandwidth: 0,
+                  wan_bandwidth: 0,
+                  lan_bandwidth: 0,
+                  stream_count_transcode: 0,
+                  stream_count_direct_play: 1,
+                  stream_count_direct_stream: 0,
+                  sessions: [
+                    {
+                      session_id: 'session1',
+                      session_key: 'key1',
+                      username: 'user1',
+                      full_title: 'Test',
+                      state: 'playing',
+                      local: '1',
+                      ...session,
+                    },
+                  ],
+                },
+              },
+            },
+          });
+
+          mockHttpClient.get.mockResolvedValueOnce({
+            data: { response: { result: 'success', data: [] } },
+          });
+
+          const points = await plugin.collect();
+          const sessionPoint = points.find((p) => p.tags.type === 'Session');
+          expect(sessionPoint?.tags.quality).toBe(expected);
+        }
+      );
+    });
+
     describe('private IP detection', () => {
       const privateIPs = [
         ['10.0.0.1', '10.x.x.x (Class A)'],
