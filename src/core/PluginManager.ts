@@ -141,7 +141,12 @@ export class PluginManager {
 
       try {
         const plugin = new factory();
-        await plugin.initialize(outputConfig);
+        const initTimeout = this.config?.global?.httpTimeoutMs ?? 30000;
+        await withTimeout(
+          plugin.initialize(outputConfig),
+          initTimeout,
+          `Output plugin ${type} initialization timed out after ${initTimeout}ms`
+        );
         this.outputPlugins.set(type, plugin);
         logger.info(`Initialized output plugin: ${type}`);
       } catch (error) {
