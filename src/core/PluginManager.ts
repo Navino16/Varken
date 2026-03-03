@@ -262,13 +262,30 @@ export class PluginManager {
   }
 
   /**
-   * Schedule the next run using setTimeout for dynamic intervals
+   * Schedule the next run using setTimeout for dynamic intervals.
+   * Chains timeouts when intervalMs exceeds the 32-bit signed integer limit
+   * (Node.js setTimeout max delay is 2^31 - 1 ms ≈ 24.8 days).
    */
   private scheduleNextRun(
     schedule: ScheduleConfig,
     plugin: InputPlugin,
     intervalMs: number
   ): NodeJS.Timeout {
+    const MAX_TIMEOUT_MS = 2_147_483_647;
+
+    if (intervalMs > MAX_TIMEOUT_MS) {
+      return setTimeout(() => {
+        const scheduler = this.schedulers.get(schedule.name);
+        if (scheduler && this.isRunning) {
+          scheduler.timer = this.scheduleNextRun(
+            schedule,
+            plugin,
+            intervalMs - MAX_TIMEOUT_MS
+          );
+        }
+      }, MAX_TIMEOUT_MS);
+    }
+
     return setTimeout(async () => {
       await this.executeSchedule(schedule, plugin);
       const scheduler = this.schedulers.get(schedule.name);
