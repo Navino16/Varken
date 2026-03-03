@@ -43,7 +43,7 @@ const DEFAULT_CIRCUIT_BREAKER_CONFIG: CircuitBreakerConfig = {
 interface ActiveScheduler {
   schedule: ScheduleConfig;
   plugin: InputPlugin;
-  timer: NodeJS.Timeout;
+  timer: NodeJS.Timeout | null;
   isRunning: boolean;
   lastRunAt?: Date;
   lastError?: string;
@@ -244,7 +244,7 @@ export class PluginManager {
     const activeScheduler: ActiveScheduler = {
       schedule,
       plugin,
-      timer: null as unknown as NodeJS.Timeout, // Will be set by scheduleNextRun
+      timer: null,
       isRunning: false,
       consecutiveErrors: 0,
       circuitState: 'closed',
@@ -548,7 +548,9 @@ export class PluginManager {
 
     // Clear all timers
     for (const [name, scheduler] of this.schedulers) {
-      clearTimeout(scheduler.timer);
+      if (scheduler.timer) {
+        clearTimeout(scheduler.timer);
+      }
       logger.debug(`Stopped scheduler: ${name}`);
     }
 
