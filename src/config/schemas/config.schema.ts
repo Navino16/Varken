@@ -237,7 +237,10 @@ export const CircuitBreakerConfigSchema = z.object({
   cooldownSeconds: z.number().min(1).default(300),
   /** Number of successes needed to fully recover */
   recoverySuccesses: z.number().min(1).default(3),
-});
+}).refine(
+  (data) => data.recoverySuccesses <= data.maxConsecutiveErrors,
+  { message: 'recoverySuccesses must be less than or equal to maxConsecutiveErrors' }
+);
 
 // =============================================================================
 // Main Config Schema
