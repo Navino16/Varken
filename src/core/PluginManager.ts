@@ -700,11 +700,16 @@ export class PluginManager {
    */
   async getInputPluginStatuses(): Promise<PluginStatus[]> {
     const statuses: PluginStatus[] = [];
+    const healthCheckTimeout = this.config?.global?.healthCheckTimeoutMs ?? 5000;
 
     for (const [type, plugins] of this.inputPlugins) {
       for (const plugin of plugins) {
         try {
-          const healthy = await plugin.healthCheck();
+          const healthy = await withTimeout(
+            plugin.healthCheck(),
+            healthCheckTimeout,
+            `Health check for ${plugin.metadata.name} timed out`
+          );
           statuses.push({
             type,
             name: plugin.metadata.name,
@@ -732,10 +737,15 @@ export class PluginManager {
    */
   async getOutputPluginStatuses(): Promise<PluginStatus[]> {
     const statuses: PluginStatus[] = [];
+    const healthCheckTimeout = this.config?.global?.healthCheckTimeoutMs ?? 5000;
 
     for (const [type, plugin] of this.outputPlugins) {
       try {
-        const healthy = await plugin.healthCheck();
+        const healthy = await withTimeout(
+          plugin.healthCheck(),
+          healthCheckTimeout,
+          `Health check for ${plugin.metadata.name} timed out`
+        );
         statuses.push({
           type,
           name: plugin.metadata.name,
