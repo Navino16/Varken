@@ -34,6 +34,7 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
   ];
 
   private static readonly GEOIP_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+  private static readonly GEOIP_CACHE_MAX_SIZE = 1000;
 
   private geoipCache = new Map<string, { data: GeoIPInfo | null; timestamp: number }>();
 
@@ -203,6 +204,14 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
     const cached = this.geoipCache.get(ip);
     if (cached && Date.now() - cached.timestamp < TautulliPlugin.GEOIP_CACHE_TTL_MS) {
       return cached.data;
+    }
+
+    // Evict oldest entry if cache is full
+    if (this.geoipCache.size >= TautulliPlugin.GEOIP_CACHE_MAX_SIZE) {
+      const oldestKey = this.geoipCache.keys().next().value;
+      if (oldestKey !== undefined) {
+        this.geoipCache.delete(oldestKey);
+      }
     }
 
     try {
