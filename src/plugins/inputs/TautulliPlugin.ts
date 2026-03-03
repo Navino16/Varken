@@ -14,7 +14,33 @@ import type {
  * Tautulli input plugin
  * Collects activity, libraries, and stats from Tautulli API v2
  */
+
+const PLAYER_STATE = { PLAYING: 0, PAUSED: 1, BUFFERING: 3 } as const;
+
 export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
+  private static readonly PRIVATE_IPV4_RANGES = [
+    /^10\./, // 10.0.0.0/8
+    /^172\.(1[6-9]|2[0-9]|3[0-1])\./, // 172.16.0.0/12
+    /^192\.168\./, // 192.168.0.0/16
+    /^127\./, // Loopback
+    /^0\./, // Zero network
+    /^169\.254\./, // Link-local
+    /^224\./, // Multicast
+    /^255\./, // Broadcast
+  ];
+
+  private static readonly PRIVATE_IPV6_RANGES = [
+    /^::1$/, // Loopback
+    /^fe80:/i, // Link-local
+    /^fc00:/i, // Unique local
+    /^fd00:/i, // Unique local
+  ];
+
+  private static readonly GEOIP_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+  private static readonly GEOIP_CACHE_MAX_SIZE = 1000;
+
+  private geoipCache = new Map<string, { data: GeoIPInfo | null; timestamp: number }>();
+
   readonly metadata: PluginMetadata = {
     name: 'Tautulli',
     version: '1.0.0',
@@ -160,7 +186,7 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
 
       this.logger.info(`Collected ${sessions.length} sessions from Tautulli`);
     } catch (error) {
-      this.logger.error(`Failed to collect Tautulli activity: ${error}`);
+      this.logger.error(`Failed to collect Tautulli activity: ${error instanceof Error ? error.message : String(error)}`);
       throw error; // Propagate error for circuit breaker
     }
 
@@ -168,9 +194,29 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
   }
 
   /**
+   * Mask the last octet of an IP address for privacy in logs
+   */
+  private maskIp(ip: string): string {
+    return ip.replace(/\.\d+$/, '.xxx');
+  }
+
+  /**
    * Perform GeoIP lookup using Tautulli API
    */
   private async geoipLookup(ip: string): Promise<GeoIPInfo | null> {
+    const cached = this.geoipCache.get(ip);
+    if (cached && Date.now() - cached.timestamp < TautulliPlugin.GEOIP_CACHE_TTL_MS) {
+      return cached.data;
+    }
+
+    // Evict oldest entry if cache is full
+    if (this.geoipCache.size >= TautulliPlugin.GEOIP_CACHE_MAX_SIZE) {
+      const oldestKey = this.geoipCache.keys().next().value;
+      if (oldestKey !== undefined) {
+        this.geoipCache.delete(oldestKey);
+      }
+    }
+
     try {
       const response = await this.httpGet<TautulliApiResponse<TautulliGeoIPResponse>>(
         '/api/v2',
@@ -182,20 +228,25 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
       );
 
       if (response?.response?.result !== 'success' || !response?.response?.data) {
+        this.geoipCache.set(ip, { data: null, timestamp: Date.now() });
         return null;
       }
 
       const data = response.response.data;
-      return {
+      const geoInfo: GeoIPInfo = {
         city: data.city || '',
         region: data.region || '',
         country: data.country || '',
         latitude: data.latitude || 0,
         longitude: data.longitude || 0,
       };
+
+      this.geoipCache.set(ip, { data: geoInfo, timestamp: Date.now() });
+      return geoInfo;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.debug(`GeoIP lookup failed for ${ip}: ${message}`);
+      this.logger.debug(`GeoIP lookup failed for ${this.maskIp(ip)}: ${message}`);
+      this.geoipCache.set(ip, { data: null, timestamp: Date.now() });
       return null;
     }
   }
@@ -204,33 +255,13 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
    * Check if an IP address is private/local (RFC 1918, loopback, link-local, etc.)
    */
   private isPrivateIP(ip: string): boolean {
-    // IPv4 private ranges
-    const privateRanges = [
-      /^10\./, // 10.0.0.0/8
-      /^172\.(1[6-9]|2[0-9]|3[0-1])\./, // 172.16.0.0/12
-      /^192\.168\./, // 192.168.0.0/16
-      /^127\./, // Loopback
-      /^0\./, // Zero network
-      /^169\.254\./, // Link-local
-      /^224\./, // Multicast
-      /^255\./, // Broadcast
-    ];
-
-    // IPv6 private ranges
-    const privateIPv6Ranges = [
-      /^::1$/, // Loopback
-      /^fe80:/i, // Link-local
-      /^fc00:/i, // Unique local
-      /^fd00:/i, // Unique local
-    ];
-
-    for (const range of privateRanges) {
+    for (const range of TautulliPlugin.PRIVATE_IPV4_RANGES) {
       if (range.test(ip)) {
         return true;
       }
     }
 
-    for (const range of privateIPv6Ranges) {
+    for (const range of TautulliPlugin.PRIVATE_IPV6_RANGES) {
       if (range.test(ip)) {
         return true;
       }
@@ -257,10 +288,10 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
     if (this.config.geoip.enabled && !isLocal && ip) {
       geoData = await this.geoipLookup(ip);
       if (geoData) {
-        this.logger.debug(`GeoIP: ${ip} -> ${geoData.city}, ${geoData.region}, ${geoData.country}`);
+        this.logger.debug(`GeoIP: ${this.maskIp(ip)} -> ${geoData.city}, ${geoData.region}, ${geoData.country}`);
       }
     } else if (this.config.geoip.enabled && isLocal && ip) {
-      this.logger.debug(`Local stream detected: ${ip} (private IP: ${ipIsPrivate}, tautulli local: ${tautulliSaysLocal})`);
+      this.logger.debug(`Local stream detected: ${this.maskIp(ip)} (private IP: ${ipIsPrivate}, tautulli local: ${tautulliSaysLocal})`);
     }
 
     // Determine location values
@@ -321,16 +352,16 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
     const state = (session.state || '').toLowerCase();
     switch (state) {
       case 'playing':
-        playerState = 0;
+        playerState = PLAYER_STATE.PLAYING;
         break;
       case 'paused':
-        playerState = 1;
+        playerState = PLAYER_STATE.PAUSED;
         break;
       case 'buffering':
-        playerState = 3;
+        playerState = PLAYER_STATE.BUFFERING;
         break;
       default:
-        playerState = 0;
+        playerState = PLAYER_STATE.PLAYING;
     }
 
     // Platform normalization
@@ -449,7 +480,7 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
 
       this.logger.info(`Collected ${libraries.length} library stats from Tautulli`);
     } catch (error) {
-      this.logger.error(`Failed to collect Tautulli libraries: ${error}`);
+      this.logger.error(`Failed to collect Tautulli libraries: ${error instanceof Error ? error.message : String(error)}`);
       throw error; // Propagate error for circuit breaker
     }
 

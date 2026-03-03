@@ -10,6 +10,9 @@ import type {
 
 const logger = createLogger('HealthServer');
 
+/** Consecutive errors before a scheduler is considered failing in health checks */
+const SCHEDULER_FAILURE_THRESHOLD = 3;
+
 /**
  * Configuration for the health server
  */
@@ -50,7 +53,13 @@ export class HealthServer {
   async start(): Promise<void> {
     return new Promise((resolve, reject) => {
       this.server = http.createServer((req, res) => {
-        this.handleRequest(req, res);
+        this.handleRequest(req, res).catch((error) => {
+          const message = error instanceof Error ? error.message : String(error);
+          logger.error(`Request handler error: ${message}`);
+          if (!res.writableEnded) {
+            this.sendError(res, 500, 'Internal Server Error');
+          }
+        });
       });
 
       this.server.on('error', (error: NodeJS.ErrnoException) => {
@@ -90,7 +99,7 @@ export class HealthServer {
   /**
    * Handle incoming HTTP requests
    */
-  private handleRequest(req: http.IncomingMessage, res: http.ServerResponse): void {
+  private async handleRequest(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
     const url = req.url || '/';
     const method = req.method || 'GET';
 
@@ -107,13 +116,13 @@ export class HealthServer {
     // Route requests
     switch (url) {
       case '/health':
-        this.handleHealth(res);
+        await this.handleHealth(res);
         break;
       case '/health/plugins':
-        this.handleHealthPlugins(res);
+        await this.handleHealthPlugins(res);
         break;
       case '/status':
-        this.handleStatus(res);
+        await this.handleStatus(res);
         break;
       default:
         this.sendError(res, 404, 'Not Found');
@@ -236,9 +245,9 @@ export class HealthServer {
 
     // Check if any scheduler has consecutive errors (3+ = failing) or circuit is open
     const schedulersHealthy = schedulerStatuses.length === 0 ||
-      schedulerStatuses.every((s) => s.consecutiveErrors < 3 && s.circuitState === 'closed');
+      schedulerStatuses.every((s) => s.consecutiveErrors < SCHEDULER_FAILURE_THRESHOLD && s.circuitState === 'closed');
     const someSchedulersHealthy = schedulerStatuses.length === 0 ||
-      schedulerStatuses.some((s) => s.consecutiveErrors < 3 && s.circuitState !== 'open');
+      schedulerStatuses.some((s) => s.consecutiveErrors < SCHEDULER_FAILURE_THRESHOLD && s.circuitState !== 'open');
 
     // Check if all schedulers have open circuits (all disabled)
     const allSchedulersDisabled = schedulerStatuses.length > 0 &&

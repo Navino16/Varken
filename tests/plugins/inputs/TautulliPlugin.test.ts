@@ -609,6 +609,45 @@ describe('TautulliPlugin', () => {
       expect(sessionPoint?.tags.platform).toBe('macOS');
     });
 
+    it('should set video_decision to Music for audio-only sessions', async () => {
+      mockHttpClient.get.mockResolvedValueOnce({
+        data: {
+          response: {
+            result: 'success',
+            data: {
+              stream_count: '1',
+              total_bandwidth: 0,
+              wan_bandwidth: 0,
+              lan_bandwidth: 0,
+              stream_count_transcode: 0,
+              stream_count_direct_play: 1,
+              stream_count_direct_stream: 0,
+              sessions: [
+                {
+                  session_id: 'session1',
+                  session_key: 'key1',
+                  username: 'user1',
+                  full_title: 'Some Album - Track 1',
+                  state: 'playing',
+                  local: '1',
+                  video_decision: '',
+                  media_type: 'track',
+                },
+              ],
+            },
+          },
+        },
+      });
+
+      mockHttpClient.get.mockResolvedValueOnce({
+        data: { response: { result: 'success', data: [] } },
+      });
+
+      const points = await plugin.collect();
+      const sessionPoint = points.find((p) => p.tags.type === 'Session');
+      expect(sessionPoint?.tags.video_decision).toBe('Music');
+    });
+
     it('should normalize transcode decisions', async () => {
       mockHttpClient.get.mockResolvedValueOnce({
         data: {
@@ -765,6 +804,394 @@ describe('TautulliPlugin', () => {
       expect(musicLib?.fields.artists).toBe(200);
       expect(musicLib?.fields.albums).toBe(1000);
       expect(musicLib?.fields.tracks).toBe(10000);
+    });
+
+    it('should use cached GeoIP data on subsequent calls for same IP', async () => {
+      const remoteActivityResponse = {
+        data: {
+          response: {
+            result: 'success',
+            data: {
+              stream_count: '1',
+              total_bandwidth: 5000,
+              wan_bandwidth: 5000,
+              lan_bandwidth: 0,
+              stream_count_transcode: 0,
+              stream_count_direct_play: 1,
+              stream_count_direct_stream: 0,
+              sessions: [
+                {
+                  session_id: 'session1',
+                  session_key: 'key1',
+                  username: 'user1',
+                  ip_address_public: '82.64.1.1',
+                  full_title: 'Test Movie',
+                  state: 'playing',
+                  local: '0',
+                },
+              ],
+            },
+          },
+        },
+      };
+
+      const geoipResponse = {
+        data: {
+          response: {
+            result: 'success',
+            data: {
+              city: 'Paris',
+              country: 'France',
+              latitude: 48.8566,
+              longitude: 2.3522,
+              region: 'Île-de-France',
+            },
+          },
+        },
+      };
+
+      const librariesResponse = {
+        data: { response: { result: 'success', data: [] } },
+      };
+
+      // First collect: activity + geoip + libraries
+      mockHttpClient.get.mockResolvedValueOnce(remoteActivityResponse);
+      mockHttpClient.get.mockResolvedValueOnce(geoipResponse);
+      mockHttpClient.get.mockResolvedValueOnce(librariesResponse);
+
+      const points1 = await plugin.collect();
+      const session1 = points1.find((p) => p.tags.type === 'Session');
+      expect(session1?.tags.location).toBe('Paris');
+
+      // Second collect: activity + libraries (no geoip call — cached)
+      mockHttpClient.get.mockResolvedValueOnce(remoteActivityResponse);
+      mockHttpClient.get.mockResolvedValueOnce(librariesResponse);
+
+      const points2 = await plugin.collect();
+      const session2 = points2.find((p) => p.tags.type === 'Session');
+      expect(session2?.tags.location).toBe('Paris');
+
+      // GeoIP API should have been called only once across both collects
+      const geoipCalls = mockHttpClient.get.mock.calls.filter(
+        (call) => call[1]?.params?.cmd === 'get_geoip_lookup'
+      );
+      expect(geoipCalls).toHaveLength(1);
+    });
+
+    it('should re-fetch GeoIP data after cache TTL expires', async () => {
+      vi.useFakeTimers();
+
+      const remoteActivityResponse = {
+        data: {
+          response: {
+            result: 'success',
+            data: {
+              stream_count: '1',
+              total_bandwidth: 5000,
+              wan_bandwidth: 5000,
+              lan_bandwidth: 0,
+              stream_count_transcode: 0,
+              stream_count_direct_play: 1,
+              stream_count_direct_stream: 0,
+              sessions: [
+                {
+                  session_id: 'session1',
+                  session_key: 'key1',
+                  username: 'user1',
+                  ip_address_public: '82.64.1.1',
+                  full_title: 'Test Movie',
+                  state: 'playing',
+                  local: '0',
+                },
+              ],
+            },
+          },
+        },
+      };
+
+      const geoipResponse = {
+        data: {
+          response: {
+            result: 'success',
+            data: {
+              city: 'Paris',
+              country: 'France',
+              latitude: 48.8566,
+              longitude: 2.3522,
+              region: 'Île-de-France',
+            },
+          },
+        },
+      };
+
+      const librariesResponse = {
+        data: { response: { result: 'success', data: [] } },
+      };
+
+      // First collect
+      mockHttpClient.get.mockResolvedValueOnce(remoteActivityResponse);
+      mockHttpClient.get.mockResolvedValueOnce(geoipResponse);
+      mockHttpClient.get.mockResolvedValueOnce(librariesResponse);
+      await plugin.collect();
+
+      // Advance time past 24h TTL
+      vi.advanceTimersByTime(25 * 60 * 60 * 1000);
+
+      // Second collect — cache expired, should re-fetch
+      mockHttpClient.get.mockResolvedValueOnce(remoteActivityResponse);
+      mockHttpClient.get.mockResolvedValueOnce(geoipResponse);
+      mockHttpClient.get.mockResolvedValueOnce(librariesResponse);
+      await plugin.collect();
+
+      // GeoIP API should have been called twice (once per collect)
+      const geoipCalls = mockHttpClient.get.mock.calls.filter(
+        (call) => call[1]?.params?.cmd === 'get_geoip_lookup'
+      );
+      expect(geoipCalls).toHaveLength(2);
+
+      vi.useRealTimers();
+    });
+
+    describe('quality normalization', () => {
+      const qualityCases = [
+        {
+          desc: 'appends "p" to numeric resolution',
+          session: { stream_video_resolution: '1080' },
+          expected: '1080p',
+        },
+        {
+          desc: 'uppercases "SD"',
+          session: { stream_video_resolution: 'SD' },
+          expected: 'SD',
+        },
+        {
+          desc: 'uppercases "sd"',
+          session: { stream_video_resolution: 'sd' },
+          expected: 'SD',
+        },
+        {
+          desc: 'uppercases "4k"',
+          session: { stream_video_resolution: '4k' },
+          expected: '4K',
+        },
+        {
+          desc: 'uses stream_video_full_resolution when available',
+          session: { stream_video_resolution: '1080', stream_video_full_resolution: '1080p60' },
+          expected: '1080p60',
+        },
+        {
+          desc: 'falls back to container when resolution is empty',
+          session: { stream_video_resolution: '', container: 'flac' },
+          expected: 'FLAC',
+        },
+      ];
+
+      it.each(qualityCases)(
+        'should produce "$expected" when $desc',
+        async ({ session, expected }) => {
+          mockHttpClient.get.mockResolvedValueOnce({
+            data: {
+              response: {
+                result: 'success',
+                data: {
+                  stream_count: '1',
+                  total_bandwidth: 0,
+                  wan_bandwidth: 0,
+                  lan_bandwidth: 0,
+                  stream_count_transcode: 0,
+                  stream_count_direct_play: 1,
+                  stream_count_direct_stream: 0,
+                  sessions: [
+                    {
+                      session_id: 'session1',
+                      session_key: 'key1',
+                      username: 'user1',
+                      full_title: 'Test',
+                      state: 'playing',
+                      local: '1',
+                      ...session,
+                    },
+                  ],
+                },
+              },
+            },
+          });
+
+          mockHttpClient.get.mockResolvedValueOnce({
+            data: { response: { result: 'success', data: [] } },
+          });
+
+          const points = await plugin.collect();
+          const sessionPoint = points.find((p) => p.tags.type === 'Session');
+          expect(sessionPoint?.tags.quality).toBe(expected);
+        }
+      );
+    });
+
+    describe('private IP detection', () => {
+      const privateIPs = [
+        ['10.0.0.1', '10.x.x.x (Class A)'],
+        ['10.255.255.255', '10.x.x.x boundary'],
+        ['172.16.0.1', '172.16.x.x (Class B start)'],
+        ['172.31.255.255', '172.31.x.x (Class B end)'],
+        ['192.168.0.1', '192.168.x.x (Class C)'],
+        ['127.0.0.1', 'loopback'],
+        ['0.0.0.0', 'zero network'],
+        ['169.254.1.1', 'link-local'],
+        ['224.0.0.1', 'multicast'],
+        ['255.255.255.255', 'broadcast'],
+      ];
+
+      it.each(privateIPs)(
+        'should treat %s (%s) as local — no GeoIP call',
+        async (ip) => {
+          mockHttpClient.get.mockResolvedValueOnce({
+            data: {
+              response: {
+                result: 'success',
+                data: {
+                  stream_count: '1',
+                  total_bandwidth: 0,
+                  wan_bandwidth: 0,
+                  lan_bandwidth: 0,
+                  stream_count_transcode: 0,
+                  stream_count_direct_play: 1,
+                  stream_count_direct_stream: 0,
+                  sessions: [
+                    {
+                      session_id: 'session1',
+                      session_key: 'key1',
+                      username: 'user1',
+                      ip_address: ip,
+                      full_title: 'Test',
+                      state: 'playing',
+                      local: '0', // Tautulli says remote, but IP is private
+                    },
+                  ],
+                },
+              },
+            },
+          });
+
+          mockHttpClient.get.mockResolvedValueOnce({
+            data: { response: { result: 'success', data: [] } },
+          });
+
+          const points = await plugin.collect();
+          const session = points.find((p) => p.tags.type === 'Session');
+          expect(session?.tags.location).toBe('Local');
+
+          const geoipCalls = mockHttpClient.get.mock.calls.filter(
+            (call) => call[1]?.params?.cmd === 'get_geoip_lookup'
+          );
+          expect(geoipCalls).toHaveLength(0);
+        }
+      );
+
+      const privateIPv6s = [
+        ['::1', 'IPv6 loopback'],
+        ['fe80::1', 'IPv6 link-local'],
+        ['fc00::1', 'IPv6 unique local (fc00)'],
+        ['fd00::abcd', 'IPv6 unique local (fd00)'],
+      ];
+
+      it.each(privateIPv6s)(
+        'should treat %s (%s) as local — no GeoIP call',
+        async (ip) => {
+          mockHttpClient.get.mockResolvedValueOnce({
+            data: {
+              response: {
+                result: 'success',
+                data: {
+                  stream_count: '1',
+                  total_bandwidth: 0,
+                  wan_bandwidth: 0,
+                  lan_bandwidth: 0,
+                  stream_count_transcode: 0,
+                  stream_count_direct_play: 1,
+                  stream_count_direct_stream: 0,
+                  sessions: [
+                    {
+                      session_id: 'session1',
+                      session_key: 'key1',
+                      username: 'user1',
+                      ip_address: ip,
+                      full_title: 'Test',
+                      state: 'playing',
+                      local: '0',
+                    },
+                  ],
+                },
+              },
+            },
+          });
+
+          mockHttpClient.get.mockResolvedValueOnce({
+            data: { response: { result: 'success', data: [] } },
+          });
+
+          const points = await plugin.collect();
+          const session = points.find((p) => p.tags.type === 'Session');
+          expect(session?.tags.location).toBe('Local');
+
+          const geoipCalls = mockHttpClient.get.mock.calls.filter(
+            (call) => call[1]?.params?.cmd === 'get_geoip_lookup'
+          );
+          expect(geoipCalls).toHaveLength(0);
+        }
+      );
+
+      it('should treat public IP as remote — triggers GeoIP call', async () => {
+        mockHttpClient.get.mockResolvedValueOnce({
+          data: {
+            response: {
+              result: 'success',
+              data: {
+                stream_count: '1',
+                total_bandwidth: 0,
+                wan_bandwidth: 0,
+                lan_bandwidth: 0,
+                stream_count_transcode: 0,
+                stream_count_direct_play: 1,
+                stream_count_direct_stream: 0,
+                sessions: [
+                  {
+                    session_id: 'session1',
+                    session_key: 'key1',
+                    username: 'user1',
+                    ip_address_public: '82.64.1.1',
+                    full_title: 'Test',
+                    state: 'playing',
+                    local: '0',
+                  },
+                ],
+              },
+            },
+          },
+        });
+
+        mockHttpClient.get.mockResolvedValueOnce({
+          data: {
+            response: {
+              result: 'success',
+              data: { city: 'Paris', country: 'France', latitude: 48.85, longitude: 2.35, region: 'IDF' },
+            },
+          },
+        });
+
+        mockHttpClient.get.mockResolvedValueOnce({
+          data: { response: { result: 'success', data: [] } },
+        });
+
+        const points = await plugin.collect();
+        const session = points.find((p) => p.tags.type === 'Session');
+        expect(session?.tags.location).toBe('Paris');
+
+        const geoipCalls = mockHttpClient.get.mock.calls.filter(
+          (call) => call[1]?.params?.cmd === 'get_geoip_lookup'
+        );
+        expect(geoipCalls).toHaveLength(1);
+      });
     });
 
     it('should propagate API errors for circuit breaker', async () => {

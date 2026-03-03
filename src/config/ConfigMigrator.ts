@@ -286,7 +286,7 @@ export class ConfigMigrator {
   /**
    * Parse number from INI value
    */
-  private parseInt(value: string | undefined, defaultValue: number): number {
+  private parseIntWithDefault(value: string | undefined, defaultValue: number): number {
     if (!value) {return defaultValue;}
     const parsed = parseInt(value, 10);
     return isNaN(parsed) ? defaultValue : parsed;
@@ -308,7 +308,7 @@ export class ConfigMigrator {
   private convertInfluxDB1Config(section: ParsedIniSection): Record<string, unknown> {
     return {
       url: section['url'] || 'localhost',
-      port: this.parseInt(section['port'], 8086),
+      port: this.parseIntWithDefault(section['port'], 8086),
       username: section['username'] || 'root',
       password: section['password'] || 'root',
       database: 'varken',
@@ -324,7 +324,7 @@ export class ConfigMigrator {
     // In legacy format, password is used as token for InfluxDB 2.x
     return {
       url: section['url'] || 'localhost',
-      port: this.parseInt(section['port'], 8086),
+      port: this.parseIntWithDefault(section['port'], 8086),
       token: section['password'] || '',
       org: section['org'] || 'varken',
       bucket: 'varken',
@@ -352,15 +352,15 @@ export class ConfigMigrator {
       verifySsl: this.parseBool(section['verify_ssl']),
       queue: {
         enabled: this.parseBool(section['queue']),
-        intervalSeconds: this.parseInt(section['queue_run_seconds'], 300),
+        intervalSeconds: this.parseIntWithDefault(section['queue_run_seconds'], 300),
       },
       calendar: {
         enabled:
-          this.parseInt(section['missing_days'], 0) > 0 ||
-          this.parseInt(section['future_days'], 0) > 0,
-        futureDays: this.parseInt(section['future_days'], 7),
-        missingDays: this.parseInt(section['missing_days'], 30),
-        intervalSeconds: this.parseInt(section['missing_days_run_seconds'], 300),
+          this.parseIntWithDefault(section['missing_days'], 0) > 0 ||
+          this.parseIntWithDefault(section['future_days'], 0) > 0,
+        futureDays: this.parseIntWithDefault(section['future_days'], 7),
+        missingDays: this.parseIntWithDefault(section['missing_days'], 30),
+        intervalSeconds: this.parseIntWithDefault(section['missing_days_run_seconds'], 300),
       },
     };
   }
@@ -384,11 +384,11 @@ export class ConfigMigrator {
       verifySsl: this.parseBool(section['verify_ssl']),
       queue: {
         enabled: this.parseBool(section['queue']),
-        intervalSeconds: this.parseInt(section['queue_run_seconds'], 300),
+        intervalSeconds: this.parseIntWithDefault(section['queue_run_seconds'], 300),
       },
       missing: {
         enabled: this.parseBool(section['get_missing']),
-        intervalSeconds: this.parseInt(section['get_missing_run_seconds'], 300),
+        intervalSeconds: this.parseIntWithDefault(section['get_missing_run_seconds'], 300),
       },
     };
   }
@@ -412,13 +412,13 @@ export class ConfigMigrator {
       verifySsl: this.parseBool(section['verify_ssl']),
       queue: {
         enabled: this.parseBool(section['queue']),
-        intervalSeconds: this.parseInt(section['queue_run_seconds'], 300),
+        intervalSeconds: this.parseIntWithDefault(section['queue_run_seconds'], 300),
       },
       missing: {
         enabled:
-          this.parseInt(section['missing_days'], 0) > 0 ||
-          this.parseInt(section['future_days'], 0) > 0,
-        intervalSeconds: this.parseInt(section['missing_days_run_seconds'], 300),
+          this.parseIntWithDefault(section['missing_days'], 0) > 0 ||
+          this.parseIntWithDefault(section['future_days'], 0) > 0,
+        intervalSeconds: this.parseIntWithDefault(section['missing_days_run_seconds'], 300),
       },
     };
   }
@@ -443,15 +443,15 @@ export class ConfigMigrator {
       verifySsl: this.parseBool(section['verify_ssl']),
       activity: {
         enabled: this.parseBool(section['get_activity']),
-        intervalSeconds: this.parseInt(section['get_activity_run_seconds'], 30),
+        intervalSeconds: this.parseIntWithDefault(section['get_activity_run_seconds'], 30),
       },
       libraries: {
         enabled: this.parseBool(section['get_libraries']),
-        intervalDays: this.parseInt(section['get_libraries_run_days'], 1),
+        intervalDays: this.parseIntWithDefault(section['get_libraries_run_days'], 1),
       },
       stats: {
         enabled: this.parseBool(section['get_stats']),
-        intervalSeconds: this.parseInt(section['get_stats_run_seconds'], 3600),
+        intervalSeconds: this.parseIntWithDefault(section['get_stats_run_seconds'], 3600),
       },
       geoip: {
         enabled: !!maxmindLicenseKey,
@@ -487,11 +487,11 @@ export class ConfigMigrator {
         enabled:
           this.parseBool(section['get_request_type_counts']) ||
           this.parseBool(section['get_request_total_counts']),
-        intervalSeconds: this.parseInt(section['request_type_run_seconds'], 300),
+        intervalSeconds: this.parseIntWithDefault(section['request_type_run_seconds'], 300),
       },
       issueCounts: {
         enabled: this.parseBool(section['get_issue_status_counts']),
-        intervalSeconds: this.parseInt(section['issue_status_run_seconds'], 300),
+        intervalSeconds: this.parseIntWithDefault(section['issue_status_run_seconds'], 300),
       },
     };
   }
@@ -515,12 +515,12 @@ export class ConfigMigrator {
       verifySsl: this.parseBool(section['verify_ssl']),
       requestCounts: {
         enabled: this.parseBool(section['get_request_total_counts']),
-        intervalSeconds: this.parseInt(section['request_total_run_seconds'], 300),
+        intervalSeconds: this.parseIntWithDefault(section['request_total_run_seconds'], 300),
       },
       latestRequests: {
         enabled: this.parseBool(section['get_latest_requests']),
-        count: this.parseInt(section['num_latest_requests_to_fetch'], 10),
-        intervalSeconds: this.parseInt(section['num_latest_requests_seconds'], 300),
+        count: this.parseIntWithDefault(section['num_latest_requests_to_fetch'], 10),
+        intervalSeconds: this.parseIntWithDefault(section['num_latest_requests_seconds'], 300),
       },
     };
   }

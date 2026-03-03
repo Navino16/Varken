@@ -1,4 +1,5 @@
 import { BaseInputPlugin } from './BaseInputPlugin';
+import { PROTOCOL_ID } from './constants';
 import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
 import type {
   LidarrConfig,
@@ -100,7 +101,7 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
         const artistName = queueItem.artist?.artistName || 'Unknown Artist';
         const name = `${album.title} - ${artistName}`;
         const protocol = queueItem.protocol.toUpperCase();
-        const protocolId = protocol === 'USENET' ? 1 : 0;
+        const protocolId = protocol === 'USENET' ? PROTOCOL_ID.USENET : PROTOCOL_ID.TORRENT;
         const quality = queueItem.quality?.quality?.name || 'Unknown';
 
         const hashId = this.hashit(`${this.config.id}${name}${quality}`);
@@ -126,7 +127,7 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
 
       this.logger.info(`Collected ${points.length} queue items from Lidarr`);
     } catch (error) {
-      this.logger.error(`Failed to collect Lidarr queue: ${error}`);
+      this.logger.error(`Failed to collect Lidarr queue: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
 
@@ -176,7 +177,7 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
 
       this.logger.info(`Collected ${points.length} missing albums from Lidarr`);
     } catch (error) {
-      this.logger.error(`Failed to collect Lidarr missing albums: ${error}`);
+      this.logger.error(`Failed to collect Lidarr missing albums: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
 

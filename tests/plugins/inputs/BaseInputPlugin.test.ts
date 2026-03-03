@@ -112,15 +112,15 @@ describe('BaseInputPlugin', () => {
       );
 
       expect(point.measurement).toBe('test_measurement');
-      expect(point.tags).toEqual({ server_id: 1, tag1: 'value1' });
+      expect(point.tags).toEqual({ tag1: 'value1' });
       expect(point.fields).toEqual({ field1: 42, field2: true });
       expect(point.timestamp).toBeInstanceOf(Date);
     });
 
-    it('should include server_id in tags', async () => {
+    it('should not inject extra tags beyond those provided', async () => {
       await plugin.initialize(testConfig);
-      const point = plugin.testCreateDataPoint('test', {}, { value: 1 });
-      expect(point.tags.server_id).toBe(1);
+      const point = plugin.testCreateDataPoint('test', { server: 1 }, { value: 1 });
+      expect(point.tags).toEqual({ server: 1 });
     });
   });
 

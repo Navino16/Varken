@@ -8,6 +8,8 @@ import type {
   OverseerrMediaDetails,
 } from '../../types/inputs/overseerr.types';
 
+const REQUEST_TYPE = { TV: 0, MOVIE: 1 } as const;
+
 /**
  * Overseerr input plugin
  * Collects request counts, issue counts, and latest requests from Overseerr API v1
@@ -121,7 +123,7 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
 
       this.logger.info('Collected request counts from Overseerr');
     } catch (error) {
-      this.logger.error(`Failed to collect Overseerr request counts: ${error}`);
+      this.logger.error(`Failed to collect Overseerr request counts: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
 
@@ -158,7 +160,7 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
 
       this.logger.info('Collected issue counts from Overseerr');
     } catch (error) {
-      this.logger.error(`Failed to collect Overseerr issue counts: ${error}`);
+      this.logger.error(`Failed to collect Overseerr issue counts: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
 
@@ -182,44 +184,40 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
         return points;
       }
 
-      for (const request of response.results) {
-        if (!request.media?.tmdbId) {
-          continue;
-        }
+      const validRequests = response.results.filter((r) => r.media?.tmdbId);
 
-        try {
-          let mediaInfo: OverseerrMediaDetails | null = null;
-          let title = '';
-          let requestType: number;
+      const results = await Promise.all(
+        validRequests.map(async (request) => {
+          try {
+            let mediaInfo: OverseerrMediaDetails | null = null;
+            let title = '';
+            let requestType: number;
 
-          if (request.type === 'tv') {
-            // Request type: TV Show = 0
-            requestType = 0;
-            mediaInfo = await this.httpGet<OverseerrMediaDetails>(
-              `/api/v1/tv/${request.media.tmdbId}`
-            );
-            title = mediaInfo?.name || '';
-          } else {
-            // Request type: Movie = 1
-            requestType = 1;
-            mediaInfo = await this.httpGet<OverseerrMediaDetails>(
-              `/api/v1/movie/${request.media.tmdbId}`
-            );
-            title = mediaInfo?.title || '';
-          }
+            if (request.type === 'tv') {
+              requestType = REQUEST_TYPE.TV;
+              mediaInfo = await this.httpGet<OverseerrMediaDetails>(
+                `/api/v1/tv/${request.media.tmdbId}`
+              );
+              title = mediaInfo?.name || '';
+            } else {
+              requestType = REQUEST_TYPE.MOVIE;
+              mediaInfo = await this.httpGet<OverseerrMediaDetails>(
+                `/api/v1/movie/${request.media.tmdbId}`
+              );
+              title = mediaInfo?.title || '';
+            }
 
-          if (!mediaInfo || !title) {
-            this.logger.debug(`Could not fetch media info for tmdbId ${request.media.tmdbId}`);
-            continue;
-          }
+            if (!mediaInfo || !title) {
+              this.logger.debug(`Could not fetch media info for tmdbId ${request.media.tmdbId}`);
+              return null;
+            }
 
-          const hashId = this.hashit(`${mediaInfo.id}${title}`);
-          const requestedBy =
-            mediaInfo.mediaInfo?.requests?.[0]?.requestedBy?.displayName || 'Unknown';
-          const requestedDate = mediaInfo.mediaInfo?.requests?.[0]?.createdAt || '';
+            const hashId = this.hashit(`${mediaInfo.id}${title}`);
+            const requestedBy =
+              mediaInfo.mediaInfo?.requests?.[0]?.requestedBy?.displayName || 'Unknown';
+            const requestedDate = mediaInfo.mediaInfo?.requests?.[0]?.createdAt || '';
 
-          points.push(
-            this.createDataPoint(
+            return this.createDataPoint(
               'Overseerr',
               {
                 type: 'Requests',
@@ -233,16 +231,19 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
               {
                 hash: hashId,
               }
-            )
-          );
-        } catch (error) {
-          this.logger.debug(`Failed to fetch details for request: ${error}`);
-        }
-      }
+            );
+          } catch (error) {
+            this.logger.debug(`Failed to fetch details for request tmdbId=${request.media?.tmdbId}: ${error instanceof Error ? error.message : String(error)}`);
+            return null;
+          }
+        })
+      );
+
+      points.push(...results.filter((p): p is DataPoint => p !== null));
 
       this.logger.info(`Collected ${points.length} latest requests from Overseerr`);
     } catch (error) {
-      this.logger.error(`Failed to collect Overseerr latest requests: ${error}`);
+      this.logger.error(`Failed to collect Overseerr latest requests: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
 

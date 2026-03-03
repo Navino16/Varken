@@ -1,4 +1,5 @@
 import { BaseInputPlugin } from './BaseInputPlugin';
+import { PROTOCOL_ID } from './constants';
 import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
 import type {
   SonarrConfig,
@@ -115,7 +116,7 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
         const episodeTitle = queueItem.episode.title;
         const sxe = this.formatSXE(queueItem.episode.seasonNumber, queueItem.episode.episodeNumber);
         const protocol = queueItem.protocol.toUpperCase();
-        const protocolId = protocol === 'USENET' ? 1 : 0;
+        const protocolId = protocol === 'USENET' ? PROTOCOL_ID.USENET : PROTOCOL_ID.TORRENT;
         const quality = queueItem.quality?.quality?.name || 'Unknown';
 
         const hashId = this.hashit(`${this.config.id}${seriesTitle}${sxe}`);
@@ -143,7 +144,7 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
 
       this.logger.info(`Collected ${points.length} queue items from Sonarr`);
     } catch (error) {
-      this.logger.error(`Failed to collect Sonarr queue: ${error}`);
+      this.logger.error(`Failed to collect Sonarr queue: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
 
@@ -226,7 +227,7 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
 
       this.logger.info(`Collected ${points.length} ${queryType.toLowerCase()} episodes from Sonarr`);
     } catch (error) {
-      this.logger.error(`Failed to collect Sonarr calendar (${queryType}): ${error}`);
+      this.logger.error(`Failed to collect Sonarr calendar (${queryType}): ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
 

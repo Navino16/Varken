@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { InfluxDB2Plugin } from '../../../src/plugins/outputs/InfluxDB2Plugin';
 import { DataPoint } from '../../../src/types/plugin.types';
+import { HealthAPI } from '@influxdata/influxdb-client-apis';
 
 // Mock the logger
 vi.mock('../../../src/core/Logger', () => ({
@@ -218,6 +219,21 @@ describe('InfluxDB2Plugin', () => {
       await plugin.write(points);
       expect(mockWriteApi.writePoint).toHaveBeenCalled();
     });
+
+    it('should propagate flush errors', async () => {
+      mockWriteApi.flush.mockRejectedValueOnce(new Error('write timeout'));
+
+      const points: DataPoint[] = [
+        {
+          measurement: 'test',
+          tags: {},
+          fields: { value: 1 },
+          timestamp: new Date(),
+        },
+      ];
+
+      await expect(plugin.write(points)).rejects.toThrow('write timeout');
+    });
   });
 
   describe('healthCheck', () => {
@@ -228,6 +244,28 @@ describe('InfluxDB2Plugin', () => {
     it('should return true when healthy', async () => {
       const result = await plugin.healthCheck();
       expect(result).toBe(true);
+    });
+
+    it('should return false when health API throws', async () => {
+      vi.mocked(HealthAPI).mockImplementationOnce(function () {
+        return {
+          getHealth: vi.fn().mockRejectedValue(new Error('Connection refused')),
+        } as unknown as InstanceType<typeof HealthAPI>;
+      });
+
+      const result = await plugin.healthCheck();
+      expect(result).toBe(false);
+    });
+
+    it('should return false when status is not pass', async () => {
+      vi.mocked(HealthAPI).mockImplementationOnce(function () {
+        return {
+          getHealth: vi.fn().mockResolvedValue({ status: 'fail' }),
+        } as unknown as InstanceType<typeof HealthAPI>;
+      });
+
+      const result = await plugin.healthCheck();
+      expect(result).toBe(false);
     });
   });
 

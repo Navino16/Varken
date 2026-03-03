@@ -106,7 +106,7 @@ export class ProwlarrPlugin extends BaseInputPlugin<ProwlarrConfig> {
 
       this.logger.info(`Collected stats for ${points.length} indexers from Prowlarr`);
     } catch (error) {
-      this.logger.error(`Failed to collect Prowlarr indexer stats: ${error}`);
+      this.logger.error(`Failed to collect Prowlarr indexer stats: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
 

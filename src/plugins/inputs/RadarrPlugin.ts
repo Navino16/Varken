@@ -1,4 +1,5 @@
 import { BaseInputPlugin } from './BaseInputPlugin';
+import { PROTOCOL_ID } from './constants';
 import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
 import type {
   RadarrConfig,
@@ -99,7 +100,7 @@ export class RadarrPlugin extends BaseInputPlugin<RadarrConfig> {
         const movie = queueItem.movie;
         const name = `${movie.title} (${movie.year})`;
         const protocol = queueItem.protocol.toUpperCase();
-        const protocolId = protocol === 'USENET' ? 1 : 0;
+        const protocolId = protocol === 'USENET' ? PROTOCOL_ID.USENET : PROTOCOL_ID.TORRENT;
         const quality = queueItem.quality?.quality?.name || 'Unknown';
 
         const hashId = this.hashit(`${this.config.id}${name}${quality}`);
@@ -126,7 +127,7 @@ export class RadarrPlugin extends BaseInputPlugin<RadarrConfig> {
 
       this.logger.info(`Collected ${points.length} queue items from Radarr`);
     } catch (error) {
-      this.logger.error(`Failed to collect Radarr queue: ${error}`);
+      this.logger.error(`Failed to collect Radarr queue: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
 
@@ -179,7 +180,7 @@ export class RadarrPlugin extends BaseInputPlugin<RadarrConfig> {
 
       this.logger.info(`Collected ${points.length} missing movies from Radarr`);
     } catch (error) {
-      this.logger.error(`Failed to collect Radarr missing movies: ${error}`);
+      this.logger.error(`Failed to collect Radarr missing movies: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
 
