@@ -218,10 +218,7 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
   ): DataPoint {
     return {
       measurement,
-      tags: {
-        server_id: this.config.id,
-        ...tags,
-      },
+      tags,
       fields,
       timestamp: timestamp || new Date(),
     };

@@ -63,11 +63,11 @@ function addRetryInterceptor(client: AxiosInstance, retryConfig: RetryConfig): v
   client.interceptors.response.use(
     (response) => response,
     async (error: AxiosError) => {
-      const config = error.config as InternalAxiosRequestConfig & { _retryCount?: number };
-
-      if (!config) {
+      if (!error.config) {
         return Promise.reject(error);
       }
+
+      const config = error.config as InternalAxiosRequestConfig & { _retryCount?: number };
 
       // Initialize retry count
       config._retryCount = config._retryCount ?? 0;
@@ -152,14 +152,12 @@ export function formatHttpError(error: unknown): string {
     return error instanceof Error ? error.message : 'Unknown error';
   }
 
-  const axiosError = error as AxiosError;
-
-  if (axiosError.response) {
+  if (error.response) {
     // Server responded with error status
-    const status = axiosError.response.status;
-    const statusText = axiosError.response.statusText;
-    const url = axiosError.config?.url || 'unknown';
-    const data = axiosError.response.data;
+    const status = error.response.status;
+    const statusText = error.response.statusText;
+    const url = error.config?.url || 'unknown';
+    const data = error.response.data;
 
     let message = `HTTP ${status} ${statusText} for ${url}`;
 
@@ -174,21 +172,21 @@ export function formatHttpError(error: unknown): string {
     }
 
     return message;
-  } else if (axiosError.request) {
+  } else if (error.request) {
     // Request made but no response received
-    const url = axiosError.config?.url || 'unknown';
-    if (axiosError.code === 'ECONNREFUSED') {
+    const url = error.config?.url || 'unknown';
+    if (error.code === 'ECONNREFUSED') {
       return `Connection refused to ${url}`;
-    } else if (axiosError.code === 'ETIMEDOUT') {
+    } else if (error.code === 'ETIMEDOUT') {
       return `Request timed out for ${url}`;
-    } else if (axiosError.code === 'ENOTFOUND') {
+    } else if (error.code === 'ENOTFOUND') {
       return `Host not found for ${url}`;
     }
-    return `No response received from ${url}: ${axiosError.code || axiosError.message}`;
+    return `No response received from ${url}: ${error.code || error.message}`;
   }
 
   // Error setting up request
-  return axiosError.message;
+  return error.message;
 }
 
 /**
@@ -248,7 +246,7 @@ export async function withTimeout<T>(
   timeoutMs: number,
   message = 'Operation timed out'
 ): Promise<T> {
-  let timeoutId: NodeJS.Timeout;
+  let timeoutId: NodeJS.Timeout | undefined;
 
   const timeoutPromise = new Promise<never>((_, reject) => {
     timeoutId = setTimeout(() => {
@@ -258,10 +256,14 @@ export async function withTimeout<T>(
 
   try {
     const result = await Promise.race([promise, timeoutPromise]);
-    clearTimeout(timeoutId!);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
     return result;
   } catch (error) {
-    clearTimeout(timeoutId!);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
     throw error;
   }
 }

@@ -409,6 +409,62 @@ describe('OverseerrPlugin', () => {
       expect(points.filter((p) => p.tags.type === 'Requests').length).toBe(0);
     });
 
+    it('should collect successful requests even when one fails in parallel', async () => {
+      mockHttpClient.get.mockResolvedValueOnce({
+        data: { pending: 0, approved: 0, processing: 0, available: 0, total: 0, movie: 0, tv: 0, declined: 0 },
+      });
+      mockHttpClient.get.mockResolvedValueOnce({
+        data: { total: 0, video: 0, audio: 0, subtitles: 0, others: 0, open: 0, closed: 0 },
+      });
+
+      // Latest requests: 3 items
+      mockHttpClient.get.mockResolvedValueOnce({
+        data: {
+          results: [
+            { id: 1, type: 'movie', media: { tmdbId: 100 } },
+            { id: 2, type: 'movie', media: { tmdbId: 200 } },
+            { id: 3, type: 'tv', media: { tmdbId: 300 } },
+          ],
+        },
+      });
+
+      // Movie 100 — succeeds
+      mockHttpClient.get.mockResolvedValueOnce({
+        data: {
+          id: 100,
+          title: 'Good Movie 1',
+          mediaInfo: {
+            status: 5,
+            requests: [{ requestedBy: { displayName: 'Alice' }, createdAt: '2024-01-01' }],
+          },
+        },
+      });
+
+      // Movie 200 — fails
+      mockHttpClient.get.mockRejectedValueOnce(new Error('TMDB API error'));
+
+      // TV 300 — succeeds
+      mockHttpClient.get.mockResolvedValueOnce({
+        data: {
+          id: 300,
+          name: 'Good Show',
+          mediaInfo: {
+            status: 3,
+            requests: [{ requestedBy: { displayName: 'Bob' }, createdAt: '2024-02-01' }],
+          },
+        },
+      });
+
+      const points = await plugin.collect();
+
+      const requestPoints = points.filter((p) => p.tags.type === 'Requests');
+      expect(requestPoints).toHaveLength(2);
+
+      const titles = requestPoints.map((p) => p.tags.title);
+      expect(titles).toContain('Good Movie 1');
+      expect(titles).toContain('Good Show');
+    });
+
     it('should generate deterministic hash IDs', async () => {
       const setupMocks = () => {
         mockHttpClient.get.mockResolvedValueOnce({

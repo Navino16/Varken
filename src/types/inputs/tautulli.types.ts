@@ -165,9 +165,9 @@ export interface TautulliGeoIPResponse {
 
 // API Response wrapper
 export interface TautulliApiResponse<T> {
-  response: {
+  response?: {
     result: string;
     message?: string;
-    data: T;
+    data?: T;
   };
 }

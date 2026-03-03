@@ -27,6 +27,6 @@ module.exports = [
     },
   },
   {
-    ignores: ['dist/**', 'node_modules/**', '_legacy/**', '*.js'],
+    ignores: ['dist/**', 'node_modules/**', '_legacy/**', '.reports/**', '*.js'],
   },
 ];

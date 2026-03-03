@@ -27,12 +27,12 @@ export class InfluxDB1Plugin extends BaseOutputPlugin<InfluxDB1Config> {
   async initialize(config: InfluxDB1Config): Promise<void> {
     await super.initialize(config);
 
-    const protocol = this.config.ssl ? 'https' : 'http';
+    const protocol: 'http' | 'https' = this.config.ssl ? 'https' : 'http';
 
     const options: ISingleHostConfig = {
       host: this.config.url,
       port: this.config.port,
-      protocol: protocol as 'http' | 'https',
+      protocol,
       database: this.config.database,
       username: this.config.username,
       password: this.config.password,

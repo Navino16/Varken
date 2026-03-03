@@ -1,6 +1,6 @@
 {
   "name": "varken",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Standalone application to aggregate data from the Plex ecosystem into time-series databases",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -55,7 +55,7 @@
     "@typescript-eslint/eslint-plugin": "^8.56.1",
     "@typescript-eslint/parser": "^8.0.0",
     "@vitest/coverage-v8": "^4.0.18",
-    "eslint": "^9.39.2",
+    "eslint": "^10.0.2",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
     "tsx": "^4.19.0",

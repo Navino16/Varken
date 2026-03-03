@@ -43,7 +43,7 @@ const DEFAULT_CIRCUIT_BREAKER_CONFIG: CircuitBreakerConfig = {
 interface ActiveScheduler {
   schedule: ScheduleConfig;
   plugin: InputPlugin;
-  timer: NodeJS.Timeout;
+  timer: NodeJS.Timeout | null;
   isRunning: boolean;
   lastRunAt?: Date;
   lastError?: string;
@@ -141,7 +141,12 @@ export class PluginManager {
 
       try {
         const plugin = new factory();
-        await plugin.initialize(outputConfig);
+        const initTimeout = this.config?.global?.httpTimeoutMs ?? 30000;
+        await withTimeout(
+          plugin.initialize(outputConfig),
+          initTimeout,
+          `Output plugin ${type} initialization timed out after ${initTimeout}ms`
+        );
         this.outputPlugins.set(type, plugin);
         logger.info(`Initialized output plugin: ${type}`);
       } catch (error) {
@@ -175,8 +180,8 @@ export class PluginManager {
       const plugins: InputPlugin[] = [];
 
       for (const inputConfig of inputConfigs) {
+        const plugin = new factory();
         try {
-          const plugin = new factory();
           await plugin.initialize(inputConfig, globalConfig);
 
           plugins.push(plugin);
@@ -186,7 +191,11 @@ export class PluginManager {
           logger.error(
             `Failed to initialize input plugin ${type} (id: ${inputConfig.id}): ${message}`
           );
-          // Continue with other plugins
+          try {
+            await plugin.shutdown();
+          } catch {
+            // Best-effort cleanup
+          }
         }
       }
 
@@ -239,7 +248,7 @@ export class PluginManager {
     const activeScheduler: ActiveScheduler = {
       schedule,
       plugin,
-      timer: null as unknown as NodeJS.Timeout, // Will be set by scheduleNextRun
+      timer: null,
       isRunning: false,
       consecutiveErrors: 0,
       circuitState: 'closed',
@@ -251,7 +260,14 @@ export class PluginManager {
     this.schedulers.set(schedule.name, activeScheduler);
 
     // Run immediately on start
-    this.executeSchedule(schedule, plugin);
+    this.executeSchedule(schedule).catch((error) => {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      logger.error(`Scheduler ${schedule.name} initial run failed: ${message}`);
+      const sched = this.schedulers.get(schedule.name);
+      if (sched) {
+        this.handleScheduleFailure(sched, message);
+      }
+    });
 
     // Then schedule next run
     activeScheduler.timer = this.scheduleNextRun(schedule, plugin, intervalMs);
@@ -287,14 +303,19 @@ export class PluginManager {
     }
 
     return setTimeout(async () => {
-      await this.executeSchedule(schedule, plugin);
-      const scheduler = this.schedulers.get(schedule.name);
-      if (scheduler && this.isRunning) {
-        scheduler.timer = this.scheduleNextRun(
-          schedule,
-          plugin,
-          scheduler.currentIntervalMs
-        );
+      try {
+        await this.executeSchedule(schedule);
+        const scheduler = this.schedulers.get(schedule.name);
+        if (scheduler && this.isRunning) {
+          scheduler.timer = this.scheduleNextRun(
+            schedule,
+            plugin,
+            scheduler.currentIntervalMs
+          );
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        logger.error(`Scheduler ${schedule.name} unexpected error: ${message}`);
       }
     }, intervalMs);
   }
@@ -303,8 +324,7 @@ export class PluginManager {
    * Execute a schedule and collect data
    */
   private async executeSchedule(
-    schedule: ScheduleConfig,
-    _plugin: InputPlugin
+    schedule: ScheduleConfig
   ): Promise<void> {
     const scheduler = this.schedulers.get(schedule.name);
     if (!scheduler) {return;}
@@ -342,12 +362,14 @@ export class PluginManager {
         `Collector ${schedule.name} timed out after ${collectorTimeout}ms`
       );
 
-      if (points.length > 0) {
+      const validPoints = this.validateDataPoints(points, schedule.name);
+
+      if (validPoints.length > 0) {
         // Write to all output plugins
-        await this.writeToOutputs(points);
+        await this.writeToOutputs(validPoints);
         const duration = Date.now() - startTime;
         logger.debug(
-          `Schedule ${schedule.name} collected ${points.length} points in ${duration}ms`
+          `Schedule ${schedule.name} collected ${validPoints.length} points in ${duration}ms`
         );
       } else {
         logger.debug(`Schedule ${schedule.name} collected no data`);
@@ -470,6 +492,7 @@ export class PluginManager {
   private closeCircuit(scheduler: ActiveScheduler): void {
     scheduler.circuitState = 'closed';
     scheduler.consecutiveErrors = 0;
+    scheduler.lastError = undefined;
     scheduler.currentIntervalMs = scheduler.baseIntervalMs;
     scheduler.disabledAt = undefined;
     scheduler.nextAttemptAt = undefined;
@@ -481,15 +504,38 @@ export class PluginManager {
   }
 
   /**
+   * Validate data points and filter out invalid ones
+   */
+  private validateDataPoints(points: DataPoint[], scheduleName: string): DataPoint[] {
+    return points.filter((point) => {
+      if (!point.measurement || typeof point.measurement !== 'string') {
+        logger.warn(`[${scheduleName}] Filtered out data point with empty or invalid measurement`);
+        return false;
+      }
+      if (!point.fields || Object.keys(point.fields).length === 0) {
+        logger.warn(`[${scheduleName}] Filtered out data point "${point.measurement}" with no fields`);
+        return false;
+      }
+      if (!(point.timestamp instanceof Date) || isNaN(point.timestamp.getTime())) {
+        logger.warn(`[${scheduleName}] Filtered out data point "${point.measurement}" with invalid timestamp`);
+        return false;
+      }
+      return true;
+    });
+  }
+
+  /**
    * Write data points to all output plugins
    */
   private async writeToOutputs(points: DataPoint[]): Promise<void> {
+    let failureCount = 0;
     const writePromises = Array.from(this.outputPlugins.entries()).map(
       async ([type, plugin]) => {
         try {
           await plugin.write(points);
           logger.debug(`Wrote ${points.length} points to ${type}`);
         } catch (error) {
+          failureCount++;
           const message = error instanceof Error ? error.message : 'Unknown error';
           logger.error(`Failed to write to output ${type}: ${message}`);
           // Don't throw - continue with other outputs
@@ -497,7 +543,10 @@ export class PluginManager {
       }
     );
 
-    await Promise.all(writePromises);
+    await Promise.allSettled(writePromises);
+    if (failureCount === writePromises.length && writePromises.length > 0) {
+      logger.error(`All ${failureCount} output plugins failed — data points may be lost`);
+    }
   }
 
   /**
@@ -512,7 +561,9 @@ export class PluginManager {
 
     // Clear all timers
     for (const [name, scheduler] of this.schedulers) {
-      clearTimeout(scheduler.timer);
+      if (scheduler.timer) {
+        clearTimeout(scheduler.timer);
+      }
       logger.debug(`Stopped scheduler: ${name}`);
     }
 
@@ -549,10 +600,15 @@ export class PluginManager {
    */
   async healthCheck(): Promise<Map<string, boolean>> {
     const results = new Map<string, boolean>();
+    const healthCheckTimeout = this.config?.global?.healthCheckTimeoutMs ?? 5000;
 
     for (const [type, plugin] of this.outputPlugins) {
       try {
-        const healthy = await plugin.healthCheck();
+        const healthy = await withTimeout(
+          plugin.healthCheck(),
+          healthCheckTimeout,
+          `Health check for output ${type} timed out`
+        );
         results.set(type, healthy);
       } catch {
         results.set(type, false);
@@ -665,11 +721,16 @@ export class PluginManager {
    */
   async getInputPluginStatuses(): Promise<PluginStatus[]> {
     const statuses: PluginStatus[] = [];
+    const healthCheckTimeout = this.config?.global?.healthCheckTimeoutMs ?? 5000;
 
     for (const [type, plugins] of this.inputPlugins) {
       for (const plugin of plugins) {
         try {
-          const healthy = await plugin.healthCheck();
+          const healthy = await withTimeout(
+            plugin.healthCheck(),
+            healthCheckTimeout,
+            `Health check for ${plugin.metadata.name} timed out`
+          );
           statuses.push({
             type,
             name: plugin.metadata.name,
@@ -697,10 +758,15 @@ export class PluginManager {
    */
   async getOutputPluginStatuses(): Promise<PluginStatus[]> {
     const statuses: PluginStatus[] = [];
+    const healthCheckTimeout = this.config?.global?.healthCheckTimeoutMs ?? 5000;
 
     for (const [type, plugin] of this.outputPlugins) {
       try {
-        const healthy = await plugin.healthCheck();
+        const healthy = await withTimeout(
+          plugin.healthCheck(),
+          healthCheckTimeout,
+          `Health check for ${plugin.metadata.name} timed out`
+        );
         statuses.push({
           type,
           name: plugin.metadata.name,
