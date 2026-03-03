@@ -3,6 +3,7 @@ import { InfluxDB, Point, HttpError } from '@influxdata/influxdb-client';
 import { HealthAPI } from '@influxdata/influxdb-client-apis';
 import { BaseOutputPlugin } from './BaseOutputPlugin';
 import type { DataPoint, PluginMetadata } from '../../types/plugin.types';
+import { withTimeout } from '../../utils/http';
 import type { z } from 'zod';
 import type { InfluxDB2ConfigSchema } from '../../config/schemas/config.schema';
 
@@ -69,12 +70,7 @@ export class InfluxDB2Plugin extends BaseOutputPlugin<InfluxDB2Config> {
       }
 
       // Flush immediately to ensure data is written (30s timeout to avoid blocking schedulers)
-      await Promise.race([
-        this.writeApi.flush(),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('InfluxDB 2.x flush timed out after 30000ms')), 30000)
-        ),
-      ]);
+      await withTimeout(this.writeApi.flush(), 30000, 'InfluxDB 2.x flush timed out after 30000ms');
       this.logger.debug(`Wrote ${points.length} points to InfluxDB 2.x`);
     } catch (error) {
       if (error instanceof HttpError) {
