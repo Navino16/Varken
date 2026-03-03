@@ -9,18 +9,19 @@ import type {
   OmbiUser,
 } from '../../types/inputs/ombi.types';
 
-/**
- * Request status codes (matching legacy behavior)
- * 0 = Denied
- * 1 = Approved
- * 2 = Completed (Approved + Available)
- * 3 = Pending
- */
+const REQUEST_STATUS = { DENIED: 0, APPROVED: 1, COMPLETED: 2, PENDING: 3 } as const;
+
 function getRequestStatus(approved: boolean, available: boolean, denied: boolean): number {
-  if (denied) {return 0;}
-  if (approved && available) {return 2;}
-  if (approved) {return 1;}
-  return 3;
+  if (denied) {
+    return REQUEST_STATUS.DENIED;
+  }
+  if (approved && available) {
+    return REQUEST_STATUS.COMPLETED;
+  }
+  if (approved) {
+    return REQUEST_STATUS.APPROVED;
+  }
+  return REQUEST_STATUS.PENDING;
 }
 
 /**
