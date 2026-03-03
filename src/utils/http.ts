@@ -63,11 +63,11 @@ function addRetryInterceptor(client: AxiosInstance, retryConfig: RetryConfig): v
   client.interceptors.response.use(
     (response) => response,
     async (error: AxiosError) => {
-      const config = error.config as InternalAxiosRequestConfig & { _retryCount?: number };
-
-      if (!config) {
+      if (!error.config) {
         return Promise.reject(error);
       }
+
+      const config = error.config as InternalAxiosRequestConfig & { _retryCount?: number };
 
       // Initialize retry count
       config._retryCount = config._retryCount ?? 0;
