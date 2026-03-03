@@ -180,8 +180,8 @@ export class PluginManager {
       const plugins: InputPlugin[] = [];
 
       for (const inputConfig of inputConfigs) {
+        const plugin = new factory();
         try {
-          const plugin = new factory();
           await plugin.initialize(inputConfig, globalConfig);
 
           plugins.push(plugin);
@@ -191,7 +191,11 @@ export class PluginManager {
           logger.error(
             `Failed to initialize input plugin ${type} (id: ${inputConfig.id}): ${message}`
           );
-          // Continue with other plugins
+          try {
+            await plugin.shutdown();
+          } catch {
+            // Best-effort cleanup
+          }
         }
       }
 
@@ -259,6 +263,10 @@ export class PluginManager {
     this.executeSchedule(schedule).catch((error) => {
       const message = error instanceof Error ? error.message : 'Unknown error';
       logger.error(`Scheduler ${schedule.name} initial run failed: ${message}`);
+      const sched = this.schedulers.get(schedule.name);
+      if (sched) {
+        this.handleScheduleFailure(sched, message);
+      }
     });
 
     // Then schedule next run
@@ -533,7 +541,11 @@ export class PluginManager {
       }
     );
 
-    await Promise.allSettled(writePromises);
+    const results = await Promise.allSettled(writePromises);
+    const failureCount = results.filter((r) => r.status === 'rejected').length;
+    if (failureCount === results.length && results.length > 0) {
+      logger.error(`All ${failureCount} output plugins failed — data points may be lost`);
+    }
   }
 
   /**
