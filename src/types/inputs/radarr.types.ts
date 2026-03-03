@@ -9,7 +9,6 @@ export interface RadarrConfig {
   id: number;
   url: string;
   apiKey: string;
-  ssl?: boolean;
   verifySsl?: boolean;
   queue: {
     enabled: boolean;
@@ -117,13 +116,4 @@ export interface RadarrQueue {
   languages?: { id: number; name: string }[];
   customFormats?: unknown[];
   customFormatScore?: number;
-}
-
-export interface RadarrQueueResponse {
-  page: number;
-  pageSize: number;
-  sortKey: string;
-  sortDirection: string;
-  totalRecords: number;
-  records: RadarrQueue[];
 }

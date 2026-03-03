@@ -18,9 +18,10 @@
 
 - **Multiple data sources** - Sonarr, Radarr, Tautulli, Ombi, Overseerr (more coming soon)
 - **Multiple outputs** - InfluxDB 1.x and InfluxDB 2.x
-- **GeoIP mapping** - Automatic geolocation of streaming sessions via MaxMind GeoLite2
+- **GeoIP mapping** - Automatic geolocation of streaming sessions via Tautulli API (no external license required)
 - **Multi-instance support** - Connect multiple instances of each service
 - **Health checks** - Built-in HTTP health endpoints for monitoring and orchestration
+- **Circuit breaker** - Automatic error recovery with backoff and self-healing
 - **Docker ready** - Multi-platform images for amd64 and arm64
 - **Easy configuration** - Simple YAML configuration with environment variable overrides
 
@@ -33,9 +34,11 @@
   - [Manual Installation](#manual-installation)
 - [Configuration](#configuration)
   - [Basic Configuration](#basic-configuration)
+  - [Global Settings](#global-settings)
   - [Environment Variables](#environment-variables)
   - [GeoIP Setup](#geoip-setup)
   - [Multiple Instances](#multiple-instances)
+  - [Circuit Breaker](#circuit-breaker)
 - [Health Checks](#health-checks)
 - [Supported Services](#supported-services)
 - [Grafana Setup](#grafana-setup)
@@ -149,6 +152,8 @@ inputs:
         intervalSeconds: 30
       calendar:
         enabled: true
+        futureDays: 7
+        missingDays: 30
         intervalSeconds: 300
 
   radarr:
@@ -174,6 +179,38 @@ inputs:
         intervalDays: 1
 ```
 
+### Global Settings
+
+Varken provides global configuration options for tuning timeouts and pagination. All settings have sensible defaults and are optional:
+
+```yaml
+global:
+  # Timeout for HTTP requests to services (default: 30000ms = 30s)
+  httpTimeoutMs: 30000
+
+  # Timeout for health check requests (default: 5000ms = 5s)
+  healthCheckTimeoutMs: 5000
+
+  # Timeout for collector execution (default: 60000ms = 60s)
+  # If a collector takes longer than this, it will be terminated
+  collectorTimeoutMs: 60000
+
+  # Number of records per page when fetching paginated API endpoints (default: 250)
+  paginationPageSize: 250
+
+  # Maximum records to fetch from paginated endpoints (default: 10000)
+  # This is a safety limit to prevent memory issues on very large datasets
+  maxPaginationRecords: 10000
+```
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `httpTimeoutMs` | 30000 | Timeout for HTTP requests to services |
+| `healthCheckTimeoutMs` | 5000 | Timeout for health check requests |
+| `collectorTimeoutMs` | 60000 | Timeout for collector execution |
+| `paginationPageSize` | 250 | Records per page for paginated APIs |
+| `maxPaginationRecords` | 10000 | Maximum records to fetch (safety limit) |
+
 ### Environment Variables
 
 #### Docker Environment Variables
@@ -181,7 +218,7 @@ inputs:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `CONFIG_FOLDER` | `/config` | Path to configuration files |
-| `DATA_FOLDER` | `/data` | Path to data storage (GeoIP database) |
+| `DATA_FOLDER` | `/data` | Path to data storage |
 | `LOG_FOLDER` | `/logs` | Path to log files |
 | `LOG_LEVEL` | `info` | Log level: `error`, `warn`, `info`, `debug` |
 | `TZ` | `UTC` | Timezone (e.g., `Europe/Paris`, `America/New_York`) |
@@ -204,13 +241,9 @@ VARKEN_INPUTS_SONARR_0_URL="http://sonarr:8989"
 
 ### GeoIP Setup
 
+GeoIP geolocation is now handled directly by the Tautulli API - no external license or database download required!
+
 To enable geolocation of streaming sessions on a world map:
-
-1. **Create a free MaxMind account** at https://www.maxmind.com/en/geolite2/signup
-
-2. **Generate a license key** in your MaxMind account settings
-
-3. **Add the license key to your Tautulli configuration:**
 
 ```yaml
 inputs:
@@ -220,10 +253,18 @@ inputs:
       apiKey: "your-api-key"
       geoip:
         enabled: true
-        licenseKey: "your-maxmind-license-key"
+        # Optional: set coordinates for local/LAN streams
+        localCoordinates:
+          latitude: 48.8566
+          longitude: 2.3522
 ```
 
-The GeoIP database will be automatically downloaded and updated weekly.
+**How it works:**
+- **Remote streams**: Varken calls Tautulli's `get_geoip_lookup` API to get location data
+- **Local streams** (LAN): Automatically detected and labeled as "Local Network"
+- **localCoordinates** (optional): Custom coordinates to display for local streams on world maps
+
+> **Note**: If upgrading from a previous version with `licenseKey` or `fallbackIp`, these options are now deprecated and will be ignored with a warning.
 
 ### Multiple Instances
 
@@ -249,6 +290,95 @@ inputs:
 
 Each instance must have a unique `id`.
 
+### Circuit Breaker
+
+Varken includes a built-in circuit breaker to handle failing services gracefully. When a scheduler encounters repeated errors, the circuit breaker:
+
+1. **Applies backoff** - Increases the interval between retries (exponential backoff)
+2. **Opens the circuit** - Temporarily disables the failing scheduler after too many errors
+3. **Attempts recovery** - After a cooldown period, tests if the service has recovered
+4. **Closes the circuit** - Returns to normal operation after successful recovery
+
+#### Configuration
+
+The circuit breaker is optional and has sensible defaults:
+
+```yaml
+circuitBreaker:
+  # Errors before disabling scheduler (default: 10)
+  maxConsecutiveErrors: 10
+
+  # Interval multiplier per failure (default: 2)
+  # Example: 30s → 60s → 120s → 240s...
+  backoffMultiplier: 2
+
+  # Maximum interval cap in seconds (default: 600 = 10 min)
+  maxIntervalSeconds: 600
+
+  # Cooldown before recovery attempt in seconds (default: 300 = 5 min)
+  cooldownSeconds: 300
+
+  # Successes needed to fully recover (default: 3)
+  recoverySuccesses: 3
+```
+
+#### State Machine
+
+```
+CLOSED (normal) ──[errors]──► OPEN (disabled)
+                                    │
+                              [cooldown]
+                                    │
+                                    ▼
+                              HALF-OPEN (testing)
+                                    │
+                    ┌───────────────┼───────────────┐
+                    │               │               │
+              [success x N]    [failure]      [success]
+                    │               │               │
+                    ▼               ▼               │
+                 CLOSED          OPEN              │
+                                    ▲               │
+                                    └───────────────┘
+```
+
+#### Monitoring
+
+Circuit breaker states are visible in the `/status` endpoint:
+
+```json
+{
+  "schedulers": [
+    {
+      "name": "sonarr_1_queue",
+      "circuitState": "closed",
+      "currentIntervalSeconds": 30,
+      "consecutiveErrors": 0,
+      "recoverySuccesses": 0,
+      "nextRunAt": "2024-01-15T10:30:30.000Z"
+    }
+  ]
+}
+```
+
+When a circuit is open:
+
+```json
+{
+  "schedulers": [
+    {
+      "name": "sonarr_1_queue",
+      "circuitState": "open",
+      "currentIntervalSeconds": 120,
+      "consecutiveErrors": 10,
+      "disabledAt": "2024-01-15T10:30:00.000Z",
+      "nextAttemptAt": "2024-01-15T10:35:00.000Z",
+      "nextRunAt": "2024-01-15T10:35:00.000Z"
+    }
+  ]
+}
+```
+
 ## Health Checks
 
 Varken exposes HTTP endpoints for monitoring on port `9090` (configurable via `HEALTH_PORT`):
@@ -271,9 +401,9 @@ The Docker image includes a built-in `HEALTHCHECK` instruction using these endpo
 
 | Status | Condition |
 |--------|-----------|
-| `healthy` | All outputs healthy + all inputs healthy + no scheduler with 3+ consecutive errors |
-| `degraded` | At least one output healthy + at least one input healthy or scheduler working |
-| `unhealthy` | No outputs configured, all outputs/inputs unreachable |
+| `healthy` | All outputs healthy + all inputs healthy + all schedulers in `closed` state with < 3 errors |
+| `degraded` | At least one output healthy + at least one scheduler not in `open` state |
+| `unhealthy` | No outputs configured, all outputs unreachable, or all schedulers in `open` state |
 
 ## Supported Services
 
@@ -347,6 +477,7 @@ Legacy `VRKN_*` environment variables are also automatically migrated.
 **Varken can't connect to services:**
 - Verify URLs are accessible from the Varken container
 - Check API keys are correct
+- Input plugin URLs must include the protocol (`http://` or `https://`), e.g. `url: "https://sonarr.example.com"`
 - Ensure `verifySsl: false` if using self-signed certificates
 
 **No data in Grafana:**
@@ -355,9 +486,9 @@ Legacy `VRKN_*` environment variables are also automatically migrated.
 - Ensure at least one input is enabled with `enabled: true`
 
 **GeoIP not working:**
-- Verify your MaxMind license key is valid
-- Check the `data` folder for the GeoIP database
-- Review logs for download errors
+- Ensure `geoip.enabled: true` is set in your Tautulli configuration
+- Verify Tautulli is accessible and the API key is correct
+- Check Varken logs for GeoIP lookup errors
 
 ### Viewing Logs
 
@@ -420,7 +551,7 @@ src/
 │   ├── inputs/     # Data source plugins (Sonarr, Radarr, etc.)
 │   └── outputs/    # Database plugins (InfluxDB, etc.)
 ├── types/          # TypeScript type definitions
-└── utils/          # Utilities (HTTP, GeoIP, hashing)
+└── utils/          # Utilities (HTTP, hashing)
 ```
 
 ### Adding a New Input Plugin

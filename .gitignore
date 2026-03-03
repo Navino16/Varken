@@ -38,3 +38,5 @@ data/
 config/varken.yaml
 config/varken.test.yaml
 ANALYSIS.md
+/CLAUDE.md
+/.claude/

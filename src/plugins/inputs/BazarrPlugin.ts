@@ -22,8 +22,8 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
   /**
    * Initialize the plugin and configure the HTTP client with API key header
    */
-  async initialize(config: BazarrConfig): Promise<void> {
-    await super.initialize(config);
+  async initialize(...args: Parameters<BaseInputPlugin<BazarrConfig>['initialize']>): Promise<void> {
+    await super.initialize(...args);
     this.httpClient.defaults.headers.common['X-API-KEY'] = this.config.apiKey;
   }
 
@@ -160,6 +160,7 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
       this.logger.info(`Collected ${points.length} wanted subtitles from Bazarr`);
     } catch (error) {
       this.logger.error(`Failed to collect Bazarr wanted subtitles: ${error}`);
+      throw error;
     }
 
     return points;
@@ -249,6 +250,7 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
       this.logger.info(`Collected ${points.length} history items from Bazarr`);
     } catch (error) {
       this.logger.error(`Failed to collect Bazarr history: ${error}`);
+      throw error;
     }
 
     return points;

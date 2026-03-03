@@ -35,7 +35,6 @@ describe('OverseerrPlugin', () => {
     id: 1,
     url: 'http://localhost:5055',
     apiKey: 'overseerr-api-key',
-    ssl: false,
     verifySsl: false,
     requestCounts: {
       enabled: true,
@@ -377,14 +376,10 @@ describe('OverseerrPlugin', () => {
       expect(points.filter((p) => p.tags.type === 'Requests').length).toBe(0);
     });
 
-    it('should handle API errors gracefully', async () => {
+    it('should propagate API errors for circuit breaker', async () => {
       mockHttpClient.get.mockRejectedValueOnce(new Error('Request counts API error'));
-      mockHttpClient.get.mockRejectedValueOnce(new Error('Issue counts API error'));
-      mockHttpClient.get.mockRejectedValueOnce(new Error('Latest requests API error'));
 
-      const points = await plugin.collect();
-      expect(points).toBeDefined();
-      expect(points.length).toBe(0);
+      await expect(plugin.collect()).rejects.toThrow('Request counts API error');
     });
 
     it('should handle media details fetch failure gracefully', async () => {

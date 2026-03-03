@@ -7,7 +7,7 @@ export interface OmbiConfig {
   id: number;
   url: string;
   apiKey: string;
-  verifySsl: boolean;
+  verifySsl?: boolean;
   requestCounts: {
     enabled: boolean;
     intervalSeconds: number;
@@ -16,6 +16,15 @@ export interface OmbiConfig {
     enabled: boolean;
     intervalSeconds: number;
   };
+}
+
+// API Response Types - /api/v1/Identity/Users
+export interface OmbiUser {
+  id: string;
+  userName: string;
+  alias?: string;
+  email?: string;
+  userType: number;
 }
 
 // API Response Types - /api/v1/Request/count

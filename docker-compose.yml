@@ -10,6 +10,8 @@ services:
       - ./config:/config
       - ./data:/data
       - ./logs:/logs
+    ports:
+      - "9090:9090"
     depends_on:
       influxdb:
         condition: service_healthy

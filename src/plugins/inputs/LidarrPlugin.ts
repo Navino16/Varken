@@ -2,7 +2,6 @@ import { BaseInputPlugin } from './BaseInputPlugin';
 import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
 import type {
   LidarrConfig,
-  LidarrQueueResponse,
   LidarrQueue,
   LidarrAlbum,
 } from '../../types/inputs/lidarr.types';
@@ -21,8 +20,8 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
   /**
    * Initialize the plugin and configure the HTTP client with API key header
    */
-  async initialize(config: LidarrConfig): Promise<void> {
-    await super.initialize(config);
+  async initialize(...args: Parameters<BaseInputPlugin<LidarrConfig>['initialize']>): Promise<void> {
+    await super.initialize(...args);
     this.httpClient.defaults.headers.common['X-Api-Key'] = this.config.apiKey;
   }
 
@@ -78,25 +77,13 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
    */
   private async collectQueue(): Promise<DataPoint[]> {
     const points: DataPoint[] = [];
-    const pageSize = 250;
-    let page = 1;
-    let totalRecords = 0;
-    const allRecords: LidarrQueue[] = [];
 
     try {
-      do {
-        const response = await this.httpGet<LidarrQueueResponse>('/api/v1/queue', {
-          pageSize,
-          page,
-          includeAlbum: true,
-          includeArtist: true,
-          includeUnknownArtistItems: false,
-        });
-
-        totalRecords = response.totalRecords;
-        allRecords.push(...response.records);
-        page++;
-      } while (allRecords.length < totalRecords);
+      const allRecords = await this.fetchAllPages<LidarrQueue>('/api/v1/queue', {
+        includeAlbum: true,
+        includeArtist: true,
+        includeUnknownArtistItems: false,
+      });
 
       if (allRecords.length === 0) {
         this.logger.debug('No items in Lidarr queue');
@@ -140,6 +127,7 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
       this.logger.info(`Collected ${points.length} queue items from Lidarr`);
     } catch (error) {
       this.logger.error(`Failed to collect Lidarr queue: ${error}`);
+      throw error;
     }
 
     return points;
@@ -152,14 +140,11 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
     const points: DataPoint[] = [];
 
     try {
-      const response = await this.httpGet<{ records: LidarrAlbum[] }>('/api/v1/wanted/missing', {
-        pageSize: 1000,
+      const albums = await this.fetchAllPages<LidarrAlbum>('/api/v1/wanted/missing', {
         sortKey: 'releaseDate',
         sortDirection: 'descending',
         monitored: true,
       });
-
-      const albums = response.records || [];
 
       if (albums.length === 0) {
         this.logger.debug('No missing albums found in Lidarr');
@@ -192,6 +177,7 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
       this.logger.info(`Collected ${points.length} missing albums from Lidarr`);
     } catch (error) {
       this.logger.error(`Failed to collect Lidarr missing albums: ${error}`);
+      throw error;
     }
 
     return points;

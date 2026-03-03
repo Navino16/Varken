@@ -1,16 +1,31 @@
 import { createLogger } from './core/Logger';
-import { ConfigLoader } from './config';
+import { ConfigLoader, ConfigurationMissingError } from './config';
 import { Orchestrator } from './core/Orchestrator';
 import { getInputPluginRegistry } from './plugins/inputs';
 import { getOutputPluginRegistry } from './plugins/outputs';
-import { GeoIPHandler } from './utils/geoip';
 import type { HealthServerConfig } from './core/HealthServer';
 
-const VERSION = '2.0.0';
-const DEFAULT_HEALTH_PORT = 9090;
-const logger = createLogger('Main');
+export const VERSION = '2.0.0';
+export const DEFAULT_HEALTH_PORT = 9090;
 
-async function main(): Promise<void> {
+export interface MainDependencies {
+  createLogger: typeof createLogger;
+  ConfigLoader: typeof ConfigLoader;
+  Orchestrator: typeof Orchestrator;
+  getInputPluginRegistry: typeof getInputPluginRegistry;
+  getOutputPluginRegistry: typeof getOutputPluginRegistry;
+}
+
+const defaultDependencies: MainDependencies = {
+  createLogger,
+  ConfigLoader,
+  Orchestrator,
+  getInputPluginRegistry,
+  getOutputPluginRegistry,
+};
+
+export async function main(deps: MainDependencies = defaultDependencies): Promise<void> {
+  const logger = deps.createLogger('Main');
   const configFolder = process.env.CONFIG_FOLDER || './config';
   const dataFolder = process.env.DATA_FOLDER || './data';
   const healthPort = parseInt(process.env.HEALTH_PORT || String(DEFAULT_HEALTH_PORT), 10);
@@ -24,27 +39,22 @@ async function main(): Promise<void> {
   }
 
   // Load and validate configuration
-  const configLoader = new ConfigLoader(configFolder);
-  const config = configLoader.load();
+  const configLoader = new deps.ConfigLoader(configFolder);
+  let config;
+  try {
+    config = configLoader.load();
+  } catch (error) {
+    if (error instanceof ConfigurationMissingError) {
+      logger.info(
+        `Configuration ${error.action === 'migrated' ? 'migrated' : 'template created'}. ` +
+        `Please edit ${error.configPath} and restart.`
+      );
+      process.exit(0);
+    }
+    throw error;
+  }
 
   logger.debug('Configuration loaded');
-
-  // Initialize GeoIP handler if any Tautulli config has geoip enabled
-  let geoipHandler: GeoIPHandler | undefined;
-  const tautulliConfigs = config.inputs.tautulli || [];
-  const needsGeoIP = tautulliConfigs.some((t) => t.geoip?.enabled && t.geoip?.licenseKey);
-
-  if (needsGeoIP) {
-    const geoipLicenseKey = tautulliConfigs.find((t) => t.geoip?.licenseKey)?.geoip?.licenseKey;
-    if (geoipLicenseKey) {
-      geoipHandler = new GeoIPHandler({
-        enabled: true,
-        licenseKey: geoipLicenseKey,
-        dataFolder,
-      });
-      await geoipHandler.initialize();
-    }
-  }
 
   // Create health server configuration
   const healthConfig: HealthServerConfig | undefined = healthEnabled
@@ -52,11 +62,12 @@ async function main(): Promise<void> {
     : undefined;
 
   // Create and configure orchestrator
-  const orchestrator = new Orchestrator(config, geoipHandler, healthConfig);
+  // Note: GeoIP is now handled directly by TautulliPlugin via Tautulli API
+  const orchestrator = new deps.Orchestrator(config, healthConfig);
 
   // Register plugins automatically from registries
-  const inputPlugins = getInputPluginRegistry();
-  const outputPlugins = getOutputPluginRegistry();
+  const inputPlugins = deps.getInputPluginRegistry();
+  const outputPlugins = deps.getOutputPluginRegistry();
 
   logger.info(`Discovered ${inputPlugins.size} input plugins: ${[...inputPlugins.keys()].join(', ')}`);
   logger.info(`Discovered ${outputPlugins.size} output plugins: ${[...outputPlugins.keys()].join(', ')}`);
@@ -73,7 +84,13 @@ async function main(): Promise<void> {
   logger.info('Varken is running. Press Ctrl+C to stop.');
 }
 
-main().catch((error) => {
-  logger.error('Fatal error:', error);
-  process.exit(1);
-});
+// Only run main() when executed directly (not when imported for testing)
+/* c8 ignore start */
+if (process.env.NODE_ENV !== 'test') {
+  const logger = createLogger('Main');
+  main().catch((error) => {
+    logger.error('Fatal error:', error);
+    process.exit(1);
+  });
+}
+/* c8 ignore stop */

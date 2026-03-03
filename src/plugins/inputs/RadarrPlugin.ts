@@ -2,7 +2,6 @@ import { BaseInputPlugin } from './BaseInputPlugin';
 import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
 import type {
   RadarrConfig,
-  RadarrQueueResponse,
   RadarrQueue,
   RadarrMovie,
 } from '../../types/inputs/radarr.types';
@@ -21,8 +20,8 @@ export class RadarrPlugin extends BaseInputPlugin<RadarrConfig> {
   /**
    * Initialize the plugin and configure the HTTP client with API key header
    */
-  async initialize(config: RadarrConfig): Promise<void> {
-    await super.initialize(config);
+  async initialize(...args: Parameters<BaseInputPlugin<RadarrConfig>['initialize']>): Promise<void> {
+    await super.initialize(...args);
     // Add API key header for Radarr
     this.httpClient.defaults.headers.common['X-Api-Key'] = this.config.apiKey;
   }
@@ -79,25 +78,12 @@ export class RadarrPlugin extends BaseInputPlugin<RadarrConfig> {
    */
   private async collectQueue(): Promise<DataPoint[]> {
     const points: DataPoint[] = [];
-    const pageSize = 250;
-    let page = 1;
-    let totalRecords = 0;
-    const allRecords: RadarrQueue[] = [];
 
     try {
-      // Fetch all pages of the queue
-      do {
-        const response = await this.httpGet<RadarrQueueResponse>('/api/v3/queue', {
-          pageSize,
-          page,
-          includeMovie: true,
-          includeUnknownMovieItems: false,
-        });
-
-        totalRecords = response.totalRecords;
-        allRecords.push(...response.records);
-        page++;
-      } while (allRecords.length < totalRecords);
+      const allRecords = await this.fetchAllPages<RadarrQueue>('/api/v3/queue', {
+        includeMovie: true,
+        includeUnknownMovieItems: false,
+      });
 
       if (allRecords.length === 0) {
         this.logger.debug('No items in Radarr queue');
@@ -141,6 +127,7 @@ export class RadarrPlugin extends BaseInputPlugin<RadarrConfig> {
       this.logger.info(`Collected ${points.length} queue items from Radarr`);
     } catch (error) {
       this.logger.error(`Failed to collect Radarr queue: ${error}`);
+      throw error;
     }
 
     return points;
@@ -193,6 +180,7 @@ export class RadarrPlugin extends BaseInputPlugin<RadarrConfig> {
       this.logger.info(`Collected ${points.length} missing movies from Radarr`);
     } catch (error) {
       this.logger.error(`Failed to collect Radarr missing movies: ${error}`);
+      throw error;
     }
 
     return points;

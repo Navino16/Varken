@@ -16,8 +16,8 @@ export class ProwlarrPlugin extends BaseInputPlugin<ProwlarrConfig> {
   /**
    * Initialize the plugin and configure the HTTP client with API key header
    */
-  async initialize(config: ProwlarrConfig): Promise<void> {
-    await super.initialize(config);
+  async initialize(...args: Parameters<BaseInputPlugin<ProwlarrConfig>['initialize']>): Promise<void> {
+    await super.initialize(...args);
     this.httpClient.defaults.headers.common['X-Api-Key'] = this.config.apiKey;
   }
 
@@ -107,6 +107,7 @@ export class ProwlarrPlugin extends BaseInputPlugin<ProwlarrConfig> {
       this.logger.info(`Collected stats for ${points.length} indexers from Prowlarr`);
     } catch (error) {
       this.logger.error(`Failed to collect Prowlarr indexer stats: ${error}`);
+      throw error;
     }
 
     return points;

@@ -7,7 +7,7 @@ export interface PlexConfig {
   id: number;
   url: string;
   token: string;
-  verifySsl: boolean;
+  verifySsl?: boolean;
   sessions: {
     enabled: boolean;
     intervalSeconds: number;

@@ -2,7 +2,6 @@ import { BaseInputPlugin } from './BaseInputPlugin';
 import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
 import type {
   SonarrConfig,
-  SonarrQueueResponse,
   SonarrQueue,
   SonarrEpisode,
 } from '../../types/inputs/sonarr.types';
@@ -21,8 +20,8 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
   /**
    * Initialize the plugin and configure the HTTP client with API key header
    */
-  async initialize(config: SonarrConfig): Promise<void> {
-    await super.initialize(config);
+  async initialize(...args: Parameters<BaseInputPlugin<SonarrConfig>['initialize']>): Promise<void> {
+    await super.initialize(...args);
     // Add API key header for Sonarr
     this.httpClient.defaults.headers.common['X-Api-Key'] = this.config.apiKey;
   }
@@ -93,26 +92,13 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
    */
   private async collectQueue(): Promise<DataPoint[]> {
     const points: DataPoint[] = [];
-    const pageSize = 250;
-    let page = 1;
-    let totalRecords = 0;
-    const allRecords: SonarrQueue[] = [];
 
     try {
-      // Fetch all pages of the queue
-      do {
-        const response = await this.httpGet<SonarrQueueResponse>('/api/v3/queue', {
-          pageSize,
-          page,
-          includeSeries: true,
-          includeEpisode: true,
-          includeUnknownSeriesItems: false,
-        });
-
-        totalRecords = response.totalRecords;
-        allRecords.push(...response.records);
-        page++;
-      } while (allRecords.length < totalRecords);
+      const allRecords = await this.fetchAllPages<SonarrQueue>('/api/v3/queue', {
+        includeSeries: true,
+        includeEpisode: true,
+        includeUnknownSeriesItems: false,
+      });
 
       if (allRecords.length === 0) {
         this.logger.debug('No items in Sonarr queue');
@@ -158,6 +144,7 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
       this.logger.info(`Collected ${points.length} queue items from Sonarr`);
     } catch (error) {
       this.logger.error(`Failed to collect Sonarr queue: ${error}`);
+      throw error;
     }
 
     return points;
@@ -240,6 +227,7 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
       this.logger.info(`Collected ${points.length} ${queryType.toLowerCase()} episodes from Sonarr`);
     } catch (error) {
       this.logger.error(`Failed to collect Sonarr calendar (${queryType}): ${error}`);
+      throw error;
     }
 
     return points;

@@ -9,7 +9,6 @@ export interface SonarrConfig {
   id: number;
   url: string;
   apiKey: string;
-  ssl?: boolean;
   verifySsl?: boolean;
   queue: {
     enabled: boolean;
@@ -136,13 +135,4 @@ export interface SonarrQueue {
   languages?: { id: number; name: string }[];
   customFormats?: unknown[];
   customFormatScore?: number;
-}
-
-export interface SonarrQueueResponse {
-  page: number;
-  pageSize: number;
-  sortKey: string;
-  sortDirection: string;
-  totalRecords: number;
-  records: SonarrQueue[];
 }

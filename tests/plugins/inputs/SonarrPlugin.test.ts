@@ -35,7 +35,6 @@ describe('SonarrPlugin', () => {
     id: 1,
     url: 'http://localhost:8989',
     apiKey: 'test-api-key',
-    ssl: false,
     verifySsl: false,
     queue: {
       enabled: true,
@@ -272,13 +271,10 @@ describe('SonarrPlugin', () => {
       expect(points).toEqual([]);
     });
 
-    it('should handle API errors gracefully', async () => {
+    it('should propagate API errors for circuit breaker', async () => {
       mockHttpClient.get.mockRejectedValueOnce(new Error('API Error'));
-      mockHttpClient.get.mockResolvedValueOnce({ data: [] });
-      mockHttpClient.get.mockResolvedValueOnce({ data: [] });
 
-      const points = await plugin.collect();
-      expect(points).toBeDefined();
+      await expect(plugin.collect()).rejects.toThrow('API Error');
     });
 
     it('should paginate through large queues', async () => {

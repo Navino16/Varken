@@ -319,25 +319,20 @@ describe('BazarrPlugin', () => {
       expect(points).toEqual([]);
     });
 
-    it('should handle wanted API errors gracefully', async () => {
+    it('should propagate wanted API errors for circuit breaker', async () => {
       mockHttpClient.get.mockRejectedValueOnce(new Error('Wanted API Error'));
-      // History calls
-      mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
-      mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
 
-      const points = await plugin.collect();
-      expect(points).toBeDefined();
+      await expect(plugin.collect()).rejects.toThrow('Wanted API Error');
     });
 
-    it('should handle history API errors gracefully', async () => {
-      // Wanted calls
+    it('should propagate history API errors for circuit breaker', async () => {
+      // Wanted calls succeed
       mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
       mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
       // History error
       mockHttpClient.get.mockRejectedValueOnce(new Error('History API Error'));
 
-      const points = await plugin.collect();
-      expect(points).toBeDefined();
+      await expect(plugin.collect()).rejects.toThrow('History API Error');
     });
 
     it('should generate deterministic hash IDs', async () => {

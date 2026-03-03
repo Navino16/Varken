@@ -2,6 +2,29 @@
 # Copy this file to varken.yaml and customize
 
 # =============================================================================
+# GLOBAL SETTINGS - Application-wide configuration (optional)
+# =============================================================================
+# All values have sensible defaults and can be omitted
+
+# global:
+#   # Timeout for HTTP requests to services (in milliseconds)
+#   httpTimeoutMs: 30000  # 30 seconds
+#
+#   # Timeout for health check requests (in milliseconds)
+#   healthCheckTimeoutMs: 5000  # 5 seconds
+#
+#   # Timeout for collector execution (in milliseconds)
+#   # If a collector takes longer than this, it will be terminated
+#   collectorTimeoutMs: 60000  # 60 seconds
+#
+#   # Number of records per page when fetching paginated API endpoints
+#   paginationPageSize: 250
+#
+#   # Maximum number of records to fetch from paginated endpoints
+#   # This is a safety limit to prevent OOM on very large datasets
+#   maxPaginationRecords: 10000
+
+# =============================================================================
 # OUTPUT PLUGINS - Where to send collected data
 # =============================================================================
 outputs:
@@ -143,7 +166,6 @@ inputs:
   #     url: "http://localhost:8181"
   #     apiKey: "your-api-key"
   #     verifySsl: false
-  #     fallbackIp: "1.1.1.1"
   #     activity:
   #       enabled: true
   #       intervalSeconds: 30
@@ -155,7 +177,10 @@ inputs:
   #       intervalSeconds: 300
   #     geoip:
   #       enabled: true
-  #       licenseKey: "your-maxmind-license-key"
+  #       # Optional: coordinates for local/LAN sessions (used when IP is private)
+  #       localCoordinates:
+  #         latitude: 48.8566
+  #         longitude: 2.3522
 
   # Plex - Direct Plex monitoring
   # plex:
@@ -226,3 +251,29 @@ inputs:
   #       enabled: true
   #       count: 10
   #       intervalSeconds: 300
+
+# =============================================================================
+# CIRCUIT BREAKER - Error recovery configuration (optional)
+# =============================================================================
+# The circuit breaker automatically handles failing schedulers by:
+# 1. Applying exponential backoff on errors (increasing interval between retries)
+# 2. Disabling schedulers after too many consecutive errors
+# 3. Re-enabling them after a cooldown period with gradual recovery
+#
+# State machine: CLOSED (normal) → OPEN (disabled) → HALF-OPEN (recovery) → CLOSED
+
+# circuitBreaker:
+#   # Number of consecutive errors before disabling a scheduler
+#   maxConsecutiveErrors: 10
+#
+#   # Interval multiplier applied after each failure (e.g., 30s → 60s → 120s)
+#   backoffMultiplier: 2
+#
+#   # Maximum interval cap in seconds (prevents intervals from growing too large)
+#   maxIntervalSeconds: 600  # 10 minutes
+#
+#   # How long to wait before attempting recovery (in seconds)
+#   cooldownSeconds: 300  # 5 minutes
+#
+#   # Number of successful executions needed to fully recover from half-open state
+#   recoverySuccesses: 3

@@ -9,7 +9,7 @@ export interface ReadarrConfig {
   id: number;
   url: string;
   apiKey: string;
-  verifySsl: boolean;
+  verifySsl?: boolean;
   queue: {
     enabled: boolean;
     intervalSeconds: number;
@@ -120,13 +120,4 @@ export interface ReadarrQueue {
   indexer: string;
   outputPath?: string;
   added: string;
-}
-
-export interface ReadarrQueueResponse {
-  page: number;
-  pageSize: number;
-  sortKey: string;
-  sortDirection: string;
-  totalRecords: number;
-  records: ReadarrQueue[];
 }

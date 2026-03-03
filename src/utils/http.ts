@@ -36,6 +36,10 @@ export function createHttpClient(config: HttpClientConfig): AxiosInstance {
 
   // Handle SSL verification
   if (config.verifySsl === false) {
+    logger.warn(
+      `SSL verification disabled for ${config.baseURL}. ` +
+        'This exposes connections to MITM attacks. Do not use in production!'
+    );
     axiosConfig.httpsAgent = new https.Agent({
       rejectUnauthorized: false,
     });

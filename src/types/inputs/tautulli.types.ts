@@ -2,13 +2,19 @@
  * Tautulli input configuration and API response types
  */
 
+// Local coordinates configuration for LAN streams
+export interface LocalCoordinates {
+  latitude: number;
+  longitude: number;
+}
+
 // Configuration
 export interface TautulliConfig {
   id: number;
   url: string;
   apiKey: string;
-  ssl?: boolean;
   verifySsl?: boolean;
+  /** @deprecated Use geoip.localCoordinates instead */
   fallbackIp?: string;
   activity: {
     enabled: boolean;
@@ -24,7 +30,9 @@ export interface TautulliConfig {
   };
   geoip: {
     enabled: boolean;
+    /** @deprecated GeoIP is now handled by Tautulli API, license key is no longer required */
     licenseKey?: string;
+    localCoordinates?: LocalCoordinates;
   };
 }
 
@@ -65,7 +73,7 @@ export interface TautulliSession {
   location: string;
   secure: string;
   relayed: number;
-  local: string;
+  local: string | number;
   media_type: string;
   rating_key: string;
   parent_rating_key: string;
@@ -132,7 +140,7 @@ export interface TautulliLibrary {
   is_active: number;
 }
 
-// GeoIP information (added by Varken)
+// GeoIP information (used internally by Varken)
 export interface GeoIPInfo {
   city: string;
   region: string;
@@ -141,8 +149,19 @@ export interface GeoIPInfo {
   longitude: number;
 }
 
-// GeoIP lookup function type
-export type GeoIPLookupFn = (ip: string) => Promise<GeoIPInfo | null>;
+// Tautulli GeoIP API response (from get_geoip_lookup command)
+export interface TautulliGeoIPResponse {
+  city: string;
+  code: string;
+  continent: string;
+  country: string;
+  latitude: number;
+  longitude: number;
+  postal_code: string;
+  region: string;
+  timezone: string;
+  accuracy: number;
+}
 
 // API Response wrapper
 export interface TautulliApiResponse<T> {

@@ -8,7 +8,7 @@ export interface EmbyConfig {
   id: number;
   url: string;
   apiKey: string;
-  verifySsl: boolean;
+  verifySsl?: boolean;
   sessions: {
     enabled: boolean;
     intervalSeconds: number;

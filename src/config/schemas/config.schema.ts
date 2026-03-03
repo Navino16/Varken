@@ -61,66 +61,70 @@ const ScheduleConfigDaysSchema = z.object({
   intervalDays: z.number().default(1),
 });
 
+// Default values for reuse
+const scheduleDefault = { enabled: false, intervalSeconds: 30 };
+const scheduleDaysDefault = { enabled: false, intervalDays: 1 };
+
 // =============================================================================
 // Input Schemas - Arr Stack
 // =============================================================================
 
 export const SonarrConfigSchema = z.object({
   id: z.number(),
-  url: z.string(),
+  url: z.url(),
   apiKey: z.string(),
   verifySsl: z.boolean().default(false),
-  queue: ScheduleConfigSchema.default({}),
+  queue: ScheduleConfigSchema.default(scheduleDefault),
   calendar: z.object({
     enabled: z.boolean().default(false),
     futureDays: z.number().default(7),
     missingDays: z.number().default(30),
     intervalSeconds: z.number().default(300),
-  }).default({}),
+  }).default({ enabled: false, futureDays: 7, missingDays: 30, intervalSeconds: 300 }),
 });
 
 export const RadarrConfigSchema = z.object({
   id: z.number(),
-  url: z.string(),
+  url: z.url(),
   apiKey: z.string(),
   verifySsl: z.boolean().default(false),
-  queue: ScheduleConfigSchema.default({}),
-  missing: ScheduleConfigSchema.default({}),
+  queue: ScheduleConfigSchema.default(scheduleDefault),
+  missing: ScheduleConfigSchema.default(scheduleDefault),
 });
 
 export const ReadarrConfigSchema = z.object({
   id: z.number(),
-  url: z.string(),
+  url: z.url(),
   apiKey: z.string(),
   verifySsl: z.boolean().default(false),
-  queue: ScheduleConfigSchema.default({}),
-  missing: ScheduleConfigSchema.default({}),
+  queue: ScheduleConfigSchema.default(scheduleDefault),
+  missing: ScheduleConfigSchema.default(scheduleDefault),
 });
 
 export const LidarrConfigSchema = z.object({
   id: z.number(),
-  url: z.string(),
+  url: z.url(),
   apiKey: z.string(),
   verifySsl: z.boolean().default(false),
-  queue: ScheduleConfigSchema.default({}),
-  missing: ScheduleConfigSchema.default({}),
+  queue: ScheduleConfigSchema.default(scheduleDefault),
+  missing: ScheduleConfigSchema.default(scheduleDefault),
 });
 
 export const ProwlarrConfigSchema = z.object({
   id: z.number(),
-  url: z.string(),
+  url: z.url(),
   apiKey: z.string(),
   verifySsl: z.boolean().default(false),
-  indexerStats: ScheduleConfigSchema.default({}),
+  indexerStats: ScheduleConfigSchema.default(scheduleDefault),
 });
 
 export const BazarrConfigSchema = z.object({
   id: z.number(),
-  url: z.string(),
+  url: z.url(),
   apiKey: z.string(),
   verifySsl: z.boolean().default(false),
-  wanted: ScheduleConfigSchema.default({}),
-  history: ScheduleConfigSchema.default({}),
+  wanted: ScheduleConfigSchema.default(scheduleDefault),
+  history: ScheduleConfigSchema.default(scheduleDefault),
 });
 
 // =============================================================================
@@ -129,44 +133,50 @@ export const BazarrConfigSchema = z.object({
 
 export const TautulliConfigSchema = z.object({
   id: z.number(),
-  url: z.string(),
+  url: z.url(),
   apiKey: z.string(),
   verifySsl: z.boolean().default(false),
+  /** @deprecated Use geoip.localCoordinates instead */
   fallbackIp: z.string().optional(),
-  activity: ScheduleConfigSchema.default({}),
-  libraries: ScheduleConfigDaysSchema.default({}),
-  stats: ScheduleConfigSchema.default({}),
+  activity: ScheduleConfigSchema.default(scheduleDefault),
+  libraries: ScheduleConfigDaysSchema.default(scheduleDaysDefault),
+  stats: ScheduleConfigSchema.default(scheduleDefault),
   geoip: z.object({
     enabled: z.boolean().default(false),
+    /** @deprecated GeoIP is now handled by Tautulli API */
     licenseKey: z.string().optional(),
-  }).default({}),
+    localCoordinates: z.object({
+      latitude: z.number(),
+      longitude: z.number(),
+    }).optional(),
+  }).default({ enabled: false }),
 });
 
 export const PlexConfigSchema = z.object({
   id: z.number(),
-  url: z.string(),
+  url: z.url(),
   token: z.string(),
   verifySsl: z.boolean().default(false),
-  sessions: ScheduleConfigSchema.default({}),
-  libraries: ScheduleConfigSchema.default({}),
+  sessions: ScheduleConfigSchema.default(scheduleDefault),
+  libraries: ScheduleConfigSchema.default(scheduleDefault),
 });
 
 export const JellyfinConfigSchema = z.object({
   id: z.number(),
-  url: z.string(),
+  url: z.url(),
   apiKey: z.string(),
   verifySsl: z.boolean().default(false),
-  sessions: ScheduleConfigSchema.default({}),
-  libraries: ScheduleConfigSchema.default({}),
+  sessions: ScheduleConfigSchema.default(scheduleDefault),
+  libraries: ScheduleConfigSchema.default(scheduleDefault),
 });
 
 export const EmbyConfigSchema = z.object({
   id: z.number(),
-  url: z.string(),
+  url: z.url(),
   apiKey: z.string(),
   verifySsl: z.boolean().default(false),
-  sessions: ScheduleConfigSchema.default({}),
-  libraries: ScheduleConfigSchema.default({}),
+  sessions: ScheduleConfigSchema.default(scheduleDefault),
+  libraries: ScheduleConfigSchema.default(scheduleDefault),
 });
 
 // =============================================================================
@@ -175,24 +185,58 @@ export const EmbyConfigSchema = z.object({
 
 export const OmbiConfigSchema = z.object({
   id: z.number(),
-  url: z.string(),
+  url: z.url(),
   apiKey: z.string(),
   verifySsl: z.boolean().default(false),
-  requestCounts: ScheduleConfigSchema.default({}),
-  issueCounts: ScheduleConfigSchema.default({}),
+  requestCounts: ScheduleConfigSchema.default(scheduleDefault),
+  issueCounts: ScheduleConfigSchema.default(scheduleDefault),
 });
 
 export const OverseerrConfigSchema = z.object({
   id: z.number(),
-  url: z.string(),
+  url: z.url(),
   apiKey: z.string(),
   verifySsl: z.boolean().default(false),
-  requestCounts: ScheduleConfigSchema.default({}),
+  requestCounts: ScheduleConfigSchema.default(scheduleDefault),
   latestRequests: z.object({
     enabled: z.boolean().default(false),
     count: z.number().default(10),
     intervalSeconds: z.number().default(300),
-  }).default({}),
+  }).default({ enabled: false, count: 10, intervalSeconds: 300 }),
+});
+
+// =============================================================================
+// Global Configuration Schema
+// =============================================================================
+
+export const GlobalConfigSchema = z.object({
+  /** HTTP request timeout in milliseconds */
+  httpTimeoutMs: z.number().min(1000).default(30000),
+  /** Health check timeout in milliseconds */
+  healthCheckTimeoutMs: z.number().min(1000).default(5000),
+  /** Collector execution timeout in milliseconds */
+  collectorTimeoutMs: z.number().min(10000).default(60000),
+  /** Page size for paginated API requests */
+  paginationPageSize: z.number().min(10).max(1000).default(250),
+  /** Maximum records to fetch in pagination (safety limit) */
+  maxPaginationRecords: z.number().min(1000).default(10000),
+});
+
+// =============================================================================
+// Circuit Breaker Schema
+// =============================================================================
+
+export const CircuitBreakerConfigSchema = z.object({
+  /** Number of consecutive errors before disabling scheduler */
+  maxConsecutiveErrors: z.number().min(1).default(10),
+  /** Interval multiplier per failure */
+  backoffMultiplier: z.number().min(1).default(2),
+  /** Maximum interval cap in seconds */
+  maxIntervalSeconds: z.number().min(1).default(600),
+  /** Wait time before recovery attempt in seconds */
+  cooldownSeconds: z.number().min(1).default(300),
+  /** Number of successes needed to fully recover */
+  recoverySuccesses: z.number().min(1).default(3),
 });
 
 // =============================================================================
@@ -229,11 +273,20 @@ export const InputsConfigSchema = z.object({
 );
 
 export const VarkenConfigSchema = z.object({
+  global: GlobalConfigSchema.optional().transform((val) => val ?? {
+    httpTimeoutMs: 30000,
+    healthCheckTimeoutMs: 5000,
+    collectorTimeoutMs: 60000,
+    paginationPageSize: 250,
+    maxPaginationRecords: 10000,
+  }),
   outputs: OutputsConfigSchema,
   inputs: InputsConfigSchema,
+  circuitBreaker: CircuitBreakerConfigSchema.optional(),
 });
 
 // Type exports
 export type VarkenConfig = z.infer<typeof VarkenConfigSchema>;
+export type GlobalConfig = z.infer<typeof GlobalConfigSchema>;
 export type OutputsConfig = z.infer<typeof OutputsConfigSchema>;
 export type InputsConfig = z.infer<typeof InputsConfigSchema>;

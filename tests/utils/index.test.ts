@@ -1,7 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import {
-  GeoIPHandler,
-  createGeoIPHandler,
   createHttpClient,
   formatHttpError,
   isHttpStatus,
@@ -13,18 +11,6 @@ import {
 } from '../../src/utils';
 
 describe('Utils Index', () => {
-  describe('GeoIP exports', () => {
-    it('should export GeoIPHandler', () => {
-      expect(GeoIPHandler).toBeDefined();
-      expect(typeof GeoIPHandler).toBe('function');
-    });
-
-    it('should export createGeoIPHandler', () => {
-      expect(createGeoIPHandler).toBeDefined();
-      expect(typeof createGeoIPHandler).toBe('function');
-    });
-  });
-
   describe('HTTP exports', () => {
     it('should export createHttpClient', () => {
       expect(createHttpClient).toBeDefined();

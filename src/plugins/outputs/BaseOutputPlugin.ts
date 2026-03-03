@@ -110,8 +110,15 @@ export abstract class BaseOutputPlugin<TConfig extends BaseOutputConfig = BaseOu
   ): string {
     let escaped = value;
 
-    // Common escapes for all types
+    // Backslashes first (before other escapes add more backslashes)
     escaped = escaped.replace(/\\/g, '\\\\');
+
+    // Control characters
+    escaped = escaped.replace(/\n/g, '\\n');
+    escaped = escaped.replace(/\r/g, '\\r');
+    escaped = escaped.replace(/\t/g, '\\t');
+
+    // Spaces
     escaped = escaped.replace(/ /g, '\\ ');
 
     if (type === 'measurement' || type === 'tag') {
@@ -138,8 +145,8 @@ export abstract class BaseOutputPlugin<TConfig extends BaseOutputConfig = BaseOu
       return String(value);
     }
 
-    // Strings need to be quoted
-    const escaped = String(value).replace(/"/g, '\\"');
+    // Strings need to be quoted and escaped (backslashes first, then quotes)
+    const escaped = String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
     return `"${escaped}"`;
   }
 

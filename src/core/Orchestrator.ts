@@ -3,7 +3,6 @@ import type { InputPluginFactory, OutputPluginFactory } from './PluginManager';
 import { PluginManager } from './PluginManager';
 import { HealthServer, type HealthServerConfig } from './HealthServer';
 import type { VarkenConfig } from '../config/schemas/config.schema';
-import type { GeoIPHandler } from '../utils/geoip';
 
 const logger = createLogger('Orchestrator');
 
@@ -24,15 +23,13 @@ export class Orchestrator {
   private healthServer: HealthServer | null = null;
   private config: VarkenConfig;
   private healthConfig?: HealthServerConfig;
-  private geoipHandler?: GeoIPHandler;
   private isRunning = false;
   private shutdownPromise: Promise<void> | null = null;
 
-  constructor(config: VarkenConfig, geoipHandler?: GeoIPHandler, healthConfig?: HealthServerConfig) {
+  constructor(config: VarkenConfig, healthConfig?: HealthServerConfig) {
     this.config = config;
-    this.geoipHandler = geoipHandler;
     this.healthConfig = healthConfig;
-    this.pluginManager = new PluginManager(geoipHandler);
+    this.pluginManager = new PluginManager();
   }
 
   /**
@@ -109,8 +106,10 @@ export class Orchestrator {
       return this.shutdownPromise;
     }
 
+    // If not running, create resolved promise to prevent race conditions
     if (!this.isRunning) {
-      return;
+      this.shutdownPromise = Promise.resolve();
+      return this.shutdownPromise;
     }
 
     this.shutdownPromise = this.performShutdown();
@@ -132,11 +131,6 @@ export class Orchestrator {
       }
 
       await this.pluginManager.shutdown();
-
-      // Shutdown GeoIP handler if initialized
-      if (this.geoipHandler) {
-        await this.geoipHandler.shutdown();
-      }
 
       logger.info('Varken stopped successfully');
     } catch (error) {

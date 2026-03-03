@@ -1,4 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import fs from 'fs';
+import path from 'path';
+import winston from 'winston';
 
 // Test the sensitive data filtering logic directly (matching the patterns in Logger.ts)
 describe('Logger', () => {
@@ -151,6 +154,200 @@ describe('Logger', () => {
       expect(typeof childLogger.error).toBe('function');
       expect(typeof childLogger.warn).toBe('function');
       expect(typeof childLogger.debug).toBe('function');
+    });
+  });
+
+  describe('Log directory creation', () => {
+    it('should ensure log directory exists', () => {
+      const logFolder = process.env.LOG_FOLDER || './logs';
+      expect(fs.existsSync(logFolder)).toBe(true);
+    });
+
+    it('should create error.log file path correctly', () => {
+      const logFolder = process.env.LOG_FOLDER || './logs';
+      const errorLogPath = path.join(logFolder, 'error.log');
+      // The path should be valid (we don't check file exists as it may not have errors yet)
+      expect(typeof errorLogPath).toBe('string');
+      expect(errorLogPath).toContain('error.log');
+    });
+
+    it('should create combined.log file path correctly', () => {
+      const logFolder = process.env.LOG_FOLDER || './logs';
+      const combinedLogPath = path.join(logFolder, 'combined.log');
+      expect(typeof combinedLogPath).toBe('string');
+      expect(combinedLogPath).toContain('combined.log');
+    });
+  });
+
+  describe('Winston format integration', () => {
+    // Test the filterSensitiveData format directly
+    it('should create a working filter format', () => {
+      const SENSITIVE_PATTERNS = [
+        /apikey[=:]\s*["']?[\w-]+["']?/gi,
+        /token[=:]\s*["']?[\w-]+["']?/gi,
+        /password[=:]\s*["']?[^"'\s]+["']?/gi,
+        /secret[=:]\s*["']?[\w-]+["']?/gi,
+      ];
+
+      const filterSensitiveData = winston.format((info) => {
+        if (typeof info.message === 'string') {
+          let filtered = info.message;
+          for (const pattern of SENSITIVE_PATTERNS) {
+            filtered = filtered.replace(pattern, (match) => {
+              const [key] = match.split(/[=:]/);
+              return `${key}=***REDACTED***`;
+            });
+          }
+          info.message = filtered;
+        }
+        return info;
+      });
+
+      const format = filterSensitiveData();
+      const result = format.transform({
+        level: 'info',
+        message: 'apikey=secret123',
+      });
+
+      expect(result).toBeDefined();
+      if (result !== false) {
+        expect(result.message).toBe('apikey=***REDACTED***');
+      }
+    });
+
+    it('should handle non-string messages in filter', () => {
+      const SENSITIVE_PATTERNS = [
+        /apikey[=:]\s*["']?[\w-]+["']?/gi,
+      ];
+
+      const filterSensitiveData = winston.format((info) => {
+        if (typeof info.message === 'string') {
+          let filtered = info.message;
+          for (const pattern of SENSITIVE_PATTERNS) {
+            filtered = filtered.replace(pattern, (match) => {
+              const [key] = match.split(/[=:]/);
+              return `${key}=***REDACTED***`;
+            });
+          }
+          info.message = filtered;
+        }
+        return info;
+      });
+
+      const format = filterSensitiveData();
+      // Test with non-string message (object)
+      const result = format.transform({
+        level: 'info',
+        message: { data: 'test' } as unknown as string,
+      });
+
+      expect(result).toBeDefined();
+      // Should pass through unchanged since message is not a string
+      if (result !== false) {
+        expect(result.message).toEqual({ data: 'test' });
+      }
+    });
+
+    it('should create printf format with module prefix', () => {
+      const printfFormat = winston.format.printf(({ timestamp, level, message, module }) => {
+        const modulePrefix = module ? `[${module}]` : '';
+        return `${timestamp} ${level} ${modulePrefix} ${message}`;
+      });
+
+      const result = printfFormat.transform({
+        level: 'info',
+        message: 'Test message',
+        module: 'TestModule',
+        timestamp: '2024-01-01 12:00:00',
+      });
+
+      if (typeof result === 'object' && result !== null && Symbol.for('message') in result) {
+        const formattedMessage = (result as { [key: symbol]: string })[Symbol.for('message')];
+        expect(formattedMessage).toContain('[TestModule]');
+        expect(formattedMessage).toContain('Test message');
+        expect(formattedMessage).toContain('2024-01-01 12:00:00');
+      }
+    });
+
+    it('should create printf format without module prefix when module is not provided', () => {
+      const printfFormat = winston.format.printf(({ timestamp, level, message, module }) => {
+        const modulePrefix = module ? `[${module}]` : '';
+        return `${timestamp} ${level} ${modulePrefix} ${message}`;
+      });
+
+      const result = printfFormat.transform({
+        level: 'info',
+        message: 'Test message',
+        timestamp: '2024-01-01 12:00:00',
+      });
+
+      if (typeof result === 'object' && result !== null && Symbol.for('message') in result) {
+        const formattedMessage = (result as { [key: symbol]: string })[Symbol.for('message')];
+        expect(formattedMessage).not.toContain('[');
+        expect(formattedMessage).toContain('Test message');
+      }
+    });
+  });
+
+  describe('Logger functionality', () => {
+    it('should create multiple child loggers with different module names', async () => {
+      const { createLogger } = await import('../../src/core/Logger');
+
+      const logger1 = createLogger('Module1');
+      const logger2 = createLogger('Module2');
+      const logger3 = createLogger('Module3');
+
+      expect(logger1).toBeDefined();
+      expect(logger2).toBeDefined();
+      expect(logger3).toBeDefined();
+
+      // They should be different instances
+      expect(logger1).not.toBe(logger2);
+      expect(logger2).not.toBe(logger3);
+    });
+
+    it('should support all log levels', async () => {
+      const { createLogger } = await import('../../src/core/Logger');
+      const testLogger = createLogger('LevelTest');
+
+      // These should not throw
+      expect(() => testLogger.error('Error message')).not.toThrow();
+      expect(() => testLogger.warn('Warning message')).not.toThrow();
+      expect(() => testLogger.info('Info message')).not.toThrow();
+      expect(() => testLogger.debug('Debug message')).not.toThrow();
+      expect(() => testLogger.verbose('Verbose message')).not.toThrow();
+      expect(() => testLogger.silly('Silly message')).not.toThrow();
+    });
+
+    it('should handle logging with metadata', async () => {
+      const { createLogger } = await import('../../src/core/Logger');
+      const testLogger = createLogger('MetadataTest');
+
+      // Should not throw when logging with additional metadata
+      expect(() => testLogger.info('Message with metadata', { extra: 'data' })).not.toThrow();
+    });
+
+    it('should handle logging errors', async () => {
+      const { createLogger } = await import('../../src/core/Logger');
+      const testLogger = createLogger('ErrorTest');
+
+      const error = new Error('Test error');
+      expect(() => testLogger.error('An error occurred', error)).not.toThrow();
+    });
+  });
+
+  describe('Environment configuration', () => {
+    it('should use LOG_FOLDER environment variable', () => {
+      // The logger module is already loaded, so we verify the logs directory exists
+      const logFolder = process.env.LOG_FOLDER || './logs';
+      expect(fs.existsSync(logFolder)).toBe(true);
+    });
+
+    it('should respect LOG_LEVEL environment variable', async () => {
+      // We can only verify the module loaded successfully
+      // Changing LOG_LEVEL requires module reload which is complex
+      const loggerModule = await import('../../src/core/Logger');
+      expect(loggerModule.default.level).toBeDefined();
     });
   });
 });

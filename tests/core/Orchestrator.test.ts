@@ -53,6 +53,13 @@ describe('Orchestrator', () => {
   let orchestrator: Orchestrator;
 
   const minimalConfig: VarkenConfig = {
+    global: {
+      httpTimeoutMs: 30000,
+      healthCheckTimeoutMs: 5000,
+      collectorTimeoutMs: 60000,
+      paginationPageSize: 250,
+      maxPaginationRecords: 10000,
+    },
     outputs: {
       influxdb1: {
         url: 'localhost',
@@ -133,6 +140,7 @@ describe('Orchestrator', () => {
 
   describe('stop', () => {
     it('should stop the orchestrator', async () => {
+      vi.useRealTimers(); // Need real timers for withTimeout
       orchestrator.registerPlugins({
         inputPlugins: new Map([['sonarr', MockInputPlugin]]),
         outputPlugins: new Map([['influxdb1', MockOutputPlugin]]),
@@ -145,6 +153,7 @@ describe('Orchestrator', () => {
     });
 
     it('should handle multiple stop calls gracefully', async () => {
+      vi.useRealTimers(); // Need real timers for withTimeout
       orchestrator.registerPlugins({
         inputPlugins: new Map([['sonarr', MockInputPlugin]]),
         outputPlugins: new Map([['influxdb1', MockOutputPlugin]]),
@@ -185,6 +194,103 @@ describe('Orchestrator', () => {
       const pm = orchestrator.getPluginManager();
       expect(pm).toBeDefined();
       expect(pm.getStats).toBeDefined();
+    });
+  });
+
+  describe('health server configuration', () => {
+    it('should start without health server when not configured', async () => {
+      // Default orchestrator has no health config
+      orchestrator.registerPlugins({
+        inputPlugins: new Map([['sonarr', MockInputPlugin]]),
+        outputPlugins: new Map([['influxdb1', MockOutputPlugin]]),
+      });
+
+      await orchestrator.start();
+
+      expect(orchestrator.isActive()).toBe(true);
+    });
+
+    it('should start with health server when configured', async () => {
+      const orchestratorWithHealth = new Orchestrator(minimalConfig, {
+        port: 9090,
+        version: '1.0.0',
+      });
+
+      orchestratorWithHealth.registerPlugins({
+        inputPlugins: new Map([['sonarr', MockInputPlugin]]),
+        outputPlugins: new Map([['influxdb1', MockOutputPlugin]]),
+      });
+
+      await orchestratorWithHealth.start();
+
+      expect(orchestratorWithHealth.isActive()).toBe(true);
+
+      await orchestratorWithHealth.stop();
+    });
+  });
+
+  describe('shutdown behavior', () => {
+    it('should await pending shutdown when stop called multiple times simultaneously', async () => {
+      vi.useRealTimers(); // Need real timers for withTimeout
+      orchestrator.registerPlugins({
+        inputPlugins: new Map([['sonarr', MockInputPlugin]]),
+        outputPlugins: new Map([['influxdb1', MockOutputPlugin]]),
+      });
+
+      await orchestrator.start();
+
+      // Call stop multiple times simultaneously
+      const stopPromises = [
+        orchestrator.stop(),
+        orchestrator.stop(),
+        orchestrator.stop(),
+      ];
+
+      await Promise.all(stopPromises);
+
+      expect(orchestrator.isActive()).toBe(false);
+    });
+  });
+
+  describe('health check logging', () => {
+    it('should log healthy outputs', async () => {
+      orchestrator.registerPlugins({
+        inputPlugins: new Map([['sonarr', MockInputPlugin]]),
+        outputPlugins: new Map([['influxdb1', MockOutputPlugin]]),
+      });
+
+      // Should not throw and should log healthy status
+      await orchestrator.start();
+
+      expect(orchestrator.isActive()).toBe(true);
+    });
+
+    it('should log unhealthy outputs', async () => {
+      class UnhealthyOutputPlugin extends BaseOutputPlugin<BaseOutputConfig> {
+        readonly metadata: PluginMetadata = {
+          name: 'UnhealthyOutput',
+          version: '1.0.0',
+          description: 'Unhealthy output for testing',
+        };
+
+        async write(_points: DataPoint[]): Promise<void> {
+          // No-op
+        }
+
+        async healthCheck(): Promise<boolean> {
+          return false;
+        }
+      }
+
+      orchestrator.registerPlugins({
+        inputPlugins: new Map([['sonarr', MockInputPlugin]]),
+        outputPlugins: new Map([['influxdb1', UnhealthyOutputPlugin]]),
+      });
+
+      // Should not throw even with unhealthy output
+      await orchestrator.start();
+
+      expect(orchestrator.isActive()).toBe(true);
     });
   });
 
