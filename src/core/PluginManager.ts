@@ -251,7 +251,10 @@ export class PluginManager {
     this.schedulers.set(schedule.name, activeScheduler);
 
     // Run immediately on start
-    this.executeSchedule(schedule);
+    this.executeSchedule(schedule).catch((error) => {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      logger.error(`Scheduler ${schedule.name} initial run failed: ${message}`);
+    });
 
     // Then schedule next run
     activeScheduler.timer = this.scheduleNextRun(schedule, plugin, intervalMs);
