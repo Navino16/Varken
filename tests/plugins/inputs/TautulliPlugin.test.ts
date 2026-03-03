@@ -767,6 +767,152 @@ describe('TautulliPlugin', () => {
       expect(musicLib?.fields.tracks).toBe(10000);
     });
 
+    it('should use cached GeoIP data on subsequent calls for same IP', async () => {
+      const remoteActivityResponse = {
+        data: {
+          response: {
+            result: 'success',
+            data: {
+              stream_count: '1',
+              total_bandwidth: 5000,
+              wan_bandwidth: 5000,
+              lan_bandwidth: 0,
+              stream_count_transcode: 0,
+              stream_count_direct_play: 1,
+              stream_count_direct_stream: 0,
+              sessions: [
+                {
+                  session_id: 'session1',
+                  session_key: 'key1',
+                  username: 'user1',
+                  ip_address_public: '82.64.1.1',
+                  full_title: 'Test Movie',
+                  state: 'playing',
+                  local: '0',
+                },
+              ],
+            },
+          },
+        },
+      };
+
+      const geoipResponse = {
+        data: {
+          response: {
+            result: 'success',
+            data: {
+              city: 'Paris',
+              country: 'France',
+              latitude: 48.8566,
+              longitude: 2.3522,
+              region: 'Île-de-France',
+            },
+          },
+        },
+      };
+
+      const librariesResponse = {
+        data: { response: { result: 'success', data: [] } },
+      };
+
+      // First collect: activity + geoip + libraries
+      mockHttpClient.get.mockResolvedValueOnce(remoteActivityResponse);
+      mockHttpClient.get.mockResolvedValueOnce(geoipResponse);
+      mockHttpClient.get.mockResolvedValueOnce(librariesResponse);
+
+      const points1 = await plugin.collect();
+      const session1 = points1.find((p) => p.tags.type === 'Session');
+      expect(session1?.tags.location).toBe('Paris');
+
+      // Second collect: activity + libraries (no geoip call — cached)
+      mockHttpClient.get.mockResolvedValueOnce(remoteActivityResponse);
+      mockHttpClient.get.mockResolvedValueOnce(librariesResponse);
+
+      const points2 = await plugin.collect();
+      const session2 = points2.find((p) => p.tags.type === 'Session');
+      expect(session2?.tags.location).toBe('Paris');
+
+      // GeoIP API should have been called only once across both collects
+      const geoipCalls = mockHttpClient.get.mock.calls.filter(
+        (call) => call[1]?.params?.cmd === 'get_geoip_lookup'
+      );
+      expect(geoipCalls).toHaveLength(1);
+    });
+
+    it('should re-fetch GeoIP data after cache TTL expires', async () => {
+      vi.useFakeTimers();
+
+      const remoteActivityResponse = {
+        data: {
+          response: {
+            result: 'success',
+            data: {
+              stream_count: '1',
+              total_bandwidth: 5000,
+              wan_bandwidth: 5000,
+              lan_bandwidth: 0,
+              stream_count_transcode: 0,
+              stream_count_direct_play: 1,
+              stream_count_direct_stream: 0,
+              sessions: [
+                {
+                  session_id: 'session1',
+                  session_key: 'key1',
+                  username: 'user1',
+                  ip_address_public: '82.64.1.1',
+                  full_title: 'Test Movie',
+                  state: 'playing',
+                  local: '0',
+                },
+              ],
+            },
+          },
+        },
+      };
+
+      const geoipResponse = {
+        data: {
+          response: {
+            result: 'success',
+            data: {
+              city: 'Paris',
+              country: 'France',
+              latitude: 48.8566,
+              longitude: 2.3522,
+              region: 'Île-de-France',
+            },
+          },
+        },
+      };
+
+      const librariesResponse = {
+        data: { response: { result: 'success', data: [] } },
+      };
+
+      // First collect
+      mockHttpClient.get.mockResolvedValueOnce(remoteActivityResponse);
+      mockHttpClient.get.mockResolvedValueOnce(geoipResponse);
+      mockHttpClient.get.mockResolvedValueOnce(librariesResponse);
+      await plugin.collect();
+
+      // Advance time past 24h TTL
+      vi.advanceTimersByTime(25 * 60 * 60 * 1000);
+
+      // Second collect — cache expired, should re-fetch
+      mockHttpClient.get.mockResolvedValueOnce(remoteActivityResponse);
+      mockHttpClient.get.mockResolvedValueOnce(geoipResponse);
+      mockHttpClient.get.mockResolvedValueOnce(librariesResponse);
+      await plugin.collect();
+
+      // GeoIP API should have been called twice (once per collect)
+      const geoipCalls = mockHttpClient.get.mock.calls.filter(
+        (call) => call[1]?.params?.cmd === 'get_geoip_lookup'
+      );
+      expect(geoipCalls).toHaveLength(2);
+
+      vi.useRealTimers();
+    });
+
     it('should propagate API errors for circuit breaker', async () => {
       mockHttpClient.get.mockRejectedValueOnce(new Error('API Error'));
 
