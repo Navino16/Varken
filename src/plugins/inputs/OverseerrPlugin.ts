@@ -8,6 +8,8 @@ import type {
   OverseerrMediaDetails,
 } from '../../types/inputs/overseerr.types';
 
+const REQUEST_TYPE = { TV: 0, MOVIE: 1 } as const;
+
 /**
  * Overseerr input plugin
  * Collects request counts, issue counts, and latest requests from Overseerr API v1
@@ -193,15 +195,13 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
           let requestType: number;
 
           if (request.type === 'tv') {
-            // Request type: TV Show = 0
-            requestType = 0;
+            requestType = REQUEST_TYPE.TV;
             mediaInfo = await this.httpGet<OverseerrMediaDetails>(
               `/api/v1/tv/${request.media.tmdbId}`
             );
             title = mediaInfo?.name || '';
           } else {
-            // Request type: Movie = 1
-            requestType = 1;
+            requestType = REQUEST_TYPE.MOVIE;
             mediaInfo = await this.httpGet<OverseerrMediaDetails>(
               `/api/v1/movie/${request.media.tmdbId}`
             );
