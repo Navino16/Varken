@@ -236,7 +236,7 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
             )
           );
         } catch (error) {
-          this.logger.debug(`Failed to fetch details for request: ${error}`);
+          this.logger.debug(`Failed to fetch details for request tmdbId=${request.media?.tmdbId}: ${error}`);
         }
       }
 
