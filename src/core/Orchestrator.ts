@@ -25,6 +25,8 @@ export class Orchestrator {
   private healthConfig?: HealthServerConfig;
   private isRunning = false;
   private shutdownPromise: Promise<void> | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private signalHandlers: Array<{ event: string; handler: (...args: any[]) => void }> = [];
 
   constructor(config: VarkenConfig, healthConfig?: HealthServerConfig) {
     this.config = config;
@@ -122,6 +124,7 @@ export class Orchestrator {
   private async performShutdown(): Promise<void> {
     logger.info('Stopping Varken orchestrator...');
     this.isRunning = false;
+    this.removeSignalHandlers();
 
     try {
       // Stop health server first
@@ -147,7 +150,7 @@ export class Orchestrator {
     const signals: NodeJS.Signals[] = ['SIGTERM', 'SIGINT'];
 
     for (const signal of signals) {
-      process.on(signal, async () => {
+      const handler = async (): Promise<void> => {
         logger.info(`Received ${signal}, initiating graceful shutdown...`);
 
         try {
@@ -158,11 +161,13 @@ export class Orchestrator {
           logger.error(`Shutdown failed: ${message}`);
           process.exit(1);
         }
-      });
+      };
+      this.signalHandlers.push({ event: signal, handler });
+      process.on(signal, handler);
     }
 
     // Handle uncaught exceptions
-    process.on('uncaughtException', async (error) => {
+    const uncaughtHandler = async (error: Error): Promise<void> => {
       logger.error(`Uncaught exception: ${error.message}`);
       logger.error(error.stack || '');
 
@@ -173,10 +178,12 @@ export class Orchestrator {
       }
 
       process.exit(1);
-    });
+    };
+    this.signalHandlers.push({ event: 'uncaughtException', handler: uncaughtHandler });
+    process.on('uncaughtException', uncaughtHandler);
 
     // Handle unhandled promise rejections
-    process.on('unhandledRejection', async (reason) => {
+    const rejectionHandler = async (reason: unknown): Promise<void> => {
       const message = reason instanceof Error ? reason.message : String(reason);
       logger.error(`Unhandled rejection: ${message}`);
 
@@ -187,7 +194,19 @@ export class Orchestrator {
       }
 
       process.exit(1);
-    });
+    };
+    this.signalHandlers.push({ event: 'unhandledRejection', handler: rejectionHandler });
+    process.on('unhandledRejection', rejectionHandler);
+  }
+
+  /**
+   * Remove all registered signal handlers
+   */
+  private removeSignalHandlers(): void {
+    for (const { event, handler } of this.signalHandlers) {
+      process.removeListener(event, handler);
+    }
+    this.signalHandlers = [];
   }
 
   /**
