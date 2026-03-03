@@ -10,6 +10,9 @@ import type {
 
 const logger = createLogger('HealthServer');
 
+/** Consecutive errors before a scheduler is considered failing in health checks */
+const SCHEDULER_FAILURE_THRESHOLD = 3;
+
 /**
  * Configuration for the health server
  */
@@ -236,9 +239,9 @@ export class HealthServer {
 
     // Check if any scheduler has consecutive errors (3+ = failing) or circuit is open
     const schedulersHealthy = schedulerStatuses.length === 0 ||
-      schedulerStatuses.every((s) => s.consecutiveErrors < 3 && s.circuitState === 'closed');
+      schedulerStatuses.every((s) => s.consecutiveErrors < SCHEDULER_FAILURE_THRESHOLD && s.circuitState === 'closed');
     const someSchedulersHealthy = schedulerStatuses.length === 0 ||
-      schedulerStatuses.some((s) => s.consecutiveErrors < 3 && s.circuitState !== 'open');
+      schedulerStatuses.some((s) => s.consecutiveErrors < SCHEDULER_FAILURE_THRESHOLD && s.circuitState !== 'open');
 
     // Check if all schedulers have open circuits (all disabled)
     const allSchedulersDisabled = schedulerStatuses.length > 0 &&
