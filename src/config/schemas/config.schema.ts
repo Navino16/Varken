@@ -206,6 +206,23 @@ export const OverseerrConfigSchema = z.object({
 });
 
 // =============================================================================
+// Global Configuration Schema
+// =============================================================================
+
+export const GlobalConfigSchema = z.object({
+  /** HTTP request timeout in milliseconds */
+  httpTimeoutMs: z.number().min(1000).default(30000),
+  /** Health check timeout in milliseconds */
+  healthCheckTimeoutMs: z.number().min(1000).default(5000),
+  /** Collector execution timeout in milliseconds */
+  collectorTimeoutMs: z.number().min(10000).default(60000),
+  /** Page size for paginated API requests */
+  paginationPageSize: z.number().min(10).max(1000).default(250),
+  /** Maximum records to fetch in pagination (safety limit) */
+  maxPaginationRecords: z.number().min(1000).default(10000),
+});
+
+// =============================================================================
 // Circuit Breaker Schema
 // =============================================================================
 
@@ -256,6 +273,13 @@ export const InputsConfigSchema = z.object({
 );
 
 export const VarkenConfigSchema = z.object({
+  global: GlobalConfigSchema.optional().transform((val) => val ?? {
+    httpTimeoutMs: 30000,
+    healthCheckTimeoutMs: 5000,
+    collectorTimeoutMs: 60000,
+    paginationPageSize: 250,
+    maxPaginationRecords: 10000,
+  }),
   outputs: OutputsConfigSchema,
   inputs: InputsConfigSchema,
   circuitBreaker: CircuitBreakerConfigSchema.optional(),
@@ -263,5 +287,6 @@ export const VarkenConfigSchema = z.object({
 
 // Type exports
 export type VarkenConfig = z.infer<typeof VarkenConfigSchema>;
+export type GlobalConfig = z.infer<typeof GlobalConfigSchema>;
 export type OutputsConfig = z.infer<typeof OutputsConfigSchema>;
 export type InputsConfig = z.infer<typeof InputsConfigSchema>;

@@ -1,4 +1,5 @@
 import { createLogger } from './Logger';
+import { withTimeout } from '../utils/http';
 import type {
   InputPlugin,
   OutputPlugin,
@@ -75,6 +76,7 @@ export class PluginManager {
   private schedulers: Map<string, ActiveScheduler> = new Map();
   private isRunning = false;
   private circuitBreakerConfig: CircuitBreakerConfig = DEFAULT_CIRCUIT_BREAKER_CONFIG;
+  private config?: VarkenConfig;
 
   constructor() {
     // No longer needs GeoIP handler - handled by TautulliPlugin via Tautulli API
@@ -102,6 +104,9 @@ export class PluginManager {
   async initializeFromConfig(config: VarkenConfig): Promise<void> {
     logger.info('Initializing plugins from configuration...');
 
+    // Store config for later use
+    this.config = config;
+
     // Store circuit breaker config with defaults
     if (config.circuitBreaker) {
       this.circuitBreakerConfig = {
@@ -114,7 +119,7 @@ export class PluginManager {
     await this.initializeOutputPlugins(config.outputs);
 
     // Initialize input plugins
-    await this.initializeInputPlugins(config.inputs);
+    await this.initializeInputPlugins(config.inputs, config.global);
 
     logger.info('All plugins initialized successfully');
   }
@@ -155,7 +160,8 @@ export class PluginManager {
    * Initialize input plugins from config
    */
   private async initializeInputPlugins(
-    inputs: VarkenConfig['inputs']
+    inputs: VarkenConfig['inputs'],
+    globalConfig: VarkenConfig['global']
   ): Promise<void> {
     for (const [type, inputConfigs] of Object.entries(inputs)) {
       if (!inputConfigs || inputConfigs.length === 0) {continue;}
@@ -171,7 +177,7 @@ export class PluginManager {
       for (const inputConfig of inputConfigs) {
         try {
           const plugin = new factory();
-          await plugin.initialize(inputConfig);
+          await plugin.initialize(inputConfig, globalConfig);
 
           plugins.push(plugin);
           logger.info(`Initialized input plugin: ${type} (id: ${inputConfig.id})`);
@@ -311,8 +317,13 @@ export class PluginManager {
       logger.debug(`Executing schedule: ${schedule.name}`);
       const startTime = Date.now();
 
-      // Collect data from the plugin
-      const points = await schedule.collector();
+      // Collect data from the plugin with configurable timeout
+      const collectorTimeout = this.config?.global?.collectorTimeoutMs ?? 60000;
+      const points = await withTimeout(
+        schedule.collector(),
+        collectorTimeout,
+        `Collector ${schedule.name} timed out after ${collectorTimeout}ms`
+      );
 
       if (points.length > 0) {
         // Write to all output plugins

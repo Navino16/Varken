@@ -3,6 +3,7 @@ import axios from 'axios';
 import * as https from 'https';
 import { createHash } from 'crypto';
 import { createLogger } from '../../core/Logger';
+import type { GlobalConfig } from '../../config/schemas/config.schema';
 import type {
   InputPlugin,
   PluginMetadata,
@@ -22,6 +23,27 @@ export interface BaseInputConfig {
 }
 
 /**
+ * Default global configuration values
+ */
+const DEFAULT_GLOBAL_CONFIG: GlobalConfig = {
+  httpTimeoutMs: 30000,
+  healthCheckTimeoutMs: 5000,
+  collectorTimeoutMs: 60000,
+  paginationPageSize: 250,
+  maxPaginationRecords: 10000,
+};
+
+/**
+ * Interface for paginated API responses
+ */
+export interface PaginatedResponse<T> {
+  page: number;
+  pageSize: number;
+  totalRecords: number;
+  records: T[];
+}
+
+/**
  * Abstract base class for all input plugins.
  * Provides common functionality like HTTP client, logging, and data point creation.
  */
@@ -29,6 +51,7 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
   implements InputPlugin<TConfig>
 {
   protected config!: TConfig;
+  protected globalConfig: GlobalConfig = DEFAULT_GLOBAL_CONFIG;
   protected httpClient!: AxiosInstance;
   protected logger = createLogger(this.constructor.name);
 
@@ -40,8 +63,11 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
   /**
    * Initialize the plugin with configuration
    */
-  async initialize(config: TConfig): Promise<void> {
+  async initialize(config: TConfig, globalConfig?: GlobalConfig): Promise<void> {
     this.config = config;
+    if (globalConfig) {
+      this.globalConfig = globalConfig;
+    }
     this.httpClient = this.createHttpClient();
     this.logger.info(`Initialized ${this.metadata.name} plugin (id: ${this.config.id})`);
   }
@@ -63,7 +89,7 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
   async healthCheck(): Promise<boolean> {
     try {
       const endpoint = this.getHealthEndpoint();
-      await this.httpClient.get(endpoint, { timeout: 5000 });
+      await this.httpClient.get(endpoint, { timeout: this.globalConfig.healthCheckTimeoutMs });
       return true;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
@@ -98,7 +124,7 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
 
     const axiosConfig: AxiosRequestConfig = {
       baseURL,
-      timeout: 30000,
+      timeout: this.globalConfig.httpTimeoutMs,
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
@@ -145,6 +171,43 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
       this.logger.error(`HTTP POST ${path} failed: ${message}`);
       throw error;
     }
+  }
+
+  /**
+   * Fetch all pages from a paginated API endpoint.
+   * Includes safety limit to prevent memory issues with large datasets.
+   */
+  protected async fetchAllPages<T>(
+    endpoint: string,
+    params: Record<string, unknown> = {}
+  ): Promise<T[]> {
+    const allRecords: T[] = [];
+    let page = 1;
+    let totalRecords = 0;
+    const pageSize = this.globalConfig.paginationPageSize;
+    const maxRecords = this.globalConfig.maxPaginationRecords;
+
+    do {
+      const response = await this.httpGet<PaginatedResponse<T>>(endpoint, {
+        ...params,
+        pageSize,
+        page,
+      });
+
+      totalRecords = response.totalRecords;
+      allRecords.push(...response.records);
+      page++;
+
+      if (allRecords.length >= maxRecords) {
+        this.logger.warn(
+          `Reached max pagination limit (${maxRecords}). ` +
+          `Total records: ${totalRecords}. Some data may be missing.`
+        );
+        break;
+      }
+    } while (allRecords.length < totalRecords);
+
+    return allRecords;
   }
 
   /**

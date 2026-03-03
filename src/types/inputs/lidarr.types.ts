@@ -138,12 +138,3 @@ export interface LidarrQueue {
   customFormats?: unknown[];
   customFormatScore?: number;
 }
-
-export interface LidarrQueueResponse {
-  page: number;
-  pageSize: number;
-  sortKey: string;
-  sortDirection: string;
-  totalRecords: number;
-  records: LidarrQueue[];
-}

@@ -143,7 +143,7 @@ describe('ReadarrPlugin', () => {
       });
 
       // Mock empty missing books
-      mockHttpClient.get.mockResolvedValueOnce({ data: [] });
+      mockHttpClient.get.mockResolvedValueOnce({ data: { totalRecords: 0, records: [] } });
 
       const points = await plugin.collect();
 
@@ -172,7 +172,7 @@ describe('ReadarrPlugin', () => {
           ],
         },
       });
-      mockHttpClient.get.mockResolvedValueOnce({ data: [] });
+      mockHttpClient.get.mockResolvedValueOnce({ data: { totalRecords: 0, records: [] } });
 
       const points = await plugin.collect();
       const queuePoint = points.find((p) => p.tags.type === 'Queue');
@@ -195,7 +195,7 @@ describe('ReadarrPlugin', () => {
           ],
         },
       });
-      mockHttpClient.get.mockResolvedValueOnce({ data: [] });
+      mockHttpClient.get.mockResolvedValueOnce({ data: { totalRecords: 0, records: [] } });
 
       const points = await plugin.collect();
       const queuePoint = points.find((p) => p.tags.type === 'Queue');
@@ -218,7 +218,7 @@ describe('ReadarrPlugin', () => {
           ],
         },
       });
-      mockHttpClient.get.mockResolvedValueOnce({ data: [] });
+      mockHttpClient.get.mockResolvedValueOnce({ data: { totalRecords: 0, records: [] } });
 
       const points = await plugin.collect();
       const queuePoint = points.find((p) => p.tags.type === 'Queue');
@@ -233,26 +233,29 @@ describe('ReadarrPlugin', () => {
 
       // Mock missing books
       mockHttpClient.get.mockResolvedValueOnce({
-        data: [
-          {
-            id: 1,
-            foreignBookId: 'abc123',
-            title: '1984',
-            titleSlug: '1984',
-            author: {
-              authorName: 'George Orwell',
+        data: {
+          totalRecords: 2,
+          records: [
+            {
+              id: 1,
+              foreignBookId: 'abc123',
+              title: '1984',
+              titleSlug: '1984',
+              author: {
+                authorName: 'George Orwell',
+              },
             },
-          },
-          {
-            id: 2,
-            foreignBookId: 'def456',
-            title: 'Animal Farm',
-            titleSlug: 'animal-farm',
-            author: {
-              authorName: 'George Orwell',
+            {
+              id: 2,
+              foreignBookId: 'def456',
+              title: 'Animal Farm',
+              titleSlug: 'animal-farm',
+              author: {
+                authorName: 'George Orwell',
+              },
             },
-          },
-        ],
+          ],
+        },
       });
 
       const points = await plugin.collect();
@@ -274,15 +277,18 @@ describe('ReadarrPlugin', () => {
       });
 
       mockHttpClient.get.mockResolvedValueOnce({
-        data: [
-          {
-            id: 1,
-            foreignBookId: 'xyz789',
-            title: 'Mystery Book',
-            titleSlug: 'mystery-book',
-            author: null,
-          },
-        ],
+        data: {
+          totalRecords: 1,
+          records: [
+            {
+              id: 1,
+              foreignBookId: 'xyz789',
+              title: 'Mystery Book',
+              titleSlug: 'mystery-book',
+              author: null,
+            },
+          ],
+        },
       });
 
       const points = await plugin.collect();
@@ -296,7 +302,7 @@ describe('ReadarrPlugin', () => {
       mockHttpClient.get.mockResolvedValueOnce({
         data: { totalRecords: 0, records: [] },
       });
-      mockHttpClient.get.mockResolvedValueOnce({ data: [] });
+      mockHttpClient.get.mockResolvedValueOnce({ data: { totalRecords: 0, records: [] } });
 
       const points = await plugin.collect();
       expect(points).toEqual([]);
@@ -332,7 +338,7 @@ describe('ReadarrPlugin', () => {
           ],
         },
       });
-      mockHttpClient.get.mockResolvedValueOnce({ data: [] });
+      mockHttpClient.get.mockResolvedValueOnce({ data: { totalRecords: 0, records: [] } });
 
       const points = await plugin.collect();
 
@@ -381,7 +387,7 @@ describe('ReadarrPlugin', () => {
       });
 
       // Missing books mock
-      mockHttpClient.get.mockResolvedValueOnce({ data: [] });
+      mockHttpClient.get.mockResolvedValueOnce({ data: { totalRecords: 0, records: [] } });
 
       const points = await plugin.collect();
 
@@ -402,7 +408,7 @@ describe('ReadarrPlugin', () => {
       mockHttpClient.get.mockResolvedValueOnce({
         data: { totalRecords: 1, records: [bookData] },
       });
-      mockHttpClient.get.mockResolvedValueOnce({ data: [] });
+      mockHttpClient.get.mockResolvedValueOnce({ data: { totalRecords: 0, records: [] } });
 
       const points1 = await plugin.collect();
 
@@ -410,7 +416,7 @@ describe('ReadarrPlugin', () => {
       mockHttpClient.get.mockResolvedValueOnce({
         data: { totalRecords: 1, records: [bookData] },
       });
-      mockHttpClient.get.mockResolvedValueOnce({ data: [] });
+      mockHttpClient.get.mockResolvedValueOnce({ data: { totalRecords: 0, records: [] } });
 
       const points2 = await plugin.collect();
 

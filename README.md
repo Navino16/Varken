@@ -34,6 +34,7 @@
   - [Manual Installation](#manual-installation)
 - [Configuration](#configuration)
   - [Basic Configuration](#basic-configuration)
+  - [Global Settings](#global-settings)
   - [Environment Variables](#environment-variables)
   - [GeoIP Setup](#geoip-setup)
   - [Multiple Instances](#multiple-instances)
@@ -177,6 +178,38 @@ inputs:
         enabled: true
         intervalDays: 1
 ```
+
+### Global Settings
+
+Varken provides global configuration options for tuning timeouts and pagination. All settings have sensible defaults and are optional:
+
+```yaml
+global:
+  # Timeout for HTTP requests to services (default: 30000ms = 30s)
+  httpTimeoutMs: 30000
+
+  # Timeout for health check requests (default: 5000ms = 5s)
+  healthCheckTimeoutMs: 5000
+
+  # Timeout for collector execution (default: 60000ms = 60s)
+  # If a collector takes longer than this, it will be terminated
+  collectorTimeoutMs: 60000
+
+  # Number of records per page when fetching paginated API endpoints (default: 250)
+  paginationPageSize: 250
+
+  # Maximum records to fetch from paginated endpoints (default: 10000)
+  # This is a safety limit to prevent memory issues on very large datasets
+  maxPaginationRecords: 10000
+```
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `httpTimeoutMs` | 30000 | Timeout for HTTP requests to services |
+| `healthCheckTimeoutMs` | 5000 | Timeout for health check requests |
+| `collectorTimeoutMs` | 60000 | Timeout for collector execution |
+| `paginationPageSize` | 250 | Records per page for paginated APIs |
+| `maxPaginationRecords` | 10000 | Maximum records to fetch (safety limit) |
 
 ### Environment Variables
 

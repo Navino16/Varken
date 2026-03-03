@@ -2,7 +2,6 @@ import { BaseInputPlugin } from './BaseInputPlugin';
 import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
 import type {
   ReadarrConfig,
-  ReadarrQueueResponse,
   ReadarrQueue,
   ReadarrBook,
 } from '../../types/inputs/readarr.types';
@@ -21,8 +20,8 @@ export class ReadarrPlugin extends BaseInputPlugin<ReadarrConfig> {
   /**
    * Initialize the plugin and configure the HTTP client with API key header
    */
-  async initialize(config: ReadarrConfig): Promise<void> {
-    await super.initialize(config);
+  async initialize(...args: Parameters<BaseInputPlugin<ReadarrConfig>['initialize']>): Promise<void> {
+    await super.initialize(...args);
     // Add API key header for Readarr
     this.httpClient.defaults.headers.common['X-Api-Key'] = this.config.apiKey;
   }
@@ -79,26 +78,13 @@ export class ReadarrPlugin extends BaseInputPlugin<ReadarrConfig> {
    */
   private async collectQueue(): Promise<DataPoint[]> {
     const points: DataPoint[] = [];
-    const pageSize = 250;
-    let page = 1;
-    let totalRecords = 0;
-    const allRecords: ReadarrQueue[] = [];
 
     try {
-      // Fetch all pages of the queue
-      do {
-        const response = await this.httpGet<ReadarrQueueResponse>('/api/v1/queue', {
-          pageSize,
-          page,
-          includeBook: true,
-          includeAuthor: true,
-          includeUnknownBookItems: false,
-        });
-
-        totalRecords = response.totalRecords;
-        allRecords.push(...response.records);
-        page++;
-      } while (allRecords.length < totalRecords);
+      const allRecords = await this.fetchAllPages<ReadarrQueue>('/api/v1/queue', {
+        includeBook: true,
+        includeAuthor: true,
+        includeUnknownBookItems: false,
+      });
 
       if (allRecords.length === 0) {
         this.logger.debug('No items in Readarr queue');
@@ -156,14 +142,13 @@ export class ReadarrPlugin extends BaseInputPlugin<ReadarrConfig> {
     const points: DataPoint[] = [];
 
     try {
-      const books = await this.httpGet<ReadarrBook[]>('/api/v1/wanted/missing', {
-        pageSize: 1000,
+      const books = await this.fetchAllPages<ReadarrBook>('/api/v1/wanted/missing', {
         sortKey: 'releaseDate',
         sortDirection: 'descending',
         monitored: true,
       });
 
-      if (!books || books.length === 0) {
+      if (books.length === 0) {
         this.logger.debug('No missing books found in Readarr');
         return points;
       }

@@ -1,5 +1,5 @@
 import { createLogger } from './core/Logger';
-import { ConfigLoader } from './config';
+import { ConfigLoader, ConfigurationMissingError } from './config';
 import { Orchestrator } from './core/Orchestrator';
 import { getInputPluginRegistry } from './plugins/inputs';
 import { getOutputPluginRegistry } from './plugins/outputs';
@@ -40,7 +40,19 @@ export async function main(deps: MainDependencies = defaultDependencies): Promis
 
   // Load and validate configuration
   const configLoader = new deps.ConfigLoader(configFolder);
-  const config = configLoader.load();
+  let config;
+  try {
+    config = configLoader.load();
+  } catch (error) {
+    if (error instanceof ConfigurationMissingError) {
+      logger.info(
+        `Configuration ${error.action === 'migrated' ? 'migrated' : 'template created'}. ` +
+        `Please edit ${error.configPath} and restart.`
+      );
+      process.exit(0);
+    }
+    throw error;
+  }
 
   logger.debug('Configuration loaded');
 
