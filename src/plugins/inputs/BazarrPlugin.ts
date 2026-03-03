@@ -159,7 +159,7 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
 
       this.logger.info(`Collected ${points.length} wanted subtitles from Bazarr`);
     } catch (error) {
-      this.logger.error(`Failed to collect Bazarr wanted subtitles: ${error}`);
+      this.logger.error(`Failed to collect Bazarr wanted subtitles: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
 
@@ -249,7 +249,7 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
 
       this.logger.info(`Collected ${points.length} history items from Bazarr`);
     } catch (error) {
-      this.logger.error(`Failed to collect Bazarr history: ${error}`);
+      this.logger.error(`Failed to collect Bazarr history: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
 

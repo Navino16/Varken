@@ -129,7 +129,7 @@ export class ReadarrPlugin extends BaseInputPlugin<ReadarrConfig> {
 
       this.logger.info(`Collected ${points.length} queue items from Readarr`);
     } catch (error) {
-      this.logger.error(`Failed to collect Readarr queue: ${error}`);
+      this.logger.error(`Failed to collect Readarr queue: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
 
@@ -180,7 +180,7 @@ export class ReadarrPlugin extends BaseInputPlugin<ReadarrConfig> {
 
       this.logger.info(`Collected ${points.length} missing books from Readarr`);
     } catch (error) {
-      this.logger.error(`Failed to collect Readarr missing books: ${error}`);
+      this.logger.error(`Failed to collect Readarr missing books: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
 

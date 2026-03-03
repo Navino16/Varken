@@ -127,7 +127,7 @@ export class RadarrPlugin extends BaseInputPlugin<RadarrConfig> {
 
       this.logger.info(`Collected ${points.length} queue items from Radarr`);
     } catch (error) {
-      this.logger.error(`Failed to collect Radarr queue: ${error}`);
+      this.logger.error(`Failed to collect Radarr queue: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
 
@@ -180,7 +180,7 @@ export class RadarrPlugin extends BaseInputPlugin<RadarrConfig> {
 
       this.logger.info(`Collected ${points.length} missing movies from Radarr`);
     } catch (error) {
-      this.logger.error(`Failed to collect Radarr missing movies: ${error}`);
+      this.logger.error(`Failed to collect Radarr missing movies: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
 

@@ -127,7 +127,7 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
 
       this.logger.info(`Collected ${points.length} queue items from Lidarr`);
     } catch (error) {
-      this.logger.error(`Failed to collect Lidarr queue: ${error}`);
+      this.logger.error(`Failed to collect Lidarr queue: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
 
@@ -177,7 +177,7 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
 
       this.logger.info(`Collected ${points.length} missing albums from Lidarr`);
     } catch (error) {
-      this.logger.error(`Failed to collect Lidarr missing albums: ${error}`);
+      this.logger.error(`Failed to collect Lidarr missing albums: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
 

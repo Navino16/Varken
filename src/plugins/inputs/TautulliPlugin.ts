@@ -186,7 +186,7 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
 
       this.logger.info(`Collected ${sessions.length} sessions from Tautulli`);
     } catch (error) {
-      this.logger.error(`Failed to collect Tautulli activity: ${error}`);
+      this.logger.error(`Failed to collect Tautulli activity: ${error instanceof Error ? error.message : String(error)}`);
       throw error; // Propagate error for circuit breaker
     }
 
@@ -480,7 +480,7 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
 
       this.logger.info(`Collected ${libraries.length} library stats from Tautulli`);
     } catch (error) {
-      this.logger.error(`Failed to collect Tautulli libraries: ${error}`);
+      this.logger.error(`Failed to collect Tautulli libraries: ${error instanceof Error ? error.message : String(error)}`);
       throw error; // Propagate error for circuit breaker
     }
 

@@ -123,7 +123,7 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
 
       this.logger.info('Collected request counts from Overseerr');
     } catch (error) {
-      this.logger.error(`Failed to collect Overseerr request counts: ${error}`);
+      this.logger.error(`Failed to collect Overseerr request counts: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
 
@@ -160,7 +160,7 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
 
       this.logger.info('Collected issue counts from Overseerr');
     } catch (error) {
-      this.logger.error(`Failed to collect Overseerr issue counts: ${error}`);
+      this.logger.error(`Failed to collect Overseerr issue counts: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
 
@@ -233,7 +233,7 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
               }
             );
           } catch (error) {
-            this.logger.debug(`Failed to fetch details for request tmdbId=${request.media?.tmdbId}: ${error}`);
+            this.logger.debug(`Failed to fetch details for request tmdbId=${request.media?.tmdbId}: ${error instanceof Error ? error.message : String(error)}`);
             return null;
           }
         })
@@ -243,7 +243,7 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
 
       this.logger.info(`Collected ${points.length} latest requests from Overseerr`);
     } catch (error) {
-      this.logger.error(`Failed to collect Overseerr latest requests: ${error}`);
+      this.logger.error(`Failed to collect Overseerr latest requests: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
 
