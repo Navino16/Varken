@@ -251,7 +251,7 @@ export class PluginManager {
     this.schedulers.set(schedule.name, activeScheduler);
 
     // Run immediately on start
-    this.executeSchedule(schedule, plugin);
+    this.executeSchedule(schedule);
 
     // Then schedule next run
     activeScheduler.timer = this.scheduleNextRun(schedule, plugin, intervalMs);
@@ -287,7 +287,7 @@ export class PluginManager {
     }
 
     return setTimeout(async () => {
-      await this.executeSchedule(schedule, plugin);
+      await this.executeSchedule(schedule);
       const scheduler = this.schedulers.get(schedule.name);
       if (scheduler && this.isRunning) {
         scheduler.timer = this.scheduleNextRun(
@@ -303,8 +303,7 @@ export class PluginManager {
    * Execute a schedule and collect data
    */
   private async executeSchedule(
-    schedule: ScheduleConfig,
-    _plugin: InputPlugin
+    schedule: ScheduleConfig
   ): Promise<void> {
     const scheduler = this.schedulers.get(schedule.name);
     if (!scheduler) {return;}
