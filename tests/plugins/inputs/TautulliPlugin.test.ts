@@ -609,6 +609,45 @@ describe('TautulliPlugin', () => {
       expect(sessionPoint?.tags.platform).toBe('macOS');
     });
 
+    it('should set video_decision to Music for audio-only sessions', async () => {
+      mockHttpClient.get.mockResolvedValueOnce({
+        data: {
+          response: {
+            result: 'success',
+            data: {
+              stream_count: '1',
+              total_bandwidth: 0,
+              wan_bandwidth: 0,
+              lan_bandwidth: 0,
+              stream_count_transcode: 0,
+              stream_count_direct_play: 1,
+              stream_count_direct_stream: 0,
+              sessions: [
+                {
+                  session_id: 'session1',
+                  session_key: 'key1',
+                  username: 'user1',
+                  full_title: 'Some Album - Track 1',
+                  state: 'playing',
+                  local: '1',
+                  video_decision: '',
+                  media_type: 'track',
+                },
+              ],
+            },
+          },
+        },
+      });
+
+      mockHttpClient.get.mockResolvedValueOnce({
+        data: { response: { result: 'success', data: [] } },
+      });
+
+      const points = await plugin.collect();
+      const sessionPoint = points.find((p) => p.tags.type === 'Session');
+      expect(sessionPoint?.tags.video_decision).toBe('Music');
+    });
+
     it('should normalize transcode decisions', async () => {
       mockHttpClient.get.mockResolvedValueOnce({
         data: {
