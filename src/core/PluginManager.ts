@@ -585,10 +585,15 @@ export class PluginManager {
    */
   async healthCheck(): Promise<Map<string, boolean>> {
     const results = new Map<string, boolean>();
+    const healthCheckTimeout = this.config?.global?.healthCheckTimeoutMs ?? 5000;
 
     for (const [type, plugin] of this.outputPlugins) {
       try {
-        const healthy = await plugin.healthCheck();
+        const healthy = await withTimeout(
+          plugin.healthCheck(),
+          healthCheckTimeout,
+          `Health check for output ${type} timed out`
+        );
         results.set(type, healthy);
       } catch {
         results.set(type, false);
