@@ -7,7 +7,7 @@ export interface OmbiConfig {
   id: number;
   url: string;
   apiKey: string;
-  verifySsl: boolean;
+  verifySsl?: boolean;
   requestCounts: {
     enabled: boolean;
     intervalSeconds: number;

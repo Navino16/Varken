@@ -7,7 +7,7 @@ export interface ProwlarrConfig {
   id: number;
   url: string;
   apiKey: string;
-  verifySsl: boolean;
+  verifySsl?: boolean;
   indexerStats: {
     enabled: boolean;
     intervalSeconds: number;

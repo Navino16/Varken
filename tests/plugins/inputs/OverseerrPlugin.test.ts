@@ -35,7 +35,6 @@ describe('OverseerrPlugin', () => {
     id: 1,
     url: 'http://localhost:5055',
     apiKey: 'overseerr-api-key',
-    ssl: false,
     verifySsl: false,
     requestCounts: {
       enabled: true,

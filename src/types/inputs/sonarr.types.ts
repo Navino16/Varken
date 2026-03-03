@@ -9,7 +9,6 @@ export interface SonarrConfig {
   id: number;
   url: string;
   apiKey: string;
-  ssl?: boolean;
   verifySsl?: boolean;
   queue: {
     enabled: boolean;

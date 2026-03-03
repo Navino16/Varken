@@ -35,7 +35,6 @@ describe('RadarrPlugin', () => {
     id: 1,
     url: 'http://localhost:7878',
     apiKey: 'radarr-api-key',
-    ssl: false,
     verifySsl: false,
     queue: {
       enabled: true,

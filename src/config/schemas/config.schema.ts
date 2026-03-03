@@ -71,7 +71,7 @@ const scheduleDaysDefault = { enabled: false, intervalDays: 1 };
 
 export const SonarrConfigSchema = z.object({
   id: z.number(),
-  url: z.string(),
+  url: z.url(),
   apiKey: z.string(),
   verifySsl: z.boolean().default(false),
   queue: ScheduleConfigSchema.default(scheduleDefault),
@@ -85,7 +85,7 @@ export const SonarrConfigSchema = z.object({
 
 export const RadarrConfigSchema = z.object({
   id: z.number(),
-  url: z.string(),
+  url: z.url(),
   apiKey: z.string(),
   verifySsl: z.boolean().default(false),
   queue: ScheduleConfigSchema.default(scheduleDefault),
@@ -94,7 +94,7 @@ export const RadarrConfigSchema = z.object({
 
 export const ReadarrConfigSchema = z.object({
   id: z.number(),
-  url: z.string(),
+  url: z.url(),
   apiKey: z.string(),
   verifySsl: z.boolean().default(false),
   queue: ScheduleConfigSchema.default(scheduleDefault),
@@ -103,7 +103,7 @@ export const ReadarrConfigSchema = z.object({
 
 export const LidarrConfigSchema = z.object({
   id: z.number(),
-  url: z.string(),
+  url: z.url(),
   apiKey: z.string(),
   verifySsl: z.boolean().default(false),
   queue: ScheduleConfigSchema.default(scheduleDefault),
@@ -112,7 +112,7 @@ export const LidarrConfigSchema = z.object({
 
 export const ProwlarrConfigSchema = z.object({
   id: z.number(),
-  url: z.string(),
+  url: z.url(),
   apiKey: z.string(),
   verifySsl: z.boolean().default(false),
   indexerStats: ScheduleConfigSchema.default(scheduleDefault),
@@ -120,7 +120,7 @@ export const ProwlarrConfigSchema = z.object({
 
 export const BazarrConfigSchema = z.object({
   id: z.number(),
-  url: z.string(),
+  url: z.url(),
   apiKey: z.string(),
   verifySsl: z.boolean().default(false),
   wanted: ScheduleConfigSchema.default(scheduleDefault),
@@ -133,7 +133,7 @@ export const BazarrConfigSchema = z.object({
 
 export const TautulliConfigSchema = z.object({
   id: z.number(),
-  url: z.string(),
+  url: z.url(),
   apiKey: z.string(),
   verifySsl: z.boolean().default(false),
   /** @deprecated Use geoip.localCoordinates instead */
@@ -154,7 +154,7 @@ export const TautulliConfigSchema = z.object({
 
 export const PlexConfigSchema = z.object({
   id: z.number(),
-  url: z.string(),
+  url: z.url(),
   token: z.string(),
   verifySsl: z.boolean().default(false),
   sessions: ScheduleConfigSchema.default(scheduleDefault),
@@ -163,7 +163,7 @@ export const PlexConfigSchema = z.object({
 
 export const JellyfinConfigSchema = z.object({
   id: z.number(),
-  url: z.string(),
+  url: z.url(),
   apiKey: z.string(),
   verifySsl: z.boolean().default(false),
   sessions: ScheduleConfigSchema.default(scheduleDefault),
@@ -172,7 +172,7 @@ export const JellyfinConfigSchema = z.object({
 
 export const EmbyConfigSchema = z.object({
   id: z.number(),
-  url: z.string(),
+  url: z.url(),
   apiKey: z.string(),
   verifySsl: z.boolean().default(false),
   sessions: ScheduleConfigSchema.default(scheduleDefault),
@@ -185,7 +185,7 @@ export const EmbyConfigSchema = z.object({
 
 export const OmbiConfigSchema = z.object({
   id: z.number(),
-  url: z.string(),
+  url: z.url(),
   apiKey: z.string(),
   verifySsl: z.boolean().default(false),
   requestCounts: ScheduleConfigSchema.default(scheduleDefault),
@@ -194,7 +194,7 @@ export const OmbiConfigSchema = z.object({
 
 export const OverseerrConfigSchema = z.object({
   id: z.number(),
-  url: z.string(),
+  url: z.url(),
   apiKey: z.string(),
   verifySsl: z.boolean().default(false),
   requestCounts: ScheduleConfigSchema.default(scheduleDefault),

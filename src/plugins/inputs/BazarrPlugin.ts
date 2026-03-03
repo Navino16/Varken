@@ -22,8 +22,8 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
   /**
    * Initialize the plugin and configure the HTTP client with API key header
    */
-  async initialize(config: BazarrConfig): Promise<void> {
-    await super.initialize(config);
+  async initialize(...args: Parameters<BaseInputPlugin<BazarrConfig>['initialize']>): Promise<void> {
+    await super.initialize(...args);
     this.httpClient.defaults.headers.common['X-API-KEY'] = this.config.apiKey;
   }
 

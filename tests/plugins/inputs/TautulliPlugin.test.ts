@@ -35,7 +35,6 @@ describe('TautulliPlugin', () => {
     id: 1,
     url: 'http://localhost:8181',
     apiKey: 'tautulli-api-key',
-    ssl: false,
     verifySsl: false,
     activity: {
       enabled: true,
