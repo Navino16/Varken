@@ -14,6 +14,9 @@ import type {
  * Tautulli input plugin
  * Collects activity, libraries, and stats from Tautulli API v2
  */
+
+const PLAYER_STATE = { PLAYING: 0, PAUSED: 1, BUFFERING: 3 } as const;
+
 export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
   private static readonly PRIVATE_IPV4_RANGES = [
     /^10\./, // 10.0.0.0/8
@@ -349,16 +352,16 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
     const state = (session.state || '').toLowerCase();
     switch (state) {
       case 'playing':
-        playerState = 0;
+        playerState = PLAYER_STATE.PLAYING;
         break;
       case 'paused':
-        playerState = 1;
+        playerState = PLAYER_STATE.PAUSED;
         break;
       case 'buffering':
-        playerState = 3;
+        playerState = PLAYER_STATE.BUFFERING;
         break;
       default:
-        playerState = 0;
+        playerState = PLAYER_STATE.PLAYING;
     }
 
     // Platform normalization
