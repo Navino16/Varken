@@ -10,6 +10,7 @@ import type {
 } from '../../types/inputs/ombi.types';
 
 const REQUEST_STATUS = { DENIED: 0, APPROVED: 1, COMPLETED: 2, PENDING: 3 } as const;
+const REQUEST_TYPE = { TV: 0, MOVIE: 1 } as const;
 
 function getRequestStatus(approved: boolean, available: boolean, denied: boolean): number {
   if (denied) {
@@ -132,7 +133,7 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
 
       this.logger.info('Collected request counts from Ombi');
     } catch (error) {
-      this.logger.error(`Failed to collect Ombi request counts: ${error}`);
+      this.logger.error(`Failed to collect Ombi request counts: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
 
@@ -165,7 +166,7 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
 
       this.logger.info('Collected issue counts from Ombi');
     } catch (error) {
-      this.logger.error(`Failed to collect Ombi issue counts: ${error}`);
+      this.logger.error(`Failed to collect Ombi issue counts: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
 
@@ -180,7 +181,7 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
       const users = await this.httpGet<OmbiUser[]>('/api/v1/Identity/Users');
       return new Map(users.map((u) => [u.id, u.alias || u.userName]));
     } catch (error) {
-      this.logger.warn(`Failed to fetch Ombi users, falling back to alias: ${error}`);
+      this.logger.warn(`Failed to fetch Ombi users, falling back to alias: ${error instanceof Error ? error.message : String(error)}`);
       return new Map();
     }
   }
@@ -235,7 +236,7 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
         `Collected ${tvRequests?.length || 0} TV and ${movieRequests?.length || 0} movie requests from Ombi`
       );
     } catch (error) {
-      this.logger.error(`Failed to collect Ombi requests: ${error}`);
+      this.logger.error(`Failed to collect Ombi requests: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
 
@@ -287,7 +288,7 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
       {
         type: 'Requests',
         server: this.config.id,
-        request_type: 0, // TV Show = 0
+        request_type: REQUEST_TYPE.TV,
         status,
         title: request.title,
         requested_user: requestedUser,
@@ -321,7 +322,7 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
       {
         type: 'Requests',
         server: this.config.id,
-        request_type: 1, // Movie = 1
+        request_type: REQUEST_TYPE.MOVIE,
         status,
         title: request.title,
         requested_user: requestedUser,
