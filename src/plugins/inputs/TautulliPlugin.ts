@@ -168,6 +168,13 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
   }
 
   /**
+   * Mask the last octet of an IP address for privacy in logs
+   */
+  private maskIp(ip: string): string {
+    return ip.replace(/\.\d+$/, '.xxx');
+  }
+
+  /**
    * Perform GeoIP lookup using Tautulli API
    */
   private async geoipLookup(ip: string): Promise<GeoIPInfo | null> {
@@ -195,7 +202,7 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.debug(`GeoIP lookup failed for ${ip}: ${message}`);
+      this.logger.debug(`GeoIP lookup failed for ${this.maskIp(ip)}: ${message}`);
       return null;
     }
   }
@@ -257,10 +264,10 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
     if (this.config.geoip.enabled && !isLocal && ip) {
       geoData = await this.geoipLookup(ip);
       if (geoData) {
-        this.logger.debug(`GeoIP: ${ip} -> ${geoData.city}, ${geoData.region}, ${geoData.country}`);
+        this.logger.debug(`GeoIP: ${this.maskIp(ip)} -> ${geoData.city}, ${geoData.region}, ${geoData.country}`);
       }
     } else if (this.config.geoip.enabled && isLocal && ip) {
-      this.logger.debug(`Local stream detected: ${ip} (private IP: ${ipIsPrivate}, tautulli local: ${tautulliSaysLocal})`);
+      this.logger.debug(`Local stream detected: ${this.maskIp(ip)} (private IP: ${ipIsPrivate}, tautulli local: ${tautulliSaysLocal})`);
     }
 
     // Determine location values
