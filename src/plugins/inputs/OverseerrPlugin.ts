@@ -184,42 +184,40 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
         return points;
       }
 
-      for (const request of response.results) {
-        if (!request.media?.tmdbId) {
-          continue;
-        }
+      const validRequests = response.results.filter((r) => r.media?.tmdbId);
 
-        try {
-          let mediaInfo: OverseerrMediaDetails | null = null;
-          let title = '';
-          let requestType: number;
+      const results = await Promise.all(
+        validRequests.map(async (request) => {
+          try {
+            let mediaInfo: OverseerrMediaDetails | null = null;
+            let title = '';
+            let requestType: number;
 
-          if (request.type === 'tv') {
-            requestType = REQUEST_TYPE.TV;
-            mediaInfo = await this.httpGet<OverseerrMediaDetails>(
-              `/api/v1/tv/${request.media.tmdbId}`
-            );
-            title = mediaInfo?.name || '';
-          } else {
-            requestType = REQUEST_TYPE.MOVIE;
-            mediaInfo = await this.httpGet<OverseerrMediaDetails>(
-              `/api/v1/movie/${request.media.tmdbId}`
-            );
-            title = mediaInfo?.title || '';
-          }
+            if (request.type === 'tv') {
+              requestType = REQUEST_TYPE.TV;
+              mediaInfo = await this.httpGet<OverseerrMediaDetails>(
+                `/api/v1/tv/${request.media.tmdbId}`
+              );
+              title = mediaInfo?.name || '';
+            } else {
+              requestType = REQUEST_TYPE.MOVIE;
+              mediaInfo = await this.httpGet<OverseerrMediaDetails>(
+                `/api/v1/movie/${request.media.tmdbId}`
+              );
+              title = mediaInfo?.title || '';
+            }
 
-          if (!mediaInfo || !title) {
-            this.logger.debug(`Could not fetch media info for tmdbId ${request.media.tmdbId}`);
-            continue;
-          }
+            if (!mediaInfo || !title) {
+              this.logger.debug(`Could not fetch media info for tmdbId ${request.media.tmdbId}`);
+              return null;
+            }
 
-          const hashId = this.hashit(`${mediaInfo.id}${title}`);
-          const requestedBy =
-            mediaInfo.mediaInfo?.requests?.[0]?.requestedBy?.displayName || 'Unknown';
-          const requestedDate = mediaInfo.mediaInfo?.requests?.[0]?.createdAt || '';
+            const hashId = this.hashit(`${mediaInfo.id}${title}`);
+            const requestedBy =
+              mediaInfo.mediaInfo?.requests?.[0]?.requestedBy?.displayName || 'Unknown';
+            const requestedDate = mediaInfo.mediaInfo?.requests?.[0]?.createdAt || '';
 
-          points.push(
-            this.createDataPoint(
+            return this.createDataPoint(
               'Overseerr',
               {
                 type: 'Requests',
@@ -233,12 +231,15 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
               {
                 hash: hashId,
               }
-            )
-          );
-        } catch (error) {
-          this.logger.debug(`Failed to fetch details for request tmdbId=${request.media?.tmdbId}: ${error}`);
-        }
-      }
+            );
+          } catch (error) {
+            this.logger.debug(`Failed to fetch details for request tmdbId=${request.media?.tmdbId}: ${error}`);
+            return null;
+          }
+        })
+      );
+
+      points.push(...results.filter((p): p is DataPoint => p !== null));
 
       this.logger.info(`Collected ${points.length} latest requests from Overseerr`);
     } catch (error) {
