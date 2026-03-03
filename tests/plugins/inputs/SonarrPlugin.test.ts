@@ -35,7 +35,6 @@ describe('SonarrPlugin', () => {
     id: 1,
     url: 'http://localhost:8989',
     apiKey: 'test-api-key',
-    ssl: false,
     verifySsl: false,
     queue: {
       enabled: true,

@@ -7,7 +7,6 @@ export interface OverseerrConfig {
   id: number;
   url: string;
   apiKey: string;
-  ssl?: boolean;
   verifySsl?: boolean;
   requestCounts: {
     enabled: boolean;

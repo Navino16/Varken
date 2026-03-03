@@ -18,7 +18,6 @@ export interface BaseInputConfig {
   id: number;
   url: string;
   apiKey: string;
-  ssl?: boolean;
   verifySsl?: boolean;
 }
 
@@ -117,10 +116,8 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
    * Create an Axios HTTP client configured for this plugin
    */
   protected createHttpClient(): AxiosInstance {
-    const protocol = this.config.ssl ? 'https' : 'http';
-    const baseURL = this.config.url.startsWith('http')
-      ? this.config.url
-      : `${protocol}://${this.config.url}`;
+    const baseURL = this.config.url;
+    const isHttps = baseURL.startsWith('https');
 
     const axiosConfig: AxiosRequestConfig = {
       baseURL,
@@ -132,7 +129,7 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
     };
 
     // Handle SSL verification
-    if (this.config.ssl && !this.config.verifySsl) {
+    if (isHttps && !this.config.verifySsl) {
       this.logger.warn(
         `SSL verification disabled for ${baseURL}. ` +
           'This exposes connections to MITM attacks. Do not use in production!'

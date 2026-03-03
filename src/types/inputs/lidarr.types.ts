@@ -9,7 +9,7 @@ export interface LidarrConfig {
   id: number;
   url: string;
   apiKey: string;
-  verifySsl: boolean;
+  verifySsl?: boolean;
   queue: {
     enabled: boolean;
     intervalSeconds: number;

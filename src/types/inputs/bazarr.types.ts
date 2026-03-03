@@ -7,7 +7,7 @@ export interface BazarrConfig {
   id: number;
   url: string;
   apiKey: string;
-  verifySsl: boolean;
+  verifySsl?: boolean;
   wanted: {
     enabled: boolean;
     intervalSeconds: number;

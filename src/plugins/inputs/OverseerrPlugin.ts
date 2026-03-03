@@ -22,8 +22,8 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
   /**
    * Initialize the plugin and configure the HTTP client with API key header
    */
-  async initialize(config: OverseerrConfig): Promise<void> {
-    await super.initialize(config);
+  async initialize(...args: Parameters<BaseInputPlugin<OverseerrConfig>['initialize']>): Promise<void> {
+    await super.initialize(...args);
     // Add API key header for Overseerr
     this.httpClient.defaults.headers.common['X-Api-Key'] = this.config.apiKey;
   }

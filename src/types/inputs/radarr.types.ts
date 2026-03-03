@@ -9,7 +9,6 @@ export interface RadarrConfig {
   id: number;
   url: string;
   apiKey: string;
-  ssl?: boolean;
   verifySsl?: boolean;
   queue: {
     enabled: boolean;

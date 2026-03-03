@@ -37,8 +37,8 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
   /**
    * Initialize the plugin and configure the HTTP client with API key header
    */
-  async initialize(config: OmbiConfig): Promise<void> {
-    await super.initialize(config);
+  async initialize(...args: Parameters<BaseInputPlugin<OmbiConfig>['initialize']>): Promise<void> {
+    await super.initialize(...args);
     // Add API key header for Ombi (different from Overseerr)
     this.httpClient.defaults.headers.common['ApiKey'] = this.config.apiKey;
   }

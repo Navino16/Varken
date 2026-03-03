@@ -13,7 +13,6 @@ export interface TautulliConfig {
   id: number;
   url: string;
   apiKey: string;
-  ssl?: boolean;
   verifySsl?: boolean;
   /** @deprecated Use geoip.localCoordinates instead */
   fallbackIp?: string;

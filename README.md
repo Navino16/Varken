@@ -477,6 +477,7 @@ Legacy `VRKN_*` environment variables are also automatically migrated.
 **Varken can't connect to services:**
 - Verify URLs are accessible from the Varken container
 - Check API keys are correct
+- Input plugin URLs must include the protocol (`http://` or `https://`), e.g. `url: "https://sonarr.example.com"`
 - Ensure `verifySsl: false` if using self-signed certificates
 
 **No data in Grafana:**

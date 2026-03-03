@@ -72,7 +72,6 @@ describe('BaseInputPlugin', () => {
     id: 1,
     url: 'http://localhost:8989',
     apiKey: 'test-api-key',
-    ssl: false,
     verifySsl: false,
     customField: 'custom',
   };
@@ -97,8 +96,8 @@ describe('BaseInputPlugin', () => {
       expect(plugin.getHttpClient().defaults.baseURL).toBe('https://custom.local:8989');
     });
 
-    it('should use HTTPS when ssl is enabled', async () => {
-      await plugin.initialize({ ...testConfig, url: 'localhost:8989', ssl: true });
+    it('should use URL directly as baseURL', async () => {
+      await plugin.initialize({ ...testConfig, url: 'https://localhost:8989' });
       expect(plugin.getHttpClient().defaults.baseURL).toBe('https://localhost:8989');
     });
   });
