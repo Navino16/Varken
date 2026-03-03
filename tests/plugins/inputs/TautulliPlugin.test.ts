@@ -913,6 +913,172 @@ describe('TautulliPlugin', () => {
       vi.useRealTimers();
     });
 
+    describe('private IP detection', () => {
+      const privateIPs = [
+        ['10.0.0.1', '10.x.x.x (Class A)'],
+        ['10.255.255.255', '10.x.x.x boundary'],
+        ['172.16.0.1', '172.16.x.x (Class B start)'],
+        ['172.31.255.255', '172.31.x.x (Class B end)'],
+        ['192.168.0.1', '192.168.x.x (Class C)'],
+        ['127.0.0.1', 'loopback'],
+        ['0.0.0.0', 'zero network'],
+        ['169.254.1.1', 'link-local'],
+        ['224.0.0.1', 'multicast'],
+        ['255.255.255.255', 'broadcast'],
+      ];
+
+      it.each(privateIPs)(
+        'should treat %s (%s) as local — no GeoIP call',
+        async (ip) => {
+          mockHttpClient.get.mockResolvedValueOnce({
+            data: {
+              response: {
+                result: 'success',
+                data: {
+                  stream_count: '1',
+                  total_bandwidth: 0,
+                  wan_bandwidth: 0,
+                  lan_bandwidth: 0,
+                  stream_count_transcode: 0,
+                  stream_count_direct_play: 1,
+                  stream_count_direct_stream: 0,
+                  sessions: [
+                    {
+                      session_id: 'session1',
+                      session_key: 'key1',
+                      username: 'user1',
+                      ip_address: ip,
+                      full_title: 'Test',
+                      state: 'playing',
+                      local: '0', // Tautulli says remote, but IP is private
+                    },
+                  ],
+                },
+              },
+            },
+          });
+
+          mockHttpClient.get.mockResolvedValueOnce({
+            data: { response: { result: 'success', data: [] } },
+          });
+
+          const points = await plugin.collect();
+          const session = points.find((p) => p.tags.type === 'Session');
+          expect(session?.tags.location).toBe('Local');
+
+          const geoipCalls = mockHttpClient.get.mock.calls.filter(
+            (call) => call[1]?.params?.cmd === 'get_geoip_lookup'
+          );
+          expect(geoipCalls).toHaveLength(0);
+        }
+      );
+
+      const privateIPv6s = [
+        ['::1', 'IPv6 loopback'],
+        ['fe80::1', 'IPv6 link-local'],
+        ['fc00::1', 'IPv6 unique local (fc00)'],
+        ['fd00::abcd', 'IPv6 unique local (fd00)'],
+      ];
+
+      it.each(privateIPv6s)(
+        'should treat %s (%s) as local — no GeoIP call',
+        async (ip) => {
+          mockHttpClient.get.mockResolvedValueOnce({
+            data: {
+              response: {
+                result: 'success',
+                data: {
+                  stream_count: '1',
+                  total_bandwidth: 0,
+                  wan_bandwidth: 0,
+                  lan_bandwidth: 0,
+                  stream_count_transcode: 0,
+                  stream_count_direct_play: 1,
+                  stream_count_direct_stream: 0,
+                  sessions: [
+                    {
+                      session_id: 'session1',
+                      session_key: 'key1',
+                      username: 'user1',
+                      ip_address: ip,
+                      full_title: 'Test',
+                      state: 'playing',
+                      local: '0',
+                    },
+                  ],
+                },
+              },
+            },
+          });
+
+          mockHttpClient.get.mockResolvedValueOnce({
+            data: { response: { result: 'success', data: [] } },
+          });
+
+          const points = await plugin.collect();
+          const session = points.find((p) => p.tags.type === 'Session');
+          expect(session?.tags.location).toBe('Local');
+
+          const geoipCalls = mockHttpClient.get.mock.calls.filter(
+            (call) => call[1]?.params?.cmd === 'get_geoip_lookup'
+          );
+          expect(geoipCalls).toHaveLength(0);
+        }
+      );
+
+      it('should treat public IP as remote — triggers GeoIP call', async () => {
+        mockHttpClient.get.mockResolvedValueOnce({
+          data: {
+            response: {
+              result: 'success',
+              data: {
+                stream_count: '1',
+                total_bandwidth: 0,
+                wan_bandwidth: 0,
+                lan_bandwidth: 0,
+                stream_count_transcode: 0,
+                stream_count_direct_play: 1,
+                stream_count_direct_stream: 0,
+                sessions: [
+                  {
+                    session_id: 'session1',
+                    session_key: 'key1',
+                    username: 'user1',
+                    ip_address_public: '82.64.1.1',
+                    full_title: 'Test',
+                    state: 'playing',
+                    local: '0',
+                  },
+                ],
+              },
+            },
+          },
+        });
+
+        mockHttpClient.get.mockResolvedValueOnce({
+          data: {
+            response: {
+              result: 'success',
+              data: { city: 'Paris', country: 'France', latitude: 48.85, longitude: 2.35, region: 'IDF' },
+            },
+          },
+        });
+
+        mockHttpClient.get.mockResolvedValueOnce({
+          data: { response: { result: 'success', data: [] } },
+        });
+
+        const points = await plugin.collect();
+        const session = points.find((p) => p.tags.type === 'Session');
+        expect(session?.tags.location).toBe('Paris');
+
+        const geoipCalls = mockHttpClient.get.mock.calls.filter(
+          (call) => call[1]?.params?.cmd === 'get_geoip_lookup'
+        );
+        expect(geoipCalls).toHaveLength(1);
+      });
+    });
+
     it('should propagate API errors for circuit breaker', async () => {
       mockHttpClient.get.mockRejectedValueOnce(new Error('API Error'));
 
