@@ -33,6 +33,10 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
     /^fd00:/i, // Unique local
   ];
 
+  private static readonly GEOIP_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+  private geoipCache = new Map<string, { data: GeoIPInfo | null; timestamp: number }>();
+
   readonly metadata: PluginMetadata = {
     name: 'Tautulli',
     version: '1.0.0',
@@ -196,6 +200,11 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
    * Perform GeoIP lookup using Tautulli API
    */
   private async geoipLookup(ip: string): Promise<GeoIPInfo | null> {
+    const cached = this.geoipCache.get(ip);
+    if (cached && Date.now() - cached.timestamp < TautulliPlugin.GEOIP_CACHE_TTL_MS) {
+      return cached.data;
+    }
+
     try {
       const response = await this.httpGet<TautulliApiResponse<TautulliGeoIPResponse>>(
         '/api/v2',
@@ -207,20 +216,25 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
       );
 
       if (response?.response?.result !== 'success' || !response?.response?.data) {
+        this.geoipCache.set(ip, { data: null, timestamp: Date.now() });
         return null;
       }
 
       const data = response.response.data;
-      return {
+      const geoInfo: GeoIPInfo = {
         city: data.city || '',
         region: data.region || '',
         country: data.country || '',
         latitude: data.latitude || 0,
         longitude: data.longitude || 0,
       };
+
+      this.geoipCache.set(ip, { data: geoInfo, timestamp: Date.now() });
+      return geoInfo;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       this.logger.debug(`GeoIP lookup failed for ${this.maskIp(ip)}: ${message}`);
+      this.geoipCache.set(ip, { data: null, timestamp: Date.now() });
       return null;
     }
   }
