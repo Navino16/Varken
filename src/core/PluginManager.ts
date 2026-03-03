@@ -496,7 +496,7 @@ export class PluginManager {
       }
     );
 
-    await Promise.all(writePromises);
+    await Promise.allSettled(writePromises);
   }
 
   /**
