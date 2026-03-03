@@ -1194,6 +1194,122 @@ describe('PluginManager', () => {
     });
   });
 
+  describe('data point validation', () => {
+    it('should filter out data points with empty measurement', async () => {
+      const writtenPoints: DataPoint[] = [];
+
+      class BadMeasurementPlugin extends MockInputPlugin {
+        async collect(): Promise<DataPoint[]> {
+          return [
+            { measurement: '', tags: { server_id: 1 }, fields: { value: 1 }, timestamp: new Date() },
+            { measurement: 'valid', tags: { server_id: 1 }, fields: { value: 2 }, timestamp: new Date() },
+          ];
+        }
+      }
+
+      class RecordingOutput extends MockOutputPlugin {
+        async write(points: DataPoint[]): Promise<void> {
+          writtenPoints.push(...points);
+        }
+      }
+
+      pluginManager.registerInputPlugin('sonarr', BadMeasurementPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', RecordingOutput);
+      await pluginManager.initializeFromConfig(minimalConfig);
+      await pluginManager.startSchedulers();
+      await vi.advanceTimersByTimeAsync(1100);
+
+      // Every written point should be the valid one, invalid measurement should be filtered
+      expect(writtenPoints.length).toBeGreaterThan(0);
+      expect(writtenPoints.every((p) => p.measurement === 'valid')).toBe(true);
+    });
+
+    it('should filter out data points with empty fields', async () => {
+      const writtenPoints: DataPoint[] = [];
+
+      class EmptyFieldsPlugin extends MockInputPlugin {
+        async collect(): Promise<DataPoint[]> {
+          return [
+            { measurement: 'empty', tags: { server_id: 1 }, fields: {}, timestamp: new Date() },
+            { measurement: 'valid', tags: { server_id: 1 }, fields: { value: 2 }, timestamp: new Date() },
+          ];
+        }
+      }
+
+      class RecordingOutput extends MockOutputPlugin {
+        async write(points: DataPoint[]): Promise<void> {
+          writtenPoints.push(...points);
+        }
+      }
+
+      pluginManager.registerInputPlugin('sonarr', EmptyFieldsPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', RecordingOutput);
+      await pluginManager.initializeFromConfig(minimalConfig);
+      await pluginManager.startSchedulers();
+      await vi.advanceTimersByTimeAsync(1100);
+
+      // Every written point should be the valid one, empty fields should be filtered
+      expect(writtenPoints.length).toBeGreaterThan(0);
+      expect(writtenPoints.every((p) => p.measurement === 'valid')).toBe(true);
+    });
+
+    it('should filter out data points with invalid timestamp', async () => {
+      const writtenPoints: DataPoint[] = [];
+
+      class BadTimestampPlugin extends MockInputPlugin {
+        async collect(): Promise<DataPoint[]> {
+          return [
+            { measurement: 'bad', tags: { server_id: 1 }, fields: { value: 1 }, timestamp: new Date('invalid') },
+            { measurement: 'valid', tags: { server_id: 1 }, fields: { value: 2 }, timestamp: new Date() },
+          ];
+        }
+      }
+
+      class RecordingOutput extends MockOutputPlugin {
+        async write(points: DataPoint[]): Promise<void> {
+          writtenPoints.push(...points);
+        }
+      }
+
+      pluginManager.registerInputPlugin('sonarr', BadTimestampPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', RecordingOutput);
+      await pluginManager.initializeFromConfig(minimalConfig);
+      await pluginManager.startSchedulers();
+      await vi.advanceTimersByTimeAsync(1100);
+
+      // Every written point should be the valid one, invalid timestamp should be filtered
+      expect(writtenPoints.length).toBeGreaterThan(0);
+      expect(writtenPoints.every((p) => p.measurement === 'valid')).toBe(true);
+    });
+
+    it('should not write when all data points are invalid', async () => {
+      const writtenPoints: DataPoint[] = [];
+
+      class AllBadPlugin extends MockInputPlugin {
+        async collect(): Promise<DataPoint[]> {
+          return [
+            { measurement: '', tags: { server_id: 1 }, fields: { value: 1 }, timestamp: new Date() },
+            { measurement: 'bad', tags: { server_id: 1 }, fields: {}, timestamp: new Date() },
+          ];
+        }
+      }
+
+      class RecordingOutput extends MockOutputPlugin {
+        async write(points: DataPoint[]): Promise<void> {
+          writtenPoints.push(...points);
+        }
+      }
+
+      pluginManager.registerInputPlugin('sonarr', AllBadPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', RecordingOutput);
+      await pluginManager.initializeFromConfig(minimalConfig);
+      await pluginManager.startSchedulers();
+      await vi.advanceTimersByTimeAsync(1100);
+
+      expect(writtenPoints).toHaveLength(0);
+    });
+  });
+
   describe('setTimeout overflow handling', () => {
     it('should chain timeouts when interval exceeds 32-bit signed integer limit', async () => {
       const setTimeoutSpy = vi.spyOn(global, 'setTimeout');
