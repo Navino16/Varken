@@ -484,6 +484,7 @@ export class PluginManager {
   private closeCircuit(scheduler: ActiveScheduler): void {
     scheduler.circuitState = 'closed';
     scheduler.consecutiveErrors = 0;
+    scheduler.lastError = undefined;
     scheduler.currentIntervalMs = scheduler.baseIntervalMs;
     scheduler.disabledAt = undefined;
     scheduler.nextAttemptAt = undefined;
