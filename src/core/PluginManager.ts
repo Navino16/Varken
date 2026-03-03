@@ -287,14 +287,19 @@ export class PluginManager {
     }
 
     return setTimeout(async () => {
-      await this.executeSchedule(schedule);
-      const scheduler = this.schedulers.get(schedule.name);
-      if (scheduler && this.isRunning) {
-        scheduler.timer = this.scheduleNextRun(
-          schedule,
-          plugin,
-          scheduler.currentIntervalMs
-        );
+      try {
+        await this.executeSchedule(schedule);
+        const scheduler = this.schedulers.get(schedule.name);
+        if (scheduler && this.isRunning) {
+          scheduler.timer = this.scheduleNextRun(
+            schedule,
+            plugin,
+            scheduler.currentIntervalMs
+          );
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        logger.error(`Scheduler ${schedule.name} unexpected error: ${message}`);
       }
     }, intervalMs);
   }
