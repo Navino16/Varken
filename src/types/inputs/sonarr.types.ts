@@ -137,12 +137,3 @@ export interface SonarrQueue {
   customFormats?: unknown[];
   customFormatScore?: number;
 }
-
-export interface SonarrQueueResponse {
-  page: number;
-  pageSize: number;
-  sortKey: string;
-  sortDirection: string;
-  totalRecords: number;
-  records: SonarrQueue[];
-}

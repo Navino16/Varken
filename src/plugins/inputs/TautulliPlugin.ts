@@ -24,16 +24,16 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
   /**
    * Initialize the plugin and configure the HTTP client
    */
-  async initialize(config: TautulliConfig): Promise<void> {
-    await super.initialize(config);
+  async initialize(...args: Parameters<BaseInputPlugin<TautulliConfig>['initialize']>): Promise<void> {
+    await super.initialize(...args);
 
     // Log deprecation warnings for old config options
-    if (config.geoip?.licenseKey) {
+    if (this.config.geoip?.licenseKey) {
       this.logger.warn(
         'geoip.licenseKey is deprecated and ignored. GeoIP is now handled by Tautulli API.'
       );
     }
-    if (config.fallbackIp) {
+    if (this.config.fallbackIp) {
       this.logger.warn(
         'fallbackIp is deprecated and ignored. Use geoip.localCoordinates for LAN streams.'
       );
@@ -47,7 +47,7 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
     try {
       await this.httpClient.get('/api/v2', {
         params: { apikey: this.config.apiKey, cmd: 'get_server_info' },
-        timeout: 5000,
+        timeout: this.globalConfig.healthCheckTimeoutMs,
       });
       return true;
     } catch (error) {

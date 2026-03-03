@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 import { ConfigLoader } from '../../src/config/ConfigLoader';
+import { ConfigurationMissingError } from '../../src/config/errors';
 
 // Mock the logger
 vi.mock('../../src/core/Logger', () => ({
@@ -12,11 +13,6 @@ vi.mock('../../src/core/Logger', () => ({
     error: vi.fn(),
   }),
 }));
-
-// Mock process.exit to prevent test from exiting
-const mockExit = vi.spyOn(process, 'exit').mockImplementation((code) => {
-  throw new Error(`process.exit(${code})`);
-});
 
 describe('ConfigLoader', () => {
   const testConfigFolder = path.join(__dirname, '../.test-config-loader');
@@ -30,8 +26,6 @@ describe('ConfigLoader', () => {
     Object.keys(process.env)
       .filter((key) => key.startsWith('VARKEN_'))
       .forEach((key) => delete process.env[key]);
-    // Reset mock
-    mockExit.mockClear();
   });
 
   afterEach(() => {
@@ -190,11 +184,23 @@ inputs: {}
       expect(() => loader.load()).toThrow('At least one input must be configured');
     });
 
-    it('should call process.exit when config file missing and no migration needed', () => {
+    it('should throw ConfigurationMissingError when config file missing and no migration needed', () => {
       const loader = new ConfigLoader(testConfigFolder);
 
-      expect(() => loader.load()).toThrow('process.exit(0)');
-      expect(mockExit).toHaveBeenCalledWith(0);
+      let caughtError: ConfigurationMissingError | null = null;
+      try {
+        loader.load();
+      } catch (error) {
+        if (error instanceof ConfigurationMissingError) {
+          caughtError = error;
+        } else {
+          throw error;
+        }
+      }
+
+      expect(caughtError).not.toBeNull();
+      expect(caughtError).toBeInstanceOf(ConfigurationMissingError);
+      expect(caughtError!.action).toBe('template_created');
 
       // Verify template was created
       expect(fs.existsSync(path.join(testConfigFolder, 'varken.yaml'))).toBe(true);

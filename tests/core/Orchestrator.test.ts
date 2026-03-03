@@ -53,6 +53,13 @@ describe('Orchestrator', () => {
   let orchestrator: Orchestrator;
 
   const minimalConfig: VarkenConfig = {
+    global: {
+      httpTimeoutMs: 30000,
+      healthCheckTimeoutMs: 5000,
+      collectorTimeoutMs: 60000,
+      paginationPageSize: 250,
+      maxPaginationRecords: 10000,
+    },
     outputs: {
       influxdb1: {
         url: 'localhost',
@@ -133,6 +140,7 @@ describe('Orchestrator', () => {
 
   describe('stop', () => {
     it('should stop the orchestrator', async () => {
+      vi.useRealTimers(); // Need real timers for withTimeout
       orchestrator.registerPlugins({
         inputPlugins: new Map([['sonarr', MockInputPlugin]]),
         outputPlugins: new Map([['influxdb1', MockOutputPlugin]]),
@@ -145,6 +153,7 @@ describe('Orchestrator', () => {
     });
 
     it('should handle multiple stop calls gracefully', async () => {
+      vi.useRealTimers(); // Need real timers for withTimeout
       orchestrator.registerPlugins({
         inputPlugins: new Map([['sonarr', MockInputPlugin]]),
         outputPlugins: new Map([['influxdb1', MockOutputPlugin]]),
@@ -222,6 +231,7 @@ describe('Orchestrator', () => {
 
   describe('shutdown behavior', () => {
     it('should await pending shutdown when stop called multiple times simultaneously', async () => {
+      vi.useRealTimers(); // Need real timers for withTimeout
       orchestrator.registerPlugins({
         inputPlugins: new Map([['sonarr', MockInputPlugin]]),
         outputPlugins: new Map([['influxdb1', MockOutputPlugin]]),

@@ -121,12 +121,3 @@ export interface ReadarrQueue {
   outputPath?: string;
   added: string;
 }
-
-export interface ReadarrQueueResponse {
-  page: number;
-  pageSize: number;
-  sortKey: string;
-  sortDirection: string;
-  totalRecords: number;
-  records: ReadarrQueue[];
-}

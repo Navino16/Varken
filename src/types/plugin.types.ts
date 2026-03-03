@@ -22,9 +22,11 @@ export interface ScheduleConfig {
   collector: () => Promise<DataPoint[]>;
 }
 
+import type { GlobalConfig } from '../config/schemas/config.schema';
+
 export interface InputPlugin<TConfig = unknown> {
   readonly metadata: PluginMetadata;
-  initialize(config: TConfig): Promise<void>;
+  initialize(config: TConfig, globalConfig?: GlobalConfig): Promise<void>;
   collect(): Promise<DataPoint[]>;
   getSchedules(): ScheduleConfig[];
   healthCheck(): Promise<boolean>;

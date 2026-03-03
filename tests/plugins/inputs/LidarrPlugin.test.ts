@@ -150,7 +150,7 @@ describe('LidarrPlugin', () => {
       });
 
       // Mock empty missing albums
-      mockHttpClient.get.mockResolvedValueOnce({ data: { records: [] } });
+      mockHttpClient.get.mockResolvedValueOnce({ data: { totalRecords: 0, records: [] } });
 
       const points = await plugin.collect();
 
@@ -178,7 +178,7 @@ describe('LidarrPlugin', () => {
           ],
         },
       });
-      mockHttpClient.get.mockResolvedValueOnce({ data: { records: [] } });
+      mockHttpClient.get.mockResolvedValueOnce({ data: { totalRecords: 0, records: [] } });
 
       const points = await plugin.collect();
       const queuePoint = points.find((p) => p.tags.type === 'Queue');
@@ -201,7 +201,7 @@ describe('LidarrPlugin', () => {
           ],
         },
       });
-      mockHttpClient.get.mockResolvedValueOnce({ data: { records: [] } });
+      mockHttpClient.get.mockResolvedValueOnce({ data: { totalRecords: 0, records: [] } });
 
       const points = await plugin.collect();
       const queuePoint = points.find((p) => p.tags.type === 'Queue');
@@ -224,7 +224,7 @@ describe('LidarrPlugin', () => {
           ],
         },
       });
-      mockHttpClient.get.mockResolvedValueOnce({ data: { records: [] } });
+      mockHttpClient.get.mockResolvedValueOnce({ data: { totalRecords: 0, records: [] } });
 
       const points = await plugin.collect();
       const queuePoint = points.find((p) => p.tags.type === 'Queue');
@@ -240,6 +240,7 @@ describe('LidarrPlugin', () => {
       // Mock missing albums
       mockHttpClient.get.mockResolvedValueOnce({
         data: {
+          totalRecords: 2,
           records: [
             {
               id: 1,
@@ -281,6 +282,7 @@ describe('LidarrPlugin', () => {
 
       mockHttpClient.get.mockResolvedValueOnce({
         data: {
+          totalRecords: 1,
           records: [
             {
               id: 1,
@@ -303,7 +305,7 @@ describe('LidarrPlugin', () => {
       mockHttpClient.get.mockResolvedValueOnce({
         data: { totalRecords: 0, records: [] },
       });
-      mockHttpClient.get.mockResolvedValueOnce({ data: { records: [] } });
+      mockHttpClient.get.mockResolvedValueOnce({ data: { totalRecords: 0, records: [] } });
 
       const points = await plugin.collect();
       expect(points).toEqual([]);
@@ -348,7 +350,7 @@ describe('LidarrPlugin', () => {
           ],
         },
       });
-      mockHttpClient.get.mockResolvedValueOnce({ data: { records: [] } });
+      mockHttpClient.get.mockResolvedValueOnce({ data: { totalRecords: 0, records: [] } });
 
       const points = await plugin.collect();
 
@@ -397,7 +399,7 @@ describe('LidarrPlugin', () => {
       });
 
       // Missing albums mock
-      mockHttpClient.get.mockResolvedValueOnce({ data: { records: [] } });
+      mockHttpClient.get.mockResolvedValueOnce({ data: { totalRecords: 0, records: [] } });
 
       const points = await plugin.collect();
 
@@ -418,7 +420,7 @@ describe('LidarrPlugin', () => {
       mockHttpClient.get.mockResolvedValueOnce({
         data: { totalRecords: 1, records: [albumData] },
       });
-      mockHttpClient.get.mockResolvedValueOnce({ data: { records: [] } });
+      mockHttpClient.get.mockResolvedValueOnce({ data: { totalRecords: 0, records: [] } });
 
       const points1 = await plugin.collect();
 
@@ -426,7 +428,7 @@ describe('LidarrPlugin', () => {
       mockHttpClient.get.mockResolvedValueOnce({
         data: { totalRecords: 1, records: [albumData] },
       });
-      mockHttpClient.get.mockResolvedValueOnce({ data: { records: [] } });
+      mockHttpClient.get.mockResolvedValueOnce({ data: { totalRecords: 0, records: [] } });
 
       const points2 = await plugin.collect();
 

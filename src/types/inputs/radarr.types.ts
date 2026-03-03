@@ -118,12 +118,3 @@ export interface RadarrQueue {
   customFormats?: unknown[];
   customFormatScore?: number;
 }
-
-export interface RadarrQueueResponse {
-  page: number;
-  pageSize: number;
-  sortKey: string;
-  sortDirection: string;
-  totalRecords: number;
-  records: RadarrQueue[];
-}

@@ -2,6 +2,29 @@
 # Copy this file to varken.yaml and customize
 
 # =============================================================================
+# GLOBAL SETTINGS - Application-wide configuration (optional)
+# =============================================================================
+# All values have sensible defaults and can be omitted
+
+# global:
+#   # Timeout for HTTP requests to services (in milliseconds)
+#   httpTimeoutMs: 30000  # 30 seconds
+#
+#   # Timeout for health check requests (in milliseconds)
+#   healthCheckTimeoutMs: 5000  # 5 seconds
+#
+#   # Timeout for collector execution (in milliseconds)
+#   # If a collector takes longer than this, it will be terminated
+#   collectorTimeoutMs: 60000  # 60 seconds
+#
+#   # Number of records per page when fetching paginated API endpoints
+#   paginationPageSize: 250
+#
+#   # Maximum number of records to fetch from paginated endpoints
+#   # This is a safety limit to prevent OOM on very large datasets
+#   maxPaginationRecords: 10000
+
+# =============================================================================
 # OUTPUT PLUGINS - Where to send collected data
 # =============================================================================
 outputs:

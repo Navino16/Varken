@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as yaml from 'yaml';
 import { createLogger } from '../core/Logger';
 import { ConfigMigrator } from './ConfigMigrator';
+import { ConfigurationMissingError } from './errors';
 import type { VarkenConfig } from './schemas/config.schema';
 import { VarkenConfigSchema } from './schemas/config.schema';
 
@@ -80,7 +81,11 @@ export class ConfigLoader {
       logger.info(`Configuration has been migrated to: ${generatedPath}`);
       logger.info('Please review the generated configuration and restart Varken.');
       logger.info('='.repeat(60));
-      process.exit(0);
+      throw new ConfigurationMissingError(
+        'Configuration migrated from legacy format',
+        'migrated',
+        generatedPath
+      );
     } else {
       // Create from template
       this.createFromTemplate(yamlPath);
@@ -91,7 +96,11 @@ export class ConfigLoader {
       logger.info(`A template configuration has been created at: ${yamlPath}`);
       logger.info('Please edit this file to configure your inputs and outputs.');
       logger.info('='.repeat(60));
-      process.exit(0);
+      throw new ConfigurationMissingError(
+        'Configuration template created',
+        'template_created',
+        yamlPath
+      );
     }
   }
 

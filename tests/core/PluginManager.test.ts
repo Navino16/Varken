@@ -71,6 +71,13 @@ describe('PluginManager', () => {
   let pluginManager: PluginManager;
 
   const minimalConfig: VarkenConfig = {
+    global: {
+      httpTimeoutMs: 30000,
+      healthCheckTimeoutMs: 5000,
+      collectorTimeoutMs: 60000,
+      paginationPageSize: 250,
+      maxPaginationRecords: 10000,
+    },
     outputs: {
       influxdb1: {
         url: 'localhost',
@@ -225,6 +232,7 @@ describe('PluginManager', () => {
 
   describe('stopSchedulers', () => {
     it('should stop all schedulers', async () => {
+      vi.useRealTimers(); // Need real timers for withTimeout
       pluginManager.registerInputPlugin('sonarr', MockInputPlugin);
       pluginManager.registerOutputPlugin('influxdb1', MockOutputPlugin);
       await pluginManager.initializeFromConfig(minimalConfig);
@@ -255,6 +263,7 @@ describe('PluginManager', () => {
 
   describe('shutdown', () => {
     it('should shutdown all plugins', async () => {
+      vi.useRealTimers(); // Need real timers for withTimeout
       pluginManager.registerInputPlugin('sonarr', MockInputPlugin);
       pluginManager.registerOutputPlugin('influxdb1', MockOutputPlugin);
       await pluginManager.initializeFromConfig(minimalConfig);
