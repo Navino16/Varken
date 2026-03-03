@@ -354,7 +354,7 @@ export class PluginManager {
         `Collector ${schedule.name} timed out after ${collectorTimeout}ms`
       );
 
-      const validPoints = this.validateDataPoints(points);
+      const validPoints = this.validateDataPoints(points, schedule.name);
 
       if (validPoints.length > 0) {
         // Write to all output plugins
@@ -498,18 +498,18 @@ export class PluginManager {
   /**
    * Validate data points and filter out invalid ones
    */
-  private validateDataPoints(points: DataPoint[]): DataPoint[] {
+  private validateDataPoints(points: DataPoint[], scheduleName: string): DataPoint[] {
     return points.filter((point) => {
       if (!point.measurement || typeof point.measurement !== 'string') {
-        logger.warn('Filtered out data point with empty or invalid measurement');
+        logger.warn(`[${scheduleName}] Filtered out data point with empty or invalid measurement`);
         return false;
       }
       if (!point.fields || Object.keys(point.fields).length === 0) {
-        logger.warn(`Filtered out data point "${point.measurement}" with no fields`);
+        logger.warn(`[${scheduleName}] Filtered out data point "${point.measurement}" with no fields`);
         return false;
       }
       if (!(point.timestamp instanceof Date) || isNaN(point.timestamp.getTime())) {
-        logger.warn(`Filtered out data point "${point.measurement}" with invalid timestamp`);
+        logger.warn(`[${scheduleName}] Filtered out data point "${point.measurement}" with invalid timestamp`);
         return false;
       }
       return true;
