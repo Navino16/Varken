@@ -143,6 +143,21 @@ describe('InfluxDB1Plugin', () => {
 
       await expect(plugin.write(points)).resolves.toBeUndefined();
     });
+
+    it('should propagate write errors', async () => {
+      mockWritePoints.mockRejectedValueOnce(new Error('write failed'));
+
+      const points: DataPoint[] = [
+        {
+          measurement: 'test',
+          tags: {},
+          fields: { value: 1 },
+          timestamp: new Date(),
+        },
+      ];
+
+      await expect(plugin.write(points)).rejects.toThrow('write failed');
+    });
   });
 
   describe('healthCheck', () => {
