@@ -5,8 +5,13 @@ import fs from 'fs';
 const LOG_FOLDER = process.env.LOG_FOLDER || './logs';
 
 // Ensure log directory exists
-if (!fs.existsSync(LOG_FOLDER)) {
-  fs.mkdirSync(LOG_FOLDER, { recursive: true });
+try {
+  if (!fs.existsSync(LOG_FOLDER)) {
+    fs.mkdirSync(LOG_FOLDER, { recursive: true });
+  }
+} catch (error) {
+  console.error(`Failed to create log directory "${LOG_FOLDER}": ${error instanceof Error ? error.message : error}`);
+  process.exit(1);
 }
 
 // Sensitive data patterns to filter
