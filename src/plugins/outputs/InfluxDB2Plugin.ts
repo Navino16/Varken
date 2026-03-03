@@ -68,8 +68,13 @@ export class InfluxDB2Plugin extends BaseOutputPlugin<InfluxDB2Config> {
         this.writeApi.writePoint(point);
       }
 
-      // Flush immediately to ensure data is written
-      await this.writeApi.flush();
+      // Flush immediately to ensure data is written (30s timeout to avoid blocking schedulers)
+      await Promise.race([
+        this.writeApi.flush(),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('InfluxDB 2.x flush timed out after 30000ms')), 30000)
+        ),
+      ]);
       this.logger.debug(`Wrote ${points.length} points to InfluxDB 2.x`);
     } catch (error) {
       if (error instanceof HttpError) {
