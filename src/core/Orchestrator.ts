@@ -173,8 +173,8 @@ export class Orchestrator {
 
       try {
         await this.stop();
-      } catch {
-        // Ignore shutdown errors
+      } catch (shutdownError) {
+        logger.error(`Shutdown error: ${shutdownError instanceof Error ? shutdownError.message : String(shutdownError)}`);
       }
 
       process.exit(1);
@@ -189,8 +189,8 @@ export class Orchestrator {
 
       try {
         await this.stop();
-      } catch {
-        // Ignore shutdown errors
+      } catch (shutdownError) {
+        logger.error(`Shutdown error: ${shutdownError instanceof Error ? shutdownError.message : String(shutdownError)}`);
       }
 
       process.exit(1);
