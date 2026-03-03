@@ -1193,4 +1193,50 @@ describe('PluginManager', () => {
       expect(successfulWrites.length).toBeGreaterThan(0);
     });
   });
+
+  describe('setTimeout overflow handling', () => {
+    it('should chain timeouts when interval exceeds 32-bit signed integer limit', async () => {
+      const setTimeoutSpy = vi.spyOn(global, 'setTimeout');
+
+      class LongIntervalPlugin extends MockInputPlugin {
+        getSchedules(): ScheduleConfig[] {
+          // 30 days in seconds = 2,592,000s → 2,592,000,000ms > 2^31-1
+          return [
+            this.createSchedule('libraries', 2_592_000, true, this.collect),
+          ];
+        }
+      }
+
+      pluginManager.registerInputPlugin('sonarr', LongIntervalPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', MockOutputPlugin);
+      await pluginManager.initializeFromConfig(minimalConfig);
+      await pluginManager.startSchedulers();
+
+      // Find the setTimeout call with MAX_TIMEOUT_MS (chained timeout)
+      const MAX_TIMEOUT_MS = 2_147_483_647;
+      const chainedCall = setTimeoutSpy.mock.calls.find(
+        (call) => call[1] === MAX_TIMEOUT_MS
+      );
+      expect(chainedCall).toBeDefined();
+
+      setTimeoutSpy.mockRestore();
+    });
+
+    it('should not chain timeouts for intervals within 32-bit limit', async () => {
+      const setTimeoutSpy = vi.spyOn(global, 'setTimeout');
+
+      pluginManager.registerInputPlugin('sonarr', MockInputPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', MockOutputPlugin);
+      await pluginManager.initializeFromConfig(minimalConfig);
+      await pluginManager.startSchedulers();
+
+      const MAX_TIMEOUT_MS = 2_147_483_647;
+      const chainedCall = setTimeoutSpy.mock.calls.find(
+        (call) => call[1] === MAX_TIMEOUT_MS
+      );
+      expect(chainedCall).toBeUndefined();
+
+      setTimeoutSpy.mockRestore();
+    });
+  });
 });
