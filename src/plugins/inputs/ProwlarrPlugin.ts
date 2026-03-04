@@ -1,6 +1,9 @@
 import { BaseInputPlugin } from './BaseInputPlugin';
 import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
-import type { ProwlarrConfig, ProwlarrIndexerStats } from '../../types/inputs/prowlarr.types';
+import type {
+  ProwlarrConfig,
+  ProwlarrIndexerStatsResponse,
+} from '../../types/inputs/prowlarr.types';
 
 /**
  * Prowlarr input plugin
@@ -69,14 +72,15 @@ export class ProwlarrPlugin extends BaseInputPlugin<ProwlarrConfig> {
     const points: DataPoint[] = [];
 
     try {
-      const stats = await this.httpGet<ProwlarrIndexerStats[]>('/api/v1/indexerstats');
+      const response = await this.httpGet<ProwlarrIndexerStatsResponse>('/api/v1/indexerstats');
+      const indexers = response?.indexers;
 
-      if (!stats || stats.length === 0) {
+      if (!indexers || indexers.length === 0) {
         this.logger.debug('No indexer stats found in Prowlarr');
         return points;
       }
 
-      for (const indexer of stats) {
+      for (const indexer of indexers) {
         const hashId = this.hashit(`${this.config.id}${indexer.indexerId}${indexer.indexerName}`);
 
         points.push(

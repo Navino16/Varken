@@ -31,6 +31,12 @@ export interface ProwlarrIndexer {
 }
 
 // API Response Types - /api/v1/indexerstats
+export interface ProwlarrIndexerStatsResponse {
+  indexers: ProwlarrIndexerStats[];
+  userAgents: { userAgent: string; numberOfQueries: number; numberOfGrabs: number }[];
+  hosts: { host: string; numberOfQueries: number; numberOfGrabs: number }[];
+}
+
 export interface ProwlarrIndexerStats {
   indexerId: number;
   indexerName: string;

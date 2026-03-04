@@ -108,34 +108,36 @@ describe('ProwlarrPlugin', () => {
 
     it('should collect indexer stats', async () => {
       mockHttpClient.get.mockResolvedValueOnce({
-        data: [
-          {
-            indexerId: 1,
-            indexerName: 'NZBgeek',
-            averageResponseTime: 150,
-            numberOfQueries: 100,
-            numberOfGrabs: 50,
-            numberOfRssQueries: 20,
-            numberOfAuthQueries: 5,
-            numberOfFailedQueries: 2,
-            numberOfFailedGrabs: 1,
-            numberOfFailedRssQueries: 0,
-            numberOfFailedAuthQueries: 0,
-          },
-          {
-            indexerId: 2,
-            indexerName: '1337x',
-            averageResponseTime: 200,
-            numberOfQueries: 80,
-            numberOfGrabs: 30,
-            numberOfRssQueries: 10,
-            numberOfAuthQueries: 0,
-            numberOfFailedQueries: 5,
-            numberOfFailedGrabs: 2,
-            numberOfFailedRssQueries: 1,
-            numberOfFailedAuthQueries: 0,
-          },
-        ],
+        data: {
+          indexers: [
+            {
+              indexerId: 1,
+              indexerName: 'NZBgeek',
+              averageResponseTime: 150,
+              numberOfQueries: 100,
+              numberOfGrabs: 50,
+              numberOfRssQueries: 20,
+              numberOfAuthQueries: 5,
+              numberOfFailedQueries: 2,
+              numberOfFailedGrabs: 1,
+              numberOfFailedRssQueries: 0,
+              numberOfFailedAuthQueries: 0,
+            },
+            {
+              indexerId: 2,
+              indexerName: '1337x',
+              averageResponseTime: 200,
+              numberOfQueries: 80,
+              numberOfGrabs: 30,
+              numberOfRssQueries: 10,
+              numberOfAuthQueries: 0,
+              numberOfFailedQueries: 5,
+              numberOfFailedGrabs: 2,
+              numberOfFailedRssQueries: 1,
+              numberOfFailedAuthQueries: 0,
+            },
+          ],
+        },
       });
 
       const points = await plugin.collect();
@@ -157,21 +159,23 @@ describe('ProwlarrPlugin', () => {
 
     it('should include all stats fields', async () => {
       mockHttpClient.get.mockResolvedValueOnce({
-        data: [
-          {
-            indexerId: 1,
-            indexerName: 'TestIndexer',
-            averageResponseTime: 100,
-            numberOfQueries: 50,
-            numberOfGrabs: 25,
-            numberOfRssQueries: 10,
-            numberOfAuthQueries: 5,
-            numberOfFailedQueries: 3,
-            numberOfFailedGrabs: 2,
-            numberOfFailedRssQueries: 1,
-            numberOfFailedAuthQueries: 0,
-          },
-        ],
+        data: {
+          indexers: [
+            {
+              indexerId: 1,
+              indexerName: 'TestIndexer',
+              averageResponseTime: 100,
+              numberOfQueries: 50,
+              numberOfGrabs: 25,
+              numberOfRssQueries: 10,
+              numberOfAuthQueries: 5,
+              numberOfFailedQueries: 3,
+              numberOfFailedGrabs: 2,
+              numberOfFailedRssQueries: 1,
+              numberOfFailedAuthQueries: 0,
+            },
+          ],
+        },
       });
 
       const points = await plugin.collect();
@@ -188,7 +192,7 @@ describe('ProwlarrPlugin', () => {
     });
 
     it('should handle empty indexer stats', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({ data: [] });
+      mockHttpClient.get.mockResolvedValueOnce({ data: { indexers: [] } });
 
       const points = await plugin.collect();
       expect(points).toEqual([]);
@@ -222,10 +226,10 @@ describe('ProwlarrPlugin', () => {
         numberOfFailedAuthQueries: 0,
       };
 
-      mockHttpClient.get.mockResolvedValueOnce({ data: [indexerData] });
+      mockHttpClient.get.mockResolvedValueOnce({ data: { indexers: [indexerData] } });
       const points1 = await plugin.collect();
 
-      mockHttpClient.get.mockResolvedValueOnce({ data: [indexerData] });
+      mockHttpClient.get.mockResolvedValueOnce({ data: { indexers: [indexerData] } });
       const points2 = await plugin.collect();
 
       expect(points1[0].fields.hash).toBe(points2[0].fields.hash);
