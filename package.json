@@ -1,6 +1,6 @@
 {
   "name": "varken",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "Standalone application to aggregate data from the Plex ecosystem into time-series databases",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

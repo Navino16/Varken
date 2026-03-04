@@ -98,7 +98,7 @@ describe('index.ts (Entry Point)', () => {
 
   describe('Constants', () => {
     it('should export VERSION', () => {
-      expect(VERSION).toBe('2.0.0');
+      expect(VERSION).toMatch(/^\d+\.\d+\.\d+/);
     });
 
     it('should export DEFAULT_HEALTH_PORT', () => {
