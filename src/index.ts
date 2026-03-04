@@ -4,8 +4,9 @@ import { Orchestrator } from './core/Orchestrator';
 import { getInputPluginRegistry } from './plugins/inputs';
 import { getOutputPluginRegistry } from './plugins/outputs';
 import type { HealthServerConfig } from './core/HealthServer';
+import { version as VERSION } from '../package.json';
 
-export const VERSION = '2.0.0';
+export { VERSION };
 export const DEFAULT_HEALTH_PORT = 9090;
 
 export interface MainDependencies {

@@ -1,4 +1,4 @@
-import type { AxiosInstance, AxiosRequestConfig } from 'axios';
+import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import axios from 'axios';
 import * as https from 'https';
 import { createHash } from 'crypto';
@@ -139,7 +139,38 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
       });
     }
 
-    return axios.create(axiosConfig);
+    const client = axios.create(axiosConfig);
+
+    client.interceptors.response.use((response: AxiosResponse) => {
+      this.validateResponseData(response);
+      return response;
+    });
+
+    return client;
+  }
+
+  /**
+   * Validate that an API response contains JSON data, not HTML or empty content.
+   * Throws if the response data is unexpected (e.g. login page, wrong URL, auth redirect).
+   */
+  protected validateResponseData(response: AxiosResponse): void {
+    const { data } = response;
+    const url = response.config?.url ?? 'unknown';
+
+    if (data === null || data === undefined) {
+      this.logger.warn(`API response from ${url} returned no data`);
+      throw new Error(`Expected JSON data but received nothing from ${url}`);
+    }
+
+    if (typeof data === 'string') {
+      const lower = data.toLowerCase();
+      if (lower.includes('<!doctype') || lower.includes('<html')) {
+        this.logger.warn(`API response from ${url} returned HTML instead of JSON — check the URL or authentication`);
+        throw new Error(`Expected JSON but received HTML from ${url}`);
+      }
+      this.logger.warn(`API response from ${url} returned a plain string instead of JSON`);
+      throw new Error(`Expected JSON but received string from ${url}`);
+    }
   }
 
   /**

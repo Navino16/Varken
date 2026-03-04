@@ -57,6 +57,10 @@ describe('RadarrPlugin', () => {
           common: {},
         },
       },
+      interceptors: {
+        response: { use: vi.fn() },
+        request: { use: vi.fn() },
+      },
     };
     (axios.create as Mock).mockReturnValue(mockHttpClient);
   });

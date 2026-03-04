@@ -64,6 +64,10 @@ class TestInputPlugin extends BaseInputPlugin<TestConfig> {
   public testFetchAllPages<T>(endpoint: string, params?: Record<string, unknown>): Promise<T[]> {
     return this.fetchAllPages<T>(endpoint, params);
   }
+
+  public testValidateResponseData(response: unknown): void {
+    return this.validateResponseData(response as import('axios').AxiosResponse);
+  }
 }
 
 describe('BaseInputPlugin', () => {
@@ -405,6 +409,58 @@ describe('BaseInputPlugin', () => {
 
       const results = await plugin.testFetchAllPages<TestRecord>('/api/test');
       expect(results).toHaveLength(0);
+    });
+  });
+
+  describe('validateResponseData', () => {
+    beforeEach(async () => {
+      await plugin.initialize(testConfig);
+    });
+
+    const makeResponse = (data: unknown) => ({
+      data,
+      config: { url: '/api/test' },
+    });
+
+    it('should throw on HTML response with <!doctype', () => {
+      expect(() => plugin.testValidateResponseData(makeResponse('<!DOCTYPE html><html><body>Login</body></html>')))
+        .toThrow('Expected JSON but received HTML from /api/test');
+    });
+
+    it('should throw on HTML response with <html tag', () => {
+      expect(() => plugin.testValidateResponseData(makeResponse('<html><body>Error</body></html>')))
+        .toThrow('Expected JSON but received HTML from /api/test');
+    });
+
+    it('should throw on non-HTML string response', () => {
+      expect(() => plugin.testValidateResponseData(makeResponse('Not Found')))
+        .toThrow('Expected JSON but received string from /api/test');
+    });
+
+    it('should throw on null response', () => {
+      expect(() => plugin.testValidateResponseData(makeResponse(null)))
+        .toThrow('Expected JSON data but received nothing from /api/test');
+    });
+
+    it('should throw on undefined response', () => {
+      expect(() => plugin.testValidateResponseData(makeResponse(undefined)))
+        .toThrow('Expected JSON data but received nothing from /api/test');
+    });
+
+    it('should pass through valid object response', () => {
+      expect(() => plugin.testValidateResponseData(makeResponse({ id: 1 }))).not.toThrow();
+    });
+
+    it('should pass through valid array response', () => {
+      expect(() => plugin.testValidateResponseData(makeResponse([1, 2, 3]))).not.toThrow();
+    });
+
+    it('should pass through number response', () => {
+      expect(() => plugin.testValidateResponseData(makeResponse(42))).not.toThrow();
+    });
+
+    it('should pass through boolean response', () => {
+      expect(() => plugin.testValidateResponseData(makeResponse(true))).not.toThrow();
     });
   });
 });
