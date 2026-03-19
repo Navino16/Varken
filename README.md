@@ -1,98 +1,108 @@
 <p align="center">
-<img width="800" src="https://raw.githubusercontent.com/navino16/Varken/master/assets/varken_full_banner.jpg" alt="Logo Banner">
+  <img src="https://raw.githubusercontent.com/navino16/Varken/master/assets/varken_full_banner.jpg" alt="Varken" width="800">
 </p>
 
 <p align="center">
-<a href="https://github.com/navino16/Varken/actions/workflows/ci.yml"><img src="https://github.com/navino16/Varken/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-<a href="https://github.com/navino16/Varken/actions/workflows/build.yml"><img src="https://github.com/navino16/Varken/actions/workflows/build.yml/badge.svg" alt="Build Docker Image"></a>
-<a href="https://codecov.io/gh/navino16/Varken"><img src="https://codecov.io/gh/navino16/Varken/branch/develop/graph/badge.svg" alt="codecov"></a>
+  <strong>Varken</strong> (Dutch for "PIG" — Plex/InfluxDB/Grafana)<br/>
+  Aggregate data from the Plex ecosystem into InfluxDB for beautiful Grafana dashboards.<br/>
+  Monitor Sonarr, Radarr, Tautulli, Overseerr, and more — all in one place.
 </p>
 
-**Varken** (Dutch for "PIG" - Plex/InfluxDB/Grafana) is a standalone application that aggregates data from the Plex ecosystem into time-series databases for beautiful Grafana dashboards.
+<p align="center">
+  <a href="https://github.com/Navino16/Varken/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Navino16/Varken/ci.yml?label=CI&style=flat-square" alt="CI"></a>
+  <a href="https://github.com/Navino16/Varken/actions/workflows/build.yml"><img src="https://img.shields.io/github/actions/workflow/status/Navino16/Varken/build.yml?label=Build&style=flat-square&logo=docker" alt="Build"></a>
+  <a href="https://codecov.io/gh/Navino16/Varken"><img src="https://img.shields.io/codecov/c/github/Navino16/Varken?style=flat-square&label=Coverage" alt="Coverage"></a>
+</p>
 
 <p align="center">
-<img width="800" src="https://i.imgur.com/3hNZTkC.png" alt="Example Dashboard">
+  <a href="https://github.com/Navino16/Varken/pkgs/container/varken"><img src="https://img.shields.io/badge/ghcr.io-varken-blue?style=flat-square&logo=docker" alt="Docker"></a>
+  <a href="https://discord.gg/XgCBF3sMSh"><img src="https://img.shields.io/discord/1483405134003175607?style=flat-square&logo=discord&label=Discord" alt="Discord"></a>
+  <a href="https://github.com/Navino16/Varken"><img src="https://img.shields.io/github/stars/Navino16/Varken?style=flat-square" alt="Stars"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/Navino16/Varken?style=flat-square" alt="License"></a>
+</p>
+
+<p align="center">
+  <a href="#installation">Installation</a> &bull;
+  <a href="#configuration">Configuration</a> &bull;
+  <a href="#supported-services">Services</a> &bull;
+  <a href="#contributing">Development</a>
+</p>
+
+---
+
+Built with TypeScript, Node.js, and a plugin-based architecture with scheduled data collection.
+
+<p align="center">
+  <img src="https://i.imgur.com/3hNZTkC.png" alt="Example Dashboard" width="800">
 </p>
 
 ## Features
 
-- **Multiple data sources** - Sonarr, Radarr, Tautulli, Ombi, Overseerr (more coming soon)
-- **Multiple outputs** - InfluxDB 1.x and InfluxDB 2.x
-- **GeoIP mapping** - Automatic geolocation of streaming sessions via Tautulli API (no external license required)
-- **Multi-instance support** - Connect multiple instances of each service
-- **Health checks** - Built-in HTTP health endpoints for monitoring and orchestration
-- **Circuit breaker** - Automatic error recovery with backoff and self-healing
-- **Docker ready** - Multi-platform images for amd64 and arm64
-- **Easy configuration** - Simple YAML configuration with environment variable overrides
+### Data Collection
 
-## Table of Contents
+- **Multiple data sources** — Sonarr, Radarr, Readarr, Lidarr, Tautulli, Ombi, Overseerr, Prowlarr, Bazarr
+- **Multiple outputs** — InfluxDB 1.x and InfluxDB 2.x
+- **Multi-instance support** — connect multiple instances of each service
+- **GeoIP mapping** — automatic geolocation of streaming sessions via Tautulli API (no external license required)
 
-- [Requirements](#requirements)
-- [Installation](#installation)
-  - [Docker Compose (Recommended)](#docker-compose-recommended)
-  - [Docker](#docker)
-  - [Manual Installation](#manual-installation)
-- [Configuration](#configuration)
-  - [Basic Configuration](#basic-configuration)
-  - [Global Settings](#global-settings)
-  - [Environment Variables](#environment-variables)
-  - [GeoIP Setup](#geoip-setup)
-  - [Multiple Instances](#multiple-instances)
-  - [Circuit Breaker](#circuit-breaker)
-- [Health Checks](#health-checks)
-- [Supported Services](#supported-services)
-- [Grafana Setup](#grafana-setup)
-- [Migration from Python Version](#migration-from-python-version)
-- [Troubleshooting](#troubleshooting)
-- [Contributing](#contributing)
-- [Support](#support)
-- [License](#license)
+### Reliability
 
-## Requirements
+- **Circuit breaker** — automatic error recovery with exponential backoff and self-healing
+- **Health checks** — built-in HTTP endpoints for monitoring and orchestration
+- **Easy configuration** — simple YAML config with environment variable overrides
 
-- [Docker](https://www.docker.com/) (recommended) or [Node.js 18+](https://nodejs.org/)
-- [InfluxDB 1.8.x or 2.x](https://www.influxdata.com/)
-- [Grafana](https://grafana.com/)
+### Deployment
+
+- **Docker ready** — multi-platform images for amd64 and arm64
+- **Lightweight** — Node.js 24 Alpine-based image
+- **Configurable** — environment variables, YAML, or legacy INI migration
+
+## Supported Services
+
+### Input Plugins
+
+| Service       | Data Collected                            | Status     |
+|---------------|-------------------------------------------|------------|
+| **Sonarr**    | Queue, calendar (missing/future episodes) | ✅          |
+| **Radarr**    | Queue, missing movies                     | ✅          |
+| **Readarr**   | Queue, missing eBooks                     | ✅          |
+| **Lidarr**    | Queue, missing music                      | ✅          |
+| **Tautulli**  | Activity, libraries, statistics, GeoIP    | ✅          |
+| **Ombi**      | Request counts, issue counts              | ✅          |
+| **Overseerr** | Request counts, latest requests           | ✅          |
+| **Prowlarr**  | Indexer statistics                        | ✅          |
+| **Bazarr**    | Wanted subtitles, history                 | ✅          |
+| **Plex**      | Sessions, libraries (direct API)          | 🚧 Planned |
+| **Jellyfin**  | Sessions, libraries, activity             | 🚧 Planned |
+
+### Output Plugins
+
+| Output                         | Status |
+|--------------------------------|--------|
+| **InfluxDB 2.x** (recommended) | ✅      |
+| **InfluxDB 1.x** (legacy)      | ✅      |
 
 ## Installation
 
 ### Docker Compose (Recommended)
 
-The easiest way to get started is with Docker Compose, which sets up Varken, InfluxDB, and Grafana together.
-
-1. **Create a directory and download the compose file:**
-
 ```bash
 mkdir varken && cd varken
 curl -O https://raw.githubusercontent.com/navino16/Varken/develop/docker-compose.yml
-```
-
-2. **Create the configuration:**
-
-```bash
 mkdir config
 curl -o config/varken.yaml https://raw.githubusercontent.com/navino16/Varken/develop/config/varken.example.yaml
 ```
 
-3. **Edit the configuration:**
-
-```bash
-nano config/varken.yaml
-```
-
-4. **Start the stack:**
+Edit `config/varken.yaml` with your settings, then:
 
 ```bash
 docker compose up -d
 ```
 
-5. **Access services:**
-   - Grafana: http://localhost:3000 (admin/admin)
-   - InfluxDB: http://localhost:8086
+- Grafana: http://localhost:3000 (admin/admin)
+- InfluxDB: http://localhost:8086
 
 ### Docker
-
-If you already have InfluxDB and Grafana running:
 
 ```bash
 docker run -d \
@@ -103,38 +113,22 @@ docker run -d \
   ghcr.io/navino16/varken:latest
 ```
 
-### Manual Installation
-
-For development or if you prefer running without Docker:
+### Manual
 
 ```bash
-# Clone the repository
 git clone https://github.com/navino16/Varken.git
 cd Varken
-
-# Install dependencies
 npm install
-
-# Build
 npm run build
-
-# Copy and edit configuration
 cp config/varken.example.yaml config/varken.yaml
-nano config/varken.yaml
-
-# Run
 npm start
 ```
 
 ## Configuration
 
-### Basic Configuration
-
-Varken uses a YAML configuration file. Here's a minimal example:
+### Basic Example
 
 ```yaml
-# config/varken.yaml
-
 outputs:
   influxdb2:
     url: "http://influxdb:8086"
@@ -156,17 +150,6 @@ inputs:
         missingDays: 30
         intervalSeconds: 300
 
-  radarr:
-    - id: 1
-      url: "http://radarr:7878"
-      apiKey: "your-radarr-api-key"
-      queue:
-        enabled: true
-        intervalSeconds: 30
-      missing:
-        enabled: true
-        intervalSeconds: 300
-
   tautulli:
     - id: 1
       url: "http://tautulli:8181"
@@ -174,9 +157,6 @@ inputs:
       activity:
         enabled: true
         intervalSeconds: 30
-      libraries:
-        enabled: true
-        intervalDays: 1
 ```
 
 ### Global Settings
@@ -185,45 +165,34 @@ Varken provides global configuration options for tuning timeouts and pagination.
 
 ```yaml
 global:
-  # Timeout for HTTP requests to services (default: 30000ms = 30s)
   httpTimeoutMs: 30000
-
-  # Timeout for health check requests (default: 5000ms = 5s)
   healthCheckTimeoutMs: 5000
-
-  # Timeout for collector execution (default: 60000ms = 60s)
-  # If a collector takes longer than this, it will be terminated
   collectorTimeoutMs: 60000
-
-  # Number of records per page when fetching paginated API endpoints (default: 250)
   paginationPageSize: 250
-
-  # Maximum records to fetch from paginated endpoints (default: 10000)
-  # This is a safety limit to prevent memory issues on very large datasets
   maxPaginationRecords: 10000
 ```
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `httpTimeoutMs` | 30000 | Timeout for HTTP requests to services |
-| `healthCheckTimeoutMs` | 5000 | Timeout for health check requests |
-| `collectorTimeoutMs` | 60000 | Timeout for collector execution |
-| `paginationPageSize` | 250 | Records per page for paginated APIs |
-| `maxPaginationRecords` | 10000 | Maximum records to fetch (safety limit) |
+| Setting                | Default | Description                             |
+|------------------------|---------|-----------------------------------------|
+| `httpTimeoutMs`        | 30000   | Timeout for HTTP requests to services   |
+| `healthCheckTimeoutMs` | 5000    | Timeout for health check requests       |
+| `collectorTimeoutMs`   | 60000   | Timeout for collector execution         |
+| `paginationPageSize`   | 250     | Records per page for paginated APIs     |
+| `maxPaginationRecords` | 10000   | Maximum records to fetch (safety limit) |
 
 ### Environment Variables
 
 #### Docker Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `CONFIG_FOLDER` | `/config` | Path to configuration files |
-| `DATA_FOLDER` | `/data` | Path to data storage |
-| `LOG_FOLDER` | `/logs` | Path to log files |
-| `LOG_LEVEL` | `info` | Log level: `error`, `warn`, `info`, `debug` |
-| `TZ` | `UTC` | Timezone (e.g., `Europe/Paris`, `America/New_York`) |
-| `HEALTH_PORT` | `9090` | Port for the health check HTTP server |
-| `HEALTH_ENABLED` | `true` | Enable/disable the health check server |
+| Variable         | Default   | Description                                         |
+|------------------|-----------|-----------------------------------------------------|
+| `CONFIG_FOLDER`  | `/config` | Path to configuration files                         |
+| `DATA_FOLDER`    | `/data`   | Path to data storage                                |
+| `LOG_FOLDER`     | `/logs`   | Path to log files                                   |
+| `LOG_LEVEL`      | `info`    | Log level: `error`, `warn`, `info`, `debug`         |
+| `TZ`             | `UTC`     | Timezone (e.g., `Europe/Paris`, `America/New_York`) |
+| `HEALTH_PORT`    | `9090`    | Port for the health check HTTP server               |
+| `HEALTH_ENABLED` | `true`    | Enable/disable the health check server              |
 
 #### Configuration Overrides
 
@@ -241,9 +210,7 @@ VARKEN_INPUTS_SONARR_0_URL="http://sonarr:8989"
 
 ### GeoIP Setup
 
-GeoIP geolocation is now handled directly by the Tautulli API - no external license or database download required!
-
-To enable geolocation of streaming sessions on a world map:
+The Tautulli API handles GeoIP geolocation directly — no external license or database download required.
 
 ```yaml
 inputs:
@@ -253,7 +220,6 @@ inputs:
       apiKey: "your-api-key"
       geoip:
         enabled: true
-        # Optional: set coordinates for local/LAN streams
         localCoordinates:
           latitude: 48.8566
           longitude: 2.3522
@@ -294,32 +260,20 @@ Each instance must have a unique `id`.
 
 Varken includes a built-in circuit breaker to handle failing services gracefully. When a scheduler encounters repeated errors, the circuit breaker:
 
-1. **Applies backoff** - Increases the interval between retries (exponential backoff)
-2. **Opens the circuit** - Temporarily disables the failing scheduler after too many errors
-3. **Attempts recovery** - After a cooldown period, tests if the service has recovered
-4. **Closes the circuit** - Returns to normal operation after successful recovery
+1. **Applies backoff** — increases the interval between retries (exponential backoff)
+2. **Opens the circuit** — temporarily disables the failing scheduler after too many errors
+3. **Attempts recovery** — after a cooldown period, tests if the service has recovered
+4. **Closes the circuit** — returns to normal operation after successful recovery
 
 #### Configuration
 
-The circuit breaker is optional and has sensible defaults:
-
 ```yaml
 circuitBreaker:
-  # Errors before disabling scheduler (default: 10)
-  maxConsecutiveErrors: 10
-
-  # Interval multiplier per failure (default: 2)
-  # Example: 30s → 60s → 120s → 240s...
-  backoffMultiplier: 2
-
-  # Maximum interval cap in seconds (default: 600 = 10 min)
-  maxIntervalSeconds: 600
-
-  # Cooldown before recovery attempt in seconds (default: 300 = 5 min)
-  cooldownSeconds: 300
-
-  # Successes needed to fully recover (default: 3)
-  recoverySuccesses: 3
+  maxConsecutiveErrors: 10    # Errors before disabling scheduler
+  backoffMultiplier: 2        # Interval multiplier per failure (30s → 60s → 120s...)
+  maxIntervalSeconds: 600     # Maximum interval cap (10 min)
+  cooldownSeconds: 300        # Cooldown before recovery attempt (5 min)
+  recoverySuccesses: 3        # Successes needed to fully recover
 ```
 
 #### State Machine
@@ -383,56 +337,29 @@ When a circuit is open:
 
 Varken exposes HTTP endpoints for monitoring on port `9090` (configurable via `HEALTH_PORT`):
 
-- `GET /health` - Overall status: `healthy`, `degraded`, or `unhealthy`
-- `GET /health/plugins` - Per-plugin health status (inputs and outputs)
-- `GET /status` - Detailed status with scheduler information
+| Endpoint              | Description                                        |
+|-----------------------|----------------------------------------------------|
+| `GET /health`         | Overall status: `healthy`, `degraded`, `unhealthy` |
+| `GET /health/plugins` | Per-plugin health status (inputs and outputs)      |
+| `GET /status`         | Detailed status with scheduler information         |
 
 The Docker image includes a built-in `HEALTHCHECK` instruction using these endpoints.
 
 ### HTTP Response Codes
 
-| Status | HTTP Code |
-|--------|-----------|
-| `healthy` | 200 |
-| `degraded` | 200 |
-| `unhealthy` | 503 |
+| Status      | HTTP Code |
+|-------------|-----------|
+| `healthy`   | 200       |
+| `degraded`  | 200       |
+| `unhealthy` | 503       |
 
 ### Status Calculation
 
-| Status | Condition |
-|--------|-----------|
-| `healthy` | All outputs healthy + all inputs healthy + all schedulers in `closed` state with < 3 errors |
-| `degraded` | At least one output healthy + at least one scheduler not in `open` state |
-| `unhealthy` | No outputs configured, all outputs unreachable, or all schedulers in `open` state |
-
-## Supported Services
-
-### Input Plugins (Data Sources)
-
-| Service | Data Collected | API | Status |
-|---------|---------------|-----|--------|
-| **Sonarr** | Queue, Calendar (missing/future episodes) | v3 | ✅ Implemented |
-| **Radarr** | Queue, Missing movies | v3 | ✅ Implemented |
-| **Tautulli** | Activity, Libraries, Statistics, GeoIP | v2 | ✅ Implemented |
-| **Ombi** | Request counts, Issue counts, Requests | v1 | ✅ Implemented |
-| **Overseerr** | Request counts, Latest requests | v1 | ✅ Implemented |
-| **Readarr** | Queue, Missing (eBooks) | v1 | ✅ Implemented |
-| **Lidarr** | Queue, Missing (Music) | v1 | ✅ Implemented |
-| **Prowlarr** | Indexer stats | v1 | ✅ Implemented |
-| **Bazarr** | Wanted subtitles, History | - | ✅ Implemented |
-| **Plex** | Sessions, Libraries (Direct API) | - | 🚧 Planned |
-| **Jellyfin** | Sessions, Libraries, Activity | - | 🚧 Planned |
-| **Emby** | Sessions, Libraries, Activity | - | 🚧 Planned |
-
-### Output Plugins (Databases)
-
-| Output | Description | Status |
-|--------|-------------|--------|
-| **InfluxDB 2.x** | Recommended - Flux queries, tokens, buckets | ✅ Implemented |
-| **InfluxDB 1.x** | Legacy support - InfluxQL queries | ✅ Implemented |
-| **VictoriaMetrics** | InfluxDB line protocol compatible | 🚧 Planned |
-| **QuestDB** | High-performance time-series | 🚧 Planned |
-| **TimescaleDB** | PostgreSQL extension | 🚧 Planned |
+| Status      | Condition                                                                                   |
+|-------------|---------------------------------------------------------------------------------------------|
+| `healthy`   | All outputs healthy + all inputs healthy + all schedulers in `closed` state with < 3 errors |
+| `degraded`  | At least one output healthy + at least one scheduler not in `open` state                    |
+| `unhealthy` | No outputs configured, all outputs unreachable, or all schedulers in `open` state           |
 
 ## Grafana Setup
 
@@ -461,11 +388,8 @@ Or find community dashboards on [Grafana.com](https://grafana.com/grafana/dashbo
 If you're upgrading from the legacy Python version of Varken:
 
 1. **Keep your old `varken.ini`** in the config folder
-
-2. **Start Varken** - it will automatically detect and migrate your configuration
-
+2. **Start Varken** — it will automatically detect and migrate your configuration
 3. **Review the generated `varken.yaml`** and make any necessary adjustments
-
 4. **Remove `varken.ini`** once you've verified everything works
 
 Legacy `VRKN_*` environment variables are also automatically migrated.
@@ -503,42 +427,21 @@ tail -f logs/combined.log
 ### Log Levels
 
 Set `LOG_LEVEL` environment variable:
-- `error` - Errors only
-- `warn` - Warnings and errors
-- `info` - General information (default)
-- `debug` - Detailed debugging information
+- `error` — Errors only
+- `warn` — Warnings and errors
+- `info` — General information (default)
+- `debug` — Detailed debugging information
 
 ## Contributing
 
-Contributions are welcome! Here's how to get started:
-
-### Development Setup
-
 ```bash
-# Clone the repository
 git clone https://github.com/navino16/Varken.git
 cd Varken
-
-# Install dependencies
 npm install
-
-# Run in development mode (auto-reload)
-npm run dev
-
-# Run tests
-npm test -- --run
-
-# Run tests with coverage
-npm run test:coverage -- --run
-
-# Lint code
-npm run lint
-
-# Fix lint issues
-npm run lint:fix
-
-# Build for production
-npm run build
+npm run dev        # Dev server with auto-reload
+npm test -- --run  # Run tests
+npm run lint       # Lint code
+npm run build      # Build for production
 ```
 
 ### Project Structure
@@ -574,13 +477,8 @@ src/
 ## Support
 
 - **GitHub Issues**: [Bug reports and feature requests](https://github.com/navino16/Varken/issues)
+- **Discord**: [Join the community](https://discord.gg/XgCBF3sMSh)
 
 ## License
 
-MIT License - See [LICENSE](LICENSE) for details.
-
----
-
-<p align="center">
-Made with <3 by the Varken community
-</p>
+[MIT License](LICENSE)
