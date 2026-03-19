@@ -54,7 +54,7 @@ Built with TypeScript, Node.js, and a plugin-based architecture with scheduled d
 ### Deployment
 
 - **Docker ready** — multi-platform images for amd64 and arm64
-- **Lightweight** — Node.js 22 Alpine-based image
+- **Lightweight** — Node.js 24 Alpine-based image
 - **Configurable** — environment variables, YAML, or legacy INI migration
 
 ## Supported Services
