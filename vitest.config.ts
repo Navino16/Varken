@@ -8,7 +8,11 @@ export default defineConfig({
       provider: 'v8',
       reportsDirectory: '.reports/coverage',
       reporter: ['text', 'json', 'html', 'cobertura'],
-      exclude: ['node_modules/', 'dist/', '_legacy/', 'tests/', 'src/types/**', '*.config.js', '*.config.ts' ],
+      include: ['src/**/*.ts'],
+      exclude: ['src/types/**'],
+      thresholds: {
+        global: { lines: 80, functions: 780, branches: 80, statements: 80 },
+      },
     },
     reporters: ['default', 'junit'],
     outputFile: {
