@@ -17,6 +17,10 @@ on:
       - 'tests/**'
       - 'scripts/**'
 
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions: {}
 
 jobs:
