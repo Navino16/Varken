@@ -47,7 +47,7 @@
     "axios": "^1.13.6",
     "influx": "^5.12.0",
     "winston": "^3.17.0",
-    "yaml": "^2.6.0",
+    "yaml": "^2.8.3",
     "zod": "^4.3.6"
   },
   "devDependencies": {
