@@ -140,9 +140,8 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
    * Collect activity data from Tautulli
    */
   private async collectActivity(): Promise<DataPoint[]> {
-    const points: DataPoint[] = [];
-
-    try {
+    return this.safeFetch('collect Tautulli activity', async () => {
+      const points: DataPoint[] = [];
       const response = await this.httpGet<TautulliApiResponse<TautulliActivity>>('/api/v2', {
         apikey: this.config.apiKey,
         cmd: 'get_activity',
@@ -185,12 +184,8 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
       );
 
       this.logger.info(`Collected ${sessions.length} sessions from Tautulli`);
-    } catch (error) {
-      this.logger.error(`Failed to collect Tautulli activity: ${error instanceof Error ? error.message : String(error)}`);
-      throw error; // Propagate error for circuit breaker
-    }
-
-    return points;
+      return points;
+    });
   }
 
   /**
@@ -428,9 +423,8 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
    * Collect library statistics from Tautulli
    */
   private async collectLibraries(): Promise<DataPoint[]> {
-    const points: DataPoint[] = [];
-
-    try {
+    return this.safeFetch('collect Tautulli libraries', async () => {
+      const points: DataPoint[] = [];
       const response = await this.httpGet<TautulliApiResponse<TautulliLibrary[]>>('/api/v2', {
         apikey: this.config.apiKey,
         cmd: 'get_libraries',
@@ -479,12 +473,8 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
       }
 
       this.logger.info(`Collected ${libraries.length} library stats from Tautulli`);
-    } catch (error) {
-      this.logger.error(`Failed to collect Tautulli libraries: ${error instanceof Error ? error.message : String(error)}`);
-      throw error; // Propagate error for circuit breaker
-    }
-
-    return points;
+      return points;
+    });
   }
 
   /**

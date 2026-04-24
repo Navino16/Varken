@@ -182,9 +182,9 @@ export class PluginManager {
         continue;
       }
 
+      const plugin = new factory();
+      const initTimeout = this.config?.global?.httpTimeoutMs ?? 30000;
       try {
-        const plugin = new factory();
-        const initTimeout = this.config?.global?.httpTimeoutMs ?? 30000;
         await withTimeout(
           plugin.initialize(outputConfig),
           initTimeout,
@@ -194,13 +194,26 @@ export class PluginManager {
         logger.info(`Initialized output plugin: ${type}`);
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown error';
-        logger.error(`Failed to initialize output plugin ${type}: ${message}`);
-        throw error;
+        logger.error(
+          `Failed to initialize output plugin ${type}: ${message} — skipping (other outputs will continue)`
+        );
+        try {
+          await plugin.shutdown();
+        } catch {
+          // Best-effort cleanup
+        }
       }
     }
 
     if (this.outputPlugins.size === 0) {
       throw new Error('No output plugins were initialized');
+    }
+
+    const configuredCount = Object.values(outputs).filter((v) => v !== undefined).length;
+    if (this.outputPlugins.size < configuredCount) {
+      logger.warn(
+        `Started with ${this.outputPlugins.size}/${configuredCount} output(s) — some failed to initialize but Varken will continue with the available ones`
+      );
     }
   }
 

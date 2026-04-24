@@ -295,7 +295,7 @@ describe('PluginManager', () => {
   });
 
   describe('error handling', () => {
-    it('should handle output plugin initialization failure', async () => {
+    it('should throw when all output plugins fail to initialize', async () => {
       class FailingOutputPlugin extends MockOutputPlugin {
         async initialize(): Promise<void> {
           throw new Error('Init failed');
@@ -305,10 +305,44 @@ describe('PluginManager', () => {
       pluginManager.registerInputPlugin('sonarr', MockInputPlugin);
       pluginManager.registerOutputPlugin('influxdb1', FailingOutputPlugin);
 
-      // Should throw with the initialization error (error is re-thrown)
       await expect(pluginManager.initializeFromConfig(minimalConfig)).rejects.toThrow(
-        'Init failed'
+        'No output plugins were initialized'
       );
+    });
+
+    it('should continue startup if some output plugins fail but at least one succeeds', async () => {
+      class FailingOutputPlugin extends MockOutputPlugin {
+        async initialize(): Promise<void> {
+          throw new Error('Init failed');
+        }
+      }
+
+      const configWithTwoOutputs: VarkenConfig = {
+        global: minimalConfig.global,
+        outputs: {
+          influxdb1: minimalConfig.outputs.influxdb1,
+          influxdb2: {
+            url: 'localhost',
+            port: 8087,
+            token: 'test-token',
+            org: 'test-org',
+            bucket: 'varken',
+            ssl: false,
+            verifySsl: false,
+          },
+        },
+        inputs: minimalConfig.inputs,
+      };
+
+      pluginManager.registerInputPlugin('sonarr', MockInputPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', MockOutputPlugin);
+      pluginManager.registerOutputPlugin('influxdb2', FailingOutputPlugin);
+
+      await expect(
+        pluginManager.initializeFromConfig(configWithTwoOutputs)
+      ).resolves.toBeUndefined();
+
+      expect(pluginManager.getStats().activeOutputPlugins).toBe(1);
     });
 
     it('should handle input plugin initialization failure', async () => {

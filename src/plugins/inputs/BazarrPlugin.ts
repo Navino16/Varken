@@ -78,9 +78,8 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
    * Collect wanted subtitles from Bazarr (movies + episodes)
    */
   private async collectWanted(): Promise<DataPoint[]> {
-    const points: DataPoint[] = [];
-
-    try {
+    return this.safeFetch('collect Bazarr wanted subtitles', async () => {
+      const points: DataPoint[] = [];
       // Collect wanted movies
       const moviesResponse = await this.httpGet<BazarrWantedMoviesResponse>(
         '/api/movies/wanted',
@@ -158,21 +157,16 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
       }
 
       this.logger.info(`Collected ${points.length} wanted subtitles from Bazarr`);
-    } catch (error) {
-      this.logger.error(`Failed to collect Bazarr wanted subtitles: ${error instanceof Error ? error.message : String(error)}`);
-      throw error;
-    }
-
-    return points;
+      return points;
+    });
   }
 
   /**
    * Collect subtitle history from Bazarr (movies + series)
    */
   private async collectHistory(): Promise<DataPoint[]> {
-    const points: DataPoint[] = [];
-
-    try {
+    return this.safeFetch('collect Bazarr history', async () => {
+      const points: DataPoint[] = [];
       // Collect movie history
       const moviesResponse = await this.httpGet<BazarrMovieHistoryResponse>(
         '/api/history/movies',
@@ -248,11 +242,7 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
       }
 
       this.logger.info(`Collected ${points.length} history items from Bazarr`);
-    } catch (error) {
-      this.logger.error(`Failed to collect Bazarr history: ${error instanceof Error ? error.message : String(error)}`);
-      throw error;
-    }
-
-    return points;
+      return points;
+    });
   }
 }

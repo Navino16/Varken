@@ -78,9 +78,8 @@ export class ReadarrPlugin extends BaseInputPlugin<ReadarrConfig> {
    * Collect queue data from Readarr
    */
   private async collectQueue(): Promise<DataPoint[]> {
-    const points: DataPoint[] = [];
-
-    try {
+    return this.safeFetch('collect Readarr queue', async () => {
+      const points: DataPoint[] = [];
       const allRecords = await this.fetchAllPages<ReadarrQueue>('/api/v1/queue', {
         includeBook: true,
         includeAuthor: true,
@@ -128,21 +127,16 @@ export class ReadarrPlugin extends BaseInputPlugin<ReadarrConfig> {
       }
 
       this.logger.info(`Collected ${points.length} queue items from Readarr`);
-    } catch (error) {
-      this.logger.error(`Failed to collect Readarr queue: ${error instanceof Error ? error.message : String(error)}`);
-      throw error;
-    }
-
-    return points;
+      return points;
+    });
   }
 
   /**
    * Collect missing books from Readarr
    */
   private async collectMissing(): Promise<DataPoint[]> {
-    const points: DataPoint[] = [];
-
-    try {
+    return this.safeFetch('collect Readarr missing books', async () => {
+      const points: DataPoint[] = [];
       const books = await this.fetchAllPages<ReadarrBook>('/api/v1/wanted/missing', {
         sortKey: 'releaseDate',
         sortDirection: 'descending',
@@ -179,11 +173,7 @@ export class ReadarrPlugin extends BaseInputPlugin<ReadarrConfig> {
       }
 
       this.logger.info(`Collected ${points.length} missing books from Readarr`);
-    } catch (error) {
-      this.logger.error(`Failed to collect Readarr missing books: ${error instanceof Error ? error.message : String(error)}`);
-      throw error;
-    }
-
-    return points;
+      return points;
+    });
   }
 }

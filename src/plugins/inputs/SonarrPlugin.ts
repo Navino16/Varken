@@ -92,9 +92,8 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
    * Collect queue data from Sonarr
    */
   private async collectQueue(): Promise<DataPoint[]> {
-    const points: DataPoint[] = [];
-
-    try {
+    return this.safeFetch('collect Sonarr queue', async () => {
+      const points: DataPoint[] = [];
       const allRecords = await this.fetchAllPages<SonarrQueue>('/api/v3/queue', {
         includeSeries: true,
         includeEpisode: true,
@@ -143,21 +142,16 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
       }
 
       this.logger.info(`Collected ${points.length} queue items from Sonarr`);
-    } catch (error) {
-      this.logger.error(`Failed to collect Sonarr queue: ${error instanceof Error ? error.message : String(error)}`);
-      throw error;
-    }
-
-    return points;
+      return points;
+    });
   }
 
   /**
    * Collect calendar data (missing or future episodes)
    */
   private async collectCalendar(queryType: 'Missing' | 'Future'): Promise<DataPoint[]> {
-    const points: DataPoint[] = [];
-
-    try {
+    return this.safeFetch(`collect Sonarr calendar (${queryType})`, async () => {
+      const points: DataPoint[] = [];
       const today = new Date();
       const todayStr = this.formatDate(today);
 
@@ -226,12 +220,8 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
       }
 
       this.logger.info(`Collected ${points.length} ${queryType.toLowerCase()} episodes from Sonarr`);
-    } catch (error) {
-      this.logger.error(`Failed to collect Sonarr calendar (${queryType}): ${error instanceof Error ? error.message : String(error)}`);
-      throw error;
-    }
-
-    return points;
+      return points;
+    });
   }
 
   /**
