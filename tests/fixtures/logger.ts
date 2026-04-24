@@ -9,7 +9,7 @@ import { vi } from 'vitest';
  */
 export const loggerMock = (): {
   createLogger: () => Record<'info' | 'debug' | 'warn' | 'error', ReturnType<typeof vi.fn>>;
-  withContext: (logger: unknown) => unknown;
+  withContext: (logger: unknown, context?: Record<string, unknown>) => unknown;
 } => ({
   createLogger: () => ({
     info: vi.fn(),
@@ -17,5 +17,5 @@ export const loggerMock = (): {
     warn: vi.fn(),
     error: vi.fn(),
   }),
-  withContext: (logger: unknown) => logger,
+  withContext: (logger: unknown, _context?: Record<string, unknown>) => logger,
 });
