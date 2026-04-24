@@ -41,7 +41,7 @@ Built with TypeScript, Node.js, and a plugin-based architecture with scheduled d
 ### Data Collection
 
 - **Multiple data sources** — Sonarr, Radarr, Readarr, Lidarr, Tautulli, Ombi, Overseerr, Prowlarr, Bazarr
-- **Multiple outputs** — InfluxDB 1.x and InfluxDB 2.x
+- **Multiple outputs** — InfluxDB 1.x, InfluxDB 2.x, VictoriaMetrics
 - **Multi-instance support** — connect multiple instances of each service
 - **GeoIP mapping** — automatic geolocation of streaming sessions via Tautulli API (no external license required)
 
@@ -77,10 +77,13 @@ Built with TypeScript, Node.js, and a plugin-based architecture with scheduled d
 
 ### Output Plugins
 
-| Output                         | Status |
-|--------------------------------|--------|
-| **InfluxDB 2.x** (recommended) | ✅      |
-| **InfluxDB 1.x** (legacy)      | ✅      |
+| Output                         | Status     |
+|--------------------------------|------------|
+| **InfluxDB 2.x** (recommended) | ✅          |
+| **InfluxDB 1.x** (legacy)      | ✅          |
+| **VictoriaMetrics**            | ✅          |
+| **QuestDB**                    | 🚧 Planned |
+| **TimescaleDB**                | 🚧 Planned |
 
 ## Installation
 
@@ -158,6 +161,33 @@ inputs:
         enabled: true
         intervalSeconds: 30
 ```
+
+### Output Configuration
+
+Varken supports multiple output backends. You can configure one or several simultaneously — each data point is written to every configured output.
+
+```yaml
+outputs:
+  # InfluxDB 2.x (recommended)
+  influxdb2:
+    url: "http://influxdb:8086"
+    token: "your-token"
+    org: "varken"
+    bucket: "varken"
+
+  # InfluxDB 1.x (legacy)
+  influxdb1:
+    url: "http://influxdb:8086"
+    username: "root"
+    password: "root"
+    database: "varken"
+
+  # VictoriaMetrics (InfluxDB line protocol compatible)
+  victoriametrics:
+    url: "http://victoriametrics:8428"
+```
+
+See [`config/varken.example.yaml`](config/varken.example.yaml) for the complete list of supported options.
 
 ### Global Settings
 
