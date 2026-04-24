@@ -256,6 +256,23 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
   }
 
   /**
+   * Wrap a collector operation with standardized error logging.
+   * Logs the error with operation context, then re-throws so the PluginManager's
+   * circuit breaker can track the failure.
+   *
+   * Replaces the boilerplate try/catch + log + re-throw pattern in collectors.
+   */
+  protected async safeFetch<T>(operation: string, fn: () => Promise<T>): Promise<T> {
+    try {
+      return await fn();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to ${operation}: ${message}`);
+      throw error;
+    }
+  }
+
+  /**
    * Helper to create a schedule config
    */
   protected createSchedule(

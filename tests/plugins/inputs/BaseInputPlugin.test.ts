@@ -68,6 +68,10 @@ class TestInputPlugin extends BaseInputPlugin<TestConfig> {
   public testValidateResponseData(response: unknown): void {
     return this.validateResponseData(response as import('axios').AxiosResponse);
   }
+
+  public testSafeFetch<T>(operation: string, fn: () => Promise<T>): Promise<T> {
+    return this.safeFetch(operation, fn);
+  }
 }
 
 describe('BaseInputPlugin', () => {
@@ -461,6 +465,33 @@ describe('BaseInputPlugin', () => {
 
     it('should pass through boolean response', () => {
       expect(() => plugin.testValidateResponseData(makeResponse(true))).not.toThrow();
+    });
+  });
+
+  describe('safeFetch', () => {
+    beforeEach(async () => {
+      await plugin.initialize(testConfig);
+    });
+
+    it('should return the inner function result when it succeeds', async () => {
+      const result = await plugin.testSafeFetch('unit test', async () => 42);
+      expect(result).toBe(42);
+    });
+
+    it('should re-throw errors with the operation context logged', async () => {
+      await expect(
+        plugin.testSafeFetch('fetch stuff', async () => {
+          throw new Error('boom');
+        })
+      ).rejects.toThrow('boom');
+    });
+
+    it('should stringify non-Error thrown values', async () => {
+      await expect(
+        plugin.testSafeFetch('fetch stuff', async () => {
+          throw 'string error';
+        })
+      ).rejects.toBe('string error');
     });
   });
 });

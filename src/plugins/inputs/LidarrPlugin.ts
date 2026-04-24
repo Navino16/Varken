@@ -77,9 +77,8 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
    * Collect queue data from Lidarr
    */
   private async collectQueue(): Promise<DataPoint[]> {
-    const points: DataPoint[] = [];
-
-    try {
+    return this.safeFetch('collect Lidarr queue', async () => {
+      const points: DataPoint[] = [];
       const allRecords = await this.fetchAllPages<LidarrQueue>('/api/v1/queue', {
         includeAlbum: true,
         includeArtist: true,
@@ -126,21 +125,16 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
       }
 
       this.logger.info(`Collected ${points.length} queue items from Lidarr`);
-    } catch (error) {
-      this.logger.error(`Failed to collect Lidarr queue: ${error instanceof Error ? error.message : String(error)}`);
-      throw error;
-    }
-
-    return points;
+      return points;
+    });
   }
 
   /**
    * Collect missing albums from Lidarr
    */
   private async collectMissing(): Promise<DataPoint[]> {
-    const points: DataPoint[] = [];
-
-    try {
+    return this.safeFetch('collect Lidarr missing albums', async () => {
+      const points: DataPoint[] = [];
       const albums = await this.fetchAllPages<LidarrAlbum>('/api/v1/wanted/missing', {
         sortKey: 'releaseDate',
         sortDirection: 'descending',
@@ -176,11 +170,7 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
       }
 
       this.logger.info(`Collected ${points.length} missing albums from Lidarr`);
-    } catch (error) {
-      this.logger.error(`Failed to collect Lidarr missing albums: ${error instanceof Error ? error.message : String(error)}`);
-      throw error;
-    }
-
-    return points;
+      return points;
+    });
   }
 }

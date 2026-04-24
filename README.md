@@ -49,6 +49,7 @@ Built with TypeScript, Node.js, and a plugin-based architecture with scheduled d
 
 - **Circuit breaker** — automatic error recovery with exponential backoff and self-healing
 - **Health checks** — built-in HTTP endpoints for monitoring and orchestration
+- **Graceful output skipping** — failed output plugins are skipped at startup; Varken continues with the ones that initialized successfully
 - **Easy configuration** — simple YAML config with environment variable overrides
 
 ### Deployment
