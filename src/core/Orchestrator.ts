@@ -100,6 +100,49 @@ export class Orchestrator {
   }
 
   /**
+   * Run all enabled schedules once without writing to outputs.
+   * Used to validate config, test connectivity, and preview what would be collected.
+   */
+  async dryRun(): Promise<void> {
+    logger.info('Starting Varken in dry-run mode — no data will be written to outputs');
+
+    this.pluginManager.setDryRun(true);
+
+    try {
+      await this.pluginManager.initializeFromConfig(this.config);
+
+      logger.info('Checking output connectivity...');
+      const healthResults = await this.pluginManager.healthCheck();
+      for (const [type, healthy] of healthResults) {
+        if (healthy) {
+          logger.info(`Output ${type}: healthy`);
+        } else {
+          logger.warn(`Output ${type}: unhealthy (would fail in production)`);
+        }
+      }
+
+      logger.info('Running each enabled schedule once...');
+      const collected = await this.pluginManager.collectAllOnce();
+
+      let totalPoints = 0;
+      for (const [scheduleName, points] of collected) {
+        totalPoints += points.length;
+        logger.info(`[DRY-RUN] ${scheduleName}: ${points.length} point(s) collected`);
+      }
+
+      const outputNames = Array.from(
+        (await this.pluginManager.getOutputPluginStatuses()).map((s) => s.type)
+      );
+      logger.info(
+        `[DRY-RUN] Summary: ${totalPoints} point(s) across ${collected.size} schedule(s) would be written to ${outputNames.length} output(s): ${outputNames.join(', ') || 'none'}`
+      );
+      logger.info('Dry-run complete — configuration is valid');
+    } finally {
+      await this.pluginManager.shutdown();
+    }
+  }
+
+  /**
    * Stop the orchestrator gracefully
    */
   async stop(): Promise<void> {

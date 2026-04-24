@@ -294,6 +294,59 @@ describe('Orchestrator', () => {
     });
   });
 
+  describe('dryRun', () => {
+    beforeEach(() => {
+      orchestrator = new Orchestrator(minimalConfig);
+      orchestrator.registerPlugins({
+        inputPlugins: new Map([['sonarr', MockInputPlugin]]),
+        outputPlugins: new Map([['influxdb1', MockOutputPlugin]]),
+      });
+    });
+
+    it('should initialize plugins, run collectors once, then shut down without starting schedulers', async () => {
+      await orchestrator.dryRun();
+
+      // Orchestrator must not be considered active after a dry-run
+      expect(orchestrator.isActive()).toBe(false);
+    });
+
+    it('should warn when an output is unhealthy during dry-run', async () => {
+      class UnhealthyOutputPlugin extends MockOutputPlugin {
+        override async healthCheck(): Promise<boolean> {
+          return false;
+        }
+      }
+
+      const o = new Orchestrator(minimalConfig);
+      o.registerPlugins({
+        inputPlugins: new Map([['sonarr', MockInputPlugin]]),
+        outputPlugins: new Map([['influxdb1', UnhealthyOutputPlugin]]),
+      });
+
+      // Should complete without throwing — unhealthy outputs are logged as warnings, not errors
+      await expect(o.dryRun()).resolves.toBeUndefined();
+    });
+
+    it('should not invoke write() on output plugins', async () => {
+      let writeCalls = 0;
+      class SpyOutputPlugin extends MockOutputPlugin {
+        override async write(points: DataPoint[]): Promise<void> {
+          writeCalls++;
+          await super.write(points);
+        }
+      }
+      const o = new Orchestrator(minimalConfig);
+      o.registerPlugins({
+        inputPlugins: new Map([['sonarr', MockInputPlugin]]),
+        outputPlugins: new Map([['influxdb1', SpyOutputPlugin]]),
+      });
+
+      await o.dryRun();
+
+      expect(writeCalls).toBe(0);
+    });
+  });
+
   // Note: Signal and error handler tests are skipped because emitting process events
   // (SIGTERM, SIGINT, uncaughtException, unhandledRejection) interferes with vitest's
   // own handlers and can cause the test runner to hang or crash. The signal handling

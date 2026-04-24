@@ -127,6 +127,20 @@ cp config/varken.example.yaml config/varken.yaml
 npm start
 ```
 
+### Dry-Run
+
+Validate your configuration and test plugin connectivity without writing any data to outputs:
+
+```bash
+# CLI flag
+node dist/index.js --dry-run
+
+# Or via environment variable (useful in Docker)
+DRY_RUN=true npm start
+```
+
+Varken will load the config, check output connectivity, run each enabled schedule once, log what would be written, and exit.
+
 ## Configuration
 
 ### Basic Example
@@ -223,6 +237,7 @@ global:
 | `TZ`             | `UTC`     | Timezone (e.g., `Europe/Paris`, `America/New_York`) |
 | `HEALTH_PORT`    | `9090`    | Port for the health check HTTP server               |
 | `HEALTH_ENABLED` | `true`    | Enable/disable the health check server              |
+| `DRY_RUN`        | `false`   | Run once without writing (equivalent to `--dry-run`) |
 
 #### Configuration Overrides
 

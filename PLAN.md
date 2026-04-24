@@ -350,12 +350,11 @@ interface ScheduleConfig {
 
 ### Phase 11: Developer Experience
 
-#### Dry-Run Mode
-- [ ] Add `--dry-run` CLI flag
-  - Validate config without writing data
-  - Log what would be written
-  - Test plugin connectivity
-  - Effort: ~2h
+#### Dry-Run Mode ✅
+- [x] Add `--dry-run` CLI flag (or `DRY_RUN=true` env var)
+  - Validates config, runs each schedule once, logs what would be written
+  - Runs output health checks to test connectivity
+  - Does not start schedulers or write to outputs
 
 #### Better Error Messages
 - [ ] Create error helper with troubleshooting guidance

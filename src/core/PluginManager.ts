@@ -77,9 +77,52 @@ export class PluginManager {
   private isRunning = false;
   private circuitBreakerConfig: CircuitBreakerConfig = DEFAULT_CIRCUIT_BREAKER_CONFIG;
   private config?: VarkenConfig;
+  private dryRun = false;
 
   constructor() {
     // No longer needs GeoIP handler - handled by TautulliPlugin via Tautulli API
+  }
+
+  /**
+   * Enable or disable dry-run mode.
+   * In dry-run mode, output plugins are not invoked; data points are logged instead.
+   */
+  setDryRun(enabled: boolean): void {
+    this.dryRun = enabled;
+  }
+
+  /**
+   * Execute every enabled schedule exactly once and return the collected points per schedule.
+   * Intended for dry-run mode — does not start any timers or write to outputs.
+   */
+  async collectAllOnce(): Promise<Map<string, DataPoint[]>> {
+    const results = new Map<string, DataPoint[]>();
+    const collectorTimeout = this.config?.global?.collectorTimeoutMs ?? 60000;
+
+    for (const plugins of this.inputPlugins.values()) {
+      for (const plugin of plugins) {
+        for (const schedule of plugin.getSchedules()) {
+          if (!schedule.enabled) {
+            continue;
+          }
+
+          try {
+            const points = await withTimeout(
+              schedule.collector(),
+              collectorTimeout,
+              `Collector ${schedule.name} timed out after ${collectorTimeout}ms`
+            );
+            results.set(schedule.name, this.validateDataPoints(points, schedule.name));
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            logger.error(`Schedule ${schedule.name} failed during dry-run: ${message}`);
+            results.set(schedule.name, []);
+          }
+        }
+      }
+    }
+
+    return results;
   }
 
   /**
@@ -528,6 +571,13 @@ export class PluginManager {
    * Write data points to all output plugins
    */
   private async writeToOutputs(points: DataPoint[]): Promise<void> {
+    if (this.dryRun) {
+      logger.info(
+        `[DRY-RUN] Would write ${points.length} point(s) to ${this.outputPlugins.size} output(s): ${Array.from(this.outputPlugins.keys()).join(', ')}`
+      );
+      return;
+    }
+
     let failureCount = 0;
     const writePromises = Array.from(this.outputPlugins.entries()).map(
       async ([type, plugin]) => {
