@@ -68,7 +68,7 @@ varken/
 │   └── utils/
 │       ├── http.ts                  # HTTP utilities, error classification
 │       └── index.ts
-├── tests/                           # 700 tests, 91% coverage
+├── tests/                           # 711 tests, 91% coverage
 │   ├── config/
 │   ├── core/
 │   ├── plugins/
@@ -228,7 +228,7 @@ interface ScheduleConfig {
 - [x] Main entry point (`index.ts`)
 - [x] Dockerfile (multi-stage, ~190MB)
 - [x] docker-compose.yml (Varken + InfluxDB 2.x + Grafana)
-- [x] Unit tests (700 tests passing)
+- [x] Unit tests (711 tests passing)
 - [x] CI/CD workflows (GitHub Actions)
 - [x] Codecov integration
 - [x] Documentation (README.md, CLAUDE.md)
@@ -310,10 +310,10 @@ interface ScheduleConfig {
   - `X-Emby-Token` header auth (compatible with Emby forks)
   - Emits per-session DataPoints + `current_stream_stats` summary + per-library + global `item_counts`
   - Non-fatal fallback when `/Items/Counts` fails
-- [ ] `EmbyPlugin` - sessions, libraries, activity
-  - Similar to Jellyfin, API /emby/api
-  - Types already defined in `src/types/inputs/emby.types.ts`
-  - Effort: ~8h
+- [x] `EmbyPlugin` - sessions, libraries ✅
+  - Direct Emby API (`/emby/Sessions`, `/emby/Library/VirtualFolders`, `/emby/Items/Counts`)
+  - Structurally identical to `JellyfinPlugin` with `/emby` path prefix
+  - Same DataPoint shape: per-session + `current_stream_stats` summary + per-library + global `item_counts`
 
 ### Phase 10: Testing & Quality
 
@@ -451,7 +451,7 @@ interface ScheduleConfig {
 
 ## Test Coverage Summary
 
-> **Last updated**: 2026-04-24 | **Global coverage**: 91.54% | **Tests**: 700 passing
+> **Last updated**: 2026-04-24 | **Global coverage**: 91.69% | **Tests**: 711 passing
 
 | File | Coverage | Target | Status | Notes |
 |------|----------|--------|--------|-------|
@@ -475,6 +475,7 @@ interface ScheduleConfig {
 | `src/plugins/inputs/OverseerrPlugin.ts` | 91.17% | 90% | ✅ | Improved via safeFetch refactor |
 | `src/plugins/inputs/PlexPlugin.ts` | 90% | 90% | ✅ | Added in Phase 9 (direct Plex API) |
 | `src/plugins/inputs/JellyfinPlugin.ts` | 98.15% | 90% | ✅ | Added in Phase 9 |
+| `src/plugins/inputs/EmbyPlugin.ts` | 98.14% | 90% | ✅ | Added in Phase 9 |
 | `src/plugins/inputs/ReadarrPlugin.ts` | 98.03% | 90% | ✅ | Improved via safeFetch refactor |
 | `src/plugins/inputs/LidarrPlugin.ts` | 100% | 90% | ✅ | |
 | `src/plugins/inputs/BazarrPlugin.ts` | 100% | 90% | ✅ | |
@@ -502,7 +503,7 @@ interface ScheduleConfig {
 | **Tautulli** | /api/v2 | Activity, Libraries, Stats + GeoIP | ✅ |
 | **Plex** | /api | Sessions, Libraries (direct API) | ✅ |
 | **Jellyfin** | /api | Sessions, Libraries, Item counts | ✅ |
-| **Emby** | /emby/api | Sessions, Libraries, Activity | 🚧 Types ready |
+| **Emby** | /emby | Sessions, Libraries, Item counts | ✅ |
 | **Ombi** | /api/v1 | Request counts, Issue counts | ✅ |
 | **Overseerr** | /api/v1 | Request counts, Latest requests | ✅ |
 
@@ -558,7 +559,7 @@ DataPoint (internal format)
 ### Low Priority
 | Item | Effort | Impact |
 |------|--------|--------|
-| Emby input | ~8h | Alternative to Tautulli (Plex + Jellyfin done ✅) |
+| ~~Emby input~~ | ~~✅~~ | ~~Phase 9 complete — Plex, Jellyfin, Emby all done~~ |
 | CLI tool | ~8h | Admin UX |
 | ~~Pre-commit hooks~~ | ~~✅~~ | ~~DX - husky + lint-staged~~ |
 | ~~CHANGELOG auto-generation~~ | ~~✅~~ | ~~GitHub Actions on tag~~ |
