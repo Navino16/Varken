@@ -310,6 +310,23 @@ describe('Orchestrator', () => {
       expect(orchestrator.isActive()).toBe(false);
     });
 
+    it('should warn when an output is unhealthy during dry-run', async () => {
+      class UnhealthyOutputPlugin extends MockOutputPlugin {
+        override async healthCheck(): Promise<boolean> {
+          return false;
+        }
+      }
+
+      const o = new Orchestrator(minimalConfig);
+      o.registerPlugins({
+        inputPlugins: new Map([['sonarr', MockInputPlugin]]),
+        outputPlugins: new Map([['influxdb1', UnhealthyOutputPlugin]]),
+      });
+
+      // Should complete without throwing — unhealthy outputs are logged as warnings, not errors
+      await expect(o.dryRun()).resolves.toBeUndefined();
+    });
+
     it('should not invoke write() on output plugins', async () => {
       let writeCalls = 0;
       class SpyOutputPlugin extends MockOutputPlugin {

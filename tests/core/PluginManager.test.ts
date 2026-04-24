@@ -1393,6 +1393,21 @@ describe('PluginManager', () => {
       expect(entry).toEqual([]);
     });
 
+    it('collectAllOnce should skip disabled schedules', async () => {
+      class DisabledSchedulePlugin extends MockInputPlugin {
+        override getSchedules(): ScheduleConfig[] {
+          return [this.createSchedule('disabled', 1, false, this.collect)];
+        }
+      }
+
+      pluginManager.registerInputPlugin('sonarr', DisabledSchedulePlugin);
+      pluginManager.registerOutputPlugin('influxdb1', MockOutputPlugin);
+      await pluginManager.initializeFromConfig(minimalConfig);
+
+      const results = await pluginManager.collectAllOnce();
+      expect(results.size).toBe(0);
+    });
+
     it('should not invoke output.write when dry-run is enabled', async () => {
       pluginManager.registerInputPlugin('sonarr', MockInputPlugin);
       pluginManager.registerOutputPlugin('influxdb1', MockOutputPlugin);
