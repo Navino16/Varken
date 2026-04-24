@@ -68,7 +68,7 @@ varken/
 │   └── utils/
 │       ├── http.ts                  # HTTP utilities, error classification
 │       └── index.ts
-├── tests/                           # 468 tests, 90% coverage
+├── tests/                           # 567 tests, 90% coverage
 │   ├── config/
 │   ├── core/
 │   ├── plugins/
@@ -228,7 +228,7 @@ interface ScheduleConfig {
 - [x] Main entry point (`index.ts`)
 - [x] Dockerfile (multi-stage, ~190MB)
 - [x] docker-compose.yml (Varken + InfluxDB 2.x + Grafana)
-- [x] Unit tests (428 tests passing)
+- [x] Unit tests (567 tests passing)
 - [x] CI/CD workflows (GitHub Actions)
 - [x] Codecov integration
 - [x] Documentation (README.md, CLAUDE.md)
@@ -445,30 +445,32 @@ interface ScheduleConfig {
 
 ## Test Coverage Summary
 
-> **Last updated**: 2026-02-02 | **Global coverage**: 90.38%
+> **Last updated**: 2026-04-24 | **Global coverage**: 90.62% | **Tests**: 567 passing
 
 | File | Coverage | Target | Status | Notes |
 |------|----------|--------|--------|-------|
-| `src/index.ts` | 100% | 80% | ✅ | |
-| `src/core/HealthServer.ts` | 90% | 90% | ✅ | |
-| `src/core/Orchestrator.ts` | 73.33% | 85% | ⚠️ | Signal handlers can't be tested (interfere with vitest) |
-| `src/core/PluginManager.ts` | 94.28% | 90% | ✅ | |
-| `src/core/Logger.ts` | 84.21% | 90% | ✅ | |
+| `src/index.ts` | 95.34% | 80% | ✅ | |
+| `src/core/HealthServer.ts` | 87.15% | 90% | ⚠️ | |
+| `src/core/Orchestrator.ts` | 80% | 85% | ⚠️ | Signal handlers can't be tested (interfere with vitest) |
+| `src/core/PluginManager.ts` | 93.79% | 90% | ✅ | |
+| `src/core/Logger.ts` | 77.27% | 90% | ⚠️ | Regression vs 2026-02 — directory-creation path and filter callback untested |
 | `src/config/ConfigLoader.ts` | 81.72% | 90% | ⚠️ | |
 | `src/config/ConfigMigrator.ts` | 92.12% | 85% | ✅ | |
-| `src/utils/http.ts` | 70.78% | 85% | ⚠️ | Interceptor callbacks need integration tests |
-| `src/plugins/inputs/SonarrPlugin.ts` | 91.66% | 90% | ✅ | |
-| `src/plugins/inputs/RadarrPlugin.ts` | 96.77% | 90% | ✅ | |
-| `src/plugins/inputs/TautulliPlugin.ts` | 92.94% | 90% | ✅ | GeoIP now via Tautulli API |
-| `src/plugins/inputs/OmbiPlugin.ts` | 94.73% | 90% | ✅ | |
-| `src/plugins/inputs/OverseerrPlugin.ts` | 91.04% | 90% | ✅ | |
-| `src/plugins/inputs/ReadarrPlugin.ts` | 96.72% | 90% | ✅ | |
+| `src/utils/http.ts` | 70.65% | 85% | ⚠️ | Interceptor callbacks need integration tests |
+| `src/utils/env.ts` | 100% | 90% | ✅ | Added in Phase 11 (Env Validation) |
+| `src/plugins/inputs/SonarrPlugin.ts` | 89.74% | 90% | ⚠️ | |
+| `src/plugins/inputs/RadarrPlugin.ts` | 94.64% | 90% | ✅ | |
+| `src/plugins/inputs/TautulliPlugin.ts` | 92.57% | 90% | ✅ | GeoIP now via Tautulli API |
+| `src/plugins/inputs/OmbiPlugin.ts` | 89.41% | 90% | ⚠️ | Regression vs 2026-02 |
+| `src/plugins/inputs/OverseerrPlugin.ts` | 86.48% | 90% | ⚠️ | Regression vs 2026-02 |
+| `src/plugins/inputs/ReadarrPlugin.ts` | 94.54% | 90% | ✅ | |
 | `src/plugins/inputs/LidarrPlugin.ts` | 100% | 90% | ✅ | |
 | `src/plugins/inputs/BazarrPlugin.ts` | 100% | 90% | ✅ | |
 | `src/plugins/inputs/ProwlarrPlugin.ts` | 100% | 90% | ✅ | |
-| `src/plugins/outputs/InfluxDB1Plugin.ts` | 83.33% | 90% | ⚠️ | |
-| `src/plugins/outputs/InfluxDB2Plugin.ts` | 82.22% | 90% | ⚠️ | |
-| `src/plugins/inputs/BaseInputPlugin.ts` | 82.35% | 90% | ⚠️ | |
+| `src/plugins/outputs/InfluxDB1Plugin.ts` | 100% | 90% | ✅ | |
+| `src/plugins/outputs/InfluxDB2Plugin.ts` | 93.33% | 90% | ✅ | |
+| `src/plugins/outputs/VictoriaMetricsPlugin.ts` | 100% | 90% | ✅ | Added in Phase 8 |
+| `src/plugins/inputs/BaseInputPlugin.ts` | 88.4% | 90% | ⚠️ | |
 | `src/plugins/outputs/BaseOutputPlugin.ts` | 100% | 90% | ✅ | |
 
 ---
@@ -535,9 +537,9 @@ DataPoint (internal format)
 | Config hot-reload | ~8h | Operations |
 | QuestDB, TimescaleDB outputs | ~14h | More DB options |
 | Structured logging | ~4h | Debugging |
-| Dry-run mode | ~2h | Testing |
+| ~~Dry-run mode~~ | ~~✅~~ | ~~`--dry-run` / `DRY_RUN=true`~~ |
 | Better error messages | ~4h | UX |
-| ~~Improve test coverage~~ | ~~✅~~ | ~~Quality - Global 90.38%~~ |
+| ~~Improve test coverage~~ | ~~✅~~ | ~~Quality - Global 90.62%~~ |
 
 ### Low Priority
 | Item | Effort | Impact |
