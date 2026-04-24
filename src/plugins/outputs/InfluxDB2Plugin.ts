@@ -4,6 +4,7 @@ import { HealthAPI } from '@influxdata/influxdb-client-apis';
 import { BaseOutputPlugin } from './BaseOutputPlugin';
 import type { DataPoint, PluginMetadata } from '../../types/plugin.types';
 import { withTimeout } from '../../utils/http';
+import { formatHelpfulError } from '../../utils/errors';
 import type { z } from 'zod';
 import type { InfluxDB2ConfigSchema } from '../../config/schemas/config.schema';
 
@@ -74,12 +75,19 @@ export class InfluxDB2Plugin extends BaseOutputPlugin<InfluxDB2Config> {
       this.logger.debug(`Wrote ${points.length} points to InfluxDB 2.x`);
     } catch (error) {
       if (error instanceof HttpError) {
+        const hint =
+          error.statusCode === 401 || error.statusCode === 403
+            ? ' | Hint: Check the InfluxDB token has write permission on this bucket.'
+            : error.statusCode === 404
+              ? ' | Hint: Check the org and bucket exist and match your config.'
+              : '';
         this.logger.error(
-          `Failed to write to InfluxDB 2.x: ${error.statusCode} - ${error.message}`
+          `Failed to write to InfluxDB 2.x: HTTP ${error.statusCode} - ${error.message}${hint}`
         );
       } else {
-        const message = error instanceof Error ? error.message : 'Unknown error';
-        this.logger.error(`Failed to write to InfluxDB 2.x: ${message}`);
+        this.logger.error(
+          `Failed to write to InfluxDB 2.x: ${formatHelpfulError(error, { service: 'InfluxDB 2.x', url: this.getBaseUrl(), authType: 'token' })}`
+        );
       }
       throw error;
     }
