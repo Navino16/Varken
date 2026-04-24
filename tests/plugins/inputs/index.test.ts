@@ -11,6 +11,7 @@ import {
   TautulliPlugin,
   PlexPlugin,
   JellyfinPlugin,
+  EmbyPlugin,
   OverseerrPlugin,
   OmbiPlugin,
 } from '../../../src/plugins/inputs';
@@ -33,13 +34,14 @@ describe('Input Plugins Index', () => {
       expect(registry.has('tautulli')).toBe(true);
       expect(registry.has('plex')).toBe(true);
       expect(registry.has('jellyfin')).toBe(true);
+      expect(registry.has('emby')).toBe(true);
       expect(registry.has('overseerr')).toBe(true);
       expect(registry.has('ombi')).toBe(true);
     });
 
     it('should have correct number of plugins', () => {
       const registry = getInputPluginRegistry();
-      expect(registry.size).toBe(11);
+      expect(registry.size).toBe(12);
     });
 
     it('should return plugin classes that can be instantiated', () => {
@@ -103,6 +105,10 @@ describe('Input Plugins Index', () => {
 
     it('should export JellyfinPlugin', () => {
       expect(JellyfinPlugin).toBeDefined();
+    });
+
+    it('should export EmbyPlugin', () => {
+      expect(EmbyPlugin).toBeDefined();
     });
 
     it('should export OverseerrPlugin', () => {
