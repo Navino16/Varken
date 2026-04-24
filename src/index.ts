@@ -38,6 +38,7 @@ export async function main(deps: MainDependencies = defaultDependencies): Promis
   const dataFolder = process.env.DATA_FOLDER || './data';
   const healthPort = parseInt(process.env.HEALTH_PORT || String(DEFAULT_HEALTH_PORT), 10);
   const healthEnabled = process.env.HEALTH_ENABLED !== 'false';
+  const metricsEnabled = process.env.METRICS_ENABLED !== 'false';
   const dryRun = isDryRun();
 
   logger.info(`Varken v${VERSION} starting...`);
@@ -59,6 +60,9 @@ export async function main(deps: MainDependencies = defaultDependencies): Promis
     logger.info('Mode: dry-run (no data will be written)');
   } else if (healthEnabled) {
     logger.info(`Health endpoint: http://0.0.0.0:${healthPort}/health`);
+    if (metricsEnabled) {
+      logger.info(`Metrics endpoint: http://0.0.0.0:${healthPort}/metrics`);
+    }
   }
 
   // Load and validate configuration
@@ -86,7 +90,7 @@ export async function main(deps: MainDependencies = defaultDependencies): Promis
 
   // Create and configure orchestrator
   // Note: GeoIP is now handled directly by TautulliPlugin via Tautulli API
-  const orchestrator = new deps.Orchestrator(config, healthConfig);
+  const orchestrator = new deps.Orchestrator(config, healthConfig, metricsEnabled);
 
   // Register plugins automatically from registries
   const inputPlugins = deps.getInputPluginRegistry();

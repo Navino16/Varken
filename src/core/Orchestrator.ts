@@ -2,6 +2,7 @@ import { createLogger } from './Logger';
 import type { InputPluginFactory, OutputPluginFactory } from './PluginManager';
 import { PluginManager } from './PluginManager';
 import { HealthServer, type HealthServerConfig } from './HealthServer';
+import { Metrics } from './Metrics';
 import type { VarkenConfig } from '../config/schemas/config.schema';
 
 const logger = createLogger('Orchestrator');
@@ -23,15 +24,20 @@ export class Orchestrator {
   private healthServer: HealthServer | null = null;
   private config: VarkenConfig;
   private healthConfig?: HealthServerConfig;
+  private metrics: Metrics | null = null;
   private isRunning = false;
   private shutdownPromise: Promise<void> | null = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private signalHandlers: Array<{ event: string; handler: (...args: any[]) => void }> = [];
 
-  constructor(config: VarkenConfig, healthConfig?: HealthServerConfig) {
+  constructor(config: VarkenConfig, healthConfig?: HealthServerConfig, metricsEnabled = true) {
     this.config = config;
     this.healthConfig = healthConfig;
     this.pluginManager = new PluginManager();
+    if (metricsEnabled) {
+      this.metrics = new Metrics();
+      this.pluginManager.setMetrics(this.metrics);
+    }
   }
 
   /**
@@ -84,6 +90,7 @@ export class Orchestrator {
       if (this.healthConfig) {
         this.healthServer = new HealthServer(this.healthConfig);
         this.healthServer.setPluginManager(this.pluginManager);
+        this.healthServer.setMetrics(this.metrics);
         await this.healthServer.start();
       }
 

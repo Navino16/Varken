@@ -1,4 +1,5 @@
 import { createLogger } from './Logger';
+import type { Metrics } from './Metrics';
 import { withTimeout } from '../utils/http';
 import type {
   InputPlugin,
@@ -78,6 +79,7 @@ export class PluginManager {
   private circuitBreakerConfig: CircuitBreakerConfig = DEFAULT_CIRCUIT_BREAKER_CONFIG;
   private config?: VarkenConfig;
   private dryRun = false;
+  private metrics: Metrics | null = null;
 
   constructor() {
     // No longer needs GeoIP handler - handled by TautulliPlugin via Tautulli API
@@ -89,6 +91,14 @@ export class PluginManager {
    */
   setDryRun(enabled: boolean): void {
     this.dryRun = enabled;
+  }
+
+  /**
+   * Attach a Metrics registry so plugin activity is recorded for Prometheus scraping.
+   * If not set, no metrics are collected (legacy behavior).
+   */
+  setMetrics(metrics: Metrics | null): void {
+    this.metrics = metrics;
   }
 
   /**
@@ -163,6 +173,9 @@ export class PluginManager {
 
     // Initialize input plugins
     await this.initializeInputPlugins(config.inputs, config.global);
+
+    const stats = this.getStats();
+    this.metrics?.setActivePlugins(stats.activeInputPlugins, stats.activeOutputPlugins);
 
     logger.info('All plugins initialized successfully');
   }
@@ -314,6 +327,7 @@ export class PluginManager {
     };
 
     this.schedulers.set(schedule.name, activeScheduler);
+    this.metrics?.setCircuitBreakerState(schedule.name, 'closed');
 
     // Run immediately on start
     this.executeSchedule(schedule).catch((error) => {
@@ -405,10 +419,10 @@ export class PluginManager {
     }
 
     scheduler.isRunning = true;
+    const startTime = Date.now();
 
     try {
       logger.debug(`Executing schedule: ${schedule.name}`);
-      const startTime = Date.now();
 
       // Collect data from the plugin with configurable timeout
       const collectorTimeout = this.config?.global?.collectorTimeoutMs ?? 60000;
@@ -419,6 +433,7 @@ export class PluginManager {
       );
 
       const validPoints = this.validateDataPoints(points, schedule.name);
+      this.metrics?.recordDataPointsCollected(schedule.name, validPoints.length);
 
       if (validPoints.length > 0) {
         // Write to all output plugins
@@ -432,12 +447,14 @@ export class PluginManager {
       }
 
       // Handle success
+      this.metrics?.recordCollection(schedule.name, (Date.now() - startTime) / 1000, true);
       this.handleScheduleSuccess(scheduler);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       logger.error(`Schedule ${schedule.name} failed: ${message}`);
 
       // Handle failure
+      this.metrics?.recordCollection(schedule.name, (Date.now() - startTime) / 1000, false);
       this.handleScheduleFailure(scheduler, message);
     } finally {
       scheduler.isRunning = false;
@@ -521,6 +538,7 @@ export class PluginManager {
       Date.now() + this.circuitBreakerConfig.cooldownSeconds * 1000
     );
     scheduler.recoverySuccesses = 0;
+    this.metrics?.setCircuitBreakerState(scheduler.schedule.name, 'open');
 
     logger.warn(
       `Schedule ${scheduler.schedule.name} circuit opened after ${scheduler.consecutiveErrors} errors, ` +
@@ -536,6 +554,7 @@ export class PluginManager {
     scheduler.recoverySuccesses = 0;
     // Reset to base interval for recovery testing
     scheduler.currentIntervalMs = scheduler.baseIntervalMs;
+    this.metrics?.setCircuitBreakerState(scheduler.schedule.name, 'half-open');
 
     logger.info(
       `Schedule ${scheduler.schedule.name} circuit transitioning to half-open for recovery testing`
@@ -553,6 +572,7 @@ export class PluginManager {
     scheduler.disabledAt = undefined;
     scheduler.nextAttemptAt = undefined;
     scheduler.recoverySuccesses = 0;
+    this.metrics?.setCircuitBreakerState(scheduler.schedule.name, 'closed');
 
     logger.info(
       `Schedule ${scheduler.schedule.name} circuit closed, resuming normal operation`
@@ -596,9 +616,11 @@ export class PluginManager {
       async ([type, plugin]) => {
         try {
           await plugin.write(points);
+          this.metrics?.recordWrite(type, points.length, true);
           logger.debug(`Wrote ${points.length} points to ${type}`);
         } catch (error) {
           failureCount++;
+          this.metrics?.recordWrite(type, points.length, false);
           const message = error instanceof Error ? error.message : 'Unknown error';
           logger.error(`Failed to write to output ${type}: ${message}`);
           // Don't throw - continue with other outputs

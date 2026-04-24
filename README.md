@@ -49,6 +49,7 @@ Built with TypeScript, Node.js, and a plugin-based architecture with scheduled d
 
 - **Circuit breaker** — automatic error recovery with exponential backoff and self-healing
 - **Health checks** — built-in HTTP endpoints for monitoring and orchestration
+- **Prometheus metrics** — `/metrics` endpoint for collection counts, durations, errors, and circuit breaker state
 - **Graceful output skipping** — failed output plugins are skipped at startup; Varken continues with the ones that initialized successfully
 - **Easy configuration** — simple YAML config with environment variable overrides
 
@@ -238,6 +239,7 @@ global:
 | `TZ`             | `UTC`     | Timezone (e.g., `Europe/Paris`, `America/New_York`) |
 | `HEALTH_PORT`    | `9090`    | Port for the health check HTTP server               |
 | `HEALTH_ENABLED` | `true`    | Enable/disable the health check server              |
+| `METRICS_ENABLED`| `true`    | Enable/disable the Prometheus `/metrics` endpoint   |
 | `DRY_RUN`        | `false`   | Run once without writing (equivalent to `--dry-run`) |
 
 #### Configuration Overrides
@@ -388,6 +390,7 @@ Varken exposes HTTP endpoints for monitoring on port `9090` (configurable via `H
 | `GET /health`         | Overall status: `healthy`, `degraded`, `unhealthy` |
 | `GET /health/plugins` | Per-plugin health status (inputs and outputs)      |
 | `GET /status`         | Detailed status with scheduler information         |
+| `GET /metrics`        | Prometheus scrape endpoint (see below)             |
 
 The Docker image includes a built-in `HEALTHCHECK` instruction using these endpoints.
 
@@ -406,6 +409,33 @@ The Docker image includes a built-in `HEALTHCHECK` instruction using these endpo
 | `healthy`   | All outputs healthy + all inputs healthy + all schedulers in `closed` state with < 3 errors |
 | `degraded`  | At least one output healthy + at least one scheduler not in `open` state                    |
 | `unhealthy` | No outputs configured, all outputs unreachable, or all schedulers in `open` state           |
+
+## Prometheus Metrics
+
+Varken exposes a Prometheus scrape endpoint at `GET /metrics` on the same port as the health server (default `9090`). Disable with `METRICS_ENABLED=false`.
+
+### Exposed Metrics
+
+| Metric                               | Type      | Labels              | Description                                            |
+|--------------------------------------|-----------|---------------------|--------------------------------------------------------|
+| `varken_collections_total`           | counter   | scheduler, status   | Scheduled collector runs (status: success / failure)   |
+| `varken_collection_duration_seconds` | histogram | scheduler           | Collector run duration                                 |
+| `varken_data_points_collected_total` | counter   | scheduler           | Data points produced by collectors                     |
+| `varken_data_points_written_total`   | counter   | output, status      | Data points written to outputs (status / failure)      |
+| `varken_scheduler_errors_total`      | counter   | scheduler           | Total scheduler errors                                 |
+| `varken_circuit_breaker_state`       | gauge     | scheduler           | Circuit breaker state (0=closed, 1=half-open, 2=open)  |
+| `varken_active_plugins`              | gauge     | kind                | Active plugin count by kind (input / output)           |
+
+Default Node.js process metrics (`process_cpu_*`, `nodejs_heap_*`, event loop lag, GC stats) are also exposed.
+
+### Prometheus Scrape Config
+
+```yaml
+scrape_configs:
+  - job_name: varken
+    static_configs:
+      - targets: ['varken:9090']
+```
 
 ## Grafana Setup
 

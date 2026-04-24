@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import http from 'node:http';
 import { HealthServer, HealthServerConfig } from '../../src/core/HealthServer';
+import { Metrics } from '../../src/core/Metrics';
 import { PluginManager } from '../../src/core/PluginManager';
 import type { SchedulerStatus, PluginStatus } from '../../src/types/health.types';
 
@@ -474,6 +475,51 @@ describe('HealthServer', () => {
 
       expect(response.headers['content-type']).toBe('application/json');
       expect(response.headers['access-control-allow-origin']).toBe('*');
+    });
+  });
+
+  describe('GET /metrics', () => {
+    it('should return Prometheus-format metrics when metrics are attached', async () => {
+      const mockPm = createMockPluginManager();
+      const metrics = new Metrics();
+      metrics.recordCollection('sonarr_queue', 0.1, true);
+
+      healthServer.setPluginManager(mockPm);
+      healthServer.setMetrics(metrics);
+      await healthServer.start();
+
+      const response = await httpGet(testPort, '/metrics');
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toContain('varken_collections_total');
+      expect(response.body).toContain('app="varken"');
+    });
+
+    it('should return 404 when metrics are not attached', async () => {
+      const mockPm = createMockPluginManager();
+      healthServer.setPluginManager(mockPm);
+      await healthServer.start();
+
+      const response = await httpGet(testPort, '/metrics');
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('should set the Prometheus text content type', async () => {
+      const mockPm = createMockPluginManager();
+      healthServer.setPluginManager(mockPm);
+      healthServer.setMetrics(new Metrics());
+      await healthServer.start();
+
+      const response = await new Promise<{ headers: http.IncomingHttpHeaders }>((resolve, reject) => {
+        const req = http.get(`http://localhost:${testPort}/metrics`, (res) => {
+          res.on('data', () => {});
+          res.on('end', () => resolve({ headers: res.headers }));
+        });
+        req.on('error', reject);
+      });
+
+      expect(response.headers['content-type']).toContain('text/plain');
     });
   });
 });

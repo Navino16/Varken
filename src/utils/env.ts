@@ -30,6 +30,7 @@ export function validateEnvironment(
 
   validatePort(env.HEALTH_PORT, 'HEALTH_PORT', errors);
   validateBoolean(env.HEALTH_ENABLED, 'HEALTH_ENABLED', errors);
+  validateBoolean(env.METRICS_ENABLED, 'METRICS_ENABLED', errors);
   validateBoolean(env.DRY_RUN, 'DRY_RUN', errors);
   validateLogLevel(env.LOG_LEVEL, errors);
 

@@ -67,6 +67,15 @@ describe('validateEnvironment', () => {
     });
   });
 
+  describe('METRICS_ENABLED', () => {
+    it('rejects invalid boolean values', () => {
+      const result = validateEnvironment({ env: { METRICS_ENABLED: 'maybe' }, fsModule: makeFsMock() });
+      expect(result.errors).toEqual(
+        expect.arrayContaining([expect.stringContaining('METRICS_ENABLED="maybe"')])
+      );
+    });
+  });
+
   describe('LOG_LEVEL', () => {
     it('accepts standard winston levels', () => {
       for (const level of ['error', 'warn', 'info', 'debug']) {

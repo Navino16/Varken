@@ -1465,4 +1465,49 @@ describe('PluginManager', () => {
       expect(output.writtenPoints).toHaveLength(0);
     });
   });
+
+  describe('metrics integration', () => {
+    beforeEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('should record write success in the attached Metrics instance', async () => {
+      const { Metrics } = await import('../../src/core/Metrics');
+      const metrics = new Metrics();
+
+      pluginManager.registerInputPlugin('sonarr', MockInputPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', MockOutputPlugin);
+      await pluginManager.initializeFromConfig(minimalConfig);
+      pluginManager.setMetrics(metrics);
+
+      const validPoint: DataPoint = {
+        measurement: 'test',
+        tags: {},
+        fields: { v: 1 },
+        timestamp: new Date(),
+      };
+      await (
+        pluginManager as unknown as { writeToOutputs: (p: DataPoint[]) => Promise<void> }
+      ).writeToOutputs([validPoint]);
+
+      const output = await metrics.getMetrics();
+      expect(output).toMatch(
+        /varken_data_points_written_total\{[^}]*output="influxdb1"[^}]*status="success"[^}]*\} 1/
+      );
+    });
+
+    it('should record active plugin gauges after initializeFromConfig', async () => {
+      const { Metrics } = await import('../../src/core/Metrics');
+      const metrics = new Metrics();
+
+      pluginManager.setMetrics(metrics);
+      pluginManager.registerInputPlugin('sonarr', MockInputPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', MockOutputPlugin);
+      await pluginManager.initializeFromConfig(minimalConfig);
+
+      const output = await metrics.getMetrics();
+      expect(output).toMatch(/varken_active_plugins\{[^}]*kind="input"[^}]*\} 1/);
+      expect(output).toMatch(/varken_active_plugins\{[^}]*kind="output"[^}]*\} 1/);
+    });
+  });
 });
