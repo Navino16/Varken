@@ -9,6 +9,7 @@ import { BazarrPlugin } from './BazarrPlugin';
 import { ProwlarrPlugin } from './ProwlarrPlugin';
 import { TautulliPlugin } from './TautulliPlugin';
 import { PlexPlugin } from './PlexPlugin';
+import { JellyfinPlugin } from './JellyfinPlugin';
 import { OverseerrPlugin } from './OverseerrPlugin';
 import { OmbiPlugin } from './OmbiPlugin';
 
@@ -22,6 +23,7 @@ export { BazarrPlugin } from './BazarrPlugin';
 export { ProwlarrPlugin } from './ProwlarrPlugin';
 export { TautulliPlugin } from './TautulliPlugin';
 export { PlexPlugin } from './PlexPlugin';
+export { JellyfinPlugin } from './JellyfinPlugin';
 export { OverseerrPlugin } from './OverseerrPlugin';
 export { OmbiPlugin } from './OmbiPlugin';
 
@@ -38,6 +40,7 @@ const inputPluginClasses: InputPluginFactory[] = [
   ProwlarrPlugin,
   TautulliPlugin,
   PlexPlugin,
+  JellyfinPlugin,
   OverseerrPlugin,
   OmbiPlugin,
 ];
