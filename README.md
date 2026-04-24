@@ -41,7 +41,7 @@ Built with TypeScript, Node.js, and a plugin-based architecture with scheduled d
 ### Data Collection
 
 - **Multiple data sources** — Sonarr, Radarr, Readarr, Lidarr, Tautulli, Ombi, Overseerr, Prowlarr, Bazarr
-- **Multiple outputs** — InfluxDB 1.x, InfluxDB 2.x, VictoriaMetrics, QuestDB
+- **Multiple outputs** — InfluxDB 1.x, InfluxDB 2.x, VictoriaMetrics, QuestDB, TimescaleDB
 - **Multi-instance support** — connect multiple instances of each service
 - **GeoIP mapping** — automatic geolocation of streaming sessions via Tautulli API (no external license required)
 
@@ -86,7 +86,7 @@ Built with TypeScript, Node.js, and a plugin-based architecture with scheduled d
 | **InfluxDB 1.x** (legacy)      | ✅          |
 | **VictoriaMetrics**            | ✅          |
 | **QuestDB**                    | ✅          |
-| **TimescaleDB**                | 🚧 Planned |
+| **TimescaleDB**                | ✅          |
 
 ## Installation
 
@@ -216,7 +216,17 @@ outputs:
   # QuestDB (ILP over HTTP on port 9000)
   questdb:
     url: "http://questdb:9000"
+
+  # TimescaleDB (PostgreSQL with hypertables)
+  timescaledb:
+    host: "timescaledb"
+    port: 5432
+    database: "varken"
+    username: "varken"
+    password: "varken"
 ```
+
+> **TimescaleDB schema:** Varken creates a single `varken_events` hypertable on first run. Columns: `time TIMESTAMPTZ`, `measurement TEXT`, `tags JSONB`, `fields JSONB`. Query in Grafana with `tags->>'server'` / `(fields->>'queue_size')::int`. If the TimescaleDB extension isn't installed, the plugin falls back to a plain PostgreSQL table (logs a warning).
 
 See [`config/varken.example.yaml`](config/varken.example.yaml) for the complete list of supported options.
 
