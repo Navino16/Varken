@@ -1,4 +1,5 @@
 import { BaseInputPlugin } from './BaseInputPlugin';
+import { RequestCache } from '../../utils/RequestCache';
 import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
 import type {
   TautulliConfig,
@@ -39,7 +40,10 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
   private static readonly GEOIP_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
   private static readonly GEOIP_CACHE_MAX_SIZE = 1000;
 
-  private geoipCache = new Map<string, { data: GeoIPInfo | null; timestamp: number }>();
+  private geoipCache = new RequestCache<GeoIPInfo | null>({
+    ttlMs: TautulliPlugin.GEOIP_CACHE_TTL_MS,
+    maxSize: TautulliPlugin.GEOIP_CACHE_MAX_SIZE,
+  });
 
   readonly metadata: PluginMetadata = {
     name: 'Tautulli',
@@ -199,51 +203,35 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
    * Perform GeoIP lookup using Tautulli API
    */
   private async geoipLookup(ip: string): Promise<GeoIPInfo | null> {
-    const cached = this.geoipCache.get(ip);
-    if (cached && Date.now() - cached.timestamp < TautulliPlugin.GEOIP_CACHE_TTL_MS) {
-      return cached.data;
-    }
+    return this.geoipCache.getOrFetch(ip, async () => {
+      try {
+        const response = await this.httpGet<TautulliApiResponse<TautulliGeoIPResponse>>(
+          '/api/v2',
+          {
+            apikey: this.config.apiKey,
+            cmd: 'get_geoip_lookup',
+            ip_address: ip,
+          }
+        );
 
-    // Evict oldest entry if cache is full
-    if (this.geoipCache.size >= TautulliPlugin.GEOIP_CACHE_MAX_SIZE) {
-      const oldestKey = this.geoipCache.keys().next().value;
-      if (oldestKey !== undefined) {
-        this.geoipCache.delete(oldestKey);
-      }
-    }
-
-    try {
-      const response = await this.httpGet<TautulliApiResponse<TautulliGeoIPResponse>>(
-        '/api/v2',
-        {
-          apikey: this.config.apiKey,
-          cmd: 'get_geoip_lookup',
-          ip_address: ip,
+        if (response?.response?.result !== 'success' || !response?.response?.data) {
+          return null;
         }
-      );
 
-      if (response?.response?.result !== 'success' || !response?.response?.data) {
-        this.geoipCache.set(ip, { data: null, timestamp: Date.now() });
+        const data = response.response.data;
+        return {
+          city: data.city || '',
+          region: data.region || '',
+          country: data.country || '',
+          latitude: data.latitude || 0,
+          longitude: data.longitude || 0,
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        this.logger.debug(`GeoIP lookup failed for ${this.maskIp(ip)}: ${message}`);
         return null;
       }
-
-      const data = response.response.data;
-      const geoInfo: GeoIPInfo = {
-        city: data.city || '',
-        region: data.region || '',
-        country: data.country || '',
-        latitude: data.latitude || 0,
-        longitude: data.longitude || 0,
-      };
-
-      this.geoipCache.set(ip, { data: geoInfo, timestamp: Date.now() });
-      return geoInfo;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.debug(`GeoIP lookup failed for ${this.maskIp(ip)}: ${message}`);
-      this.geoipCache.set(ip, { data: null, timestamp: Date.now() });
-      return null;
-    }
+    });
   }
 
   /**

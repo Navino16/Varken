@@ -18,5 +18,9 @@ export type { EnvValidationResult, EnvValidationOptions } from './env';
 export { explainError, formatHelpfulError } from './errors';
 export type { ErrorContext, ExplainedError } from './errors';
 
+// Request cache with TTL + deduplication
+export { RequestCache } from './RequestCache';
+export type { RequestCacheOptions } from './RequestCache';
+
 // Re-export types
 export type { HttpClientConfig, RetryConfig } from '../types/http.types';

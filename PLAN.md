@@ -68,7 +68,7 @@ varken/
 │   └── utils/
 │       ├── http.ts                  # HTTP utilities, error classification
 │       └── index.ts
-├── tests/                           # 623 tests, 91% coverage
+├── tests/                           # 636 tests, 91% coverage
 │   ├── config/
 │   ├── core/
 │   ├── plugins/
@@ -228,7 +228,7 @@ interface ScheduleConfig {
 - [x] Main entry point (`index.ts`)
 - [x] Dockerfile (multi-stage, ~190MB)
 - [x] docker-compose.yml (Varken + InfluxDB 2.x + Grafana)
-- [x] Unit tests (623 tests passing)
+- [x] Unit tests (636 tests passing)
 - [x] CI/CD workflows (GitHub Actions)
 - [x] Codecov integration
 - [x] Documentation (README.md, CLAUDE.md)
@@ -444,7 +444,7 @@ interface ScheduleConfig {
 
 ## Test Coverage Summary
 
-> **Last updated**: 2026-04-24 | **Global coverage**: 90.83% | **Tests**: 623 passing
+> **Last updated**: 2026-04-24 | **Global coverage**: 91.09% | **Tests**: 636 passing
 
 | File | Coverage | Target | Status | Notes |
 |------|----------|--------|--------|-------|
@@ -460,9 +460,10 @@ interface ScheduleConfig {
 | `src/utils/http.ts` | 70.65% | 85% | ⚠️ | Interceptor callbacks need integration tests |
 | `src/utils/env.ts` | 100% | 90% | ✅ | Added in Phase 11 (Env Validation) |
 | `src/utils/errors.ts` | 91.04% | 90% | ✅ | Added in Phase 11 (Better Error Messages) |
+| `src/utils/RequestCache.ts` | 100% | 90% | ✅ | Added in Phase 11 (Request Cache) |
 | `src/plugins/inputs/SonarrPlugin.ts` | 91.89% | 90% | ✅ | Improved via safeFetch refactor |
 | `src/plugins/inputs/RadarrPlugin.ts` | 98.07% | 90% | ✅ | Improved via safeFetch refactor |
-| `src/plugins/inputs/TautulliPlugin.ts` | 93.56% | 90% | ✅ | GeoIP via Tautulli API |
+| `src/plugins/inputs/TautulliPlugin.ts` | 95.03% | 90% | ✅ | Uses `RequestCache` for GeoIP |
 | `src/plugins/inputs/OmbiPlugin.ts` | 93.67% | 90% | ✅ | Improved via safeFetch refactor |
 | `src/plugins/inputs/OverseerrPlugin.ts` | 91.17% | 90% | ✅ | Improved via safeFetch refactor |
 | `src/plugins/inputs/ReadarrPlugin.ts` | 98.03% | 90% | ✅ | Improved via safeFetch refactor |
@@ -541,7 +542,7 @@ DataPoint (internal format)
 | Structured logging | ~4h | Debugging |
 | ~~Dry-run mode~~ | ~~✅~~ | ~~`--dry-run` / `DRY_RUN=true`~~ |
 | ~~Better error messages~~ | ~~✅~~ | ~~UX — `src/utils/errors.ts`~~ |
-| ~~Improve test coverage~~ | ~~✅~~ | ~~Quality - Global 90.83%~~ |
+| ~~Improve test coverage~~ | ~~✅~~ | ~~Quality - Global 91.09%~~ |
 
 ### Low Priority
 | Item | Effort | Impact |
