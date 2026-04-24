@@ -18,7 +18,8 @@ import type {
 export interface BaseInputConfig {
   id: number;
   url: string;
-  apiKey: string;
+  /** API key / token — optional because some services (Plex) use a different field (`token`). */
+  apiKey?: string;
   verifySsl?: boolean;
 }
 
