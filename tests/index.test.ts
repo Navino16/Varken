@@ -91,6 +91,7 @@ describe('index.ts (Entry Point)', () => {
       Orchestrator: MockOrchestrator as unknown as MainDependencies['Orchestrator'],
       getInputPluginRegistry: () => mockInputRegistry as unknown as ReturnType<MainDependencies['getInputPluginRegistry']>,
       getOutputPluginRegistry: () => mockOutputRegistry as unknown as ReturnType<MainDependencies['getOutputPluginRegistry']>,
+      validateEnvironment: vi.fn().mockReturnValue({ errors: [], warnings: [] }),
     };
   });
 
@@ -356,6 +357,31 @@ describe('index.ts (Entry Point)', () => {
         (call: unknown[]) => typeof call[0] === 'string' && call[0].includes('Health endpoint')
       );
       expect(healthCalls).toHaveLength(0);
+    });
+  });
+
+  describe('Environment validation', () => {
+    it('should log warnings returned by validateEnvironment', async () => {
+      mockDeps.validateEnvironment = vi.fn().mockReturnValue({
+        errors: [],
+        warnings: ['legacy VRKN_* variables detected'],
+      });
+
+      await main(mockDeps);
+
+      expect(mockLogger.warn).toHaveBeenCalledWith('legacy VRKN_* variables detected');
+    });
+
+    it('should throw when validateEnvironment returns errors', async () => {
+      mockDeps.validateEnvironment = vi.fn().mockReturnValue({
+        errors: ['HEALTH_PORT="nope" is not a valid TCP port'],
+        warnings: [],
+      });
+
+      await expect(main(mockDeps)).rejects.toThrow('Environment validation failed');
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'HEALTH_PORT="nope" is not a valid TCP port'
+      );
     });
   });
 });

@@ -369,12 +369,12 @@ interface ScheduleConfig {
   - Reduce load on source services
   - Effort: ~4h
 
-#### Environment Variable Validation
-- [ ] Create `src/utils/env.ts` for env var validation
-  - Check directory permissions (CONFIG_FOLDER, DATA_FOLDER, LOG_FOLDER)
-  - Validate required vars for enabled features
-  - Warn on deprecated vars
-  - Effort: ~2h
+#### Environment Variable Validation ✅
+- [x] Create `src/utils/env.ts` for env var validation
+  - Checks directory permissions (CONFIG_FOLDER, DATA_FOLDER, LOG_FOLDER) — creates if missing
+  - Validates HEALTH_PORT, HEALTH_ENABLED, DRY_RUN, LOG_LEVEL
+  - Warns on deprecated VRKN_* variables
+  - Called from `main()` at startup — errors abort, warnings are logged
 
 #### Structured Logging (JSON)
 - [ ] Update Logger for JSON output in production

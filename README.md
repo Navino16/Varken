@@ -443,6 +443,13 @@ Legacy `VRKN_*` environment variables are also automatically migrated.
 
 ### Common Issues
 
+**Varken fails at startup with "Environment validation failed":**
+- Varken validates all environment variables and directory permissions on startup
+- Check `HEALTH_PORT` is a valid TCP port (1-65535)
+- Check `HEALTH_ENABLED`, `DRY_RUN` are set to `true` or `false` only
+- Check `LOG_LEVEL` is one of `error`, `warn`, `info`, `http`, `verbose`, `debug`, `silly`
+- Verify the process can read `CONFIG_FOLDER` and write to `DATA_FOLDER` / `LOG_FOLDER`
+
 **Varken can't connect to services:**
 - Verify URLs are accessible from the Varken container
 - Check API keys are correct

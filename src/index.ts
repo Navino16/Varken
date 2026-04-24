@@ -4,6 +4,7 @@ import { Orchestrator } from './core/Orchestrator';
 import { getInputPluginRegistry } from './plugins/inputs';
 import { getOutputPluginRegistry } from './plugins/outputs';
 import type { HealthServerConfig } from './core/HealthServer';
+import { validateEnvironment } from './utils/env';
 import { version as VERSION } from '../package.json';
 
 export { VERSION };
@@ -15,6 +16,7 @@ export interface MainDependencies {
   Orchestrator: typeof Orchestrator;
   getInputPluginRegistry: typeof getInputPluginRegistry;
   getOutputPluginRegistry: typeof getOutputPluginRegistry;
+  validateEnvironment: typeof validateEnvironment;
 }
 
 const defaultDependencies: MainDependencies = {
@@ -23,6 +25,7 @@ const defaultDependencies: MainDependencies = {
   Orchestrator,
   getInputPluginRegistry,
   getOutputPluginRegistry,
+  validateEnvironment,
 };
 
 export function isDryRun(argv: string[] = process.argv, env: NodeJS.ProcessEnv = process.env): boolean {
@@ -38,6 +41,18 @@ export async function main(deps: MainDependencies = defaultDependencies): Promis
   const dryRun = isDryRun();
 
   logger.info(`Varken v${VERSION} starting...`);
+
+  const { errors, warnings } = deps.validateEnvironment();
+  for (const warning of warnings) {
+    logger.warn(warning);
+  }
+  if (errors.length > 0) {
+    for (const error of errors) {
+      logger.error(error);
+    }
+    throw new Error(`Environment validation failed with ${errors.length} error(s)`);
+  }
+
   logger.info(`Config folder: ${configFolder}`);
   logger.info(`Data folder: ${dataFolder}`);
   if (dryRun) {
