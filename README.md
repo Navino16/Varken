@@ -522,6 +522,17 @@ Error messages are annotated with actionable hints where possible. Look for the 
 - Verify InfluxDB connection settings
 - Ensure at least one input is enabled with `enabled: true`
 
+### Integration tests
+
+A separate `npm run test:integration` target runs end-to-end tests against real services. Start the stack first (InfluxDB 2.x on port 8087 by default):
+
+```bash
+docker compose -f docker-compose.test.yaml --profile influxdb2 up -d
+npm run test:integration
+```
+
+Tests skip themselves automatically when a service isn't reachable, so the command is safe to run with or without containers up. Unit tests (`npm test`) are hermetic and never touch the integration folder.
+
 **GeoIP not working:**
 - Ensure `geoip.enabled: true` is set in your Tautulli configuration
 - Verify Tautulli is accessible and the API key is correct
