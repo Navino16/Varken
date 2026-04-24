@@ -1,12 +1,13 @@
 {
   "name": "varken",
-  "version": "2.2.3",
+  "version": "2.2.4",
   "description": "Standalone application to aggregate data from the Plex ecosystem into time-series databases",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
+    "build": "tsc",
     "build": "tsc",
     "clean": "rm -rf dist .reports node_modules logs data",
     "lint": "eslint src/",
@@ -44,22 +45,22 @@
   "dependencies": {
     "@influxdata/influxdb-client": "^1.35.0",
     "@influxdata/influxdb-client-apis": "^1.35.0",
-    "axios": "^1.13.6",
+    "axios": "^1.15.0",
     "influx": "^5.12.0",
     "winston": "^3.17.0",
     "yaml": "^2.8.3",
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@types/node": "^25.5.0",
-    "@typescript-eslint/eslint-plugin": "^8.57.1",
+    "@types/node": "^25.6.0",
+    "@typescript-eslint/eslint-plugin": "^8.58.1",
     "@typescript-eslint/parser": "^8.0.0",
-    "@vitest/coverage-v8": "^4.1.0",
-    "eslint": "^10.1.0",
+    "@vitest/coverage-v8": "^4.1.4",
+    "eslint": "^10.2.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "tsx": "^4.19.0",
-    "typescript": "^5.7.0",
+    "typescript": "^6.0.3",
     "vitest": "^4.0.15"
   },
   "lint-staged": {
