@@ -3,7 +3,8 @@ import type { z } from 'zod';
 import { BaseOutputPlugin } from './BaseOutputPlugin';
 import type { DataPoint, PluginMetadata } from '../../types/plugin.types';
 import type { VictoriaMetricsConfigSchema } from '../../config/schemas/config.schema';
-import { createHttpClient, formatHttpError, withTimeout } from '../../utils/http';
+import { createHttpClient, withTimeout } from '../../utils/http';
+import { formatHelpfulError } from '../../utils/errors';
 
 export type VictoriaMetricsConfig = z.infer<typeof VictoriaMetricsConfigSchema>;
 
@@ -49,7 +50,7 @@ export class VictoriaMetricsPlugin extends BaseOutputPlugin<VictoriaMetricsConfi
       );
       this.logger.debug(`Wrote ${points.length} points to VictoriaMetrics`);
     } catch (error) {
-      this.logger.error(`Failed to write to VictoriaMetrics: ${formatHttpError(error)}`);
+      this.logger.error(`Failed to write to VictoriaMetrics: ${formatHelpfulError(error, { service: 'VictoriaMetrics', url: this.getBaseUrl() })}`);
       throw error;
     }
   }
@@ -59,7 +60,7 @@ export class VictoriaMetricsPlugin extends BaseOutputPlugin<VictoriaMetricsConfi
       const response = await this.client.get('/health');
       return response.status === 200;
     } catch (error) {
-      this.logger.debug(`VictoriaMetrics health check failed: ${formatHttpError(error)}`);
+      this.logger.debug(`VictoriaMetrics health check failed: ${formatHelpfulError(error, { service: 'VictoriaMetrics', url: this.getBaseUrl() })}`);
       return false;
     }
   }

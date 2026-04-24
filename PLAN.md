@@ -68,7 +68,7 @@ varken/
 │   └── utils/
 │       ├── http.ts                  # HTTP utilities, error classification
 │       └── index.ts
-├── tests/                           # 602 tests, 91% coverage
+├── tests/                           # 623 tests, 91% coverage
 │   ├── config/
 │   ├── core/
 │   ├── plugins/
@@ -228,7 +228,7 @@ interface ScheduleConfig {
 - [x] Main entry point (`index.ts`)
 - [x] Dockerfile (multi-stage, ~190MB)
 - [x] docker-compose.yml (Varken + InfluxDB 2.x + Grafana)
-- [x] Unit tests (602 tests passing)
+- [x] Unit tests (623 tests passing)
 - [x] CI/CD workflows (GitHub Actions)
 - [x] Codecov integration
 - [x] Documentation (README.md, CLAUDE.md)
@@ -356,12 +356,11 @@ interface ScheduleConfig {
   - Runs output health checks to test connectivity
   - Does not start schedulers or write to outputs
 
-#### Better Error Messages
-- [ ] Create error helper with troubleshooting guidance
-  - "Connection refused" → suggest firewall/port
-  - "Invalid API key" → link to docs
-  - "Timeout" → suggest retry configuration
-  - Effort: ~4h
+#### Better Error Messages ✅
+- [x] Create `src/utils/errors.ts` with `explainError()` / `formatHelpfulError()`
+  - Produces a `{ message, hint, detail }` triplet for HTTP, network, TLS and auth errors
+  - Hints cover ECONNREFUSED (reachability), ETIMEDOUT (tune `httpTimeoutMs`), 401/403 (auth key/token), 404 (API path/version), 429 (rate limit), 5xx (server logs), TLS cert errors, HTML-instead-of-JSON responses
+  - Integrated in `BaseInputPlugin.httpGet/httpPost`, `VictoriaMetricsPlugin`, `InfluxDB2Plugin` write errors
 
 #### Request Deduplication/Cache
 - [ ] Implement request cache with TTL
@@ -445,7 +444,7 @@ interface ScheduleConfig {
 
 ## Test Coverage Summary
 
-> **Last updated**: 2026-04-24 | **Global coverage**: 90.84% | **Tests**: 602 passing
+> **Last updated**: 2026-04-24 | **Global coverage**: 90.83% | **Tests**: 623 passing
 
 | File | Coverage | Target | Status | Notes |
 |------|----------|--------|--------|-------|
@@ -460,6 +459,7 @@ interface ScheduleConfig {
 | `src/config/ConfigMigrator.ts` | 92.12% | 85% | ✅ | |
 | `src/utils/http.ts` | 70.65% | 85% | ⚠️ | Interceptor callbacks need integration tests |
 | `src/utils/env.ts` | 100% | 90% | ✅ | Added in Phase 11 (Env Validation) |
+| `src/utils/errors.ts` | 91.04% | 90% | ✅ | Added in Phase 11 (Better Error Messages) |
 | `src/plugins/inputs/SonarrPlugin.ts` | 91.89% | 90% | ✅ | Improved via safeFetch refactor |
 | `src/plugins/inputs/RadarrPlugin.ts` | 98.07% | 90% | ✅ | Improved via safeFetch refactor |
 | `src/plugins/inputs/TautulliPlugin.ts` | 93.56% | 90% | ✅ | GeoIP via Tautulli API |
@@ -540,8 +540,8 @@ DataPoint (internal format)
 | QuestDB, TimescaleDB outputs | ~14h | More DB options |
 | Structured logging | ~4h | Debugging |
 | ~~Dry-run mode~~ | ~~✅~~ | ~~`--dry-run` / `DRY_RUN=true`~~ |
-| Better error messages | ~4h | UX |
-| ~~Improve test coverage~~ | ~~✅~~ | ~~Quality - Global 90.84%~~ |
+| ~~Better error messages~~ | ~~✅~~ | ~~UX — `src/utils/errors.ts`~~ |
+| ~~Improve test coverage~~ | ~~✅~~ | ~~Quality - Global 90.83%~~ |
 
 ### Low Priority
 | Item | Effort | Impact |

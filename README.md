@@ -484,6 +484,8 @@ Legacy `VRKN_*` environment variables are also automatically migrated.
 
 ## Troubleshooting
 
+Error messages are annotated with actionable hints where possible. Look for the `Hint:` section on `ERROR` lines in the logs — connection refused, timeout, wrong API key, wrong API path (404), rate limit, and TLS cert failures all have tailored suggestions.
+
 ### Common Issues
 
 **Varken fails at startup with "Environment validation failed":**

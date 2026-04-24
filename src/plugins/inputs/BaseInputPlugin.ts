@@ -3,6 +3,7 @@ import axios from 'axios';
 import * as https from 'https';
 import { createHash } from 'crypto';
 import { createLogger } from '../../core/Logger';
+import { formatHelpfulError } from '../../utils/errors';
 import type { GlobalConfig } from '../../config/schemas/config.schema';
 import type {
   InputPlugin,
@@ -181,8 +182,9 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
       const response = await this.httpClient.get<T>(path, { params });
       return response.data;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`HTTP GET ${path} failed: ${message}`);
+      this.logger.error(
+        `HTTP GET ${path} failed: ${formatHelpfulError(error, { service: this.metadata.name, url: path })}`
+      );
       throw error;
     }
   }
@@ -195,8 +197,9 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
       const response = await this.httpClient.post<T>(path, data);
       return response.data;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`HTTP POST ${path} failed: ${message}`);
+      this.logger.error(
+        `HTTP POST ${path} failed: ${formatHelpfulError(error, { service: this.metadata.name, url: path })}`
+      );
       throw error;
     }
   }
