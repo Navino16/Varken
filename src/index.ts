@@ -25,17 +25,24 @@ const defaultDependencies: MainDependencies = {
   getOutputPluginRegistry,
 };
 
+export function isDryRun(argv: string[] = process.argv, env: NodeJS.ProcessEnv = process.env): boolean {
+  return argv.includes('--dry-run') || env.DRY_RUN === 'true';
+}
+
 export async function main(deps: MainDependencies = defaultDependencies): Promise<void> {
   const logger = deps.createLogger('Main');
   const configFolder = process.env.CONFIG_FOLDER || './config';
   const dataFolder = process.env.DATA_FOLDER || './data';
   const healthPort = parseInt(process.env.HEALTH_PORT || String(DEFAULT_HEALTH_PORT), 10);
   const healthEnabled = process.env.HEALTH_ENABLED !== 'false';
+  const dryRun = isDryRun();
 
   logger.info(`Varken v${VERSION} starting...`);
   logger.info(`Config folder: ${configFolder}`);
   logger.info(`Data folder: ${dataFolder}`);
-  if (healthEnabled) {
+  if (dryRun) {
+    logger.info('Mode: dry-run (no data will be written)');
+  } else if (healthEnabled) {
     logger.info(`Health endpoint: http://0.0.0.0:${healthPort}/health`);
   }
 
@@ -57,8 +64,8 @@ export async function main(deps: MainDependencies = defaultDependencies): Promis
 
   logger.debug('Configuration loaded');
 
-  // Create health server configuration
-  const healthConfig: HealthServerConfig | undefined = healthEnabled
+  // Create health server configuration (disabled in dry-run mode)
+  const healthConfig: HealthServerConfig | undefined = healthEnabled && !dryRun
     ? { port: healthPort, version: VERSION }
     : undefined;
 
@@ -77,6 +84,11 @@ export async function main(deps: MainDependencies = defaultDependencies): Promis
     inputPlugins,
     outputPlugins,
   });
+
+  if (dryRun) {
+    await orchestrator.dryRun();
+    return;
+  }
 
   // Start orchestrator
   await orchestrator.start();

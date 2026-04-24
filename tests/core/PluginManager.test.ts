@@ -405,6 +405,7 @@ describe('PluginManager', () => {
   describe('multiple inputs', () => {
     it('should initialize multiple instances of the same plugin type', async () => {
       const configWithMultiple: VarkenConfig = {
+        global: minimalConfig.global,
         outputs: minimalConfig.outputs,
         inputs: {
           sonarr: [
@@ -1109,6 +1110,7 @@ describe('PluginManager', () => {
 
       // Config with two outputs
       const configWithTwoOutputs: VarkenConfig = {
+        global: minimalConfig.global,
         outputs: {
           influxdb1: minimalConfig.outputs.influxdb1,
           influxdb2: {
@@ -1166,6 +1168,7 @@ describe('PluginManager', () => {
       }
 
       const configWithTwoOutputs: VarkenConfig = {
+        global: minimalConfig.global,
         outputs: {
           influxdb1: minimalConfig.outputs.influxdb1,
           influxdb2: {
@@ -1353,6 +1356,64 @@ describe('PluginManager', () => {
       expect(chainedCall).toBeUndefined();
 
       setTimeoutSpy.mockRestore();
+    });
+  });
+
+  describe('dry-run mode', () => {
+    beforeEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('collectAllOnce should run every enabled schedule once and return the points', async () => {
+      pluginManager.registerInputPlugin('sonarr', MockInputPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', MockOutputPlugin);
+      await pluginManager.initializeFromConfig(minimalConfig);
+
+      const results = await pluginManager.collectAllOnce();
+
+      expect(results.size).toBe(1);
+      const entry = results.get('MockInput_1_mock');
+      expect(entry).toBeDefined();
+      expect(Array.isArray(entry)).toBe(true);
+    });
+
+    it('collectAllOnce should capture errors as empty arrays', async () => {
+      class FailingInputPlugin extends MockInputPlugin {
+        override async collect(): Promise<DataPoint[]> {
+          throw new Error('boom');
+        }
+      }
+
+      pluginManager.registerInputPlugin('sonarr', FailingInputPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', MockOutputPlugin);
+      await pluginManager.initializeFromConfig(minimalConfig);
+
+      const results = await pluginManager.collectAllOnce();
+      const entry = results.get('MockInput_1_mock');
+      expect(entry).toEqual([]);
+    });
+
+    it('should not invoke output.write when dry-run is enabled', async () => {
+      pluginManager.registerInputPlugin('sonarr', MockInputPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', MockOutputPlugin);
+      await pluginManager.initializeFromConfig(minimalConfig);
+      pluginManager.setDryRun(true);
+
+      const output = Array.from(
+        (pluginManager as unknown as { outputPlugins: Map<string, MockOutputPlugin> }).outputPlugins.values()
+      )[0];
+
+      const validPoint: DataPoint = {
+        measurement: 'test',
+        tags: {},
+        fields: { v: 1 },
+        timestamp: new Date(),
+      };
+      await (
+        pluginManager as unknown as { writeToOutputs: (p: DataPoint[]) => Promise<void> }
+      ).writeToOutputs([validPoint]);
+
+      expect(output.writtenPoints).toHaveLength(0);
     });
   });
 });
