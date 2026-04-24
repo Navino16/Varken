@@ -107,6 +107,24 @@ export class Orchestrator {
   }
 
   /**
+   * Apply a new configuration without restarting the process.
+   *
+   * Delegates to PluginManager.reload() which stops schedulers, shuts down
+   * current plugins, re-initializes from the new config, and restarts schedulers.
+   * The health server and metrics stay up the whole time.
+   */
+  async reload(newConfig: VarkenConfig): Promise<void> {
+    if (!this.isRunning) {
+      logger.warn('Orchestrator is not running; skipping reload');
+      return;
+    }
+    logger.info('Reloading Varken configuration...');
+    this.config = newConfig;
+    await this.pluginManager.reload(newConfig);
+    logger.info('Varken configuration reloaded');
+  }
+
+  /**
    * Run all enabled schedules once without writing to outputs.
    * Used to validate config, test connectivity, and preview what would be collected.
    */

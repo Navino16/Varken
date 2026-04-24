@@ -294,6 +294,47 @@ describe('Orchestrator', () => {
     });
   });
 
+  describe('reload', () => {
+    beforeEach(() => {
+      vi.useRealTimers();
+      orchestrator = new Orchestrator(minimalConfig);
+      orchestrator.registerPlugins({
+        inputPlugins: new Map([['sonarr', MockInputPlugin]]),
+        outputPlugins: new Map([['influxdb1', MockOutputPlugin]]),
+      });
+    });
+
+    it('should apply a new configuration while running', async () => {
+      await orchestrator.start();
+      expect(orchestrator.isActive()).toBe(true);
+
+      const newConfig: VarkenConfig = {
+        ...minimalConfig,
+        inputs: {
+          sonarr: [
+            {
+              id: 2,
+              url: 'http://sonarr2:8989',
+              apiKey: 'new-key',
+              verifySsl: false,
+              queue: { enabled: true, intervalSeconds: 60 },
+              calendar: { enabled: false, intervalSeconds: 300, futureDays: 7, missingDays: 30 },
+            },
+          ],
+        },
+      };
+
+      await expect(orchestrator.reload(newConfig)).resolves.toBeUndefined();
+      expect(orchestrator.isActive()).toBe(true);
+    });
+
+    it('should skip reload when orchestrator is not running', async () => {
+      // Not started yet
+      await expect(orchestrator.reload(minimalConfig)).resolves.toBeUndefined();
+      expect(orchestrator.isActive()).toBe(false);
+    });
+  });
+
   describe('dryRun', () => {
     beforeEach(() => {
       orchestrator = new Orchestrator(minimalConfig);
