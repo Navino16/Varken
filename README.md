@@ -41,7 +41,7 @@ Built with TypeScript, Node.js, and a plugin-based architecture with scheduled d
 ### Data Collection
 
 - **Multiple data sources** — Sonarr, Radarr, Readarr, Lidarr, Tautulli, Ombi, Overseerr, Prowlarr, Bazarr
-- **Multiple outputs** — InfluxDB 1.x, InfluxDB 2.x, VictoriaMetrics
+- **Multiple outputs** — InfluxDB 1.x, InfluxDB 2.x, VictoriaMetrics, QuestDB
 - **Multi-instance support** — connect multiple instances of each service
 - **GeoIP mapping** — automatic geolocation of streaming sessions via Tautulli API (no external license required)
 
@@ -85,7 +85,7 @@ Built with TypeScript, Node.js, and a plugin-based architecture with scheduled d
 | **InfluxDB 2.x** (recommended) | ✅          |
 | **InfluxDB 1.x** (legacy)      | ✅          |
 | **VictoriaMetrics**            | ✅          |
-| **QuestDB**                    | 🚧 Planned |
+| **QuestDB**                    | ✅          |
 | **TimescaleDB**                | 🚧 Planned |
 
 ## Installation
@@ -212,6 +212,10 @@ outputs:
   # VictoriaMetrics (InfluxDB line protocol compatible)
   victoriametrics:
     url: "http://victoriametrics:8428"
+
+  # QuestDB (ILP over HTTP on port 9000)
+  questdb:
+    url: "http://questdb:9000"
 ```
 
 See [`config/varken.example.yaml`](config/varken.example.yaml) for the complete list of supported options.

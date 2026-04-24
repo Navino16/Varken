@@ -68,7 +68,7 @@ varken/
 │   └── utils/
 │       ├── http.ts                  # HTTP utilities, error classification
 │       └── index.ts
-├── tests/                           # 648 tests, 91% coverage
+├── tests/                           # 660 tests, 91% coverage
 │   ├── config/
 │   ├── core/
 │   ├── plugins/
@@ -228,7 +228,7 @@ interface ScheduleConfig {
 - [x] Main entry point (`index.ts`)
 - [x] Dockerfile (multi-stage, ~190MB)
 - [x] docker-compose.yml (Varken + InfluxDB 2.x + Grafana)
-- [x] Unit tests (648 tests passing)
+- [x] Unit tests (660 tests passing)
 - [x] CI/CD workflows (GitHub Actions)
 - [x] Codecov integration
 - [x] Documentation (README.md, CLAUDE.md)
@@ -277,11 +277,12 @@ interface ScheduleConfig {
   - Reuses existing Line Protocol code from BaseOutputPlugin
   - Uses `axios` (already installed)
 
-#### QuestDB
-- [ ] `QuestDBPlugin` - InfluxDB line protocol (ILP) support
-  - HTTP or native TCP
-  - Uses `axios` (already installed)
-  - Effort: ~6h
+#### QuestDB ✅
+- [x] `QuestDBPlugin` - InfluxDB line protocol (ILP) support
+  - `POST /write` with ILP body (HTTP transport on default port 9000)
+  - Health check via `GET /exec?query=SELECT 1` to validate the full REST layer (not just static HTTP)
+  - Uses `axios` (already installed); reuses `toLineProtocolBatch()` from BaseOutputPlugin
+  - Native TCP (port 9009) left as a future enhancement if performance requires it
 
 #### TimescaleDB
 - [ ] `TimescaleDBPlugin` - PostgreSQL with hypertables
@@ -447,7 +448,7 @@ interface ScheduleConfig {
 
 ## Test Coverage Summary
 
-> **Last updated**: 2026-04-24 | **Global coverage**: 91.15% | **Tests**: 648 passing
+> **Last updated**: 2026-04-24 | **Global coverage**: 91.23% | **Tests**: 660 passing
 
 | File | Coverage | Target | Status | Notes |
 |------|----------|--------|--------|-------|
@@ -476,6 +477,7 @@ interface ScheduleConfig {
 | `src/plugins/outputs/InfluxDB1Plugin.ts` | 100% | 90% | ✅ | |
 | `src/plugins/outputs/InfluxDB2Plugin.ts` | 93.33% | 90% | ✅ | |
 | `src/plugins/outputs/VictoriaMetricsPlugin.ts` | 100% | 90% | ✅ | Added in Phase 8 |
+| `src/plugins/outputs/QuestDBPlugin.ts` | 100% | 90% | ✅ | Added in Phase 8 |
 | `src/plugins/inputs/BaseInputPlugin.ts` | 89.18% | 90% | ⚠️ | |
 | `src/plugins/outputs/BaseOutputPlugin.ts` | 100% | 90% | ✅ | |
 
@@ -507,7 +509,7 @@ interface ScheduleConfig {
 | **InfluxDB1Plugin** | HTTP API v1 | InfluxDB 1.x - Legacy, InfluxQL | ✅ |
 | **InfluxDB2Plugin** | HTTP API v2 | InfluxDB 2.x - Flux, Buckets, Tokens | ✅ |
 | **VictoriaMetricsPlugin** | InfluxDB line protocol | High performance, compatible | ✅ |
-| **QuestDBPlugin** | ILP over TCP/HTTP | Time-series SQL, fast ingestion | 🚧 Types ready |
+| **QuestDBPlugin** | ILP over HTTP | Time-series SQL, fast ingestion | ✅ |
 | **TimescaleDBPlugin** | PostgreSQL | Hypertables, standard SQL | 🚧 Types ready |
 
 ### Protocol Compatibility
@@ -541,7 +543,7 @@ DataPoint (internal format)
 |------|--------|--------|
 | ~~Prometheus metrics~~ | ~~✅~~ | ~~Observability~~ |
 | ~~Config hot-reload~~ | ~~✅~~ | ~~Operations — via `CONFIG_WATCH=true`~~ |
-| QuestDB, TimescaleDB outputs | ~14h | More DB options |
+| TimescaleDB output | ~8h | More DB options |
 | ~~Structured logging~~ | ~~✅~~ | ~~`LOG_FORMAT=json` + `withContext()`~~ |
 | ~~Dry-run mode~~ | ~~✅~~ | ~~`--dry-run` / `DRY_RUN=true`~~ |
 | ~~Better error messages~~ | ~~✅~~ | ~~UX — `src/utils/errors.ts`~~ |

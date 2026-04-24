@@ -4,12 +4,14 @@ import type { OutputPluginFactory } from '../../core/PluginManager';
 import { InfluxDB1Plugin } from './InfluxDB1Plugin';
 import { InfluxDB2Plugin } from './InfluxDB2Plugin';
 import { VictoriaMetricsPlugin } from './VictoriaMetricsPlugin';
+import { QuestDBPlugin } from './QuestDBPlugin';
 
 // Re-exports for direct usage
 export { BaseOutputPlugin, BaseOutputConfig } from './BaseOutputPlugin';
 export { InfluxDB1Plugin, InfluxDB1Config } from './InfluxDB1Plugin';
 export { InfluxDB2Plugin, InfluxDB2Config } from './InfluxDB2Plugin';
 export { VictoriaMetricsPlugin, VictoriaMetricsConfig } from './VictoriaMetricsPlugin';
+export { QuestDBPlugin, QuestDBConfig } from './QuestDBPlugin';
 
 /**
  * All available output plugin classes
@@ -19,6 +21,7 @@ const outputPluginClasses: OutputPluginFactory[] = [
   InfluxDB1Plugin,
   InfluxDB2Plugin,
   VictoriaMetricsPlugin,
+  QuestDBPlugin,
 ];
 
 /**

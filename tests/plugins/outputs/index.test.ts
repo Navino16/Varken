@@ -5,6 +5,7 @@ import {
   InfluxDB1Plugin,
   InfluxDB2Plugin,
   VictoriaMetricsPlugin,
+  QuestDBPlugin,
 } from '../../../src/plugins/outputs';
 
 describe('Output Plugins Index', () => {
@@ -19,11 +20,12 @@ describe('Output Plugins Index', () => {
       expect(registry.has('influxdb1')).toBe(true);
       expect(registry.has('influxdb2')).toBe(true);
       expect(registry.has('victoriametrics')).toBe(true);
+      expect(registry.has('questdb')).toBe(true);
     });
 
     it('should have correct number of plugins', () => {
       const registry = getOutputPluginRegistry();
-      expect(registry.size).toBe(3);
+      expect(registry.size).toBe(4);
     });
 
     it('should return plugin classes that can be instantiated', () => {
@@ -48,6 +50,9 @@ describe('Output Plugins Index', () => {
 
       const vmPlugin = new VictoriaMetricsPlugin();
       expect(registry.has(vmPlugin.metadata.name.toLowerCase())).toBe(true);
+
+      const questdbPlugin = new QuestDBPlugin();
+      expect(registry.has(questdbPlugin.metadata.name.toLowerCase())).toBe(true);
     });
   });
 
@@ -66,6 +71,10 @@ describe('Output Plugins Index', () => {
 
     it('should export VictoriaMetricsPlugin', () => {
       expect(VictoriaMetricsPlugin).toBeDefined();
+    });
+
+    it('should export QuestDBPlugin', () => {
+      expect(QuestDBPlugin).toBeDefined();
     });
   });
 });
