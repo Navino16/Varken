@@ -68,7 +68,7 @@ varken/
 │   └── utils/
 │       ├── http.ts                  # HTTP utilities, error classification
 │       └── index.ts
-├── tests/                           # 660 tests, 91% coverage
+├── tests/                           # 676 tests, 91% coverage
 │   ├── config/
 │   ├── core/
 │   ├── plugins/
@@ -176,7 +176,7 @@ interface ScheduleConfig {
 | InfluxDB 2.x | `@influxdata/influxdb-client` | ✅ Implemented |
 | VictoriaMetrics | `axios` | Line protocol via HTTP |
 | QuestDB | `axios` | ILP via HTTP |
-| TimescaleDB | `pg` | PostgreSQL driver (à ajouter) |
+| TimescaleDB | `pg` | PostgreSQL driver ✅ |
 
 ### Future Dependencies (for planned features)
 
@@ -184,7 +184,7 @@ interface ScheduleConfig {
 |---------|-------------|-------|
 | ~~Health endpoint~~ | ~~`express` ou `fastify`~~ | ✅ Uses native Node.js `http` |
 | Prometheus metrics | `prom-client` | Metrics collection |
-| TimescaleDB | `pg` | PostgreSQL driver |
+| TimescaleDB | `pg` | PostgreSQL driver ✅ |
 
 ---
 
@@ -228,7 +228,7 @@ interface ScheduleConfig {
 - [x] Main entry point (`index.ts`)
 - [x] Dockerfile (multi-stage, ~190MB)
 - [x] docker-compose.yml (Varken + InfluxDB 2.x + Grafana)
-- [x] Unit tests (660 tests passing)
+- [x] Unit tests (676 tests passing)
 - [x] CI/CD workflows (GitHub Actions)
 - [x] Codecov integration
 - [x] Documentation (README.md, CLAUDE.md)
@@ -284,12 +284,13 @@ interface ScheduleConfig {
   - Uses `axios` (already installed); reuses `toLineProtocolBatch()` from BaseOutputPlugin
   - Native TCP (port 9009) left as a future enhancement if performance requires it
 
-#### TimescaleDB
-- [ ] `TimescaleDBPlugin` - PostgreSQL with hypertables
-  - Add `pg` dependency
-  - Auto-create tables and hypertables
-  - DataPoint → SQL INSERT mapping
-  - Effort: ~8h
+#### TimescaleDB ✅
+- [x] `TimescaleDBPlugin` - PostgreSQL with hypertables
+  - Added `pg` dependency + `@types/pg`
+  - Single `varken_events` hypertable with JSONB tags/fields (schema-free, handles dynamic measurements)
+  - Auto-creates table + hypertable + `(measurement, time DESC)` index on init; falls back to plain table if TimescaleDB extension not installed (warns, continues)
+  - Bulk-inserts via parameterized `INSERT` (atomic batch, SQL-injection safe)
+  - Implements `OutputPlugin` directly (doesn't extend `BaseOutputPlugin` — no HTTP, no line protocol)
 
 ### Phase 9: Additional Input Plugins
 
@@ -448,7 +449,7 @@ interface ScheduleConfig {
 
 ## Test Coverage Summary
 
-> **Last updated**: 2026-04-24 | **Global coverage**: 91.23% | **Tests**: 660 passing
+> **Last updated**: 2026-04-24 | **Global coverage**: 91.42% | **Tests**: 676 passing
 
 | File | Coverage | Target | Status | Notes |
 |------|----------|--------|--------|-------|
@@ -478,6 +479,7 @@ interface ScheduleConfig {
 | `src/plugins/outputs/InfluxDB2Plugin.ts` | 93.33% | 90% | ✅ | |
 | `src/plugins/outputs/VictoriaMetricsPlugin.ts` | 100% | 90% | ✅ | Added in Phase 8 |
 | `src/plugins/outputs/QuestDBPlugin.ts` | 100% | 90% | ✅ | Added in Phase 8 |
+| `src/plugins/outputs/TimescaleDBPlugin.ts` | 100% | 90% | ✅ | Added in Phase 8 |
 | `src/plugins/inputs/BaseInputPlugin.ts` | 89.18% | 90% | ⚠️ | |
 | `src/plugins/outputs/BaseOutputPlugin.ts` | 100% | 90% | ✅ | |
 
@@ -510,7 +512,7 @@ interface ScheduleConfig {
 | **InfluxDB2Plugin** | HTTP API v2 | InfluxDB 2.x - Flux, Buckets, Tokens | ✅ |
 | **VictoriaMetricsPlugin** | InfluxDB line protocol | High performance, compatible | ✅ |
 | **QuestDBPlugin** | ILP over HTTP | Time-series SQL, fast ingestion | ✅ |
-| **TimescaleDBPlugin** | PostgreSQL | Hypertables, standard SQL | 🚧 Types ready |
+| **TimescaleDBPlugin** | PostgreSQL | Hypertables, standard SQL (JSONB tags/fields) | ✅ |
 
 ### Protocol Compatibility
 
@@ -543,7 +545,7 @@ DataPoint (internal format)
 |------|--------|--------|
 | ~~Prometheus metrics~~ | ~~✅~~ | ~~Observability~~ |
 | ~~Config hot-reload~~ | ~~✅~~ | ~~Operations — via `CONFIG_WATCH=true`~~ |
-| TimescaleDB output | ~8h | More DB options |
+| ~~TimescaleDB output~~ | ~~✅~~ | ~~More DB options — completes Phase 8~~ |
 | ~~Structured logging~~ | ~~✅~~ | ~~`LOG_FORMAT=json` + `withContext()`~~ |
 | ~~Dry-run mode~~ | ~~✅~~ | ~~`--dry-run` / `DRY_RUN=true`~~ |
 | ~~Better error messages~~ | ~~✅~~ | ~~UX — `src/utils/errors.ts`~~ |
