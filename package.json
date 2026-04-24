@@ -1,12 +1,13 @@
 {
   "name": "varken",
-  "version": "2.2.3",
+  "version": "2.2.4",
   "description": "Standalone application to aggregate data from the Plex ecosystem into time-series databases",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
+    "build": "tsc",
     "build": "tsc",
     "clean": "rm -rf dist .reports node_modules logs data",
     "lint": "eslint src/",
