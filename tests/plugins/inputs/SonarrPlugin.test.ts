@@ -2,35 +2,22 @@ import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import { SonarrPlugin } from '../../../src/plugins/inputs/SonarrPlugin';
 import { SonarrConfig } from '../../../src/types/inputs/sonarr.types';
 import axios from 'axios';
+import { createMockHttpClient, type MockHttpClient } from '../../fixtures/http';
 
-// Mock the logger
-vi.mock('../../../src/core/Logger', () => ({
-  createLogger: () => ({
-    info: vi.fn(),
-    debug: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  }),
-  withContext: (logger: unknown) => logger,
-}));
+vi.mock('../../../src/core/Logger', async () => {
+  const { loggerMock: mock } = await import('../../fixtures/logger');
+  return mock();
+});
 
-// Mock axios
 vi.mock('axios', () => ({
   default: {
-    create: vi.fn(() => ({
-      get: vi.fn(),
-      defaults: {
-        headers: {
-          common: {},
-        },
-      },
-    })),
+    create: vi.fn(),
   },
 }));
 
 describe('SonarrPlugin', () => {
   let plugin: SonarrPlugin;
-  let mockHttpClient: { get: Mock; defaults: { headers: { common: Record<string, string> } } };
+  let mockHttpClient: MockHttpClient;
 
   const testConfig: SonarrConfig = {
     id: 1,
@@ -52,19 +39,7 @@ describe('SonarrPlugin', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     plugin = new SonarrPlugin();
-
-    mockHttpClient = {
-      get: vi.fn(),
-      defaults: {
-        headers: {
-          common: {},
-        },
-      },
-      interceptors: {
-        response: { use: vi.fn() },
-        request: { use: vi.fn() },
-      },
-    };
+    mockHttpClient = createMockHttpClient();
     (axios.create as Mock).mockReturnValue(mockHttpClient);
   });
 

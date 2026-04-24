@@ -68,7 +68,7 @@ varken/
 │   └── utils/
 │       ├── http.ts                  # HTTP utilities, error classification
 │       └── index.ts
-├── tests/                           # 640 tests, 91% coverage
+├── tests/                           # 648 tests, 91% coverage
 │   ├── config/
 │   ├── core/
 │   ├── plugins/
@@ -228,7 +228,7 @@ interface ScheduleConfig {
 - [x] Main entry point (`index.ts`)
 - [x] Dockerfile (multi-stage, ~190MB)
 - [x] docker-compose.yml (Varken + InfluxDB 2.x + Grafana)
-- [x] Unit tests (640 tests passing)
+- [x] Unit tests (648 tests passing)
 - [x] CI/CD workflows (GitHub Actions)
 - [x] Codecov integration
 - [x] Documentation (README.md, CLAUDE.md)
@@ -392,12 +392,14 @@ interface ScheduleConfig {
   - Wraps collector operations with error logging + re-throw
   - All 9 input plugins refactored to use it (21 try/catch blocks removed)
 
-#### Test Fixtures
-- [ ] Create shared test fixtures in `tests/fixtures/`
-  - `createMockHttpClient(responses)`
-  - `createMockConfig(overrides)`
-  - Reduce duplication in plugin tests
-  - Effort: ~2h
+#### Test Fixtures ✅
+- [x] Create shared test fixtures in `tests/fixtures/`
+  - `createMockHttpClient()` — fresh axios-like client shape (get/post/defaults/interceptors)
+  - `createMockAxios(client?)` — `vi.mock('axios', …)` factory
+  - `createMockVarkenConfig(overrides)` — minimal valid `VarkenConfig` passing Zod validation
+  - `createMockGlobalConfig(overrides)` — production-like global defaults
+  - `loggerMock()` — factory for `vi.mock('<path>/core/Logger', …)` including `createLogger` and `withContext`
+  - `SonarrPlugin.test.ts` refactored as usage demo
 
 #### Graceful Plugin Skipping ✅
 - [x] Make output plugin failures non-fatal at startup
@@ -445,7 +447,7 @@ interface ScheduleConfig {
 
 ## Test Coverage Summary
 
-> **Last updated**: 2026-04-24 | **Global coverage**: 91.15% | **Tests**: 640 passing
+> **Last updated**: 2026-04-24 | **Global coverage**: 91.15% | **Tests**: 648 passing
 
 | File | Coverage | Target | Status | Notes |
 |------|----------|--------|--------|-------|
