@@ -67,6 +67,20 @@ describe('validateEnvironment', () => {
     });
   });
 
+  describe('LOG_FORMAT', () => {
+    it('accepts "text" and "json" (case-insensitive)', () => {
+      expect(validateEnvironment({ env: { LOG_FORMAT: 'text' }, fsModule: makeFsMock() }).errors).toEqual([]);
+      expect(validateEnvironment({ env: { LOG_FORMAT: 'JSON' }, fsModule: makeFsMock() }).errors).toEqual([]);
+    });
+
+    it('rejects unknown formats', () => {
+      const result = validateEnvironment({ env: { LOG_FORMAT: 'xml' }, fsModule: makeFsMock() });
+      expect(result.errors).toEqual(
+        expect.arrayContaining([expect.stringContaining('LOG_FORMAT="xml"')])
+      );
+    });
+  });
+
   describe('METRICS_ENABLED', () => {
     it('rejects invalid boolean values', () => {
       const result = validateEnvironment({ env: { METRICS_ENABLED: 'maybe' }, fsModule: makeFsMock() });

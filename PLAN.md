@@ -68,7 +68,7 @@ varken/
 │   └── utils/
 │       ├── http.ts                  # HTTP utilities, error classification
 │       └── index.ts
-├── tests/                           # 636 tests, 91% coverage
+├── tests/                           # 640 tests, 91% coverage
 │   ├── config/
 │   ├── core/
 │   ├── plugins/
@@ -228,7 +228,7 @@ interface ScheduleConfig {
 - [x] Main entry point (`index.ts`)
 - [x] Dockerfile (multi-stage, ~190MB)
 - [x] docker-compose.yml (Varken + InfluxDB 2.x + Grafana)
-- [x] Unit tests (636 tests passing)
+- [x] Unit tests (640 tests passing)
 - [x] CI/CD workflows (GitHub Actions)
 - [x] Codecov integration
 - [x] Documentation (README.md, CLAUDE.md)
@@ -375,11 +375,12 @@ interface ScheduleConfig {
   - Warns on deprecated VRKN_* variables
   - Called from `main()` at startup — errors abort, warnings are logged
 
-#### Structured Logging (JSON)
-- [ ] Update Logger for JSON output in production
-  - Add context helpers: `logger.with({ pluginName, pluginId })`
-  - Better for ELK Stack integration, alerting
-  - Effort: ~4h
+#### Structured Logging (JSON) ✅
+- [x] Update Logger for JSON output in production
+  - `LOG_FORMAT=json` env var switches console output to structured JSON (one record per line)
+  - `withContext(logger, context)` helper tags logs with structured fields (pluginId, scheduler, etc.)
+  - Wired in `BaseInputPlugin.initialize` to auto-tag every plugin instance log with `pluginId`
+  - File output was already JSON — now consistent with console when `LOG_FORMAT=json`
 
 ### Phase 12: Code Quality
 
@@ -444,7 +445,7 @@ interface ScheduleConfig {
 
 ## Test Coverage Summary
 
-> **Last updated**: 2026-04-24 | **Global coverage**: 91.09% | **Tests**: 636 passing
+> **Last updated**: 2026-04-24 | **Global coverage**: 91.15% | **Tests**: 640 passing
 
 | File | Coverage | Target | Status | Notes |
 |------|----------|--------|--------|-------|
@@ -454,7 +455,7 @@ interface ScheduleConfig {
 | `src/core/Metrics.ts` | 100% | 90% | ✅ | Added in Phase 7 (Prometheus) |
 | `src/core/Orchestrator.ts` | 81.96% | 85% | ⚠️ | Signal handlers can't be tested (interfere with vitest) |
 | `src/core/PluginManager.ts` | 93.25% | 90% | ✅ | |
-| `src/core/Logger.ts` | 77.27% | 90% | ⚠️ | Regression vs 2026-02 — directory-creation path and filter callback untested |
+| `src/core/Logger.ts` | 83.33% | 90% | ⚠️ | `withContext` tested; directory-creation path (module load) still untested |
 | `src/config/ConfigLoader.ts` | 81.72% | 90% | ⚠️ | |
 | `src/config/ConfigMigrator.ts` | 92.12% | 85% | ✅ | |
 | `src/utils/http.ts` | 70.65% | 85% | ⚠️ | Interceptor callbacks need integration tests |
@@ -539,10 +540,10 @@ DataPoint (internal format)
 | ~~Prometheus metrics~~ | ~~✅~~ | ~~Observability~~ |
 | ~~Config hot-reload~~ | ~~✅~~ | ~~Operations — via `CONFIG_WATCH=true`~~ |
 | QuestDB, TimescaleDB outputs | ~14h | More DB options |
-| Structured logging | ~4h | Debugging |
+| ~~Structured logging~~ | ~~✅~~ | ~~`LOG_FORMAT=json` + `withContext()`~~ |
 | ~~Dry-run mode~~ | ~~✅~~ | ~~`--dry-run` / `DRY_RUN=true`~~ |
 | ~~Better error messages~~ | ~~✅~~ | ~~UX — `src/utils/errors.ts`~~ |
-| ~~Improve test coverage~~ | ~~✅~~ | ~~Quality - Global 91.09%~~ |
+| ~~Improve test coverage~~ | ~~✅~~ | ~~Quality - Global 91.15%~~ |
 
 ### Low Priority
 | Item | Effort | Impact |

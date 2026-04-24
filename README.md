@@ -247,6 +247,7 @@ global:
 | `DATA_FOLDER`    | `/data`   | Path to data storage                                |
 | `LOG_FOLDER`     | `/logs`   | Path to log files                                   |
 | `LOG_LEVEL`      | `info`    | Log level: `error`, `warn`, `info`, `debug`         |
+| `LOG_FORMAT`     | `text`    | Console log format: `text` (human) or `json` (structured) |
 | `TZ`             | `UTC`     | Timezone (e.g., `Europe/Paris`, `America/New_York`) |
 | `HEALTH_PORT`    | `9090`    | Port for the health check HTTP server               |
 | `HEALTH_ENABLED` | `true`    | Enable/disable the health check server              |

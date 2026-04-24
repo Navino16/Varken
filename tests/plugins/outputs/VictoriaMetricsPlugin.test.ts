@@ -9,6 +9,7 @@ vi.mock('../../../src/core/Logger', () => ({
     warn: vi.fn(),
     error: vi.fn(),
   }),
+  withContext: (logger: unknown) => logger,
 }));
 
 const mockPost = vi.fn().mockResolvedValue({ status: 204 });

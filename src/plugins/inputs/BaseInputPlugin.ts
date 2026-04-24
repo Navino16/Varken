@@ -2,7 +2,7 @@ import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import axios from 'axios';
 import * as https from 'https';
 import { createHash } from 'crypto';
-import { createLogger } from '../../core/Logger';
+import { createLogger, withContext } from '../../core/Logger';
 import { formatHelpfulError } from '../../utils/errors';
 import type { GlobalConfig } from '../../config/schemas/config.schema';
 import type {
@@ -68,6 +68,9 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
     if (globalConfig) {
       this.globalConfig = globalConfig;
     }
+    // Tag every log record from this instance with its pluginId so aggregators
+    // can filter per-instance without parsing the message string.
+    this.logger = withContext(this.logger, { pluginId: this.config.id });
     this.httpClient = this.createHttpClient();
     this.logger.info(`Initialized ${this.metadata.name} plugin (id: ${this.config.id})`);
   }
