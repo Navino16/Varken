@@ -68,7 +68,7 @@ varken/
 │   └── utils/
 │       ├── http.ts                  # HTTP utilities, error classification
 │       └── index.ts
-├── tests/                           # 676 tests, 91% coverage
+├── tests/                           # 688 tests, 91% coverage
 │   ├── config/
 │   ├── core/
 │   ├── plugins/
@@ -228,7 +228,7 @@ interface ScheduleConfig {
 - [x] Main entry point (`index.ts`)
 - [x] Dockerfile (multi-stage, ~190MB)
 - [x] docker-compose.yml (Varken + InfluxDB 2.x + Grafana)
-- [x] Unit tests (676 tests passing)
+- [x] Unit tests (688 tests passing)
 - [x] CI/CD workflows (GitHub Actions)
 - [x] Codecov integration
 - [x] Documentation (README.md, CLAUDE.md)
@@ -301,10 +301,10 @@ interface ScheduleConfig {
 - [x] `ProwlarrPlugin` - indexer stats ✅
 
 #### Media Servers
-- [ ] `PlexPlugin` - sessions, libraries, activity (direct API)
-  - Alternative to Tautulli
-  - Types already defined in `src/types/inputs/plex.types.ts`
-  - Effort: ~8h
+- [x] `PlexPlugin` - sessions, libraries (direct API) ✅
+  - Alternative to Tautulli — direct `GET /status/sessions` + `GET /library/sections`
+  - `X-Plex-Token` header auth, `Accept: application/json` header override (Plex defaults to XML)
+  - Library item counts via `/library/sections/{key}/all?X-Plex-Container-Size=0` (cheap, no item transfer)
 - [ ] `JellyfinPlugin` - sessions, libraries, activity
   - Types already defined in `src/types/inputs/jellyfin.types.ts`
   - Effort: ~8h
@@ -449,7 +449,7 @@ interface ScheduleConfig {
 
 ## Test Coverage Summary
 
-> **Last updated**: 2026-04-24 | **Global coverage**: 91.42% | **Tests**: 676 passing
+> **Last updated**: 2026-04-24 | **Global coverage**: 91.38% | **Tests**: 688 passing
 
 | File | Coverage | Target | Status | Notes |
 |------|----------|--------|--------|-------|
@@ -471,6 +471,7 @@ interface ScheduleConfig {
 | `src/plugins/inputs/TautulliPlugin.ts` | 95.03% | 90% | ✅ | Uses `RequestCache` for GeoIP |
 | `src/plugins/inputs/OmbiPlugin.ts` | 93.67% | 90% | ✅ | Improved via safeFetch refactor |
 | `src/plugins/inputs/OverseerrPlugin.ts` | 91.17% | 90% | ✅ | Improved via safeFetch refactor |
+| `src/plugins/inputs/PlexPlugin.ts` | 90% | 90% | ✅ | Added in Phase 9 (direct Plex API) |
 | `src/plugins/inputs/ReadarrPlugin.ts` | 98.03% | 90% | ✅ | Improved via safeFetch refactor |
 | `src/plugins/inputs/LidarrPlugin.ts` | 100% | 90% | ✅ | |
 | `src/plugins/inputs/BazarrPlugin.ts` | 100% | 90% | ✅ | |
@@ -496,7 +497,7 @@ interface ScheduleConfig {
 | **Prowlarr** | /api/v1 | Indexer stats | ✅ |
 | **Bazarr** | /api | Wanted subtitles, History | ✅ |
 | **Tautulli** | /api/v2 | Activity, Libraries, Stats + GeoIP | ✅ |
-| **Plex** | /api | Sessions, Libraries (direct API) | 🚧 Types ready |
+| **Plex** | /api | Sessions, Libraries (direct API) | ✅ |
 | **Jellyfin** | /api | Sessions, Libraries, Activity | 🚧 Types ready |
 | **Emby** | /emby/api | Sessions, Libraries, Activity | 🚧 Types ready |
 | **Ombi** | /api/v1 | Request counts, Issue counts | ✅ |
@@ -554,7 +555,7 @@ DataPoint (internal format)
 ### Low Priority
 | Item | Effort | Impact |
 |------|--------|--------|
-| Plex, Jellyfin, Emby inputs | ~24h | Alternative to Tautulli |
+| Jellyfin, Emby inputs | ~16h | Alternative to Tautulli (Plex done ✅) |
 | CLI tool | ~8h | Admin UX |
 | ~~Pre-commit hooks~~ | ~~✅~~ | ~~DX - husky + lint-staged~~ |
 | ~~CHANGELOG auto-generation~~ | ~~✅~~ | ~~GitHub Actions on tag~~ |

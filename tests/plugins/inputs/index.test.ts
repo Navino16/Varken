@@ -9,6 +9,7 @@ import {
   BazarrPlugin,
   ProwlarrPlugin,
   TautulliPlugin,
+  PlexPlugin,
   OverseerrPlugin,
   OmbiPlugin,
 } from '../../../src/plugins/inputs';
@@ -29,13 +30,14 @@ describe('Input Plugins Index', () => {
       expect(registry.has('bazarr')).toBe(true);
       expect(registry.has('prowlarr')).toBe(true);
       expect(registry.has('tautulli')).toBe(true);
+      expect(registry.has('plex')).toBe(true);
       expect(registry.has('overseerr')).toBe(true);
       expect(registry.has('ombi')).toBe(true);
     });
 
     it('should have correct number of plugins', () => {
       const registry = getInputPluginRegistry();
-      expect(registry.size).toBe(9);
+      expect(registry.size).toBe(10);
     });
 
     it('should return plugin classes that can be instantiated', () => {
@@ -91,6 +93,10 @@ describe('Input Plugins Index', () => {
 
     it('should export TautulliPlugin', () => {
       expect(TautulliPlugin).toBeDefined();
+    });
+
+    it('should export PlexPlugin', () => {
+      expect(PlexPlugin).toBeDefined();
     });
 
     it('should export OverseerrPlugin', () => {
