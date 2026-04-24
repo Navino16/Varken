@@ -12,6 +12,7 @@ export interface EnvValidationOptions {
 }
 
 const VALID_LOG_LEVELS = ['error', 'warn', 'info', 'http', 'verbose', 'debug', 'silly'];
+const VALID_LOG_FORMATS = ['text', 'json'];
 const VALID_BOOLEAN_STRINGS = ['true', 'false'];
 
 /**
@@ -34,6 +35,7 @@ export function validateEnvironment(
   validateBoolean(env.CONFIG_WATCH, 'CONFIG_WATCH', errors);
   validateBoolean(env.DRY_RUN, 'DRY_RUN', errors);
   validateLogLevel(env.LOG_LEVEL, errors);
+  validateLogFormat(env.LOG_FORMAT, errors);
 
   validateDirectory(env.CONFIG_FOLDER || './config', 'CONFIG_FOLDER', 'read', fsMod, errors);
   validateDirectory(env.DATA_FOLDER || './data', 'DATA_FOLDER', 'write', fsMod, errors);
@@ -70,6 +72,17 @@ function validateLogLevel(value: string | undefined, errors: string[]): void {
   if (!VALID_LOG_LEVELS.includes(value.toLowerCase())) {
     errors.push(
       `LOG_LEVEL="${value}" is not a valid log level (expected one of: ${VALID_LOG_LEVELS.join(', ')})`
+    );
+  }
+}
+
+function validateLogFormat(value: string | undefined, errors: string[]): void {
+  if (value === undefined || value === '') {
+    return;
+  }
+  if (!VALID_LOG_FORMATS.includes(value.toLowerCase())) {
+    errors.push(
+      `LOG_FORMAT="${value}" is not a valid log format (expected one of: ${VALID_LOG_FORMATS.join(', ')})`
     );
   }
 }
