@@ -50,6 +50,7 @@ Built with TypeScript, Node.js, and a plugin-based architecture with scheduled d
 - **Circuit breaker** — automatic error recovery with exponential backoff and self-healing
 - **Health checks** — built-in HTTP endpoints for monitoring and orchestration
 - **Prometheus metrics** — `/metrics` endpoint for collection counts, durations, errors, and circuit breaker state
+- **Config hot-reload** — edit `varken.yaml` and have Varken pick up changes without a restart (opt-in via `CONFIG_WATCH=true`)
 - **Graceful output skipping** — failed output plugins are skipped at startup; Varken continues with the ones that initialized successfully
 - **Easy configuration** — simple YAML config with environment variable overrides
 
@@ -142,6 +143,16 @@ DRY_RUN=true npm start
 ```
 
 Varken will load the config, check output connectivity, run each enabled schedule once, log what would be written, and exit.
+
+### Config Hot-Reload
+
+Set `CONFIG_WATCH=true` to have Varken watch `varken.yaml` and apply changes without a process restart. On every save:
+
+1. The file is re-parsed and validated with Zod.
+2. If valid, all plugins are shut down cleanly and re-initialized from the new config, then schedulers restart.
+3. If invalid, the error is logged and the previous configuration stays active.
+
+The watcher debounces rapid editor writes (500ms) and coalesces overlapping reloads, so you won't get a thundering herd from a single save.
 
 ## Configuration
 
@@ -240,6 +251,7 @@ global:
 | `HEALTH_PORT`    | `9090`    | Port for the health check HTTP server               |
 | `HEALTH_ENABLED` | `true`    | Enable/disable the health check server              |
 | `METRICS_ENABLED`| `true`    | Enable/disable the Prometheus `/metrics` endpoint   |
+| `CONFIG_WATCH`   | `false`   | Watch `varken.yaml` and hot-reload on changes       |
 | `DRY_RUN`        | `false`   | Run once without writing (equivalent to `--dry-run`) |
 
 #### Configuration Overrides

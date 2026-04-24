@@ -1,6 +1,7 @@
 import { createLogger } from './core/Logger';
 import { ConfigLoader, ConfigurationMissingError } from './config';
 import { Orchestrator } from './core/Orchestrator';
+import { ConfigWatcher } from './core/ConfigWatcher';
 import { getInputPluginRegistry } from './plugins/inputs';
 import { getOutputPluginRegistry } from './plugins/outputs';
 import type { HealthServerConfig } from './core/HealthServer';
@@ -39,6 +40,7 @@ export async function main(deps: MainDependencies = defaultDependencies): Promis
   const healthPort = parseInt(process.env.HEALTH_PORT || String(DEFAULT_HEALTH_PORT), 10);
   const healthEnabled = process.env.HEALTH_ENABLED !== 'false';
   const metricsEnabled = process.env.METRICS_ENABLED !== 'false';
+  const configWatch = process.env.CONFIG_WATCH === 'true';
   const dryRun = isDryRun();
 
   logger.info(`Varken v${VERSION} starting...`);
@@ -111,6 +113,24 @@ export async function main(deps: MainDependencies = defaultDependencies): Promis
 
   // Start orchestrator
   await orchestrator.start();
+
+  if (configWatch) {
+    const watcher = new ConfigWatcher({
+      configFolder,
+      onChange: async (): Promise<void> => {
+        logger.info('Config file changed — reloading...');
+        try {
+          const newConfig = configLoader.load();
+          await orchestrator.reload(newConfig);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          logger.error(`Config reload aborted: ${message}. Keeping current configuration.`);
+        }
+      },
+    });
+    watcher.start();
+    logger.info('Config hot-reload enabled');
+  }
 
   // Keep process running
   logger.info('Varken is running. Press Ctrl+C to stop.');

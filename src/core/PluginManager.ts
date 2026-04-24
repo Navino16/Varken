@@ -635,6 +635,50 @@ export class PluginManager {
   }
 
   /**
+   * Reload the plugin manager with a new configuration.
+   *
+   * Performs a full restart: stops schedulers, shuts down all input/output plugins,
+   * then re-initializes from the new config and restarts schedulers. Plugin factories
+   * (registered types) are preserved.
+   *
+   * Safe to call while schedulers are running — they will be paused during the swap.
+   */
+  async reload(newConfig: VarkenConfig): Promise<void> {
+    logger.info('Reloading plugin manager with new configuration...');
+
+    await this.stopSchedulers();
+
+    // Shutdown current plugins but keep factories registered
+    for (const [type, plugins] of this.inputPlugins) {
+      for (const plugin of plugins) {
+        try {
+          await plugin.shutdown();
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Unknown error';
+          logger.error(`Error shutting down input plugin ${type} during reload: ${message}`);
+        }
+      }
+    }
+    this.inputPlugins.clear();
+
+    for (const [type, plugin] of this.outputPlugins) {
+      try {
+        await plugin.shutdown();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        logger.error(`Error shutting down output plugin ${type} during reload: ${message}`);
+      }
+    }
+    this.outputPlugins.clear();
+
+    // Re-initialize with new config
+    await this.initializeFromConfig(newConfig);
+    await this.startSchedulers();
+
+    logger.info('Plugin manager reload complete');
+  }
+
+  /**
    * Stop all schedulers
    */
   async stopSchedulers(): Promise<void> {

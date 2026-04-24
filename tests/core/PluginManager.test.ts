@@ -1466,6 +1466,76 @@ describe('PluginManager', () => {
     });
   });
 
+  describe('reload', () => {
+    beforeEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('should swap plugins and restart schedulers with new config', async () => {
+      pluginManager.registerInputPlugin('sonarr', MockInputPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', MockOutputPlugin);
+      await pluginManager.initializeFromConfig(minimalConfig);
+      await pluginManager.startSchedulers();
+
+      const newConfig: VarkenConfig = {
+        ...minimalConfig,
+        inputs: {
+          sonarr: [
+            {
+              id: 1,
+              url: 'http://localhost:8989',
+              apiKey: 'test-key',
+              verifySsl: false,
+              queue: { enabled: true, intervalSeconds: 30 },
+              calendar: { enabled: false, intervalSeconds: 300, futureDays: 7, missingDays: 30 },
+            },
+            {
+              id: 2,
+              url: 'http://localhost:8990',
+              apiKey: 'test-key-2',
+              verifySsl: false,
+              queue: { enabled: true, intervalSeconds: 30 },
+              calendar: { enabled: false, intervalSeconds: 300, futureDays: 7, missingDays: 30 },
+            },
+          ],
+        },
+      };
+
+      await pluginManager.reload(newConfig);
+
+      const stats = pluginManager.getStats();
+      expect(stats.activeInputPlugins).toBe(2);
+    });
+
+    it('should drop plugins that are no longer in the new config', async () => {
+      const twoInstances: VarkenConfig = {
+        ...minimalConfig,
+        inputs: {
+          sonarr: [
+            minimalConfig.inputs.sonarr![0],
+            {
+              id: 2,
+              url: 'http://localhost:8990',
+              apiKey: 'k2',
+              verifySsl: false,
+              queue: { enabled: true, intervalSeconds: 30 },
+              calendar: { enabled: false, intervalSeconds: 300, futureDays: 7, missingDays: 30 },
+            },
+          ],
+        },
+      };
+
+      pluginManager.registerInputPlugin('sonarr', MockInputPlugin);
+      pluginManager.registerOutputPlugin('influxdb1', MockOutputPlugin);
+      await pluginManager.initializeFromConfig(twoInstances);
+      await pluginManager.startSchedulers();
+
+      await pluginManager.reload(minimalConfig);
+
+      expect(pluginManager.getStats().activeInputPlugins).toBe(1);
+    });
+  });
+
   describe('metrics integration', () => {
     beforeEach(() => {
       vi.useRealTimers();

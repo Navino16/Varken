@@ -68,7 +68,7 @@ varken/
 │   └── utils/
 │       ├── http.ts                  # HTTP utilities, error classification
 │       └── index.ts
-├── tests/                           # 591 tests, 91% coverage
+├── tests/                           # 602 tests, 91% coverage
 │   ├── config/
 │   ├── core/
 │   ├── plugins/
@@ -228,7 +228,7 @@ interface ScheduleConfig {
 - [x] Main entry point (`index.ts`)
 - [x] Dockerfile (multi-stage, ~190MB)
 - [x] docker-compose.yml (Varken + InfluxDB 2.x + Grafana)
-- [x] Unit tests (591 tests passing)
+- [x] Unit tests (602 tests passing)
 - [x] CI/CD workflows (GitHub Actions)
 - [x] Codecov integration
 - [x] Documentation (README.md, CLAUDE.md)
@@ -263,13 +263,12 @@ interface ScheduleConfig {
 - [x] Auto-disable failing plugins after N errors (configurable)
 - [x] Re-enable plugins after cooldown period with half-open recovery
 
-#### Config Hot-Reload
-- [ ] Watch config file for changes with `fs.watch()`
-  - Add `--watch` flag or `CONFIG_WATCH` env var
-  - Reload config with Zod validation on change
-  - Only restart modified plugins
-  - Prevent concurrent reloads
-  - Effort: ~8h
+#### Config Hot-Reload ✅
+- [x] Watch config file for changes with `fs.watch()` (`src/core/ConfigWatcher.ts`)
+  - `CONFIG_WATCH=true` env var to enable
+  - Reloads config with Zod validation on change; invalid configs are logged and ignored (process keeps running with current config)
+  - Debounces rapid successive writes (500ms default) and coalesces overlapping reloads
+  - Full plugin restart on reload — selective per-plugin restart deferred (future optimization)
 
 ### Phase 8: Additional Output Plugins
 
@@ -446,15 +445,16 @@ interface ScheduleConfig {
 
 ## Test Coverage Summary
 
-> **Last updated**: 2026-04-24 | **Global coverage**: 91.44% | **Tests**: 591 passing
+> **Last updated**: 2026-04-24 | **Global coverage**: 90.84% | **Tests**: 602 passing
 
 | File | Coverage | Target | Status | Notes |
 |------|----------|--------|--------|-------|
 | `src/index.ts` | 95.34% | 80% | ✅ | |
+| `src/core/ConfigWatcher.ts` | 86.66% | 90% | ⚠️ | Added in Phase 7 (Config Hot-Reload) |
 | `src/core/HealthServer.ts` | 85.93% | 90% | ⚠️ | |
 | `src/core/Metrics.ts` | 100% | 90% | ✅ | Added in Phase 7 (Prometheus) |
-| `src/core/Orchestrator.ts` | 80.86% | 85% | ⚠️ | Signal handlers can't be tested (interfere with vitest) |
-| `src/core/PluginManager.ts` | 94.15% | 90% | ✅ | |
+| `src/core/Orchestrator.ts` | 81.96% | 85% | ⚠️ | Signal handlers can't be tested (interfere with vitest) |
+| `src/core/PluginManager.ts` | 93.25% | 90% | ✅ | |
 | `src/core/Logger.ts` | 77.27% | 90% | ⚠️ | Regression vs 2026-02 — directory-creation path and filter callback untested |
 | `src/config/ConfigLoader.ts` | 81.72% | 90% | ⚠️ | |
 | `src/config/ConfigMigrator.ts` | 92.12% | 85% | ✅ | |
@@ -536,12 +536,12 @@ DataPoint (internal format)
 | Item | Effort | Impact |
 |------|--------|--------|
 | ~~Prometheus metrics~~ | ~~✅~~ | ~~Observability~~ |
-| Config hot-reload | ~8h | Operations |
+| ~~Config hot-reload~~ | ~~✅~~ | ~~Operations — via `CONFIG_WATCH=true`~~ |
 | QuestDB, TimescaleDB outputs | ~14h | More DB options |
 | Structured logging | ~4h | Debugging |
 | ~~Dry-run mode~~ | ~~✅~~ | ~~`--dry-run` / `DRY_RUN=true`~~ |
 | Better error messages | ~4h | UX |
-| ~~Improve test coverage~~ | ~~✅~~ | ~~Quality - Global 91.44%~~ |
+| ~~Improve test coverage~~ | ~~✅~~ | ~~Quality - Global 90.84%~~ |
 
 ### Low Priority
 | Item | Effort | Impact |
