@@ -76,7 +76,7 @@ Built with TypeScript, Node.js, and a plugin-based architecture with scheduled d
 | **Prowlarr**  | Indexer statistics                        | ✅          |
 | **Bazarr**    | Wanted subtitles, history                 | ✅          |
 | **Plex**      | Sessions, libraries (direct API)          | ✅          |
-| **Jellyfin**  | Sessions, libraries, activity             | 🚧 Planned |
+| **Jellyfin**  | Sessions, libraries, item counts          | ✅          |
 
 ### Output Plugins
 
