@@ -68,7 +68,7 @@ varken/
 │   └── utils/
 │       ├── http.ts                  # HTTP utilities, error classification
 │       └── index.ts
-├── tests/                           # 571 tests, 91% coverage
+├── tests/                           # 591 tests, 91% coverage
 │   ├── config/
 │   ├── core/
 │   ├── plugins/
@@ -228,7 +228,7 @@ interface ScheduleConfig {
 - [x] Main entry point (`index.ts`)
 - [x] Dockerfile (multi-stage, ~190MB)
 - [x] docker-compose.yml (Varken + InfluxDB 2.x + Grafana)
-- [x] Unit tests (571 tests passing)
+- [x] Unit tests (591 tests passing)
 - [x] CI/CD workflows (GitHub Actions)
 - [x] Codecov integration
 - [x] Documentation (README.md, CLAUDE.md)
@@ -247,12 +247,13 @@ interface ScheduleConfig {
   - Add `HEALTH_PORT` env var (default: 9090)
   - Add `HEALTH_ENABLED` env var (default: true)
 
-#### Prometheus Metrics
-- [ ] Create `src/core/Metrics.ts` - Metrics collection
-  - `GET /metrics` → Prometheus format
-  - Metrics: collections count, errors, durations, data points collected/written
-  - Add `prom-client` dependency
-  - Effort: ~8h
+#### Prometheus Metrics ✅
+- [x] Create `src/core/Metrics.ts` - Metrics collection
+  - `GET /metrics` on the health server port (Prometheus text format)
+  - Metrics: collections count + duration, data points collected/written, scheduler errors, circuit breaker state, active plugins count
+  - Default Node.js process metrics included
+  - `METRICS_ENABLED` env var (default `true`)
+  - `prom-client` dependency added
 
 #### Circuit Breaker & Error Recovery ✅
 - [x] Track consecutive failures per schedule (`PluginManager.ts`)
@@ -445,14 +446,15 @@ interface ScheduleConfig {
 
 ## Test Coverage Summary
 
-> **Last updated**: 2026-04-24 | **Global coverage**: 91.35% | **Tests**: 571 passing
+> **Last updated**: 2026-04-24 | **Global coverage**: 91.44% | **Tests**: 591 passing
 
 | File | Coverage | Target | Status | Notes |
 |------|----------|--------|--------|-------|
 | `src/index.ts` | 95.34% | 80% | ✅ | |
-| `src/core/HealthServer.ts` | 87.15% | 90% | ⚠️ | |
-| `src/core/Orchestrator.ts` | 80% | 85% | ⚠️ | Signal handlers can't be tested (interfere with vitest) |
-| `src/core/PluginManager.ts` | 93.89% | 90% | ✅ | |
+| `src/core/HealthServer.ts` | 85.93% | 90% | ⚠️ | |
+| `src/core/Metrics.ts` | 100% | 90% | ✅ | Added in Phase 7 (Prometheus) |
+| `src/core/Orchestrator.ts` | 80.86% | 85% | ⚠️ | Signal handlers can't be tested (interfere with vitest) |
+| `src/core/PluginManager.ts` | 94.15% | 90% | ✅ | |
 | `src/core/Logger.ts` | 77.27% | 90% | ⚠️ | Regression vs 2026-02 — directory-creation path and filter callback untested |
 | `src/config/ConfigLoader.ts` | 81.72% | 90% | ⚠️ | |
 | `src/config/ConfigMigrator.ts` | 92.12% | 85% | ✅ | |
@@ -533,13 +535,13 @@ DataPoint (internal format)
 ### Medium Priority
 | Item | Effort | Impact |
 |------|--------|--------|
-| Prometheus metrics | ~8h | Observability |
+| ~~Prometheus metrics~~ | ~~✅~~ | ~~Observability~~ |
 | Config hot-reload | ~8h | Operations |
 | QuestDB, TimescaleDB outputs | ~14h | More DB options |
 | Structured logging | ~4h | Debugging |
 | ~~Dry-run mode~~ | ~~✅~~ | ~~`--dry-run` / `DRY_RUN=true`~~ |
 | Better error messages | ~4h | UX |
-| ~~Improve test coverage~~ | ~~✅~~ | ~~Quality - Global 91.35%~~ |
+| ~~Improve test coverage~~ | ~~✅~~ | ~~Quality - Global 91.44%~~ |
 
 ### Low Priority
 | Item | Effort | Impact |

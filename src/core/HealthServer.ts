@@ -1,5 +1,6 @@
 import http from 'node:http';
 import { createLogger } from './Logger';
+import type { Metrics } from './Metrics';
 import type { PluginManager } from './PluginManager';
 import type {
   HealthStatus,
@@ -32,6 +33,7 @@ export interface HealthServerConfig {
 export class HealthServer {
   private server: http.Server | null = null;
   private pluginManager: PluginManager | null = null;
+  private metrics: Metrics | null = null;
   private config: HealthServerConfig;
   private startTime: Date;
 
@@ -45,6 +47,14 @@ export class HealthServer {
    */
   setPluginManager(pluginManager: PluginManager): void {
     this.pluginManager = pluginManager;
+  }
+
+  /**
+   * Attach a Metrics registry so `/metrics` exposes Prometheus-format data.
+   * If unset, `/metrics` returns 404.
+   */
+  setMetrics(metrics: Metrics | null): void {
+    this.metrics = metrics;
   }
 
   /**
@@ -103,15 +113,22 @@ export class HealthServer {
     const url = req.url || '/';
     const method = req.method || 'GET';
 
-    // Set CORS and content type headers
-    res.setHeader('Content-Type', 'application/json');
     res.setHeader('Access-Control-Allow-Origin', '*');
 
     // Only allow GET requests
     if (method !== 'GET') {
+      res.setHeader('Content-Type', 'application/json');
       this.sendError(res, 405, 'Method Not Allowed');
       return;
     }
+
+    // /metrics returns Prometheus text format; all other endpoints return JSON
+    if (url === '/metrics') {
+      await this.handleMetrics(res);
+      return;
+    }
+
+    res.setHeader('Content-Type', 'application/json');
 
     // Route requests
     switch (url) {
@@ -126,6 +143,29 @@ export class HealthServer {
         break;
       default:
         this.sendError(res, 404, 'Not Found');
+    }
+  }
+
+  /**
+   * GET /metrics - Prometheus scrape endpoint
+   */
+  private async handleMetrics(res: http.ServerResponse): Promise<void> {
+    if (!this.metrics) {
+      res.setHeader('Content-Type', 'application/json');
+      this.sendError(res, 404, 'Metrics not enabled');
+      return;
+    }
+
+    try {
+      const body = await this.metrics.getMetrics();
+      res.setHeader('Content-Type', this.metrics.getContentType());
+      res.statusCode = 200;
+      res.end(body);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      logger.error(`Metrics scrape failed: ${message}`);
+      res.setHeader('Content-Type', 'application/json');
+      this.sendError(res, 500, 'Internal Server Error');
     }
   }
 
