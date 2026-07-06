@@ -4,6 +4,7 @@ import * as https from 'https';
 import { createHash } from 'crypto';
 import { createLogger, withContext } from '../../core/Logger';
 import { formatHelpfulError } from '../../utils/errors';
+import { RequestCache } from '../../utils/RequestCache';
 import type { GlobalConfig } from '../../config/schemas/config.schema';
 import type {
   InputPlugin,
@@ -55,6 +56,8 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
   protected globalConfig: GlobalConfig = DEFAULT_GLOBAL_CONFIG;
   protected httpClient!: AxiosInstance;
   protected logger = createLogger(this.constructor.name);
+  private static readonly HTTP_CACHE_MAX_SIZE = 500;
+  private httpCache!: RequestCache<unknown>;
 
   /**
    * Plugin metadata - must be implemented by subclasses
@@ -73,6 +76,11 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
     // can filter per-instance without parsing the message string.
     this.logger = withContext(this.logger, { pluginId: this.config.id });
     this.httpClient = this.createHttpClient();
+    const ttlMs = (this.globalConfig.cacheTtlSeconds ?? 0) * 1000;
+    this.httpCache = new RequestCache<unknown>({
+      ttlMs,
+      maxSize: BaseInputPlugin.HTTP_CACHE_MAX_SIZE,
+    });
     this.logger.info(`Initialized ${this.metadata.name} plugin (id: ${this.config.id})`);
   }
 
@@ -182,15 +190,18 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
    * Make an HTTP GET request
    */
   protected async httpGet<T>(path: string, params?: Record<string, unknown>): Promise<T> {
-    try {
-      const response = await this.httpClient.get<T>(path, { params });
-      return response.data;
-    } catch (error) {
-      this.logger.error(
-        `HTTP GET ${path} failed: ${formatHelpfulError(error, { service: this.metadata.name, url: path })}`
-      );
-      throw error;
-    }
+    const key = this.cacheKey(path, params);
+    return this.httpCache.getOrFetch(key, async () => {
+      try {
+        const response = await this.httpClient.get<T>(path, { params });
+        return response.data;
+      } catch (error) {
+        this.logger.error(
+          `HTTP GET ${path} failed: ${formatHelpfulError(error, { service: this.metadata.name, url: path })}`
+        );
+        throw error;
+      }
+    }) as Promise<T>;
   }
 
   /**
@@ -206,6 +217,24 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
       );
       throw error;
     }
+  }
+
+  /**
+   * Build a deterministic cache key from path + params (keys sorted so param
+   * order does not matter). Each plugin instance has its own cache, so the
+   * baseURL is not part of the key.
+   */
+  private cacheKey(path: string, params?: Record<string, unknown>): string {
+    if (!params || Object.keys(params).length === 0) {
+      return path;
+    }
+    const sorted = Object.keys(params)
+      .sort()
+      .reduce<Record<string, unknown>>((acc, k) => {
+        acc[k] = params[k];
+        return acc;
+      }, {});
+    return `${path}?${JSON.stringify(sorted)}`;
   }
 
   /**

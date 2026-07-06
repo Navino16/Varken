@@ -68,7 +68,7 @@ varken/
 │   └── utils/
 │       ├── http.ts                  # HTTP utilities, error classification
 │       └── index.ts
-├── tests/                           # 711 tests, 91% coverage
+├── tests/                           # 721 tests, 91% coverage
 │   ├── config/
 │   ├── core/
 │   ├── plugins/
@@ -228,7 +228,7 @@ interface ScheduleConfig {
 - [x] Main entry point (`index.ts`)
 - [x] Dockerfile (multi-stage, ~190MB)
 - [x] docker-compose.yml (Varken + InfluxDB 2.x + Grafana)
-- [x] Unit tests (711 tests passing)
+- [x] Unit tests (721 tests passing)
 - [x] CI/CD workflows (GitHub Actions)
 - [x] Codecov integration
 - [x] Documentation (README.md, CLAUDE.md)
@@ -369,11 +369,12 @@ interface ScheduleConfig {
   - Hints cover ECONNREFUSED (reachability), ETIMEDOUT (tune `httpTimeoutMs`), 401/403 (auth key/token), 404 (API path/version), 429 (rate limit), 5xx (server logs), TLS cert errors, HTML-instead-of-JSON responses
   - Integrated in `BaseInputPlugin.httpGet/httpPost`, `VictoriaMetricsPlugin`, `InfluxDB2Plugin` write errors
 
-#### Request Deduplication/Cache
-- [ ] Implement request cache with TTL
-  - Share data between schedules (e.g., queue data for multiple Sonarr schedules)
-  - Reduce load on source services
-  - Effort: ~4h
+#### Request Deduplication/Cache ✅
+- [x] Implement request cache with TTL
+  - Added generic in-flight request deduplication to `BaseInputPlugin.httpGet` (always on): concurrent identical GET requests share a single in-flight promise instead of firing duplicate calls
+  - Added opt-in TTL caching via the new global `cacheTtlSeconds` config option (default `0` = dedup only, no stored caching); when set, successful GET responses are cached per key (URL + params) for that duration
+  - `httpPost` requests are never deduplicated or cached
+  - The per-IP GeoIP cache (`src/utils/RequestCache.ts`, used by `TautulliPlugin`) was already implemented separately in an earlier phase and is unaffected by this change
 
 #### Environment Variable Validation ✅
 - [x] Create `src/utils/env.ts` for env var validation
@@ -454,7 +455,7 @@ interface ScheduleConfig {
 
 ## Test Coverage Summary
 
-> **Last updated**: 2026-04-24 | **Global coverage**: 91.69% | **Tests**: 711 unit + 2 integration passing
+> **Last updated**: 2026-04-24 | **Global coverage**: 91.69% | **Tests**: 721 unit + 2 integration passing
 
 | File | Coverage | Target | Status | Notes |
 |------|----------|--------|--------|-------|
