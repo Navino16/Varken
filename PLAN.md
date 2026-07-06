@@ -437,12 +437,12 @@ interface ScheduleConfig {
   - Checklist for type of change
   - Testing instructions
 
-#### Deployment Documentation
-- [ ] Add `docs/` directory
-  - `deployment/kubernetes.md` - StatefulSet, ConfigMap
-  - `deployment/docker-swarm.md` - Stack file
-  - `deployment/bare-metal.md` - systemd unit
-  - `troubleshooting/common-issues.md`
+#### Deployment Documentation ✅
+- [x] Add `docs/deployment/` directory
+  - `deployment/docker.md` - in-depth Docker / Docker Compose guide
+  - `deployment/bare-metal.md` - systemd unit install (`deploy/systemd/varken.service`)
+  - `deployment/troubleshooting.md` - symptom-based troubleshooting guide
+  - Kubernetes and Docker Swarm guides descoped — out of scope for the homelab audience
   - Effort: ~8h
 
 #### Performance Benchmarks
@@ -567,7 +567,7 @@ DataPoint (internal format)
 | CLI tool | ~8h | Admin UX |
 | ~~Pre-commit hooks~~ | ~~✅~~ | ~~DX - husky + lint-staged~~ |
 | ~~CHANGELOG auto-generation~~ | ~~✅~~ | ~~GitHub Actions on tag~~ |
-| Deployment docs | ~8h | Documentation |
+| ~~Deployment docs~~ | ~~✅~~ | ~~Documentation~~ |
 | Performance benchmarks | ~4h | Optimization |
 
 ---

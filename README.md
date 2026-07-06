@@ -120,16 +120,17 @@ docker run -d \
   ghcr.io/navino16/varken:latest
 ```
 
+> For an in-depth Docker guide, see [docs/deployment/docker.md](docs/deployment/docker.md).
+
 ### Manual
 
 ```bash
 git clone https://github.com/navino16/Varken.git
-cd Varken
-npm install
-npm run build
-cp config/varken.example.yaml config/varken.yaml
-npm start
+npm ci && npm run build
+node dist/index.js
 ```
+
+> For a hardened systemd install, see [docs/deployment/bare-metal.md](docs/deployment/bare-metal.md).
 
 ### Dry-Run
 
@@ -503,6 +504,8 @@ If you're upgrading from the legacy Python version of Varken:
 Legacy `VRKN_*` environment variables are also automatically migrated.
 
 ## Troubleshooting
+
+> Full symptom-based guide: [docs/deployment/troubleshooting.md](docs/deployment/troubleshooting.md).
 
 Error messages are annotated with actionable hints where possible. Look for the `Hint:` section on `ERROR` lines in the logs — connection refused, timeout, wrong API key, wrong API path (404), rate limit, and TLS cert failures all have tailored suggestions.
 
