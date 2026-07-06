@@ -19,6 +19,7 @@ export default defineConfig({
       junit: '.reports/junit.xml',
     },
     include: ['tests/**/*.test.ts'],
+    exclude: ['tests/integration/**', 'node_modules/**', 'dist/**'],
   },
   resolve: {
     alias: {

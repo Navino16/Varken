@@ -13,6 +13,7 @@
     "lint:fix": "eslint src/ --fix",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "test:integration": "RUN_INTEGRATION=1 vitest run --config vitest.integration.config.ts",
     "docker-test:start": "docker compose -f docker-compose.test.yaml up -d",
     "docker-test:stop": "docker compose -f docker-compose.test.yaml down",
     "docker-test:check": "./scripts/check-data.sh",

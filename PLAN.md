@@ -346,11 +346,14 @@ interface ScheduleConfig {
   - Added extractResponseData tests
   - Interceptor callbacks require integration tests with actual HTTP requests
 
-#### Integration Tests
-- [ ] End-to-end tests with real services
-  - docker-compose test environment
-  - Test full data flow: collect → write → verify
-  - Effort: ~8h
+#### Integration Tests ✅
+- [x] End-to-end tests with real services
+  - `tests/integration/` with a dedicated `vitest.integration.config.ts`
+  - Tests skip automatically via `describe.skipIf(!available)` when services aren't reachable — safe to run without docker-compose up
+  - Service probe helper in `tests/integration/setup.ts` (TCP port check)
+  - Two reference tests: InfluxDB 2.x round-trip (write → query back via Flux) and Orchestrator lifecycle (dryRun against a real output)
+  - `npm run test:integration` script; unit tests (`npm test`) explicitly exclude the integration folder to stay fast + hermetic
+  - Runs against the existing `docker-compose.test.yaml --profile influxdb2`
 
 ### Phase 11: Developer Experience
 
@@ -451,7 +454,7 @@ interface ScheduleConfig {
 
 ## Test Coverage Summary
 
-> **Last updated**: 2026-04-24 | **Global coverage**: 91.69% | **Tests**: 711 passing
+> **Last updated**: 2026-04-24 | **Global coverage**: 91.69% | **Tests**: 711 unit + 2 integration passing
 
 | File | Coverage | Target | Status | Notes |
 |------|----------|--------|--------|-------|
