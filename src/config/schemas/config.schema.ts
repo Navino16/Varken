@@ -220,6 +220,8 @@ export const GlobalConfigSchema = z.object({
   paginationPageSize: z.number().min(10).max(1000).default(250),
   /** Maximum records to fetch in pagination (safety limit) */
   maxPaginationRecords: z.number().min(1000).default(10000),
+  /** TTL for the generic HTTP GET cache in seconds. 0 or omitted = dedup only, no TTL caching. */
+  cacheTtlSeconds: z.number().min(0).optional(),
 });
 
 // =============================================================================
