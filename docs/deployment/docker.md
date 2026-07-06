@@ -1,0 +1,74 @@
+# Docker Deployment
+
+Varken ships as a container image published to `ghcr.io/navino16/varken`. The `:latest` tag tracks stable releases, while `:develop` tracks the bleeding edge build from the `develop` branch.
+
+## `docker run`
+
+```bash
+docker run -d --name varken \
+  -v /path/to/config:/config \
+  -v /path/to/data:/data \
+  -v /path/to/logs:/logs \
+  -p 9090:9090 \
+  ghcr.io/navino16/varken:latest
+```
+
+The container exposes three volumes:
+
+- `/config` — holds `varken.yaml`
+- `/data` — persistent application data
+- `/logs` — rotating log files
+
+Port `9090` serves the health and metrics HTTP endpoints.
+
+## Docker Compose
+
+The repository's `docker-compose.yml` bundles Varken together with InfluxDB 2 and Grafana, giving you a complete stack (data collection, storage, and dashboards) in one command:
+
+```bash
+docker compose up -d
+```
+
+Your configuration file goes in the mounted `/config` volume as `varken.yaml`. See [Configuration](../../README.md#configuration) for the full file format.
+
+## Environment variables
+
+The following environment variables are relevant to deployment, along with their defaults:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CONFIG_FOLDER` | `/config` | Directory where `varken.yaml` is read from |
+| `LOG_LEVEL` | `info` | Logging verbosity |
+| `LOG_FORMAT` | — | Console log format: `text` or `json` |
+| `HEALTH_PORT` | `9090` | Port for the health/metrics HTTP server |
+| `DRY_RUN` | — | Run without writing to output plugins |
+| `CONFIG_WATCH` | — | Watch `varken.yaml` for changes and reload |
+
+See [Environment Variables](../../README.md#environment-variables) for the full list including `VARKEN_*` overrides.
+
+## Health check
+
+The image includes a built-in Docker healthcheck that polls `wget http://localhost:9090/health`. You can inspect the current health status with:
+
+```bash
+docker inspect --format '{{.State.Health.Status}}' varken
+```
+
+## Resource limits
+
+To cap the container's memory usage, add a `deploy.resources` block under the `varken` service in your compose file:
+
+```yaml
+deploy:
+  resources:
+    limits:
+      memory: 256M
+```
+
+## Updating
+
+Pull the latest image and recreate the containers:
+
+```bash
+docker compose pull && docker compose up -d
+```
