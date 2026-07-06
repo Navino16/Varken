@@ -242,15 +242,17 @@ global:
   collectorTimeoutMs: 60000
   paginationPageSize: 250
   maxPaginationRecords: 10000
+  cacheTtlSeconds: 0
 ```
 
-| Setting                | Default | Description                             |
-|------------------------|---------|-----------------------------------------|
-| `httpTimeoutMs`        | 30000   | Timeout for HTTP requests to services   |
-| `healthCheckTimeoutMs` | 5000    | Timeout for health check requests       |
-| `collectorTimeoutMs`   | 60000   | Timeout for collector execution         |
-| `paginationPageSize`   | 250     | Records per page for paginated APIs     |
-| `maxPaginationRecords` | 10000   | Maximum records to fetch (safety limit) |
+| Setting                | Default | Description                                                      |
+|------------------------|---------|------------------------------------------------------------------|
+| `httpTimeoutMs`        | 30000   | Timeout for HTTP requests to services                            |
+| `healthCheckTimeoutMs` | 5000    | Timeout for health check requests                                |
+| `collectorTimeoutMs`   | 60000   | Timeout for collector execution                                  |
+| `paginationPageSize`   | 250     | Records per page for paginated APIs                              |
+| `maxPaginationRecords` | 10000   | Maximum records to fetch (safety limit)                          |
+| `cacheTtlSeconds`      | 0       | TTL (seconds) for the HTTP GET cache; 0 = dedup only, no caching |
 
 ### Environment Variables
 
