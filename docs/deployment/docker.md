@@ -39,16 +39,18 @@ The following environment variables are relevant to deployment, along with their
 |----------|---------|-------------|
 | `CONFIG_FOLDER` | `/config` | Directory where `varken.yaml` is read from |
 | `LOG_LEVEL` | `info` | Logging verbosity |
-| `LOG_FORMAT` | — | Console log format: `text` or `json` |
+| `LOG_FORMAT` | `text` | Console log format: `text` or `json` |
 | `HEALTH_PORT` | `9090` | Port for the health/metrics HTTP server |
-| `DRY_RUN` | — | Run without writing to output plugins |
-| `CONFIG_WATCH` | — | Watch `varken.yaml` for changes and reload |
+| `DRY_RUN` | `false` | Run without writing to output plugins; runs the schedule once and then exits |
+| `CONFIG_WATCH` | `false` | Watch `varken.yaml` for changes and reload |
 
 See [Environment Variables](../../README.md#environment-variables) for the full list including `VARKEN_*` overrides.
 
+**Warning:** When using `DRY_RUN=true`, the container runs the schedule once and then exits. In Docker Compose with `restart: unless-stopped`, this will cause a restart loop. Use `DRY_RUN=true` only for one-off validation runs with `docker run --rm`, not as a long-running service.
+
 ## Health check
 
-The image includes a built-in Docker healthcheck that polls `wget http://localhost:9090/health`. You can inspect the current health status with:
+The image includes a built-in Docker healthcheck that polls `wget -q -O /dev/null http://localhost:9090/health`. You can inspect the current health status with:
 
 ```bash
 docker inspect --format '{{.State.Health.Status}}' varken
