@@ -27,6 +27,8 @@ If an output plugin (InfluxDB, VictoriaMetrics, QuestDB, TimescaleDB, etc.) fail
 Started with N/M output(s) — some failed to initialize but Varken will continue with the available ones
 ```
 
+This only holds if at least one output initializes successfully. If **all** configured outputs fail to initialize, Varken exits at startup with the error `No output plugins were initialized` (process exit code 1) — this is distinct from an output becoming unreachable at *runtime*, which leaves Varken running but reports `unhealthy`.
+
 If you see this message:
 
 1. Check the output plugin's URL and credentials in `varken.yaml`.

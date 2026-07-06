@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/navino16/Varken/master/assets/varken_full_banner.jpg" alt="Varken" width="800">
+  <img src="https://raw.githubusercontent.com/Navino16/Varken/master/assets/varken_full_banner.jpg" alt="Varken" width="800">
 </p>
 
 <p align="center">
@@ -95,9 +95,9 @@ Built with TypeScript, Node.js, and a plugin-based architecture with scheduled d
 
 ```bash
 mkdir varken && cd varken
-curl -O https://raw.githubusercontent.com/navino16/Varken/develop/docker-compose.yml
+curl -O https://raw.githubusercontent.com/Navino16/Varken/develop/docker-compose.yml
 mkdir config
-curl -o config/varken.yaml https://raw.githubusercontent.com/navino16/Varken/develop/config/varken.example.yaml
+curl -o config/varken.yaml https://raw.githubusercontent.com/Navino16/Varken/develop/config/varken.example.yaml
 ```
 
 Edit `config/varken.yaml` with your settings, then:
@@ -125,7 +125,8 @@ docker run -d \
 ### Manual
 
 ```bash
-git clone https://github.com/navino16/Varken.git
+git clone https://github.com/Navino16/Varken.git
+cd Varken
 npm ci && npm run build
 node dist/index.js
 ```
@@ -566,7 +567,7 @@ Set `LOG_LEVEL` environment variable:
 ## Contributing
 
 ```bash
-git clone https://github.com/navino16/Varken.git
+git clone https://github.com/Navino16/Varken.git
 cd Varken
 npm install
 npm run dev        # Dev server with auto-reload
@@ -607,7 +608,7 @@ src/
 
 ## Support
 
-- **GitHub Issues**: [Bug reports and feature requests](https://github.com/navino16/Varken/issues)
+- **GitHub Issues**: [Bug reports and feature requests](https://github.com/Navino16/Varken/issues)
 - **Discord**: [Join the community](https://discord.gg/XgCBF3sMSh)
 
 ## License

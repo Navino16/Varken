@@ -67,6 +67,8 @@ deploy:
       memory: 256M
 ```
 
+> This `deploy:` block requires Docker Compose v2 (`docker compose`); the legacy `docker-compose` v1 ignores it and uses `mem_limit` instead.
+
 ## Updating
 
 Pull the latest image and recreate the containers:
