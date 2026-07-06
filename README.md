@@ -254,6 +254,8 @@ global:
 | `maxPaginationRecords` | 10000   | Maximum records to fetch (safety limit)                          |
 | `cacheTtlSeconds`      | 0       | TTL (seconds) for the HTTP GET cache; 0 = dedup only, no caching |
 
+> **Note:** `cacheTtlSeconds > 0` caches **all** GET responses, including real-time endpoints (Tautulli activity, *arr queues). A stored response is reused until the TTL expires, so set this well below your shortest poll interval — otherwise those metrics freeze between refreshes. Leave it at `0` unless you have a specific reason; concurrent-request deduplication is always on regardless.
+
 ### Environment Variables
 
 #### Docker Environment Variables
