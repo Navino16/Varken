@@ -73,6 +73,14 @@ class TestInputPlugin extends BaseInputPlugin<TestConfig> {
   public testSafeFetch<T>(operation: string, fn: () => Promise<T>): Promise<T> {
     return this.safeFetch(operation, fn);
   }
+
+  public testHttpGet<T>(path: string, params?: Record<string, unknown>): Promise<T> {
+    return this.httpGet<T>(path, params);
+  }
+
+  public testHttpPost<T>(path: string, data?: unknown): Promise<T> {
+    return this.httpPost<T>(path, data);
+  }
 }
 
 describe('BaseInputPlugin', () => {
@@ -493,6 +501,97 @@ describe('BaseInputPlugin', () => {
           throw 'string error';
         })
       ).rejects.toBe('string error');
+    });
+  });
+
+  describe('httpGet caching', () => {
+    it('deduplicates concurrent identical GETs into a single request', async () => {
+      await plugin.initialize(testConfig);
+      let resolveGet: (v: { data: unknown }) => void = () => {};
+      const getSpy = vi.fn().mockImplementation(
+        () => new Promise((res) => { resolveGet = res; })
+      );
+      plugin.getHttpClient().get = getSpy;
+
+      const p1 = plugin.testHttpGet('/api/x');
+      const p2 = plugin.testHttpGet('/api/x');
+      resolveGet({ data: { ok: true } });
+      await Promise.all([p1, p2]);
+
+      expect(getSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('serves a cached response within cacheTtlSeconds', async () => {
+      const customGlobal = { cacheTtlSeconds: 60 } as unknown as GlobalConfig;
+      await plugin.initialize(testConfig, customGlobal);
+      const getSpy = vi.fn().mockResolvedValue({ data: { ok: true } });
+      plugin.getHttpClient().get = getSpy;
+
+      await plugin.testHttpGet('/api/x');
+      await plugin.testHttpGet('/api/x');
+
+      expect(getSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not cache across sequential calls when cacheTtlSeconds is 0', async () => {
+      await plugin.initialize(testConfig); // default: no cacheTtlSeconds -> 0
+      const getSpy = vi.fn().mockResolvedValue({ data: { ok: true } });
+      plugin.getHttpClient().get = getSpy;
+
+      await plugin.testHttpGet('/api/x');
+      await plugin.testHttpGet('/api/x');
+
+      expect(getSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it('uses distinct cache keys for different params', async () => {
+      const customGlobal = { cacheTtlSeconds: 60 } as unknown as GlobalConfig;
+      await plugin.initialize(testConfig, customGlobal);
+      const getSpy = vi.fn().mockResolvedValue({ data: { ok: true } });
+      plugin.getHttpClient().get = getSpy;
+
+      await plugin.testHttpGet('/api/x', { page: 1 });
+      await plugin.testHttpGet('/api/x', { page: 2 });
+
+      expect(getSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it('produces the same cache key regardless of param order', async () => {
+      const customGlobal = { cacheTtlSeconds: 60 } as unknown as GlobalConfig;
+      await plugin.initialize(testConfig, customGlobal);
+      const getSpy = vi.fn().mockResolvedValue({ data: { ok: true } });
+      plugin.getHttpClient().get = getSpy;
+
+      await plugin.testHttpGet('/api/x', { a: 1, b: 2 });
+      await plugin.testHttpGet('/api/x', { b: 2, a: 1 });
+
+      expect(getSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not cache a failed GET', async () => {
+      const customGlobal = { cacheTtlSeconds: 60 } as unknown as GlobalConfig;
+      await plugin.initialize(testConfig, customGlobal);
+      const getSpy = vi.fn()
+        .mockRejectedValueOnce(new Error('boom'))
+        .mockResolvedValueOnce({ data: { ok: true } });
+      plugin.getHttpClient().get = getSpy;
+
+      await expect(plugin.testHttpGet('/api/x')).rejects.toThrow('boom');
+      await plugin.testHttpGet('/api/x');
+
+      expect(getSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it('never caches httpPost', async () => {
+      const customGlobal = { cacheTtlSeconds: 60 } as unknown as GlobalConfig;
+      await plugin.initialize(testConfig, customGlobal);
+      const postSpy = vi.fn().mockResolvedValue({ data: { ok: true } });
+      plugin.getHttpClient().post = postSpy;
+
+      await plugin.testHttpPost('/api/x', { a: 1 });
+      await plugin.testHttpPost('/api/x', { a: 1 });
+
+      expect(postSpy).toHaveBeenCalledTimes(2);
     });
   });
 });
