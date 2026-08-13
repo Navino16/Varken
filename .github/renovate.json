@@ -31,6 +31,13 @@
       "matchUpdateTypes": ["minor", "patch"],
       "groupName": "docker-dependencies",
       "automerge": true
+    },
+    {
+      "description": "Never cross InfluxDB majors: the test stack pins a v1 and a v2 image on purpose",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["influxdb"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
     }
   ]
 }
