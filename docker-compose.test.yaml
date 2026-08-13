@@ -55,7 +55,7 @@ services:
   # Database Services
   # ===================
   influxdb1:
-    image: influxdb:1.8
+    image: influxdb:1.12
     container_name: varken-influxdb1
     ports:
       - "8086:8086"
