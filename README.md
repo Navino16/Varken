@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/navino16/Varken/master/assets/varken_full_banner.jpg" alt="Varken" width="800">
+  <img src="https://raw.githubusercontent.com/Navino16/Varken/master/assets/varken_full_banner.jpg" alt="Varken" width="800">
 </p>
 
 <p align="center">
@@ -95,9 +95,9 @@ Built with TypeScript, Node.js, and a plugin-based architecture with scheduled d
 
 ```bash
 mkdir varken && cd varken
-curl -O https://raw.githubusercontent.com/navino16/Varken/develop/docker-compose.yml
+curl -O https://raw.githubusercontent.com/Navino16/Varken/develop/docker-compose.yml
 mkdir config
-curl -o config/varken.yaml https://raw.githubusercontent.com/navino16/Varken/develop/config/varken.example.yaml
+curl -o config/varken.yaml https://raw.githubusercontent.com/Navino16/Varken/develop/config/varken.example.yaml
 ```
 
 Edit `config/varken.yaml` with your settings, then:
@@ -116,20 +116,24 @@ docker run -d \
   --name varken \
   -v /path/to/config:/config \
   -v /path/to/data:/data \
+  -v /path/to/logs:/logs \
+  -p 9090:9090 \
   -e TZ=Europe/Paris \
   ghcr.io/navino16/varken:latest
 ```
 
+> For an in-depth Docker guide, see [docs/deployment/docker.md](docs/deployment/docker.md).
+
 ### Manual
 
 ```bash
-git clone https://github.com/navino16/Varken.git
+git clone https://github.com/Navino16/Varken.git
 cd Varken
-npm install
-npm run build
-cp config/varken.example.yaml config/varken.yaml
-npm start
+npm ci && npm run build
+node dist/index.js
 ```
+
+> For a hardened systemd install, see [docs/deployment/bare-metal.md](docs/deployment/bare-metal.md).
 
 ### Dry-Run
 
@@ -504,6 +508,8 @@ Legacy `VRKN_*` environment variables are also automatically migrated.
 
 ## Troubleshooting
 
+> Full symptom-based guide: [docs/deployment/troubleshooting.md](docs/deployment/troubleshooting.md).
+
 Error messages are annotated with actionable hints where possible. Look for the `Hint:` section on `ERROR` lines in the logs — connection refused, timeout, wrong API key, wrong API path (404), rate limit, and TLS cert failures all have tailored suggestions.
 
 ### Common Issues
@@ -563,7 +569,7 @@ Set `LOG_LEVEL` environment variable:
 ## Contributing
 
 ```bash
-git clone https://github.com/navino16/Varken.git
+git clone https://github.com/Navino16/Varken.git
 cd Varken
 npm install
 npm run dev        # Dev server with auto-reload
@@ -604,7 +610,7 @@ src/
 
 ## Support
 
-- **GitHub Issues**: [Bug reports and feature requests](https://github.com/navino16/Varken/issues)
+- **GitHub Issues**: [Bug reports and feature requests](https://github.com/Navino16/Varken/issues)
 - **Discord**: [Join the community](https://discord.gg/XgCBF3sMSh)
 
 ## License

@@ -1,0 +1,34 @@
+[Unit]
+Description=Varken - Plex ecosystem data aggregator
+Documentation=https://github.com/Navino16/Varken
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=varken
+Group=varken
+WorkingDirectory=/opt/varken
+ExecStart=/usr/bin/node /opt/varken/dist/index.js
+Restart=on-failure
+RestartSec=10
+
+# Configuration and paths
+Environment=CONFIG_FOLDER=/etc/varken
+Environment=DATA_FOLDER=/var/lib/varken
+Environment=LOG_FOLDER=/var/log/varken
+Environment=LOG_FORMAT=json
+Environment=LOG_LEVEL=info
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+ReadWritePaths=/var/lib/varken /var/log/varken
+
+[Install]
+WantedBy=multi-user.target
