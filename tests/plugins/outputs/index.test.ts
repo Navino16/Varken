@@ -4,6 +4,9 @@ import {
   BaseOutputPlugin,
   InfluxDB1Plugin,
   InfluxDB2Plugin,
+  VictoriaMetricsPlugin,
+  QuestDBPlugin,
+  TimescaleDBPlugin,
 } from '../../../src/plugins/outputs';
 
 describe('Output Plugins Index', () => {
@@ -17,11 +20,14 @@ describe('Output Plugins Index', () => {
       const registry = getOutputPluginRegistry();
       expect(registry.has('influxdb1')).toBe(true);
       expect(registry.has('influxdb2')).toBe(true);
+      expect(registry.has('victoriametrics')).toBe(true);
+      expect(registry.has('questdb')).toBe(true);
+      expect(registry.has('timescaledb')).toBe(true);
     });
 
     it('should have correct number of plugins', () => {
       const registry = getOutputPluginRegistry();
-      expect(registry.size).toBe(2);
+      expect(registry.size).toBe(5);
     });
 
     it('should return plugin classes that can be instantiated', () => {
@@ -43,6 +49,15 @@ describe('Output Plugins Index', () => {
 
       const influx2Plugin = new InfluxDB2Plugin();
       expect(registry.has(influx2Plugin.metadata.name.toLowerCase())).toBe(true);
+
+      const vmPlugin = new VictoriaMetricsPlugin();
+      expect(registry.has(vmPlugin.metadata.name.toLowerCase())).toBe(true);
+
+      const questdbPlugin = new QuestDBPlugin();
+      expect(registry.has(questdbPlugin.metadata.name.toLowerCase())).toBe(true);
+
+      const timescalePlugin = new TimescaleDBPlugin();
+      expect(registry.has(timescalePlugin.metadata.name.toLowerCase())).toBe(true);
     });
   });
 
@@ -57,6 +72,18 @@ describe('Output Plugins Index', () => {
 
     it('should export InfluxDB2Plugin', () => {
       expect(InfluxDB2Plugin).toBeDefined();
+    });
+
+    it('should export VictoriaMetricsPlugin', () => {
+      expect(VictoriaMetricsPlugin).toBeDefined();
+    });
+
+    it('should export QuestDBPlugin', () => {
+      expect(QuestDBPlugin).toBeDefined();
+    });
+
+    it('should export TimescaleDBPlugin', () => {
+      expect(TimescaleDBPlugin).toBeDefined();
     });
   });
 });

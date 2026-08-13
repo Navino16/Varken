@@ -3,11 +3,17 @@ import type { OutputPluginFactory } from '../../core/PluginManager';
 // Plugin imports
 import { InfluxDB1Plugin } from './InfluxDB1Plugin';
 import { InfluxDB2Plugin } from './InfluxDB2Plugin';
+import { VictoriaMetricsPlugin } from './VictoriaMetricsPlugin';
+import { QuestDBPlugin } from './QuestDBPlugin';
+import { TimescaleDBPlugin } from './TimescaleDBPlugin';
 
 // Re-exports for direct usage
 export { BaseOutputPlugin, BaseOutputConfig } from './BaseOutputPlugin';
 export { InfluxDB1Plugin, InfluxDB1Config } from './InfluxDB1Plugin';
 export { InfluxDB2Plugin, InfluxDB2Config } from './InfluxDB2Plugin';
+export { VictoriaMetricsPlugin, VictoriaMetricsConfig } from './VictoriaMetricsPlugin';
+export { QuestDBPlugin, QuestDBConfig } from './QuestDBPlugin';
+export { TimescaleDBPlugin, TimescaleDBConfig } from './TimescaleDBPlugin';
 
 /**
  * All available output plugin classes
@@ -16,6 +22,9 @@ export { InfluxDB2Plugin, InfluxDB2Config } from './InfluxDB2Plugin';
 const outputPluginClasses: OutputPluginFactory[] = [
   InfluxDB1Plugin,
   InfluxDB2Plugin,
+  VictoriaMetricsPlugin,
+  QuestDBPlugin,
+  TimescaleDBPlugin,
 ];
 
 /**

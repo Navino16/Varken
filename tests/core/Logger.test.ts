@@ -350,4 +350,25 @@ describe('Logger', () => {
       expect(loggerModule.default.level).toBeDefined();
     });
   });
+
+  describe('withContext', () => {
+    it('should return a child logger that inherits parent behavior', async () => {
+      const { createLogger, withContext } = await import('../../src/core/Logger');
+      const base = createLogger('Sonarr');
+      const tagged = withContext(base, { pluginId: 42 });
+
+      expect(tagged).toBeDefined();
+      expect(typeof tagged.info).toBe('function');
+      expect(typeof tagged.error).toBe('function');
+      expect(() => tagged.info('tagged log entry')).not.toThrow();
+    });
+
+    it('should allow stacking contexts via nested withContext calls', async () => {
+      const { createLogger, withContext } = await import('../../src/core/Logger');
+      const base = createLogger('Sonarr');
+      const l1 = withContext(base, { pluginId: 1 });
+      const l2 = withContext(l1, { scheduler: 'queue' });
+      expect(() => l2.debug('stacked context')).not.toThrow();
+    });
+  });
 });

@@ -53,30 +53,48 @@ const filterSensitiveData = winston.format((info) => {
   return info;
 });
 
-// Custom format for console output
-const consoleFormat = winston.format.combine(
+// Human-readable text format for console output
+const textConsoleFormat = winston.format.combine(
   winston.format.colorize(),
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
   filterSensitiveData(),
-  winston.format.printf(({ timestamp, level, message, module }) => {
+  winston.format.printf(({ timestamp, level, message, module, ...rest }) => {
     const modulePrefix = module ? `[${module}]` : '';
-    return `${timestamp} ${level} ${modulePrefix} ${message}`;
+    const extraKeys = Object.keys(rest).filter(
+      (k) => k !== 'level' && k !== 'timestamp' && k !== 'message' && k !== 'module'
+    );
+    const extras = extraKeys.length > 0
+      ? ` ${extraKeys.map((k) => `${k}=${JSON.stringify(rest[k])}`).join(' ')}`
+      : '';
+    return `${timestamp} ${level} ${modulePrefix} ${message}${extras}`;
   })
 );
 
-// Custom format for file output
-const fileFormat = winston.format.combine(
+// Structured JSON format — for production/log aggregators (ELK, Loki, Datadog)
+const jsonFormat = winston.format.combine(
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
   filterSensitiveData(),
   winston.format.json()
 );
+
+// File output stays JSON regardless of LOG_FORMAT (always structured on disk)
+const fileFormat = jsonFormat;
+
+/**
+ * Select console output format based on LOG_FORMAT env var.
+ * `text` (default) = colorized human-readable | `json` = structured JSON (one record per line)
+ */
+function resolveConsoleFormat(): winston.Logform.Format {
+  const format = (process.env.LOG_FORMAT || 'text').toLowerCase();
+  return format === 'json' ? jsonFormat : textConsoleFormat;
+}
 
 // Create the main logger
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',
   transports: [
     new winston.transports.Console({
-      format: consoleFormat,
+      format: resolveConsoleFormat(),
     }),
     new winston.transports.File({
       filename: path.join(LOG_FOLDER, 'error.log'),
@@ -94,9 +112,30 @@ const logger = winston.createLogger({
   ],
 });
 
-// Create a child logger with module context
+/**
+ * Create a child logger tagged with `module` — the default entry point for modules.
+ */
 export function createLogger(moduleName: string): winston.Logger {
   return logger.child({ module: moduleName });
+}
+
+/**
+ * Attach additional structured context to an existing logger.
+ *
+ * Produces a child logger whose every record will carry the given fields.
+ * Use this to tag logs with `pluginId`, `scheduler`, `requestId`, etc. without
+ * manually interpolating them into the message (which breaks log aggregation).
+ *
+ * @example
+ *   const log = createLogger('Sonarr');
+ *   const instanceLog = withContext(log, { pluginId: this.config.id });
+ *   instanceLog.info('Collected queue'); // → { module: 'Sonarr', pluginId: 1, message: ... }
+ */
+export function withContext(
+  parent: winston.Logger,
+  context: Record<string, unknown>
+): winston.Logger {
+  return parent.child(context);
 }
 
 export default logger;

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/navino16/Varken/master/assets/varken_full_banner.jpg" alt="Varken" width="800">
+  <img src="https://raw.githubusercontent.com/Navino16/Varken/master/assets/varken_full_banner.jpg" alt="Varken" width="800">
 </p>
 
 <p align="center">
@@ -41,7 +41,7 @@ Built with TypeScript, Node.js, and a plugin-based architecture with scheduled d
 ### Data Collection
 
 - **Multiple data sources** — Sonarr, Radarr, Readarr, Lidarr, Tautulli, Ombi, Overseerr, Prowlarr, Bazarr
-- **Multiple outputs** — InfluxDB 1.x and InfluxDB 2.x
+- **Multiple outputs** — InfluxDB 1.x, InfluxDB 2.x, VictoriaMetrics, QuestDB, TimescaleDB
 - **Multi-instance support** — connect multiple instances of each service
 - **GeoIP mapping** — automatic geolocation of streaming sessions via Tautulli API (no external license required)
 
@@ -49,6 +49,9 @@ Built with TypeScript, Node.js, and a plugin-based architecture with scheduled d
 
 - **Circuit breaker** — automatic error recovery with exponential backoff and self-healing
 - **Health checks** — built-in HTTP endpoints for monitoring and orchestration
+- **Prometheus metrics** — `/metrics` endpoint for collection counts, durations, errors, and circuit breaker state
+- **Config hot-reload** — edit `varken.yaml` and have Varken pick up changes without a restart (opt-in via `CONFIG_WATCH=true`)
+- **Graceful output skipping** — failed output plugins are skipped at startup; Varken continues with the ones that initialized successfully
 - **Easy configuration** — simple YAML config with environment variable overrides
 
 ### Deployment
@@ -72,15 +75,19 @@ Built with TypeScript, Node.js, and a plugin-based architecture with scheduled d
 | **Overseerr** | Request counts, latest requests           | ✅          |
 | **Prowlarr**  | Indexer statistics                        | ✅          |
 | **Bazarr**    | Wanted subtitles, history                 | ✅          |
-| **Plex**      | Sessions, libraries (direct API)          | 🚧 Planned |
-| **Jellyfin**  | Sessions, libraries, activity             | 🚧 Planned |
+| **Plex**      | Sessions, libraries (direct API)          | ✅          |
+| **Jellyfin**  | Sessions, libraries, item counts          | ✅          |
+| **Emby**      | Sessions, libraries, item counts          | ✅          |
 
 ### Output Plugins
 
-| Output                         | Status |
-|--------------------------------|--------|
-| **InfluxDB 2.x** (recommended) | ✅      |
-| **InfluxDB 1.x** (legacy)      | ✅      |
+| Output                         | Status     |
+|--------------------------------|------------|
+| **InfluxDB 2.x** (recommended) | ✅          |
+| **InfluxDB 1.x** (legacy)      | ✅          |
+| **VictoriaMetrics**            | ✅          |
+| **QuestDB**                    | ✅          |
+| **TimescaleDB**                | ✅          |
 
 ## Installation
 
@@ -88,9 +95,9 @@ Built with TypeScript, Node.js, and a plugin-based architecture with scheduled d
 
 ```bash
 mkdir varken && cd varken
-curl -O https://raw.githubusercontent.com/navino16/Varken/develop/docker-compose.yml
+curl -O https://raw.githubusercontent.com/Navino16/Varken/develop/docker-compose.yml
 mkdir config
-curl -o config/varken.yaml https://raw.githubusercontent.com/navino16/Varken/develop/config/varken.example.yaml
+curl -o config/varken.yaml https://raw.githubusercontent.com/Navino16/Varken/develop/config/varken.example.yaml
 ```
 
 Edit `config/varken.yaml` with your settings, then:
@@ -109,20 +116,48 @@ docker run -d \
   --name varken \
   -v /path/to/config:/config \
   -v /path/to/data:/data \
+  -v /path/to/logs:/logs \
+  -p 9090:9090 \
   -e TZ=Europe/Paris \
   ghcr.io/navino16/varken:latest
 ```
 
+> For an in-depth Docker guide, see [docs/deployment/docker.md](docs/deployment/docker.md).
+
 ### Manual
 
 ```bash
-git clone https://github.com/navino16/Varken.git
+git clone https://github.com/Navino16/Varken.git
 cd Varken
-npm install
-npm run build
-cp config/varken.example.yaml config/varken.yaml
-npm start
+npm ci && npm run build
+node dist/index.js
 ```
+
+> For a hardened systemd install, see [docs/deployment/bare-metal.md](docs/deployment/bare-metal.md).
+
+### Dry-Run
+
+Validate your configuration and test plugin connectivity without writing any data to outputs:
+
+```bash
+# CLI flag
+node dist/index.js --dry-run
+
+# Or via environment variable (useful in Docker)
+DRY_RUN=true npm start
+```
+
+Varken will load the config, check output connectivity, run each enabled schedule once, log what would be written, and exit.
+
+### Config Hot-Reload
+
+Set `CONFIG_WATCH=true` to have Varken watch `varken.yaml` and apply changes without a process restart. On every save:
+
+1. The file is re-parsed and validated with Zod.
+2. If valid, all plugins are shut down cleanly and re-initialized from the new config, then schedulers restart.
+3. If invalid, the error is logged and the previous configuration stays active.
+
+The watcher debounces rapid editor writes (500ms) and coalesces overlapping reloads, so you won't get a thundering herd from a single save.
 
 ## Configuration
 
@@ -159,6 +194,47 @@ inputs:
         intervalSeconds: 30
 ```
 
+### Output Configuration
+
+Varken supports multiple output backends. You can configure one or several simultaneously — each data point is written to every configured output.
+
+```yaml
+outputs:
+  # InfluxDB 2.x (recommended)
+  influxdb2:
+    url: "http://influxdb:8086"
+    token: "your-token"
+    org: "varken"
+    bucket: "varken"
+
+  # InfluxDB 1.x (legacy)
+  influxdb1:
+    url: "http://influxdb:8086"
+    username: "root"
+    password: "root"
+    database: "varken"
+
+  # VictoriaMetrics (InfluxDB line protocol compatible)
+  victoriametrics:
+    url: "http://victoriametrics:8428"
+
+  # QuestDB (ILP over HTTP on port 9000)
+  questdb:
+    url: "http://questdb:9000"
+
+  # TimescaleDB (PostgreSQL with hypertables)
+  timescaledb:
+    host: "timescaledb"
+    port: 5432
+    database: "varken"
+    username: "varken"
+    password: "varken"
+```
+
+> **TimescaleDB schema:** Varken creates a single `varken_events` hypertable on first run. Columns: `time TIMESTAMPTZ`, `measurement TEXT`, `tags JSONB`, `fields JSONB`. Query in Grafana with `tags->>'server'` / `(fields->>'queue_size')::int`. If the TimescaleDB extension isn't installed, the plugin falls back to a plain PostgreSQL table (logs a warning).
+
+See [`config/varken.example.yaml`](config/varken.example.yaml) for the complete list of supported options.
+
 ### Global Settings
 
 Varken provides global configuration options for tuning timeouts and pagination. All settings have sensible defaults and are optional:
@@ -170,15 +246,19 @@ global:
   collectorTimeoutMs: 60000
   paginationPageSize: 250
   maxPaginationRecords: 10000
+  cacheTtlSeconds: 0
 ```
 
-| Setting                | Default | Description                             |
-|------------------------|---------|-----------------------------------------|
-| `httpTimeoutMs`        | 30000   | Timeout for HTTP requests to services   |
-| `healthCheckTimeoutMs` | 5000    | Timeout for health check requests       |
-| `collectorTimeoutMs`   | 60000   | Timeout for collector execution         |
-| `paginationPageSize`   | 250     | Records per page for paginated APIs     |
-| `maxPaginationRecords` | 10000   | Maximum records to fetch (safety limit) |
+| Setting                | Default | Description                                                      |
+|------------------------|---------|------------------------------------------------------------------|
+| `httpTimeoutMs`        | 30000   | Timeout for HTTP requests to services                            |
+| `healthCheckTimeoutMs` | 5000    | Timeout for health check requests                                |
+| `collectorTimeoutMs`   | 60000   | Timeout for collector execution                                  |
+| `paginationPageSize`   | 250     | Records per page for paginated APIs                              |
+| `maxPaginationRecords` | 10000   | Maximum records to fetch (safety limit)                          |
+| `cacheTtlSeconds`      | 0       | TTL (seconds) for the HTTP GET cache; 0 = dedup only, no caching |
+
+> **Note:** `cacheTtlSeconds > 0` caches **all** GET responses, including real-time endpoints (Tautulli activity, *arr queues). A stored response is reused until the TTL expires, so set this well below your shortest poll interval — otherwise those metrics freeze between refreshes. Leave it at `0` unless you have a specific reason; concurrent-request deduplication is always on regardless.
 
 ### Environment Variables
 
@@ -190,9 +270,13 @@ global:
 | `DATA_FOLDER`    | `/data`   | Path to data storage                                |
 | `LOG_FOLDER`     | `/logs`   | Path to log files                                   |
 | `LOG_LEVEL`      | `info`    | Log level: `error`, `warn`, `info`, `debug`         |
+| `LOG_FORMAT`     | `text`    | Console log format: `text` (human) or `json` (structured) |
 | `TZ`             | `UTC`     | Timezone (e.g., `Europe/Paris`, `America/New_York`) |
 | `HEALTH_PORT`    | `9090`    | Port for the health check HTTP server               |
 | `HEALTH_ENABLED` | `true`    | Enable/disable the health check server              |
+| `METRICS_ENABLED`| `true`    | Enable/disable the Prometheus `/metrics` endpoint   |
+| `CONFIG_WATCH`   | `false`   | Watch `varken.yaml` and hot-reload on changes       |
+| `DRY_RUN`        | `false`   | Run once without writing (equivalent to `--dry-run`) |
 
 #### Configuration Overrides
 
@@ -342,6 +426,7 @@ Varken exposes HTTP endpoints for monitoring on port `9090` (configurable via `H
 | `GET /health`         | Overall status: `healthy`, `degraded`, `unhealthy` |
 | `GET /health/plugins` | Per-plugin health status (inputs and outputs)      |
 | `GET /status`         | Detailed status with scheduler information         |
+| `GET /metrics`        | Prometheus scrape endpoint (see below)             |
 
 The Docker image includes a built-in `HEALTHCHECK` instruction using these endpoints.
 
@@ -360,6 +445,33 @@ The Docker image includes a built-in `HEALTHCHECK` instruction using these endpo
 | `healthy`   | All outputs healthy + all inputs healthy + all schedulers in `closed` state with < 3 errors |
 | `degraded`  | At least one output healthy + at least one scheduler not in `open` state                    |
 | `unhealthy` | No outputs configured, all outputs unreachable, or all schedulers in `open` state           |
+
+## Prometheus Metrics
+
+Varken exposes a Prometheus scrape endpoint at `GET /metrics` on the same port as the health server (default `9090`). Disable with `METRICS_ENABLED=false`.
+
+### Exposed Metrics
+
+| Metric                               | Type      | Labels              | Description                                            |
+|--------------------------------------|-----------|---------------------|--------------------------------------------------------|
+| `varken_collections_total`           | counter   | scheduler, status   | Scheduled collector runs (status: success / failure)   |
+| `varken_collection_duration_seconds` | histogram | scheduler           | Collector run duration                                 |
+| `varken_data_points_collected_total` | counter   | scheduler           | Data points produced by collectors                     |
+| `varken_data_points_written_total`   | counter   | output, status      | Data points written to outputs (status / failure)      |
+| `varken_scheduler_errors_total`      | counter   | scheduler           | Total scheduler errors                                 |
+| `varken_circuit_breaker_state`       | gauge     | scheduler           | Circuit breaker state (0=closed, 1=half-open, 2=open)  |
+| `varken_active_plugins`              | gauge     | kind                | Active plugin count by kind (input / output)           |
+
+Default Node.js process metrics (`process_cpu_*`, `nodejs_heap_*`, event loop lag, GC stats) are also exposed.
+
+### Prometheus Scrape Config
+
+```yaml
+scrape_configs:
+  - job_name: varken
+    static_configs:
+      - targets: ['varken:9090']
+```
 
 ## Grafana Setup
 
@@ -396,7 +508,18 @@ Legacy `VRKN_*` environment variables are also automatically migrated.
 
 ## Troubleshooting
 
+> Full symptom-based guide: [docs/deployment/troubleshooting.md](docs/deployment/troubleshooting.md).
+
+Error messages are annotated with actionable hints where possible. Look for the `Hint:` section on `ERROR` lines in the logs — connection refused, timeout, wrong API key, wrong API path (404), rate limit, and TLS cert failures all have tailored suggestions.
+
 ### Common Issues
+
+**Varken fails at startup with "Environment validation failed":**
+- Varken validates all environment variables and directory permissions on startup
+- Check `HEALTH_PORT` is a valid TCP port (1-65535)
+- Check `HEALTH_ENABLED`, `DRY_RUN` are set to `true` or `false` only
+- Check `LOG_LEVEL` is one of `error`, `warn`, `info`, `http`, `verbose`, `debug`, `silly`
+- Verify the process can read `CONFIG_FOLDER` and write to `DATA_FOLDER` / `LOG_FOLDER`
 
 **Varken can't connect to services:**
 - Verify URLs are accessible from the Varken container
@@ -408,6 +531,17 @@ Legacy `VRKN_*` environment variables are also automatically migrated.
 - Check Varken logs: `docker logs varken`
 - Verify InfluxDB connection settings
 - Ensure at least one input is enabled with `enabled: true`
+
+### Integration tests
+
+A separate `npm run test:integration` target runs end-to-end tests against real services. Start the stack first (InfluxDB 2.x on port 8087 by default):
+
+```bash
+docker compose -f docker-compose.test.yaml --profile influxdb2 up -d
+npm run test:integration
+```
+
+Tests skip themselves automatically when a service isn't reachable, so the command is safe to run with or without containers up. Unit tests (`npm test`) are hermetic and never touch the integration folder.
 
 **GeoIP not working:**
 - Ensure `geoip.enabled: true` is set in your Tautulli configuration
@@ -435,7 +569,7 @@ Set `LOG_LEVEL` environment variable:
 ## Contributing
 
 ```bash
-git clone https://github.com/navino16/Varken.git
+git clone https://github.com/Navino16/Varken.git
 cd Varken
 npm install
 npm run dev        # Dev server with auto-reload
@@ -476,7 +610,7 @@ src/
 
 ## Support
 
-- **GitHub Issues**: [Bug reports and feature requests](https://github.com/navino16/Varken/issues)
+- **GitHub Issues**: [Bug reports and feature requests](https://github.com/Navino16/Varken/issues)
 - **Discord**: [Join the community](https://discord.gg/XgCBF3sMSh)
 
 ## License

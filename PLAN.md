@@ -68,7 +68,7 @@ varken/
 │   └── utils/
 │       ├── http.ts                  # HTTP utilities, error classification
 │       └── index.ts
-├── tests/                           # 468 tests, 90% coverage
+├── tests/                           # 721 tests, 91% coverage
 │   ├── config/
 │   ├── core/
 │   ├── plugins/
@@ -176,7 +176,7 @@ interface ScheduleConfig {
 | InfluxDB 2.x | `@influxdata/influxdb-client` | ✅ Implemented |
 | VictoriaMetrics | `axios` | Line protocol via HTTP |
 | QuestDB | `axios` | ILP via HTTP |
-| TimescaleDB | `pg` | PostgreSQL driver (à ajouter) |
+| TimescaleDB | `pg` | PostgreSQL driver ✅ |
 
 ### Future Dependencies (for planned features)
 
@@ -184,7 +184,7 @@ interface ScheduleConfig {
 |---------|-------------|-------|
 | ~~Health endpoint~~ | ~~`express` ou `fastify`~~ | ✅ Uses native Node.js `http` |
 | Prometheus metrics | `prom-client` | Metrics collection |
-| TimescaleDB | `pg` | PostgreSQL driver |
+| TimescaleDB | `pg` | PostgreSQL driver ✅ |
 
 ---
 
@@ -228,7 +228,7 @@ interface ScheduleConfig {
 - [x] Main entry point (`index.ts`)
 - [x] Dockerfile (multi-stage, ~190MB)
 - [x] docker-compose.yml (Varken + InfluxDB 2.x + Grafana)
-- [x] Unit tests (428 tests passing)
+- [x] Unit tests (721 tests passing)
 - [x] CI/CD workflows (GitHub Actions)
 - [x] Codecov integration
 - [x] Documentation (README.md, CLAUDE.md)
@@ -247,12 +247,13 @@ interface ScheduleConfig {
   - Add `HEALTH_PORT` env var (default: 9090)
   - Add `HEALTH_ENABLED` env var (default: true)
 
-#### Prometheus Metrics
-- [ ] Create `src/core/Metrics.ts` - Metrics collection
-  - `GET /metrics` → Prometheus format
-  - Metrics: collections count, errors, durations, data points collected/written
-  - Add `prom-client` dependency
-  - Effort: ~8h
+#### Prometheus Metrics ✅
+- [x] Create `src/core/Metrics.ts` - Metrics collection
+  - `GET /metrics` on the health server port (Prometheus text format)
+  - Metrics: collections count + duration, data points collected/written, scheduler errors, circuit breaker state, active plugins count
+  - Default Node.js process metrics included
+  - `METRICS_ENABLED` env var (default `true`)
+  - `prom-client` dependency added
 
 #### Circuit Breaker & Error Recovery ✅
 - [x] Track consecutive failures per schedule (`PluginManager.ts`)
@@ -262,34 +263,34 @@ interface ScheduleConfig {
 - [x] Auto-disable failing plugins after N errors (configurable)
 - [x] Re-enable plugins after cooldown period with half-open recovery
 
-#### Config Hot-Reload
-- [ ] Watch config file for changes with `fs.watch()`
-  - Add `--watch` flag or `CONFIG_WATCH` env var
-  - Reload config with Zod validation on change
-  - Only restart modified plugins
-  - Prevent concurrent reloads
-  - Effort: ~8h
+#### Config Hot-Reload ✅
+- [x] Watch config file for changes with `fs.watch()` (`src/core/ConfigWatcher.ts`)
+  - `CONFIG_WATCH=true` env var to enable
+  - Reloads config with Zod validation on change; invalid configs are logged and ignored (process keeps running with current config)
+  - Debounces rapid successive writes (500ms default) and coalesces overlapping reloads
+  - Full plugin restart on reload — selective per-plugin restart deferred (future optimization)
 
 ### Phase 8: Additional Output Plugins
 
-#### VictoriaMetrics (High Priority)
-- [ ] `VictoriaMetricsPlugin` - InfluxDB line protocol compatible
+#### VictoriaMetrics ✅
+- [x] `VictoriaMetricsPlugin` - InfluxDB line protocol compatible
   - Reuses existing Line Protocol code from BaseOutputPlugin
   - Uses `axios` (already installed)
-  - Effort: ~4h
 
-#### QuestDB
-- [ ] `QuestDBPlugin` - InfluxDB line protocol (ILP) support
-  - HTTP or native TCP
-  - Uses `axios` (already installed)
-  - Effort: ~6h
+#### QuestDB ✅
+- [x] `QuestDBPlugin` - InfluxDB line protocol (ILP) support
+  - `POST /write` with ILP body (HTTP transport on default port 9000)
+  - Health check via `GET /exec?query=SELECT 1` to validate the full REST layer (not just static HTTP)
+  - Uses `axios` (already installed); reuses `toLineProtocolBatch()` from BaseOutputPlugin
+  - Native TCP (port 9009) left as a future enhancement if performance requires it
 
-#### TimescaleDB
-- [ ] `TimescaleDBPlugin` - PostgreSQL with hypertables
-  - Add `pg` dependency
-  - Auto-create tables and hypertables
-  - DataPoint → SQL INSERT mapping
-  - Effort: ~8h
+#### TimescaleDB ✅
+- [x] `TimescaleDBPlugin` - PostgreSQL with hypertables
+  - Added `pg` dependency + `@types/pg`
+  - Single `varken_events` hypertable with JSONB tags/fields (schema-free, handles dynamic measurements)
+  - Auto-creates table + hypertable + `(measurement, time DESC)` index on init; falls back to plain table if TimescaleDB extension not installed (warns, continues)
+  - Bulk-inserts via parameterized `INSERT` (atomic batch, SQL-injection safe)
+  - Implements `OutputPlugin` directly (doesn't extend `BaseOutputPlugin` — no HTTP, no line protocol)
 
 ### Phase 9: Additional Input Plugins
 
@@ -300,17 +301,19 @@ interface ScheduleConfig {
 - [x] `ProwlarrPlugin` - indexer stats ✅
 
 #### Media Servers
-- [ ] `PlexPlugin` - sessions, libraries, activity (direct API)
-  - Alternative to Tautulli
-  - Types already defined in `src/types/inputs/plex.types.ts`
-  - Effort: ~8h
-- [ ] `JellyfinPlugin` - sessions, libraries, activity
-  - Types already defined in `src/types/inputs/jellyfin.types.ts`
-  - Effort: ~8h
-- [ ] `EmbyPlugin` - sessions, libraries, activity
-  - Similar to Jellyfin, API /emby/api
-  - Types already defined in `src/types/inputs/emby.types.ts`
-  - Effort: ~8h
+- [x] `PlexPlugin` - sessions, libraries (direct API) ✅
+  - Alternative to Tautulli — direct `GET /status/sessions` + `GET /library/sections`
+  - `X-Plex-Token` header auth, `Accept: application/json` header override (Plex defaults to XML)
+  - Library item counts via `/library/sections/{key}/all?X-Plex-Container-Size=0` (cheap, no item transfer)
+- [x] `JellyfinPlugin` - sessions, libraries ✅
+  - Direct Jellyfin API (`/Sessions`, `/Library/VirtualFolders`, `/Items/Counts`)
+  - `X-Emby-Token` header auth (compatible with Emby forks)
+  - Emits per-session DataPoints + `current_stream_stats` summary + per-library + global `item_counts`
+  - Non-fatal fallback when `/Items/Counts` fails
+- [x] `EmbyPlugin` - sessions, libraries ✅
+  - Direct Emby API (`/emby/Sessions`, `/emby/Library/VirtualFolders`, `/emby/Items/Counts`)
+  - Structurally identical to `JellyfinPlugin` with `/emby` path prefix
+  - Same DataPoint shape: per-session + `current_stream_stats` summary + per-library + global `item_counts`
 
 ### Phase 10: Testing & Quality
 
@@ -343,69 +346,74 @@ interface ScheduleConfig {
   - Added extractResponseData tests
   - Interceptor callbacks require integration tests with actual HTTP requests
 
-#### Integration Tests
-- [ ] End-to-end tests with real services
-  - docker-compose test environment
-  - Test full data flow: collect → write → verify
-  - Effort: ~8h
+#### Integration Tests ✅
+- [x] End-to-end tests with real services
+  - `tests/integration/` with a dedicated `vitest.integration.config.ts`
+  - Tests skip automatically via `describe.skipIf(!available)` when services aren't reachable — safe to run without docker-compose up
+  - Service probe helper in `tests/integration/setup.ts` (TCP port check)
+  - Two reference tests: InfluxDB 2.x round-trip (write → query back via Flux) and Orchestrator lifecycle (dryRun against a real output)
+  - `npm run test:integration` script; unit tests (`npm test`) explicitly exclude the integration folder to stay fast + hermetic
+  - Runs against the existing `docker-compose.test.yaml --profile influxdb2`
 
 ### Phase 11: Developer Experience
 
-#### Dry-Run Mode
-- [ ] Add `--dry-run` CLI flag
-  - Validate config without writing data
-  - Log what would be written
-  - Test plugin connectivity
-  - Effort: ~2h
+#### Dry-Run Mode ✅
+- [x] Add `--dry-run` CLI flag (or `DRY_RUN=true` env var)
+  - Validates config, runs each schedule once, logs what would be written
+  - Runs output health checks to test connectivity
+  - Does not start schedulers or write to outputs
 
-#### Better Error Messages
-- [ ] Create error helper with troubleshooting guidance
-  - "Connection refused" → suggest firewall/port
-  - "Invalid API key" → link to docs
-  - "Timeout" → suggest retry configuration
-  - Effort: ~4h
+#### Better Error Messages ✅
+- [x] Create `src/utils/errors.ts` with `explainError()` / `formatHelpfulError()`
+  - Produces a `{ message, hint, detail }` triplet for HTTP, network, TLS and auth errors
+  - Hints cover ECONNREFUSED (reachability), ETIMEDOUT (tune `httpTimeoutMs`), 401/403 (auth key/token), 404 (API path/version), 429 (rate limit), 5xx (server logs), TLS cert errors, HTML-instead-of-JSON responses
+  - Integrated in `BaseInputPlugin.httpGet/httpPost`, `VictoriaMetricsPlugin`, `InfluxDB2Plugin` write errors
 
-#### Request Deduplication/Cache
-- [ ] Implement request cache with TTL
-  - Share data between schedules (e.g., queue data for multiple Sonarr schedules)
-  - Reduce load on source services
-  - Effort: ~4h
+#### Request Deduplication/Cache ✅
+- [x] Implement request cache with TTL
+  - Added generic in-flight request deduplication to `BaseInputPlugin.httpGet` (always on): concurrent identical GET requests share a single in-flight promise instead of firing duplicate calls
+  - Added opt-in TTL caching via the new global `cacheTtlSeconds` config option (default `0` = dedup only, no stored caching); when set, successful GET responses are cached per key (URL + params) for that duration
+  - `httpPost` requests are never deduplicated or cached
+  - The per-IP GeoIP cache (`src/utils/RequestCache.ts`, used by `TautulliPlugin`) was already implemented separately in an earlier phase and is unaffected by this change
 
-#### Environment Variable Validation
-- [ ] Create `src/utils/env.ts` for env var validation
-  - Check directory permissions (CONFIG_FOLDER, DATA_FOLDER, LOG_FOLDER)
-  - Validate required vars for enabled features
-  - Warn on deprecated vars
-  - Effort: ~2h
+#### Environment Variable Validation ✅
+- [x] Create `src/utils/env.ts` for env var validation
+  - Checks directory permissions (CONFIG_FOLDER, DATA_FOLDER, LOG_FOLDER) — creates if missing
+  - Validates HEALTH_PORT, HEALTH_ENABLED, DRY_RUN, LOG_LEVEL
+  - Warns on deprecated VRKN_* variables
+  - Called from `main()` at startup — errors abort, warnings are logged
 
-#### Structured Logging (JSON)
-- [ ] Update Logger for JSON output in production
-  - Add context helpers: `logger.with({ pluginName, pluginId })`
-  - Better for ELK Stack integration, alerting
-  - Effort: ~4h
+#### Structured Logging (JSON) ✅
+- [x] Update Logger for JSON output in production
+  - `LOG_FORMAT=json` env var switches console output to structured JSON (one record per line)
+  - `withContext(logger, context)` helper tags logs with structured fields (pluginId, scheduler, etc.)
+  - Wired in `BaseInputPlugin.initialize` to auto-tag every plugin instance log with `pluginId`
+  - File output was already JSON — now consistent with console when `LOG_FORMAT=json`
 
 ### Phase 12: Code Quality
 
-#### BaseInputPlugin Improvements
+#### BaseInputPlugin Improvements ✅
 - [x] Add `createSchedule()` helper method (`BaseInputPlugin.ts:169`)
   - Reduce duplication across plugins
   - Standardize schedule naming
-- [ ] Add `safeFetch()` wrapper with standard error handling
-  - Reduce try/catch boilerplate
-  - Effort: ~2h
+- [x] Add `safeFetch()` wrapper with standard error handling
+  - Wraps collector operations with error logging + re-throw
+  - All 9 input plugins refactored to use it (21 try/catch blocks removed)
 
-#### Test Fixtures
-- [ ] Create shared test fixtures in `tests/fixtures/`
-  - `createMockHttpClient(responses)`
-  - `createMockConfig(overrides)`
-  - Reduce duplication in plugin tests
-  - Effort: ~2h
+#### Test Fixtures ✅
+- [x] Create shared test fixtures in `tests/fixtures/`
+  - `createMockHttpClient()` — fresh axios-like client shape (get/post/defaults/interceptors)
+  - `createMockAxios(client?)` — `vi.mock('axios', …)` factory
+  - `createMockVarkenConfig(overrides)` — minimal valid `VarkenConfig` passing Zod validation
+  - `createMockGlobalConfig(overrides)` — production-like global defaults
+  - `loggerMock()` — factory for `vi.mock('<path>/core/Logger', …)` including `createLogger` and `withContext`
+  - `SonarrPlugin.test.ts` refactored as usage demo
 
-#### Graceful Plugin Skipping
-- [ ] Make output plugin failures non-fatal at startup
-  - Continue with available outputs
-  - Alert on startup that some outputs unavailable
-  - Effort: ~2h
+#### Graceful Plugin Skipping ✅
+- [x] Make output plugin failures non-fatal at startup
+  - Failed outputs are logged and skipped; Varken continues with available outputs
+  - Startup warning lists degraded output count (e.g. "Started with 1/2 output(s)")
+  - Only throws if all outputs fail (preserved safety net)
 
 ### Phase 13: Tooling & Maintenance (Low Priority)
 
@@ -429,12 +437,12 @@ interface ScheduleConfig {
   - Checklist for type of change
   - Testing instructions
 
-#### Deployment Documentation
-- [ ] Add `docs/` directory
-  - `deployment/kubernetes.md` - StatefulSet, ConfigMap
-  - `deployment/docker-swarm.md` - Stack file
-  - `deployment/bare-metal.md` - systemd unit
-  - `troubleshooting/common-issues.md`
+#### Deployment Documentation ✅
+- [x] Add `docs/deployment/` directory
+  - `deployment/docker.md` - in-depth Docker / Docker Compose guide
+  - `deployment/bare-metal.md` - systemd unit install (`deploy/systemd/varken.service`)
+  - `deployment/troubleshooting.md` - symptom-based troubleshooting guide
+  - Kubernetes and Docker Swarm guides descoped — out of scope for the homelab audience
   - Effort: ~8h
 
 #### Performance Benchmarks
@@ -447,30 +455,41 @@ interface ScheduleConfig {
 
 ## Test Coverage Summary
 
-> **Last updated**: 2026-02-02 | **Global coverage**: 90.38%
+> **Last updated**: 2026-04-24 | **Global coverage**: 91.69% | **Tests**: 721 unit + 2 integration passing
 
 | File | Coverage | Target | Status | Notes |
 |------|----------|--------|--------|-------|
-| `src/index.ts` | 100% | 80% | ✅ | |
-| `src/core/HealthServer.ts` | 90% | 90% | ✅ | |
-| `src/core/Orchestrator.ts` | 73.33% | 85% | ⚠️ | Signal handlers can't be tested (interfere with vitest) |
-| `src/core/PluginManager.ts` | 94.28% | 90% | ✅ | |
-| `src/core/Logger.ts` | 84.21% | 90% | ✅ | |
+| `src/index.ts` | 95.34% | 80% | ✅ | |
+| `src/core/ConfigWatcher.ts` | 86.66% | 90% | ⚠️ | Added in Phase 7 (Config Hot-Reload) |
+| `src/core/HealthServer.ts` | 85.93% | 90% | ⚠️ | |
+| `src/core/Metrics.ts` | 100% | 90% | ✅ | Added in Phase 7 (Prometheus) |
+| `src/core/Orchestrator.ts` | 81.96% | 85% | ⚠️ | Signal handlers can't be tested (interfere with vitest) |
+| `src/core/PluginManager.ts` | 93.25% | 90% | ✅ | |
+| `src/core/Logger.ts` | 83.33% | 90% | ⚠️ | `withContext` tested; directory-creation path (module load) still untested |
 | `src/config/ConfigLoader.ts` | 81.72% | 90% | ⚠️ | |
 | `src/config/ConfigMigrator.ts` | 92.12% | 85% | ✅ | |
-| `src/utils/http.ts` | 70.78% | 85% | ⚠️ | Interceptor callbacks need integration tests |
-| `src/plugins/inputs/SonarrPlugin.ts` | 91.66% | 90% | ✅ | |
-| `src/plugins/inputs/RadarrPlugin.ts` | 96.77% | 90% | ✅ | |
-| `src/plugins/inputs/TautulliPlugin.ts` | 92.94% | 90% | ✅ | GeoIP now via Tautulli API |
-| `src/plugins/inputs/OmbiPlugin.ts` | 94.73% | 90% | ✅ | |
-| `src/plugins/inputs/OverseerrPlugin.ts` | 91.04% | 90% | ✅ | |
-| `src/plugins/inputs/ReadarrPlugin.ts` | 96.72% | 90% | ✅ | |
+| `src/utils/http.ts` | 70.65% | 85% | ⚠️ | Interceptor callbacks need integration tests |
+| `src/utils/env.ts` | 100% | 90% | ✅ | Added in Phase 11 (Env Validation) |
+| `src/utils/errors.ts` | 91.04% | 90% | ✅ | Added in Phase 11 (Better Error Messages) |
+| `src/utils/RequestCache.ts` | 100% | 90% | ✅ | Added in Phase 11 (Request Cache) |
+| `src/plugins/inputs/SonarrPlugin.ts` | 91.89% | 90% | ✅ | Improved via safeFetch refactor |
+| `src/plugins/inputs/RadarrPlugin.ts` | 98.07% | 90% | ✅ | Improved via safeFetch refactor |
+| `src/plugins/inputs/TautulliPlugin.ts` | 95.03% | 90% | ✅ | Uses `RequestCache` for GeoIP |
+| `src/plugins/inputs/OmbiPlugin.ts` | 93.67% | 90% | ✅ | Improved via safeFetch refactor |
+| `src/plugins/inputs/OverseerrPlugin.ts` | 91.17% | 90% | ✅ | Improved via safeFetch refactor |
+| `src/plugins/inputs/PlexPlugin.ts` | 90% | 90% | ✅ | Added in Phase 9 (direct Plex API) |
+| `src/plugins/inputs/JellyfinPlugin.ts` | 98.15% | 90% | ✅ | Added in Phase 9 |
+| `src/plugins/inputs/EmbyPlugin.ts` | 98.14% | 90% | ✅ | Added in Phase 9 |
+| `src/plugins/inputs/ReadarrPlugin.ts` | 98.03% | 90% | ✅ | Improved via safeFetch refactor |
 | `src/plugins/inputs/LidarrPlugin.ts` | 100% | 90% | ✅ | |
 | `src/plugins/inputs/BazarrPlugin.ts` | 100% | 90% | ✅ | |
 | `src/plugins/inputs/ProwlarrPlugin.ts` | 100% | 90% | ✅ | |
-| `src/plugins/outputs/InfluxDB1Plugin.ts` | 83.33% | 90% | ⚠️ | |
-| `src/plugins/outputs/InfluxDB2Plugin.ts` | 82.22% | 90% | ⚠️ | |
-| `src/plugins/inputs/BaseInputPlugin.ts` | 82.35% | 90% | ⚠️ | |
+| `src/plugins/outputs/InfluxDB1Plugin.ts` | 100% | 90% | ✅ | |
+| `src/plugins/outputs/InfluxDB2Plugin.ts` | 93.33% | 90% | ✅ | |
+| `src/plugins/outputs/VictoriaMetricsPlugin.ts` | 100% | 90% | ✅ | Added in Phase 8 |
+| `src/plugins/outputs/QuestDBPlugin.ts` | 100% | 90% | ✅ | Added in Phase 8 |
+| `src/plugins/outputs/TimescaleDBPlugin.ts` | 100% | 90% | ✅ | Added in Phase 8 |
+| `src/plugins/inputs/BaseInputPlugin.ts` | 89.18% | 90% | ⚠️ | |
 | `src/plugins/outputs/BaseOutputPlugin.ts` | 100% | 90% | ✅ | |
 
 ---
@@ -486,9 +505,9 @@ interface ScheduleConfig {
 | **Prowlarr** | /api/v1 | Indexer stats | ✅ |
 | **Bazarr** | /api | Wanted subtitles, History | ✅ |
 | **Tautulli** | /api/v2 | Activity, Libraries, Stats + GeoIP | ✅ |
-| **Plex** | /api | Sessions, Libraries (direct API) | 🚧 Types ready |
-| **Jellyfin** | /api | Sessions, Libraries, Activity | 🚧 Types ready |
-| **Emby** | /emby/api | Sessions, Libraries, Activity | 🚧 Types ready |
+| **Plex** | /api | Sessions, Libraries (direct API) | ✅ |
+| **Jellyfin** | /api | Sessions, Libraries, Item counts | ✅ |
+| **Emby** | /emby | Sessions, Libraries, Item counts | ✅ |
 | **Ombi** | /api/v1 | Request counts, Issue counts | ✅ |
 | **Overseerr** | /api/v1 | Request counts, Latest requests | ✅ |
 
@@ -500,9 +519,9 @@ interface ScheduleConfig {
 |--------|----------|-------------|--------|
 | **InfluxDB1Plugin** | HTTP API v1 | InfluxDB 1.x - Legacy, InfluxQL | ✅ |
 | **InfluxDB2Plugin** | HTTP API v2 | InfluxDB 2.x - Flux, Buckets, Tokens | ✅ |
-| **VictoriaMetricsPlugin** | InfluxDB line protocol | High performance, compatible | 🚧 Types ready |
-| **QuestDBPlugin** | ILP over TCP/HTTP | Time-series SQL, fast ingestion | 🚧 Types ready |
-| **TimescaleDBPlugin** | PostgreSQL | Hypertables, standard SQL | 🚧 Types ready |
+| **VictoriaMetricsPlugin** | InfluxDB line protocol | High performance, compatible | ✅ |
+| **QuestDBPlugin** | ILP over HTTP | Time-series SQL, fast ingestion | ✅ |
+| **TimescaleDBPlugin** | PostgreSQL | Hypertables, standard SQL (JSONB tags/fields) | ✅ |
 
 ### Protocol Compatibility
 
@@ -526,29 +545,29 @@ DataPoint (internal format)
 |------|--------|--------|
 | ~~Health endpoint~~ | ~~✅~~ | ~~Production readiness~~ |
 | ~~Circuit breaker~~ | ~~✅~~ | ~~Error tracking, auto-disable, scheduler backoff~~ |
-| VictoriaMetrics output | ~4h | Popular alternative DB |
+| ~~VictoriaMetrics output~~ | ~~✅~~ | ~~Popular alternative DB~~ |
 | ~~Test Logger (42% → 84%)~~ | ~~✅~~ | ~~Critical coverage gap~~ |
 | ~~Test entry point (0% → 100%)~~ | ~~✅~~ | ~~Coverage~~ |
 
 ### Medium Priority
 | Item | Effort | Impact |
 |------|--------|--------|
-| Prometheus metrics | ~8h | Observability |
-| Config hot-reload | ~8h | Operations |
-| QuestDB, TimescaleDB outputs | ~14h | More DB options |
-| Structured logging | ~4h | Debugging |
-| Dry-run mode | ~2h | Testing |
-| Better error messages | ~4h | UX |
-| ~~Improve test coverage~~ | ~~✅~~ | ~~Quality - Global 90.38%~~ |
+| ~~Prometheus metrics~~ | ~~✅~~ | ~~Observability~~ |
+| ~~Config hot-reload~~ | ~~✅~~ | ~~Operations — via `CONFIG_WATCH=true`~~ |
+| ~~TimescaleDB output~~ | ~~✅~~ | ~~More DB options — completes Phase 8~~ |
+| ~~Structured logging~~ | ~~✅~~ | ~~`LOG_FORMAT=json` + `withContext()`~~ |
+| ~~Dry-run mode~~ | ~~✅~~ | ~~`--dry-run` / `DRY_RUN=true`~~ |
+| ~~Better error messages~~ | ~~✅~~ | ~~UX — `src/utils/errors.ts`~~ |
+| ~~Improve test coverage~~ | ~~✅~~ | ~~Quality - Global 91.15%~~ |
 
 ### Low Priority
 | Item | Effort | Impact |
 |------|--------|--------|
-| Plex, Jellyfin, Emby inputs | ~24h | Alternative to Tautulli |
+| ~~Emby input~~ | ~~✅~~ | ~~Phase 9 complete — Plex, Jellyfin, Emby all done~~ |
 | CLI tool | ~8h | Admin UX |
 | ~~Pre-commit hooks~~ | ~~✅~~ | ~~DX - husky + lint-staged~~ |
 | ~~CHANGELOG auto-generation~~ | ~~✅~~ | ~~GitHub Actions on tag~~ |
-| Deployment docs | ~8h | Documentation |
+| ~~Deployment docs~~ | ~~✅~~ | ~~Documentation~~ |
 | Performance benchmarks | ~4h | Optimization |
 
 ---

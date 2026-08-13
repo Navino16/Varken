@@ -111,9 +111,8 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
    * Collect request counts from Ombi
    */
   private async collectRequestCounts(): Promise<DataPoint[]> {
-    const points: DataPoint[] = [];
-
-    try {
+    return this.safeFetch('collect Ombi request counts', async () => {
+      const points: DataPoint[] = [];
       const counts = await this.httpGet<OmbiRequestCounts>('/api/v1/Request/count');
 
       points.push(
@@ -132,21 +131,16 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
       );
 
       this.logger.info('Collected request counts from Ombi');
-    } catch (error) {
-      this.logger.error(`Failed to collect Ombi request counts: ${error instanceof Error ? error.message : String(error)}`);
-      throw error;
-    }
-
-    return points;
+      return points;
+    });
   }
 
   /**
    * Collect issue counts from Ombi
    */
   private async collectIssueCounts(): Promise<DataPoint[]> {
-    const points: DataPoint[] = [];
-
-    try {
+    return this.safeFetch('collect Ombi issue counts', async () => {
+      const points: DataPoint[] = [];
       const issues = await this.httpGet<OmbiIssuesCounts>('/api/v1/Issues/count');
 
       points.push(
@@ -165,12 +159,8 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
       );
 
       this.logger.info('Collected issue counts from Ombi');
-    } catch (error) {
-      this.logger.error(`Failed to collect Ombi issue counts: ${error instanceof Error ? error.message : String(error)}`);
-      throw error;
-    }
-
-    return points;
+      return points;
+    });
   }
 
   /**
@@ -190,9 +180,8 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
    * Collect all requests (TV and movie) from Ombi
    */
   private async collectAllRequests(): Promise<DataPoint[]> {
-    const points: DataPoint[] = [];
-
-    try {
+    return this.safeFetch('collect Ombi requests', async () => {
+      const points: DataPoint[] = [];
       // Fetch users and requests in parallel
       const [userMap, tvRequests, movieRequests] = await Promise.all([
         this.fetchUserMap(),
@@ -235,12 +224,8 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
       this.logger.info(
         `Collected ${tvRequests?.length || 0} TV and ${movieRequests?.length || 0} movie requests from Ombi`
       );
-    } catch (error) {
-      this.logger.error(`Failed to collect Ombi requests: ${error instanceof Error ? error.message : String(error)}`);
-      throw error;
-    }
-
-    return points;
+      return points;
+    });
   }
 
   /**

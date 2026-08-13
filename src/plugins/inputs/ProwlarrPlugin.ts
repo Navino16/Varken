@@ -69,9 +69,8 @@ export class ProwlarrPlugin extends BaseInputPlugin<ProwlarrConfig> {
    * Collect indexer statistics from Prowlarr
    */
   private async collectIndexerStats(): Promise<DataPoint[]> {
-    const points: DataPoint[] = [];
-
-    try {
+    return this.safeFetch('collect Prowlarr indexer stats', async () => {
+      const points: DataPoint[] = [];
       const response = await this.httpGet<ProwlarrIndexerStatsResponse>('/api/v1/indexerstats');
       const indexers = response?.indexers;
 
@@ -109,11 +108,7 @@ export class ProwlarrPlugin extends BaseInputPlugin<ProwlarrConfig> {
       }
 
       this.logger.info(`Collected stats for ${points.length} indexers from Prowlarr`);
-    } catch (error) {
-      this.logger.error(`Failed to collect Prowlarr indexer stats: ${error instanceof Error ? error.message : String(error)}`);
-      throw error;
-    }
-
-    return points;
+      return points;
+    });
   }
 }

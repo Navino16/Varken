@@ -1,9 +1,11 @@
 import { createLogger } from './core/Logger';
 import { ConfigLoader, ConfigurationMissingError } from './config';
 import { Orchestrator } from './core/Orchestrator';
+import { ConfigWatcher } from './core/ConfigWatcher';
 import { getInputPluginRegistry } from './plugins/inputs';
 import { getOutputPluginRegistry } from './plugins/outputs';
 import type { HealthServerConfig } from './core/HealthServer';
+import { validateEnvironment } from './utils/env';
 import { version as VERSION } from '../package.json';
 
 export { VERSION };
@@ -15,6 +17,7 @@ export interface MainDependencies {
   Orchestrator: typeof Orchestrator;
   getInputPluginRegistry: typeof getInputPluginRegistry;
   getOutputPluginRegistry: typeof getOutputPluginRegistry;
+  validateEnvironment: typeof validateEnvironment;
 }
 
 const defaultDependencies: MainDependencies = {
@@ -23,7 +26,12 @@ const defaultDependencies: MainDependencies = {
   Orchestrator,
   getInputPluginRegistry,
   getOutputPluginRegistry,
+  validateEnvironment,
 };
+
+export function isDryRun(argv: string[] = process.argv, env: NodeJS.ProcessEnv = process.env): boolean {
+  return argv.includes('--dry-run') || env.DRY_RUN === 'true';
+}
 
 export async function main(deps: MainDependencies = defaultDependencies): Promise<void> {
   const logger = deps.createLogger('Main');
@@ -31,12 +39,32 @@ export async function main(deps: MainDependencies = defaultDependencies): Promis
   const dataFolder = process.env.DATA_FOLDER || './data';
   const healthPort = parseInt(process.env.HEALTH_PORT || String(DEFAULT_HEALTH_PORT), 10);
   const healthEnabled = process.env.HEALTH_ENABLED !== 'false';
+  const metricsEnabled = process.env.METRICS_ENABLED !== 'false';
+  const configWatch = process.env.CONFIG_WATCH === 'true';
+  const dryRun = isDryRun();
 
   logger.info(`Varken v${VERSION} starting...`);
+
+  const { errors, warnings } = deps.validateEnvironment();
+  for (const warning of warnings) {
+    logger.warn(warning);
+  }
+  if (errors.length > 0) {
+    for (const error of errors) {
+      logger.error(error);
+    }
+    throw new Error(`Environment validation failed with ${errors.length} error(s)`);
+  }
+
   logger.info(`Config folder: ${configFolder}`);
   logger.info(`Data folder: ${dataFolder}`);
-  if (healthEnabled) {
+  if (dryRun) {
+    logger.info('Mode: dry-run (no data will be written)');
+  } else if (healthEnabled) {
     logger.info(`Health endpoint: http://0.0.0.0:${healthPort}/health`);
+    if (metricsEnabled) {
+      logger.info(`Metrics endpoint: http://0.0.0.0:${healthPort}/metrics`);
+    }
   }
 
   // Load and validate configuration
@@ -57,14 +85,14 @@ export async function main(deps: MainDependencies = defaultDependencies): Promis
 
   logger.debug('Configuration loaded');
 
-  // Create health server configuration
-  const healthConfig: HealthServerConfig | undefined = healthEnabled
+  // Create health server configuration (disabled in dry-run mode)
+  const healthConfig: HealthServerConfig | undefined = healthEnabled && !dryRun
     ? { port: healthPort, version: VERSION }
     : undefined;
 
   // Create and configure orchestrator
   // Note: GeoIP is now handled directly by TautulliPlugin via Tautulli API
-  const orchestrator = new deps.Orchestrator(config, healthConfig);
+  const orchestrator = new deps.Orchestrator(config, healthConfig, metricsEnabled);
 
   // Register plugins automatically from registries
   const inputPlugins = deps.getInputPluginRegistry();
@@ -78,8 +106,31 @@ export async function main(deps: MainDependencies = defaultDependencies): Promis
     outputPlugins,
   });
 
+  if (dryRun) {
+    await orchestrator.dryRun();
+    return;
+  }
+
   // Start orchestrator
   await orchestrator.start();
+
+  if (configWatch) {
+    const watcher = new ConfigWatcher({
+      configFolder,
+      onChange: async (): Promise<void> => {
+        logger.info('Config file changed — reloading...');
+        try {
+          const newConfig = configLoader.load();
+          await orchestrator.reload(newConfig);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          logger.error(`Config reload aborted: ${message}. Keeping current configuration.`);
+        }
+      },
+    });
+    watcher.start();
+    logger.info('Config hot-reload enabled');
+  }
 
   // Keep process running
   logger.info('Varken is running. Press Ctrl+C to stop.');

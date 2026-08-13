@@ -2,6 +2,7 @@ import { createLogger } from './Logger';
 import type { InputPluginFactory, OutputPluginFactory } from './PluginManager';
 import { PluginManager } from './PluginManager';
 import { HealthServer, type HealthServerConfig } from './HealthServer';
+import { Metrics } from './Metrics';
 import type { VarkenConfig } from '../config/schemas/config.schema';
 
 const logger = createLogger('Orchestrator');
@@ -23,15 +24,20 @@ export class Orchestrator {
   private healthServer: HealthServer | null = null;
   private config: VarkenConfig;
   private healthConfig?: HealthServerConfig;
+  private metrics: Metrics | null = null;
   private isRunning = false;
   private shutdownPromise: Promise<void> | null = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private signalHandlers: Array<{ event: string; handler: (...args: any[]) => void }> = [];
 
-  constructor(config: VarkenConfig, healthConfig?: HealthServerConfig) {
+  constructor(config: VarkenConfig, healthConfig?: HealthServerConfig, metricsEnabled = true) {
     this.config = config;
     this.healthConfig = healthConfig;
     this.pluginManager = new PluginManager();
+    if (metricsEnabled) {
+      this.metrics = new Metrics();
+      this.pluginManager.setMetrics(this.metrics);
+    }
   }
 
   /**
@@ -84,6 +90,7 @@ export class Orchestrator {
       if (this.healthConfig) {
         this.healthServer = new HealthServer(this.healthConfig);
         this.healthServer.setPluginManager(this.pluginManager);
+        this.healthServer.setMetrics(this.metrics);
         await this.healthServer.start();
       }
 
@@ -96,6 +103,67 @@ export class Orchestrator {
       const message = error instanceof Error ? error.message : 'Unknown error';
       logger.error(`Failed to start Varken: ${message}`);
       throw error;
+    }
+  }
+
+  /**
+   * Apply a new configuration without restarting the process.
+   *
+   * Delegates to PluginManager.reload() which stops schedulers, shuts down
+   * current plugins, re-initializes from the new config, and restarts schedulers.
+   * The health server and metrics stay up the whole time.
+   */
+  async reload(newConfig: VarkenConfig): Promise<void> {
+    if (!this.isRunning) {
+      logger.warn('Orchestrator is not running; skipping reload');
+      return;
+    }
+    logger.info('Reloading Varken configuration...');
+    this.config = newConfig;
+    await this.pluginManager.reload(newConfig);
+    logger.info('Varken configuration reloaded');
+  }
+
+  /**
+   * Run all enabled schedules once without writing to outputs.
+   * Used to validate config, test connectivity, and preview what would be collected.
+   */
+  async dryRun(): Promise<void> {
+    logger.info('Starting Varken in dry-run mode — no data will be written to outputs');
+
+    this.pluginManager.setDryRun(true);
+
+    try {
+      await this.pluginManager.initializeFromConfig(this.config);
+
+      logger.info('Checking output connectivity...');
+      const healthResults = await this.pluginManager.healthCheck();
+      for (const [type, healthy] of healthResults) {
+        if (healthy) {
+          logger.info(`Output ${type}: healthy`);
+        } else {
+          logger.warn(`Output ${type}: unhealthy (would fail in production)`);
+        }
+      }
+
+      logger.info('Running each enabled schedule once...');
+      const collected = await this.pluginManager.collectAllOnce();
+
+      let totalPoints = 0;
+      for (const [scheduleName, points] of collected) {
+        totalPoints += points.length;
+        logger.info(`[DRY-RUN] ${scheduleName}: ${points.length} point(s) collected`);
+      }
+
+      const outputNames = Array.from(
+        (await this.pluginManager.getOutputPluginStatuses()).map((s) => s.type)
+      );
+      logger.info(
+        `[DRY-RUN] Summary: ${totalPoints} point(s) across ${collected.size} schedule(s) would be written to ${outputNames.length} output(s): ${outputNames.join(', ') || 'none'}`
+      );
+      logger.info('Dry-run complete — configuration is valid');
+    } finally {
+      await this.pluginManager.shutdown();
     }
   }
 

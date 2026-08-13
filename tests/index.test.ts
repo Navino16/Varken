@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { main, VERSION, DEFAULT_HEALTH_PORT, MainDependencies } from '../src/index';
+import { main, VERSION, DEFAULT_HEALTH_PORT, MainDependencies, isDryRun } from '../src/index';
 
 describe('index.ts (Entry Point)', () => {
   const originalEnv = { ...process.env };
@@ -15,6 +15,7 @@ describe('index.ts (Entry Point)', () => {
   let mockOrchestratorInstance: {
     registerPlugins: ReturnType<typeof vi.fn>;
     start: ReturnType<typeof vi.fn>;
+    dryRun: ReturnType<typeof vi.fn>;
   };
   let MockConfigLoader: new (folder: string) => typeof mockConfigLoaderInstance;
   let MockOrchestrator: new (...args: unknown[]) => typeof mockOrchestratorInstance;
@@ -67,6 +68,7 @@ describe('index.ts (Entry Point)', () => {
     mockOrchestratorInstance = {
       registerPlugins: vi.fn(),
       start: vi.fn().mockResolvedValue(undefined),
+      dryRun: vi.fn().mockResolvedValue(undefined),
     };
 
     // Create mock classes
@@ -77,6 +79,7 @@ describe('index.ts (Entry Point)', () => {
     MockOrchestrator = class {
       registerPlugins = mockOrchestratorInstance.registerPlugins;
       start = mockOrchestratorInstance.start;
+      dryRun = mockOrchestratorInstance.dryRun;
     } as unknown as typeof MockOrchestrator;
 
     const mockInputRegistry = new Map([['sonarr', class {}]]);
@@ -88,6 +91,7 @@ describe('index.ts (Entry Point)', () => {
       Orchestrator: MockOrchestrator as unknown as MainDependencies['Orchestrator'],
       getInputPluginRegistry: () => mockInputRegistry as unknown as ReturnType<MainDependencies['getInputPluginRegistry']>,
       getOutputPluginRegistry: () => mockOutputRegistry as unknown as ReturnType<MainDependencies['getOutputPluginRegistry']>,
+      validateEnvironment: vi.fn().mockReturnValue({ errors: [], warnings: [] }),
     };
   });
 
@@ -309,6 +313,75 @@ describe('index.ts (Entry Point)', () => {
 
       expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('Discovered 0 input plugins'));
       expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('Discovered 0 output plugins'));
+    });
+  });
+
+  describe('Dry-run mode', () => {
+    it('isDryRun should detect --dry-run flag in argv', () => {
+      expect(isDryRun(['node', 'varken', '--dry-run'], {})).toBe(true);
+    });
+
+    it('isDryRun should detect DRY_RUN=true env var', () => {
+      expect(isDryRun(['node', 'varken'], { DRY_RUN: 'true' })).toBe(true);
+    });
+
+    it('isDryRun should return false when neither is set', () => {
+      expect(isDryRun(['node', 'varken'], {})).toBe(false);
+    });
+
+    it('should call orchestrator.dryRun() instead of start() when DRY_RUN=true', async () => {
+      process.env.DRY_RUN = 'true';
+
+      await main(mockDeps);
+
+      expect(mockOrchestratorInstance.dryRun).toHaveBeenCalledTimes(1);
+      expect(mockOrchestratorInstance.start).not.toHaveBeenCalled();
+    });
+
+    it('should log dry-run mode on startup', async () => {
+      process.env.DRY_RUN = 'true';
+
+      await main(mockDeps);
+
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        expect.stringContaining('Mode: dry-run')
+      );
+    });
+
+    it('should skip health endpoint announcement in dry-run mode', async () => {
+      process.env.DRY_RUN = 'true';
+
+      await main(mockDeps);
+
+      const healthCalls = mockLogger.info.mock.calls.filter(
+        (call: unknown[]) => typeof call[0] === 'string' && call[0].includes('Health endpoint')
+      );
+      expect(healthCalls).toHaveLength(0);
+    });
+  });
+
+  describe('Environment validation', () => {
+    it('should log warnings returned by validateEnvironment', async () => {
+      mockDeps.validateEnvironment = vi.fn().mockReturnValue({
+        errors: [],
+        warnings: ['legacy VRKN_* variables detected'],
+      });
+
+      await main(mockDeps);
+
+      expect(mockLogger.warn).toHaveBeenCalledWith('legacy VRKN_* variables detected');
+    });
+
+    it('should throw when validateEnvironment returns errors', async () => {
+      mockDeps.validateEnvironment = vi.fn().mockReturnValue({
+        errors: ['HEALTH_PORT="nope" is not a valid TCP port'],
+        warnings: [],
+      });
+
+      await expect(main(mockDeps)).rejects.toThrow('Environment validation failed');
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'HEALTH_PORT="nope" is not a valid TCP port'
+      );
     });
   });
 });

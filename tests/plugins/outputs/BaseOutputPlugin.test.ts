@@ -10,6 +10,7 @@ vi.mock('../../../src/core/Logger', () => ({
     warn: vi.fn(),
     error: vi.fn(),
   }),
+  withContext: (logger: unknown) => logger,
 }));
 
 // Concrete implementation for testing

@@ -78,9 +78,8 @@ export class RadarrPlugin extends BaseInputPlugin<RadarrConfig> {
    * Collect queue data from Radarr
    */
   private async collectQueue(): Promise<DataPoint[]> {
-    const points: DataPoint[] = [];
-
-    try {
+    return this.safeFetch('collect Radarr queue', async () => {
+      const points: DataPoint[] = [];
       const allRecords = await this.fetchAllPages<RadarrQueue>('/api/v3/queue', {
         includeMovie: true,
         includeUnknownMovieItems: false,
@@ -126,21 +125,16 @@ export class RadarrPlugin extends BaseInputPlugin<RadarrConfig> {
       }
 
       this.logger.info(`Collected ${points.length} queue items from Radarr`);
-    } catch (error) {
-      this.logger.error(`Failed to collect Radarr queue: ${error instanceof Error ? error.message : String(error)}`);
-      throw error;
-    }
-
-    return points;
+      return points;
+    });
   }
 
   /**
    * Collect missing movies from Radarr
    */
   private async collectMissing(): Promise<DataPoint[]> {
-    const points: DataPoint[] = [];
-
-    try {
+    return this.safeFetch('collect Radarr missing movies', async () => {
+      const points: DataPoint[] = [];
       const movies = await this.httpGet<RadarrMovie[]>('/api/v3/movie');
 
       if (!movies || movies.length === 0) {
@@ -179,11 +173,7 @@ export class RadarrPlugin extends BaseInputPlugin<RadarrConfig> {
       }
 
       this.logger.info(`Collected ${points.length} missing movies from Radarr`);
-    } catch (error) {
-      this.logger.error(`Failed to collect Radarr missing movies: ${error instanceof Error ? error.message : String(error)}`);
-      throw error;
-    }
-
-    return points;
+      return points;
+    });
   }
 }

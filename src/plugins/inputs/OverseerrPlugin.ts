@@ -96,9 +96,8 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
    * Collect request counts from Overseerr
    */
   private async collectRequestCounts(): Promise<DataPoint[]> {
-    const points: DataPoint[] = [];
-
-    try {
+    return this.safeFetch('collect Overseerr request counts', async () => {
+      const points: DataPoint[] = [];
       const counts = await this.httpGet<OverseerrRequestCounts>('/api/v1/request/count');
 
       points.push(
@@ -122,21 +121,16 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
       );
 
       this.logger.info('Collected request counts from Overseerr');
-    } catch (error) {
-      this.logger.error(`Failed to collect Overseerr request counts: ${error instanceof Error ? error.message : String(error)}`);
-      throw error;
-    }
-
-    return points;
+      return points;
+    });
   }
 
   /**
    * Collect issue counts from Overseerr
    */
   private async collectIssueCounts(): Promise<DataPoint[]> {
-    const points: DataPoint[] = [];
-
-    try {
+    return this.safeFetch('collect Overseerr issue counts', async () => {
+      const points: DataPoint[] = [];
       const issues = await this.httpGet<OverseerrIssuesCounts>('/api/v1/issue/count');
 
       points.push(
@@ -159,21 +153,16 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
       );
 
       this.logger.info('Collected issue counts from Overseerr');
-    } catch (error) {
-      this.logger.error(`Failed to collect Overseerr issue counts: ${error instanceof Error ? error.message : String(error)}`);
-      throw error;
-    }
-
-    return points;
+      return points;
+    });
   }
 
   /**
    * Collect latest requests from Overseerr
    */
   private async collectLatestRequests(): Promise<DataPoint[]> {
-    const points: DataPoint[] = [];
-
-    try {
+    return this.safeFetch('collect Overseerr latest requests', async () => {
+      const points: DataPoint[] = [];
       const count = this.config.latestRequests.count || 10;
       const response = await this.httpGet<OverseerrRequestsResponse>(
         `/api/v1/request?take=${count}&filter=all&sort=added`
@@ -242,11 +231,7 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
       points.push(...results.filter((p): p is DataPoint => p !== null));
 
       this.logger.info(`Collected ${points.length} latest requests from Overseerr`);
-    } catch (error) {
-      this.logger.error(`Failed to collect Overseerr latest requests: ${error instanceof Error ? error.message : String(error)}`);
-      throw error;
-    }
-
-    return points;
+      return points;
+    });
   }
 }

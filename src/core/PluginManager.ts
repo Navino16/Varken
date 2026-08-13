@@ -1,4 +1,5 @@
 import { createLogger } from './Logger';
+import type { Metrics } from './Metrics';
 import { withTimeout } from '../utils/http';
 import type {
   InputPlugin,
@@ -77,9 +78,61 @@ export class PluginManager {
   private isRunning = false;
   private circuitBreakerConfig: CircuitBreakerConfig = DEFAULT_CIRCUIT_BREAKER_CONFIG;
   private config?: VarkenConfig;
+  private dryRun = false;
+  private metrics: Metrics | null = null;
 
   constructor() {
     // No longer needs GeoIP handler - handled by TautulliPlugin via Tautulli API
+  }
+
+  /**
+   * Enable or disable dry-run mode.
+   * In dry-run mode, output plugins are not invoked; data points are logged instead.
+   */
+  setDryRun(enabled: boolean): void {
+    this.dryRun = enabled;
+  }
+
+  /**
+   * Attach a Metrics registry so plugin activity is recorded for Prometheus scraping.
+   * If not set, no metrics are collected (legacy behavior).
+   */
+  setMetrics(metrics: Metrics | null): void {
+    this.metrics = metrics;
+  }
+
+  /**
+   * Execute every enabled schedule exactly once and return the collected points per schedule.
+   * Intended for dry-run mode — does not start any timers or write to outputs.
+   */
+  async collectAllOnce(): Promise<Map<string, DataPoint[]>> {
+    const results = new Map<string, DataPoint[]>();
+    const collectorTimeout = this.config?.global?.collectorTimeoutMs ?? 60000;
+
+    for (const plugins of this.inputPlugins.values()) {
+      for (const plugin of plugins) {
+        for (const schedule of plugin.getSchedules()) {
+          if (!schedule.enabled) {
+            continue;
+          }
+
+          try {
+            const points = await withTimeout(
+              schedule.collector(),
+              collectorTimeout,
+              `Collector ${schedule.name} timed out after ${collectorTimeout}ms`
+            );
+            results.set(schedule.name, this.validateDataPoints(points, schedule.name));
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            logger.error(`Schedule ${schedule.name} failed during dry-run: ${message}`);
+            results.set(schedule.name, []);
+          }
+        }
+      }
+    }
+
+    return results;
   }
 
   /**
@@ -121,6 +174,9 @@ export class PluginManager {
     // Initialize input plugins
     await this.initializeInputPlugins(config.inputs, config.global);
 
+    const stats = this.getStats();
+    this.metrics?.setActivePlugins(stats.activeInputPlugins, stats.activeOutputPlugins);
+
     logger.info('All plugins initialized successfully');
   }
 
@@ -139,9 +195,9 @@ export class PluginManager {
         continue;
       }
 
+      const plugin = new factory();
+      const initTimeout = this.config?.global?.httpTimeoutMs ?? 30000;
       try {
-        const plugin = new factory();
-        const initTimeout = this.config?.global?.httpTimeoutMs ?? 30000;
         await withTimeout(
           plugin.initialize(outputConfig),
           initTimeout,
@@ -151,13 +207,26 @@ export class PluginManager {
         logger.info(`Initialized output plugin: ${type}`);
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown error';
-        logger.error(`Failed to initialize output plugin ${type}: ${message}`);
-        throw error;
+        logger.error(
+          `Failed to initialize output plugin ${type}: ${message} — skipping (other outputs will continue)`
+        );
+        try {
+          await plugin.shutdown();
+        } catch {
+          // Best-effort cleanup
+        }
       }
     }
 
     if (this.outputPlugins.size === 0) {
       throw new Error('No output plugins were initialized');
+    }
+
+    const configuredCount = Object.values(outputs).filter((v) => v !== undefined).length;
+    if (this.outputPlugins.size < configuredCount) {
+      logger.warn(
+        `Started with ${this.outputPlugins.size}/${configuredCount} output(s) — some failed to initialize but Varken will continue with the available ones`
+      );
     }
   }
 
@@ -258,6 +327,7 @@ export class PluginManager {
     };
 
     this.schedulers.set(schedule.name, activeScheduler);
+    this.metrics?.setCircuitBreakerState(schedule.name, 'closed');
 
     // Run immediately on start
     this.executeSchedule(schedule).catch((error) => {
@@ -349,10 +419,10 @@ export class PluginManager {
     }
 
     scheduler.isRunning = true;
+    const startTime = Date.now();
 
     try {
       logger.debug(`Executing schedule: ${schedule.name}`);
-      const startTime = Date.now();
 
       // Collect data from the plugin with configurable timeout
       const collectorTimeout = this.config?.global?.collectorTimeoutMs ?? 60000;
@@ -363,6 +433,7 @@ export class PluginManager {
       );
 
       const validPoints = this.validateDataPoints(points, schedule.name);
+      this.metrics?.recordDataPointsCollected(schedule.name, validPoints.length);
 
       if (validPoints.length > 0) {
         // Write to all output plugins
@@ -376,12 +447,14 @@ export class PluginManager {
       }
 
       // Handle success
+      this.metrics?.recordCollection(schedule.name, (Date.now() - startTime) / 1000, true);
       this.handleScheduleSuccess(scheduler);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       logger.error(`Schedule ${schedule.name} failed: ${message}`);
 
       // Handle failure
+      this.metrics?.recordCollection(schedule.name, (Date.now() - startTime) / 1000, false);
       this.handleScheduleFailure(scheduler, message);
     } finally {
       scheduler.isRunning = false;
@@ -465,6 +538,7 @@ export class PluginManager {
       Date.now() + this.circuitBreakerConfig.cooldownSeconds * 1000
     );
     scheduler.recoverySuccesses = 0;
+    this.metrics?.setCircuitBreakerState(scheduler.schedule.name, 'open');
 
     logger.warn(
       `Schedule ${scheduler.schedule.name} circuit opened after ${scheduler.consecutiveErrors} errors, ` +
@@ -480,6 +554,7 @@ export class PluginManager {
     scheduler.recoverySuccesses = 0;
     // Reset to base interval for recovery testing
     scheduler.currentIntervalMs = scheduler.baseIntervalMs;
+    this.metrics?.setCircuitBreakerState(scheduler.schedule.name, 'half-open');
 
     logger.info(
       `Schedule ${scheduler.schedule.name} circuit transitioning to half-open for recovery testing`
@@ -497,6 +572,7 @@ export class PluginManager {
     scheduler.disabledAt = undefined;
     scheduler.nextAttemptAt = undefined;
     scheduler.recoverySuccesses = 0;
+    this.metrics?.setCircuitBreakerState(scheduler.schedule.name, 'closed');
 
     logger.info(
       `Schedule ${scheduler.schedule.name} circuit closed, resuming normal operation`
@@ -528,14 +604,23 @@ export class PluginManager {
    * Write data points to all output plugins
    */
   private async writeToOutputs(points: DataPoint[]): Promise<void> {
+    if (this.dryRun) {
+      logger.info(
+        `[DRY-RUN] Would write ${points.length} point(s) to ${this.outputPlugins.size} output(s): ${Array.from(this.outputPlugins.keys()).join(', ')}`
+      );
+      return;
+    }
+
     let failureCount = 0;
     const writePromises = Array.from(this.outputPlugins.entries()).map(
       async ([type, plugin]) => {
         try {
           await plugin.write(points);
+          this.metrics?.recordWrite(type, points.length, true);
           logger.debug(`Wrote ${points.length} points to ${type}`);
         } catch (error) {
           failureCount++;
+          this.metrics?.recordWrite(type, points.length, false);
           const message = error instanceof Error ? error.message : 'Unknown error';
           logger.error(`Failed to write to output ${type}: ${message}`);
           // Don't throw - continue with other outputs
@@ -547,6 +632,50 @@ export class PluginManager {
     if (failureCount === writePromises.length && writePromises.length > 0) {
       logger.error(`All ${failureCount} output plugins failed — data points may be lost`);
     }
+  }
+
+  /**
+   * Reload the plugin manager with a new configuration.
+   *
+   * Performs a full restart: stops schedulers, shuts down all input/output plugins,
+   * then re-initializes from the new config and restarts schedulers. Plugin factories
+   * (registered types) are preserved.
+   *
+   * Safe to call while schedulers are running — they will be paused during the swap.
+   */
+  async reload(newConfig: VarkenConfig): Promise<void> {
+    logger.info('Reloading plugin manager with new configuration...');
+
+    await this.stopSchedulers();
+
+    // Shutdown current plugins but keep factories registered
+    for (const [type, plugins] of this.inputPlugins) {
+      for (const plugin of plugins) {
+        try {
+          await plugin.shutdown();
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Unknown error';
+          logger.error(`Error shutting down input plugin ${type} during reload: ${message}`);
+        }
+      }
+    }
+    this.inputPlugins.clear();
+
+    for (const [type, plugin] of this.outputPlugins) {
+      try {
+        await plugin.shutdown();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        logger.error(`Error shutting down output plugin ${type} during reload: ${message}`);
+      }
+    }
+    this.outputPlugins.clear();
+
+    // Re-initialize with new config
+    await this.initializeFromConfig(newConfig);
+    await this.startSchedulers();
+
+    logger.info('Plugin manager reload complete');
   }
 
   /**

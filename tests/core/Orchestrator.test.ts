@@ -13,6 +13,7 @@ vi.mock('../../src/core/Logger', () => ({
     warn: vi.fn(),
     error: vi.fn(),
   }),
+  withContext: (logger: unknown) => logger,
 }));
 
 // Test input plugin implementation
@@ -291,6 +292,100 @@ describe('Orchestrator', () => {
       await orchestrator.start();
 
       expect(orchestrator.isActive()).toBe(true);
+    });
+  });
+
+  describe('reload', () => {
+    beforeEach(() => {
+      vi.useRealTimers();
+      orchestrator = new Orchestrator(minimalConfig);
+      orchestrator.registerPlugins({
+        inputPlugins: new Map([['sonarr', MockInputPlugin]]),
+        outputPlugins: new Map([['influxdb1', MockOutputPlugin]]),
+      });
+    });
+
+    it('should apply a new configuration while running', async () => {
+      await orchestrator.start();
+      expect(orchestrator.isActive()).toBe(true);
+
+      const newConfig: VarkenConfig = {
+        ...minimalConfig,
+        inputs: {
+          sonarr: [
+            {
+              id: 2,
+              url: 'http://sonarr2:8989',
+              apiKey: 'new-key',
+              verifySsl: false,
+              queue: { enabled: true, intervalSeconds: 60 },
+              calendar: { enabled: false, intervalSeconds: 300, futureDays: 7, missingDays: 30 },
+            },
+          ],
+        },
+      };
+
+      await expect(orchestrator.reload(newConfig)).resolves.toBeUndefined();
+      expect(orchestrator.isActive()).toBe(true);
+    });
+
+    it('should skip reload when orchestrator is not running', async () => {
+      // Not started yet
+      await expect(orchestrator.reload(minimalConfig)).resolves.toBeUndefined();
+      expect(orchestrator.isActive()).toBe(false);
+    });
+  });
+
+  describe('dryRun', () => {
+    beforeEach(() => {
+      orchestrator = new Orchestrator(minimalConfig);
+      orchestrator.registerPlugins({
+        inputPlugins: new Map([['sonarr', MockInputPlugin]]),
+        outputPlugins: new Map([['influxdb1', MockOutputPlugin]]),
+      });
+    });
+
+    it('should initialize plugins, run collectors once, then shut down without starting schedulers', async () => {
+      await orchestrator.dryRun();
+
+      // Orchestrator must not be considered active after a dry-run
+      expect(orchestrator.isActive()).toBe(false);
+    });
+
+    it('should warn when an output is unhealthy during dry-run', async () => {
+      class UnhealthyOutputPlugin extends MockOutputPlugin {
+        override async healthCheck(): Promise<boolean> {
+          return false;
+        }
+      }
+
+      const o = new Orchestrator(minimalConfig);
+      o.registerPlugins({
+        inputPlugins: new Map([['sonarr', MockInputPlugin]]),
+        outputPlugins: new Map([['influxdb1', UnhealthyOutputPlugin]]),
+      });
+
+      // Should complete without throwing — unhealthy outputs are logged as warnings, not errors
+      await expect(o.dryRun()).resolves.toBeUndefined();
+    });
+
+    it('should not invoke write() on output plugins', async () => {
+      let writeCalls = 0;
+      class SpyOutputPlugin extends MockOutputPlugin {
+        override async write(points: DataPoint[]): Promise<void> {
+          writeCalls++;
+          await super.write(points);
+        }
+      }
+      const o = new Orchestrator(minimalConfig);
+      o.registerPlugins({
+        inputPlugins: new Map([['sonarr', MockInputPlugin]]),
+        outputPlugins: new Map([['influxdb1', SpyOutputPlugin]]),
+      });
+
+      await o.dryRun();
+
+      expect(writeCalls).toBe(0);
     });
   });
 
