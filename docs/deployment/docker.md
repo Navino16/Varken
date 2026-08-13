@@ -58,16 +58,13 @@ docker inspect --format '{{.State.Health.Status}}' varken
 
 ## Resource limits
 
-To cap the container's memory usage, add a `deploy.resources` block under the `varken` service in your compose file:
+To cap the container's memory usage, add a `mem_limit` to the `varken` service in your compose file:
 
 ```yaml
-deploy:
-  resources:
-    limits:
-      memory: 256M
+mem_limit: 256m
 ```
 
-> This `deploy:` block requires Docker Compose v2 (`docker compose`); the legacy `docker-compose` v1 ignores it and uses `mem_limit` instead.
+> `mem_limit` is honored by a plain `docker compose up -d` (outside Swarm). The Compose Specification's `deploy.resources.limits` block is only applied with `docker compose --compatibility up` (or under Swarm) and is otherwise silently ignored — so prefer `mem_limit` here.
 
 ## Updating
 

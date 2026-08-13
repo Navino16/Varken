@@ -13,7 +13,7 @@ Verify your Node.js version:
 node --version
 ```
 
-The output should be `v24.0.0` or higher.
+The output should be `v24.0.0` or higher. If your distribution's repositories don't ship Node.js 24, install it from [NodeSource](https://github.com/nodesource/distributions) or [nodejs.org](https://nodejs.org/en/download).
 
 ## Dedicated user
 
@@ -22,6 +22,8 @@ Run Varken as an unprivileged, non-interactive system user:
 ```bash
 sudo useradd --system --no-create-home --shell /usr/sbin/nologin varken
 ```
+
+> On RHEL/CentOS/Fedora the nologin shell is usually at `/sbin/nologin` — adjust the path if `/usr/sbin/nologin` doesn't exist on your distribution.
 
 ## Install
 
@@ -43,7 +45,17 @@ sudo mkdir -p /etc/varken /var/lib/varken /var/log/varken
 sudo chown -R varken:varken /var/lib/varken /var/log/varken
 ```
 
-Place your `varken.yaml` in `/etc/varken/`. See [Configuration](../../README.md#configuration) for the full file format.
+Place your `varken.yaml` in `/etc/varken/` and lock down its permissions — it holds API keys:
+
+```bash
+sudo cp varken.yaml /etc/varken/varken.yaml
+sudo chown root:varken /etc/varken/varken.yaml
+sudo chmod 640 /etc/varken/varken.yaml
+```
+
+See [Configuration](../../README.md#configuration) for the full file format.
+
+> **Important:** create a valid `varken.yaml` **before** starting the service. This unit's `ReadWritePaths` does not include `/etc/varken`, so under `ProtectSystem=strict` Varken cannot fall back to writing a config template there (the way the Docker/manual flows do when the file is missing) — a missing config file makes the service exit with an error instead.
 
 ## systemd unit
 
@@ -63,6 +75,8 @@ The provided unit runs Varken as the `varken` user from `/opt/varken` and sets:
 - `LOG_LEVEL=info`
 
 It also applies systemd hardening: `NoNewPrivileges=true`, `ProtectSystem=strict`, and `ReadWritePaths=/var/lib/varken /var/log/varken` (the only two paths the service can write to, since `ProtectSystem=strict` makes the rest of the filesystem read-only).
+
+> The unit's `ExecStart` uses `/usr/bin/node`. If you installed Node.js via `nvm` or another non-system method, `node` won't be at that path — run `which node` and update the `ExecStart=` line in `/etc/systemd/system/varken.service` accordingly (a wrong path fails at startup with `status=203/EXEC`).
 
 ## Enable & start
 

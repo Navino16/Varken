@@ -116,6 +116,8 @@ docker run -d \
   --name varken \
   -v /path/to/config:/config \
   -v /path/to/data:/data \
+  -v /path/to/logs:/logs \
+  -p 9090:9090 \
   -e TZ=Europe/Paris \
   ghcr.io/navino16/varken:latest
 ```
