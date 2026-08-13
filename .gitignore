@@ -40,3 +40,7 @@ config/varken.test.yaml
 ANALYSIS.md
 /CLAUDE.md
 /.claude/
+
+# Superpowers workflow scratch (specs, plans, ledgers)
+docs/superpowers/
+.superpowers/
