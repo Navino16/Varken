@@ -78,7 +78,7 @@ services:
       - all
 
   influxdb2:
-    image: influxdb:2.7
+    image: influxdb:2.9
     container_name: varken-influxdb2
     ports:
       - "8087:8086"
