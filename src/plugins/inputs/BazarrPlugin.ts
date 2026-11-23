@@ -169,7 +169,7 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
       const points: DataPoint[] = [];
       // Collect movie history
       const moviesResponse = await this.httpGet<BazarrMovieHistoryResponse>(
-        '/api/history/movies',
+        '/api/movies/history',
         { length: 100 }
       );
 
@@ -205,7 +205,7 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
 
       // Collect series history
       const seriesResponse = await this.httpGet<BazarrSeriesHistoryResponse>(
-        '/api/history/series',
+        '/api/episodes/history',
         { length: 100 }
       );
 

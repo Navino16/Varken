@@ -284,6 +284,23 @@ describe('BazarrPlugin', () => {
       expect(historyPoints[0].tags.episodeNumber).toBe('S01E05');
     });
 
+    it('should use Bazarr history endpoints', async () => {
+      // Wanted calls (movies + episodes)
+      mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
+      mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
+      // History calls (movies + series)
+      mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
+      mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
+
+      await plugin.collect();
+
+      const paths = mockHttpClient.get.mock.calls.map((call) => call[0]);
+      expect(paths).toContain('/api/movies/history');
+      expect(paths).toContain('/api/episodes/history');
+      expect(paths).not.toContain('/api/history/movies');
+      expect(paths).not.toContain('/api/history/series');
+    });
+
     it('should handle missing score in history', async () => {
       // Mock wanted (empty)
       mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
