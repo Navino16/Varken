@@ -1,46 +1,63 @@
-import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
-import { SonarrPlugin } from '../../../src/plugins/inputs/SonarrPlugin';
-import { SonarrConfig } from '../../../src/types/inputs/sonarr.types';
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
 import axios from 'axios';
-import { createMockHttpClient, type MockHttpClient } from '../../fixtures/http';
+import { SonarrPlugin } from '../../../src/plugins/inputs/SonarrPlugin';
+import { PROTOCOL_ID } from '../../../src/plugins/inputs/constants';
+import type { SonarrConfig } from '../../../src/types/inputs/sonarr.types';
+import type { components } from '../../../src/types/generated/sonarr';
+import type { DataPoint } from '../../../src/types/plugin.types';
+import { createContractHttpClient, type ContractHttpClient } from '../../fixtures/contract-http';
+import { loadFixture } from '../../contracts/registry';
 
 vi.mock('../../../src/core/Logger', async () => {
-  const { loggerMock: mock } = await import('../../fixtures/logger');
-  return mock();
+  const { loggerMock } = await import('../../fixtures/logger');
+  return loggerMock();
 });
 
-vi.mock('axios', () => ({
-  default: {
-    create: vi.fn(),
-  },
-}));
+vi.mock('axios', () => ({ default: { create: vi.fn() } }));
+
+type QueuePage = components['schemas']['QueueResourcePagingResource'];
+type QueueRecord = components['schemas']['QueueResource'];
+type Episode = components['schemas']['EpisodeResource'];
+
+const NOW = new Date('2026-11-24T12:00:00Z');
+const queueRecords = (): QueueRecord[] => loadFixture<QueuePage>('sonarr/queue').records ?? [];
+const calendar = (): Episode[] => loadFixture<Episode[]>('sonarr/calendar');
+const page = (records: QueueRecord[] | null, totalRecords = records?.length ?? 0): QueuePage => ({
+  page: 1,
+  pageSize: 10,
+  totalRecords,
+  records,
+});
+/** Answers like Sonarr: only episodes airing between the requested bounds. */
+const calendarBetween =
+  (episodes: Episode[]) =>
+  (params?: Record<string, unknown>): Episode[] =>
+    episodes.filter((e) => (e.airDateUtc ?? '') >= String(params?.start) && (e.airDateUtc ?? '') <= String(params?.end));
 
 describe('SonarrPlugin', () => {
   let plugin: SonarrPlugin;
-  let mockHttpClient: MockHttpClient;
+  let client: ContractHttpClient;
 
   const testConfig: SonarrConfig = {
     id: 1,
     url: 'http://localhost:8989',
     apiKey: 'test-api-key',
     verifySsl: false,
-    queue: {
-      enabled: true,
-      intervalSeconds: 30,
-    },
-    calendar: {
-      enabled: true,
-      intervalSeconds: 60,
-      missingDays: 7,
-      futureDays: 7,
-    },
+    queue: { enabled: true, intervalSeconds: 30 },
+    calendar: { enabled: true, intervalSeconds: 60, missingDays: 7, futureDays: 7 },
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(NOW);
     plugin = new SonarrPlugin();
-    mockHttpClient = createMockHttpClient();
-    (axios.create as Mock).mockReturnValue(mockHttpClient);
+    client = createContractHttpClient('sonarr');
+    (axios.create as Mock).mockReturnValue(client);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   describe('metadata', () => {
@@ -54,302 +71,146 @@ describe('SonarrPlugin', () => {
   describe('initialize', () => {
     it('should initialize with API key header', async () => {
       await plugin.initialize(testConfig);
-      expect(mockHttpClient.defaults.headers.common['X-Api-Key']).toBe('test-api-key');
+      expect(client.defaults.headers.common['X-Api-Key']).toBe('test-api-key');
     });
   });
 
   describe('getSchedules', () => {
     it('should return schedules for enabled collectors', async () => {
       await plugin.initialize(testConfig);
-      const schedules = plugin.getSchedules();
 
-      // Should have queue, calendar_missing, and calendar_future schedules
-      expect(schedules.length).toBe(3);
-      expect(schedules[0].name).toBe('Sonarr_1_queue');
-      expect(schedules[0].intervalSeconds).toBe(30);
-      expect(schedules[1].name).toBe('Sonarr_1_calendar_missing');
-      expect(schedules[1].intervalSeconds).toBe(60);
-      expect(schedules[2].name).toBe('Sonarr_1_calendar_future');
-      expect(schedules[2].intervalSeconds).toBe(60);
+      expect(plugin.getSchedules().map((s) => [s.name, s.intervalSeconds])).toEqual([
+        ['Sonarr_1_queue', 30],
+        ['Sonarr_1_calendar_missing', 60],
+        ['Sonarr_1_calendar_future', 60],
+      ]);
     });
 
     it('should only return queue schedule when calendar is disabled', async () => {
-      const configWithoutCalendar = {
-        ...testConfig,
-        calendar: { ...testConfig.calendar, enabled: false },
-      };
-      await plugin.initialize(configWithoutCalendar);
-      const schedules = plugin.getSchedules();
+      await plugin.initialize({ ...testConfig, calendar: { ...testConfig.calendar, enabled: false } });
 
-      expect(schedules.length).toBe(1);
-      expect(schedules[0].name).toBe('Sonarr_1_queue');
+      expect(plugin.getSchedules().map((s) => s.name)).toEqual(['Sonarr_1_queue']);
     });
 
     it('should only return calendar schedules when queue is disabled', async () => {
-      const configWithoutQueue = {
-        ...testConfig,
-        queue: { ...testConfig.queue, enabled: false },
-      };
-      await plugin.initialize(configWithoutQueue);
-      const schedules = plugin.getSchedules();
+      await plugin.initialize({ ...testConfig, queue: { ...testConfig.queue, enabled: false } });
 
-      expect(schedules.length).toBe(2);
-      expect(schedules[0].name).toBe('Sonarr_1_calendar_missing');
-      expect(schedules[1].name).toBe('Sonarr_1_calendar_future');
+      expect(plugin.getSchedules().map((s) => s.name)).toEqual(['Sonarr_1_calendar_missing', 'Sonarr_1_calendar_future']);
     });
   });
 
   describe('collect', () => {
     beforeEach(async () => {
       await plugin.initialize(testConfig);
+      client.override('/api/v3/calendar', calendarBetween(calendar()));
     });
 
-    it('should collect queue data', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          page: 1,
-          pageSize: 250,
-          totalRecords: 1,
-          records: [
-            {
-              id: 1,
-              seriesId: 100,
-              episodeId: 200,
-              protocol: 'usenet',
-              quality: { quality: { name: 'HDTV-1080p' } },
-              series: { title: 'Breaking Bad' },
-              episode: {
-                title: 'Pilot',
-                seasonNumber: 1,
-                episodeNumber: 1,
-              },
-            },
-          ],
-        },
-      });
+    const ofType = async (type: string): Promise<DataPoint[]> =>
+      (await plugin.collect()).filter((p) => p.tags.type === type);
 
-      // Mock empty responses for calendar queries
-      mockHttpClient.get.mockResolvedValueOnce({ data: [] });
-      mockHttpClient.get.mockResolvedValueOnce({ data: [] });
+    it('collects queue items from the queue fixture', async () => {
+      const points = await ofType('Queue');
 
-      const points = await plugin.collect();
-
-      expect(points.length).toBeGreaterThan(0);
-      const queuePoint = points.find((p) => p.tags.type === 'Queue');
-      expect(queuePoint).toBeDefined();
-      expect(queuePoint?.tags.name).toBe('Breaking Bad');
-      expect(queuePoint?.tags.sxe).toBe('S01E01');
-      expect(queuePoint?.tags.protocol).toBe('USENET');
-      expect(queuePoint?.tags.quality).toBe('HDTV-1080p');
+      expect(points.map((p) => [p.tags.name, p.tags.epname, p.tags.sxe, p.tags.quality])).toEqual([
+        ['Severance', 'Good News About Hell', 'S01E01', 'Bluray-1080p'],
+        ['The Bear', 'Next', 'S03E02', 'WEBDL-2160p'],
+      ]);
+      expect(points[0].tags.sonarrId).toBe(10);
     });
 
-    it('should collect missing episodes from calendar', async () => {
-      // Mock empty queue
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { page: 1, pageSize: 250, totalRecords: 0, records: [] },
-      });
+    it('maps protocol ids', async () => {
+      const points = await ofType('Queue');
 
-      // Mock missing episodes
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: [
-          {
-            seriesId: 100,
-            title: 'Missing Episode',
-            seasonNumber: 2,
-            episodeNumber: 5,
-            hasFile: false,
-            monitored: true,
-            airDateUtc: '2024-01-15T20:00:00Z',
-            series: { title: 'Game of Thrones' },
-          },
-        ],
-      });
-
-      // Mock future episodes (empty)
-      mockHttpClient.get.mockResolvedValueOnce({ data: [] });
-
-      const points = await plugin.collect();
-
-      const missingPoint = points.find((p) => p.tags.type === 'Missing');
-      expect(missingPoint).toBeDefined();
-      expect(missingPoint?.tags.name).toBe('Game of Thrones');
-      expect(missingPoint?.tags.sxe).toBe('S02E05');
-      expect(missingPoint?.tags.downloaded).toBe(0);
+      expect(points.map((p) => [p.tags.protocol, p.tags.protocol_id])).toEqual([
+        ['USENET', PROTOCOL_ID.USENET],
+        ['TORRENT', PROTOCOL_ID.TORRENT],
+      ]);
     });
 
-    it('should skip missing episodes that have files', async () => {
-      // Mock empty queue
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { page: 1, pageSize: 250, totalRecords: 0, records: [] },
-      });
+    it('skips queue items without series or episode data', async () => {
+      const [severance, bear] = queueRecords();
+      const { series: _series, ...withoutSeries } = severance;
+      const { episode: _episode, ...withoutEpisode } = bear;
+      client.override('/api/v3/queue', page([withoutSeries, withoutEpisode]));
 
-      // Mock episodes with hasFile: true (should be skipped)
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: [
-          {
-            seriesId: 100,
-            title: 'Already Downloaded',
-            seasonNumber: 1,
-            episodeNumber: 1,
-            hasFile: true,
-            monitored: true,
-            series: { title: 'The Office' },
-          },
-        ],
-      });
-
-      // Mock future episodes (empty)
-      mockHttpClient.get.mockResolvedValueOnce({ data: [] });
-
-      const points = await plugin.collect();
-
-      const missingPoints = points.filter((p) => p.tags.type === 'Missing');
-      expect(missingPoints.length).toBe(0);
+      expect(await ofType('Queue')).toEqual([]);
     });
 
-    it('should collect future episodes from calendar', async () => {
-      // Mock empty queue
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { page: 1, pageSize: 250, totalRecords: 0, records: [] },
-      });
+    it('falls back when optional queue fields are missing', async () => {
+      const { quality: _quality, protocol: _protocol, ...bare } = queueRecords()[0];
+      client.override('/api/v3/queue', page([bare]));
 
-      // Mock missing episodes (empty)
-      mockHttpClient.get.mockResolvedValueOnce({ data: [] });
+      const [point] = await ofType('Queue');
 
-      // Mock future episodes
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: [
-          {
-            seriesId: 100,
-            title: 'Future Episode',
-            seasonNumber: 3,
-            episodeNumber: 10,
-            hasFile: false,
-            monitored: true,
-            airDateUtc: '2025-06-15T20:00:00Z',
-            series: { title: 'Stranger Things' },
-          },
-        ],
-      });
-
-      const points = await plugin.collect();
-
-      const futurePoint = points.find((p) => p.tags.type === 'Future');
-      expect(futurePoint).toBeDefined();
-      expect(futurePoint?.tags.name).toBe('Stranger Things');
-      expect(futurePoint?.tags.sxe).toBe('S03E10');
+      expect(point.tags.quality).toBe('Unknown');
+      expect(point.tags.protocol).toBe('UNKNOWN');
+      expect(point.tags.protocol_id).toBe(PROTOCOL_ID.TORRENT);
     });
 
-    it('should handle empty queue gracefully', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { page: 1, pageSize: 250, totalRecords: 0, records: [] },
-      });
-      mockHttpClient.get.mockResolvedValueOnce({ data: [] });
-      mockHttpClient.get.mockResolvedValueOnce({ data: [] });
+    it('handles an empty queue', async () => {
+      client.override('/api/v3/queue', page([]));
 
-      const points = await plugin.collect();
-      expect(points).toEqual([]);
+      expect(await ofType('Queue')).toEqual([]);
     });
 
-    it('should propagate API errors for circuit breaker', async () => {
-      mockHttpClient.get.mockRejectedValueOnce(new Error('API Error'));
+    it('handles null records in a queue page', async () => {
+      client.override('/api/v3/queue', page(null));
 
-      await expect(plugin.collect()).rejects.toThrow('API Error');
+      expect(await ofType('Queue')).toEqual([]);
     });
 
-    it('should paginate through large queues', async () => {
-      // First page
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          page: 1,
-          pageSize: 250,
-          totalRecords: 2,
-          records: [
-            {
-              id: 1,
-              seriesId: 100,
-              protocol: 'torrent',
-              quality: { quality: { name: 'WEBDL-1080p' } },
-              series: { title: 'Show 1' },
-              episode: { title: 'Ep 1', seasonNumber: 1, episodeNumber: 1 },
-            },
-          ],
-        },
-      });
+    it('paginates through large queues', async () => {
+      const records = queueRecords();
+      client.override('/api/v3/queue', (params) => page([records[Number(params?.page) - 1]], 2));
 
-      // Second page
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          page: 2,
-          pageSize: 250,
-          totalRecords: 2,
-          records: [
-            {
-              id: 2,
-              seriesId: 101,
-              protocol: 'usenet',
-              quality: { quality: { name: 'HDTV-720p' } },
-              series: { title: 'Show 2' },
-              episode: { title: 'Ep 1', seasonNumber: 1, episodeNumber: 1 },
-            },
-          ],
-        },
-      });
-
-      // Calendar mocks
-      mockHttpClient.get.mockResolvedValueOnce({ data: [] });
-      mockHttpClient.get.mockResolvedValueOnce({ data: [] });
-
-      const points = await plugin.collect();
-
-      const queuePoints = points.filter((p) => p.tags.type === 'Queue');
-      expect(queuePoints.length).toBe(2);
+      expect(await ofType('Queue')).toHaveLength(2);
+      expect(client.get).toHaveBeenCalledWith('/api/v3/queue', { params: expect.objectContaining({ page: 1 }) });
+      expect(client.get).toHaveBeenCalledWith('/api/v3/queue', { params: expect.objectContaining({ page: 2 }) });
     });
 
-    it('should generate deterministic hash IDs', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          totalRecords: 1,
-          records: [
-            {
-              id: 1,
-              seriesId: 100,
-              protocol: 'usenet',
-              quality: { quality: { name: 'HDTV-1080p' } },
-              series: { title: 'Test Show' },
-              episode: { title: 'Test Episode', seasonNumber: 1, episodeNumber: 1 },
-            },
-          ],
-        },
+    it('sends ISO date-time bounds to the calendar', async () => {
+      await plugin.collect();
+
+      expect(client.get).toHaveBeenCalledWith('/api/v3/calendar', {
+        params: { start: '2026-11-17T12:00:00.000Z', end: '2026-11-24T12:00:00.000Z', includeSeries: true },
       });
-      mockHttpClient.get.mockResolvedValueOnce({ data: [] });
-      mockHttpClient.get.mockResolvedValueOnce({ data: [] });
-
-      const points1 = await plugin.collect();
-
-      // Reset and collect again
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          totalRecords: 1,
-          records: [
-            {
-              id: 1,
-              seriesId: 100,
-              protocol: 'usenet',
-              quality: { quality: { name: 'HDTV-1080p' } },
-              series: { title: 'Test Show' },
-              episode: { title: 'Test Episode', seasonNumber: 1, episodeNumber: 1 },
-            },
-          ],
-        },
+      expect(client.get).toHaveBeenCalledWith('/api/v3/calendar', {
+        params: { start: '2026-11-24T12:00:00.000Z', end: '2026-12-01T12:00:00.000Z', includeSeries: true },
       });
-      mockHttpClient.get.mockResolvedValueOnce({ data: [] });
-      mockHttpClient.get.mockResolvedValueOnce({ data: [] });
+    });
 
-      const points2 = await plugin.collect();
+    it('collects only monitored missing episodes without files', async () => {
+      const points = await ofType('Missing');
 
-      // Hash should be the same for identical data
-      expect(points1[0].fields.hash).toBe(points2[0].fields.hash);
+      expect(points.map((p) => [p.tags.name, p.tags.sxe, p.tags.epname, p.tags.downloaded, p.tags.airsUTC])).toEqual([
+        ['Severance', 'S02E01', 'Hello, Ms. Cobel', 0, '2026-11-20T02:00:00Z'],
+      ]);
+    });
+
+    it('collects future episodes', async () => {
+      const points = await ofType('Future');
+
+      expect(points.map((p) => [p.tags.name, p.tags.sxe, p.tags.sonarrId])).toEqual([['The Bear', 'S04E01', 11]]);
+    });
+
+    it('skips calendar episodes without series data', async () => {
+      const episodes = calendar().map(({ series: _series, ...episode }) => episode);
+      client.override('/api/v3/calendar', calendarBetween(episodes));
+
+      expect(await ofType('Missing')).toEqual([]);
+    });
+
+    it('propagates API errors for the circuit breaker', async () => {
+      client.fail('/api/v3/queue', new Error('boom'));
+
+      await expect(plugin.collect()).rejects.toThrow('boom');
+    });
+
+    it('generates deterministic hash ids', async () => {
+      const first = (await plugin.collect()).map((p) => p.fields.hash);
+      const second = (await plugin.collect()).map((p) => p.fields.hash);
+
+      expect(second).toEqual(first);
     });
   });
 

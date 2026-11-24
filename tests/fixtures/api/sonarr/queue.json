@@ -1,0 +1,185 @@
+{
+  "page": 1,
+  "pageSize": 10,
+  "sortKey": "timeleft",
+  "sortDirection": "ascending",
+  "totalRecords": 2,
+  "records": [
+    {
+      "id": 1,
+      "seriesId": 10,
+      "episodeId": 101,
+      "seasonNumber": 1,
+      "series": {
+        "id": 10,
+        "title": "Severance",
+        "sortTitle": "severance",
+        "status": "continuing",
+        "ended": false,
+        "overview": "Severance overview.",
+        "network": "Apple TV+",
+        "airTime": "21:00",
+        "year": 2022,
+        "path": "/tv/Severance",
+        "qualityProfileId": 1,
+        "seasonFolder": true,
+        "monitored": true,
+        "useSceneNumbering": false,
+        "runtime": 50,
+        "tvdbId": 371980,
+        "imdbId": "tt11280740",
+        "firstAired": "2022-02-18T00:00:00Z",
+        "seriesType": "standard",
+        "cleanTitle": "severance",
+        "titleSlug": "severance",
+        "rootFolderPath": "/tv/",
+        "certification": "TV-MA",
+        "genres": [
+          "Drama"
+        ],
+        "tags": [
+          1
+        ],
+        "added": "2024-01-10T08:00:00Z"
+      },
+      "episode": {
+        "id": 101,
+        "seriesId": 10,
+        "tvdbId": 101000,
+        "episodeFileId": 0,
+        "seasonNumber": 1,
+        "episodeNumber": 1,
+        "title": "Good News About Hell",
+        "airDate": "2022-02-18",
+        "airDateUtc": "2022-02-18T02:00:00Z",
+        "runtime": 50,
+        "overview": "Good News About Hell overview.",
+        "hasFile": false,
+        "monitored": true,
+        "unverifiedSceneNumbering": false
+      },
+      "languages": [
+        {
+          "id": 1,
+          "name": "English"
+        }
+      ],
+      "quality": {
+        "quality": {
+          "id": 7,
+          "name": "Bluray-1080p",
+          "source": "bluray",
+          "resolution": 1080
+        },
+        "revision": {
+          "version": 1,
+          "real": 0,
+          "isRepack": false
+        }
+      },
+      "customFormatScore": 0,
+      "size": 2147483648,
+      "title": "Severance.S01E01.1080p.BluRay.x264-GROUP",
+      "estimatedCompletionTime": "2026-11-24T20:00:00Z",
+      "added": "2026-11-24T18:00:00Z",
+      "status": "downloading",
+      "trackedDownloadStatus": "ok",
+      "trackedDownloadState": "downloading",
+      "downloadId": "SABnzbd_nzo_1",
+      "protocol": "usenet",
+      "downloadClient": "SABnzbd",
+      "indexer": "NZBgeek",
+      "episodeHasFile": false,
+      "sizeleft": 1073741824,
+      "timeleft": "00:12:30"
+    },
+    {
+      "id": 2,
+      "seriesId": 11,
+      "episodeId": 302,
+      "seasonNumber": 3,
+      "series": {
+        "id": 11,
+        "title": "The Bear",
+        "sortTitle": "the bear",
+        "status": "continuing",
+        "ended": false,
+        "overview": "The Bear overview.",
+        "network": "FX",
+        "airTime": "21:00",
+        "year": 2022,
+        "path": "/tv/The Bear",
+        "qualityProfileId": 1,
+        "seasonFolder": true,
+        "monitored": true,
+        "useSceneNumbering": false,
+        "runtime": 50,
+        "tvdbId": 403245,
+        "imdbId": "tt14452776",
+        "firstAired": "2022-02-18T00:00:00Z",
+        "seriesType": "standard",
+        "cleanTitle": "thebear",
+        "titleSlug": "the-bear",
+        "rootFolderPath": "/tv/",
+        "certification": "TV-MA",
+        "genres": [
+          "Drama"
+        ],
+        "tags": [
+          1
+        ],
+        "added": "2024-01-10T08:00:00Z"
+      },
+      "episode": {
+        "id": 302,
+        "seriesId": 11,
+        "tvdbId": 302000,
+        "episodeFileId": 0,
+        "seasonNumber": 3,
+        "episodeNumber": 2,
+        "title": "Next",
+        "airDate": "2024-06-27",
+        "airDateUtc": "2024-06-27T04:00:00Z",
+        "runtime": 50,
+        "overview": "Next overview.",
+        "hasFile": false,
+        "monitored": true,
+        "unverifiedSceneNumbering": false
+      },
+      "languages": [
+        {
+          "id": 1,
+          "name": "English"
+        }
+      ],
+      "quality": {
+        "quality": {
+          "id": 19,
+          "name": "WEBDL-2160p",
+          "source": "web",
+          "resolution": 2160
+        },
+        "revision": {
+          "version": 1,
+          "real": 0,
+          "isRepack": false
+        }
+      },
+      "customFormatScore": 0,
+      "size": 2147483648,
+      "title": "The.Bear.S03E02.2160p.WEB-DL.DDP5.1-GROUP",
+      "estimatedCompletionTime": "2026-11-24T20:00:00Z",
+      "added": "2026-11-24T18:00:00Z",
+      "status": "downloading",
+      "trackedDownloadStatus": "ok",
+      "trackedDownloadState": "downloading",
+      "downloadId": "SABnzbd_nzo_2",
+      "protocol": "torrent",
+      "downloadClient": "qBittorrent",
+      "indexer": "NZBgeek",
+      "episodeHasFile": false,
+      "sizeleft": 1073741824,
+      "timeleft": "00:12:30"
+    }
+  ]
+}

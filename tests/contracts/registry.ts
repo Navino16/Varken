@@ -19,6 +19,9 @@ export const contractRoutes: ContractRoute[] = [
   { service: 'bazarr', method: 'get', path: '/api/movies/history', fixture: 'bazarr/movies-history' },
   { service: 'bazarr', method: 'get', path: '/api/episodes/history', fixture: 'bazarr/episodes-history' },
   { service: 'bazarr', method: 'get', path: '/api/system/health', fixture: 'bazarr/system-health' },
+  { service: 'sonarr', method: 'get', path: '/api/v3/queue', fixture: 'sonarr/queue' },
+  { service: 'sonarr', method: 'get', path: '/api/v3/calendar', fixture: 'sonarr/calendar' },
+  { service: 'sonarr', method: 'get', path: '/api/v3/system/status', fixture: 'sonarr/system-status' },
 ];
 
 const fixturesDir = path.resolve(__dirname, '../fixtures/api');

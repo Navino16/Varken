@@ -1,11 +1,8 @@
 import { BaseInputPlugin } from './BaseInputPlugin';
 import { PROTOCOL_ID } from './constants';
 import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
-import type {
-  SonarrConfig,
-  SonarrQueue,
-  SonarrEpisode,
-} from '../../types/inputs/sonarr.types';
+import type { SonarrConfig } from '../../types/inputs/sonarr.types';
+import type { paths } from '../../types/generated/sonarr';
 
 /**
  * Sonarr input plugin
@@ -17,6 +14,8 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
     version: '1.0.0',
     description: 'Collects queue and calendar data from Sonarr',
   };
+
+  private readonly sonarr = this.api<paths>();
 
   /**
    * Initialize the plugin and configure the HTTP client with API key header
@@ -94,10 +93,8 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
   private async collectQueue(): Promise<DataPoint[]> {
     return this.safeFetch('collect Sonarr queue', async () => {
       const points: DataPoint[] = [];
-      const allRecords = await this.fetchAllPages<SonarrQueue>('/api/v3/queue', {
-        includeSeries: true,
-        includeEpisode: true,
-        includeUnknownSeriesItems: false,
+      const allRecords = await this.sonarr.getAllPages('/api/v3/queue', {
+        query: { includeSeries: true, includeEpisode: true, includeUnknownSeriesItems: false },
       });
 
       if (allRecords.length === 0) {
@@ -111,10 +108,10 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
           continue;
         }
 
-        const seriesTitle = queueItem.series.title;
-        const episodeTitle = queueItem.episode.title;
+        const seriesTitle = queueItem.series.title ?? 'unknown';
+        const episodeTitle = queueItem.episode.title ?? 'unknown';
         const sxe = this.formatSXE(queueItem.episode.seasonNumber, queueItem.episode.episodeNumber);
-        const protocol = queueItem.protocol.toUpperCase();
+        const protocol = (queueItem.protocol ?? 'unknown').toUpperCase();
         const protocolId = protocol === 'USENET' ? PROTOCOL_ID.USENET : PROTOCOL_ID.TORRENT;
         const quality = queueItem.quality?.quality?.name || 'Unknown';
 
@@ -125,7 +122,7 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
             'Sonarr',
             {
               type: 'Queue',
-              sonarrId: queueItem.seriesId,
+              sonarrId: queueItem.seriesId ?? 0,
               server: this.config.id,
               name: seriesTitle,
               epname: episodeTitle,
@@ -153,7 +150,7 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
     return this.safeFetch(`collect Sonarr calendar (${queryType})`, async () => {
       const points: DataPoint[] = [];
       const today = new Date();
-      const todayStr = this.formatDate(today);
+      const todayStr = today.toISOString();
 
       let startDate: string;
       let endDate: string;
@@ -161,22 +158,20 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
       if (queryType === 'Missing') {
         const pastDate = new Date(today);
         pastDate.setDate(pastDate.getDate() - this.config.calendar.missingDays);
-        startDate = this.formatDate(pastDate);
+        startDate = pastDate.toISOString();
         endDate = todayStr;
       } else {
         const futureDate = new Date(today);
         futureDate.setDate(futureDate.getDate() + this.config.calendar.futureDays);
         startDate = todayStr;
-        endDate = this.formatDate(futureDate);
+        endDate = futureDate.toISOString();
       }
 
-      const episodes = await this.httpGet<SonarrEpisode[]>('/api/v3/calendar', {
-        start: startDate,
-        end: endDate,
-        includeSeries: true,
+      const episodes = await this.sonarr.get('/api/v3/calendar', {
+        query: { start: startDate, end: endDate, includeSeries: true },
       });
 
-      if (!episodes || episodes.length === 0) {
+      if (episodes.length === 0) {
         this.logger.debug(`No ${queryType.toLowerCase()} episodes found in Sonarr calendar`);
         return points;
       }
@@ -195,7 +190,7 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
           }
         }
 
-        const seriesTitle = episode.series.title;
+        const seriesTitle = episode.series.title ?? 'unknown';
         const sxe = this.formatSXE(episode.seasonNumber, episode.episodeNumber);
         const hashId = this.hashit(`${this.config.id}${seriesTitle}${sxe}`);
 
@@ -204,10 +199,10 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
             'Sonarr',
             {
               type: queryType,
-              sonarrId: episode.seriesId,
+              sonarrId: episode.seriesId ?? 0,
               server: this.config.id,
               name: seriesTitle,
-              epname: episode.title,
+              epname: episode.title ?? 'unknown',
               sxe,
               airsUTC: episode.airDateUtc || '',
               downloaded,
@@ -227,14 +222,7 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
   /**
    * Format season and episode numbers as SxxExx
    */
-  private formatSXE(season: number, episode: number): string {
+  private formatSXE(season = 0, episode = 0): string {
     return `S${season.toString().padStart(2, '0')}E${episode.toString().padStart(2, '0')}`;
-  }
-
-  /**
-   * Format date as YYYY-MM-DD
-   */
-  private formatDate(date: Date): string {
-    return date.toISOString().split('T')[0];
   }
 }
