@@ -40,7 +40,7 @@
   },
   "homepage": "https://github.com/Navino16/Varken#readme",
   "engines": {
-    "node": ">=24.0.0"
+    "node": ">=26.0.0"
   },
   "dependencies": {
     "@influxdata/influxdb-client": "^1.35.0",
