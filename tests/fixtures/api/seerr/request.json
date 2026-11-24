@@ -1,0 +1,125 @@
+{
+  "pageInfo": {
+    "page": 1,
+    "pages": 5,
+    "results": 42
+  },
+  "results": [
+    {
+      "id": 41,
+      "status": 2,
+      "type": "movie",
+      "media": {
+        "id": 118,
+        "tmdbId": 693134,
+        "status": 5,
+        "createdAt": "2026-11-22T18:03:51.000Z",
+        "updatedAt": "2026-11-23T03:15:27.000Z"
+      },
+      "createdAt": "2026-11-22T18:03:51.000Z",
+      "updatedAt": "2026-11-22T18:05:10.000Z",
+      "requestedBy": {
+        "id": 1,
+        "email": "alice@example.com",
+        "username": "alice",
+        "userType": 2,
+        "permissions": 32,
+        "avatar": "/avatarproxy/1",
+        "createdAt": "2025-03-02T19:04:11.000Z",
+        "updatedAt": "2026-11-20T08:12:44.000Z",
+        "requestCount": 12,
+        "displayName": "alice"
+      },
+      "modifiedBy": {
+        "id": 1,
+        "email": "alice@example.com",
+        "username": "alice",
+        "userType": 2,
+        "permissions": 32,
+        "avatar": "/avatarproxy/1",
+        "createdAt": "2025-03-02T19:04:11.000Z",
+        "updatedAt": "2026-11-20T08:12:44.000Z",
+        "requestCount": 12,
+        "displayName": "alice"
+      },
+      "is4k": false,
+      "serverId": 0,
+      "profileId": 4,
+      "rootFolder": "/movies"
+    },
+    {
+      "id": 40,
+      "status": 2,
+      "type": "tv",
+      "media": {
+        "id": 117,
+        "tmdbId": 95396,
+        "status": 4,
+        "createdAt": "2026-11-21T09:30:14.000Z",
+        "updatedAt": "2026-11-23T03:15:27.000Z",
+        "tvdbId": 371980
+      },
+      "createdAt": "2026-11-21T09:30:14.000Z",
+      "updatedAt": "2026-11-21T09:31:02.000Z",
+      "requestedBy": {
+        "id": 2,
+        "email": "bob@example.com",
+        "username": "bob",
+        "userType": 2,
+        "permissions": 32,
+        "avatar": "/avatarproxy/2",
+        "createdAt": "2025-06-14T10:22:37.000Z",
+        "updatedAt": "2026-11-20T08:12:44.000Z",
+        "requestCount": 4,
+        "displayName": "bob"
+      },
+      "modifiedBy": {
+        "id": 1,
+        "email": "alice@example.com",
+        "username": "alice",
+        "userType": 2,
+        "permissions": 32,
+        "avatar": "/avatarproxy/1",
+        "createdAt": "2025-03-02T19:04:11.000Z",
+        "updatedAt": "2026-11-20T08:12:44.000Z",
+        "requestCount": 12,
+        "displayName": "alice"
+      },
+      "is4k": false,
+      "serverId": 0,
+      "profileId": 6,
+      "rootFolder": "/tv"
+    },
+    {
+      "id": 39,
+      "status": 1,
+      "type": "movie",
+      "media": {
+        "id": 116,
+        "tmdbId": 329865,
+        "status": 2,
+        "createdAt": "2026-11-20T20:12:45.000Z",
+        "updatedAt": "2026-11-23T03:15:27.000Z"
+      },
+      "createdAt": "2026-11-20T20:12:45.000Z",
+      "updatedAt": "2026-11-20T20:12:45.000Z",
+      "requestedBy": {
+        "id": 2,
+        "email": "bob@example.com",
+        "username": "bob",
+        "userType": 2,
+        "permissions": 32,
+        "avatar": "/avatarproxy/2",
+        "createdAt": "2025-06-14T10:22:37.000Z",
+        "updatedAt": "2026-11-20T08:12:44.000Z",
+        "requestCount": 4,
+        "displayName": "bob"
+      },
+      "modifiedBy": null,
+      "is4k": false,
+      "serverId": 0,
+      "profileId": 4,
+      "rootFolder": "/movies"
+    }
+  ]
+}

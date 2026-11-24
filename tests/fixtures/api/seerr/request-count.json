@@ -1,0 +1,11 @@
+{
+  "total": 42,
+  "movie": 30,
+  "tv": 12,
+  "pending": 3,
+  "approved": 5,
+  "declined": 1,
+  "processing": 2,
+  "available": 31,
+  "completed": 31
+}

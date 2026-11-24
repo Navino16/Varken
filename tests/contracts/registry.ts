@@ -30,6 +30,18 @@ export const contractRoutes: ContractRoute[] = [
   { service: 'readarr', method: 'get', path: '/api/v1/system/status', fixture: 'readarr/system-status' },
   { service: 'prowlarr', method: 'get', path: '/api/v1/indexerstats', fixture: 'prowlarr/indexerstats' },
   { service: 'prowlarr', method: 'get', path: '/api/v1/system/status', fixture: 'prowlarr/system-status' },
+  { service: 'seerr', method: 'get', path: '/api/v1/request/count', fixture: 'seerr/request-count' },
+  { service: 'seerr', method: 'get', path: '/api/v1/issue/count', fixture: 'seerr/issue-count' },
+  { service: 'seerr', method: 'get', path: '/api/v1/request', fixture: 'seerr/request' },
+  { service: 'seerr', method: 'get', path: '/api/v1/movie/{movieId}', fixture: 'seerr/movie' },
+  { service: 'seerr', method: 'get', path: '/api/v1/tv/{tvId}', fixture: 'seerr/tv' },
+  { service: 'seerr', method: 'get', path: '/api/v1/status', fixture: 'seerr/status' },
+  { service: 'ombi', method: 'get', path: '/api/v1/Request/count', fixture: 'ombi/request-count' },
+  { service: 'ombi', method: 'get', path: '/api/v1/Issues/count', fixture: 'ombi/issues-count' },
+  { service: 'ombi', method: 'get', path: '/api/v1/Identity/Users', fixture: 'ombi/identity-users' },
+  { service: 'ombi', method: 'get', path: '/api/v1/Request/tv', fixture: 'ombi/request-tv' },
+  { service: 'ombi', method: 'get', path: '/api/v1/Request/movie', fixture: 'ombi/request-movie' },
+  { service: 'ombi', method: 'get', path: '/api/v1/Status', fixture: 'ombi/status' },
 ];
 
 const fixturesDir = path.resolve(__dirname, '../fixtures/api');

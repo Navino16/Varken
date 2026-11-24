@@ -1,0 +1,30 @@
+{
+  "patches": [
+    {
+      "op": "add",
+      "path": "/components/schemas/MediaRequest/properties/type",
+      "value": {
+        "type": "string",
+        "enum": [
+          "movie",
+          "tv"
+        ]
+      },
+      "why": "https://github.com/seerr-team/seerr/blob/v3.5.2/server/entity/MediaRequest.ts#L557 — non-null varchar column, serialized with every request"
+    },
+    {
+      "op": "add",
+      "path": "/components/schemas/MediaRequest/required/-",
+      "value": "type",
+      "why": "https://github.com/seerr-team/seerr/blob/v3.5.2/server/entity/MediaRequest.ts#L557 — Column({ type: 'varchar' }) without nullable"
+    },
+    {
+      "op": "add",
+      "path": "/components/schemas/User/properties/displayName",
+      "value": {
+        "type": "string"
+      },
+      "why": "https://github.com/seerr-team/seerr/blob/v3.5.2/server/entity/User.ts#L279-L283 — set on every load by @AfterLoad setDisplayName(); nested users are serialized by toJSON() (L178-L186), which drops only settings"
+    }
+  ]
+}
