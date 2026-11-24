@@ -168,14 +168,16 @@ function getCompiled(contract: Contract): CompiledContract {
 }
 
 export function findOperation(contract: Contract, method: 'get', calledPath: string): OperationMatch | undefined {
-  let path = stripQuery(calledPath);
+  let fullPath = calledPath;
   const prefix = contract.entry.pathPrefix;
   if (prefix) {
+    const path = stripQuery(calledPath);
     if (path !== prefix && !path.startsWith(`${prefix}/`)) {
       return undefined;
     }
-    path = path.slice(prefix.length);
+    fullPath = calledPath.slice(prefix.length);
   }
+  const path = stripQuery(fullPath);
 
   const paths = contract.spec.paths;
   const pick = (specPath: string): OperationMatch | undefined => {
@@ -183,7 +185,8 @@ export function findOperation(contract: Contract, method: 'get', calledPath: str
     return isSchema(operation) ? { specPath, operation } : undefined;
   };
 
-  return pick(path) ?? Object.keys(paths).filter((p) => matchPathTemplate(p, path)).map(pick).find(Boolean);
+  // Command-style APIs (Tautulli) key their operations by a fixed query string: `/api/v2?cmd=get_activity`.
+  return (fullPath === path ? undefined : pick(fullPath)) ?? pick(path) ?? Object.keys(paths).filter((p) => matchPathTemplate(p, path)).map(pick).find(Boolean);
 }
 
 function isJsonMediaType(mediaType: string): boolean {
@@ -284,7 +287,11 @@ export function validateRequestParams(
   // Header names are case-insensitive; required headers are not checked since auth headers come from client defaults.
   const normalize = (name: string): string => (location === 'header' ? name.toLowerCase() : name);
   const declared = new Map(declaredParameters(contract, match, location).map((p) => [normalize(p.name), p]));
+  const discriminators = embeddedQuery(match.specPath);
   const embedded = location === 'query' ? embeddedQuery(calledPath) : {};
+  for (const name of Object.keys(discriminators)) {
+    delete embedded[name];
+  }
   const sent = Object.entries({ ...embedded, ...params });
   const errors: string[] = [];
 

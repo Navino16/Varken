@@ -20,6 +20,22 @@ interface ToyPaths {
       responses: { 200: { headers: Record<string, unknown>; content: { 'application/json': { total: number } } } };
     };
   };
+  '/api/v2?cmd=alpha': {
+    parameters: { query?: never; header?: never; path?: never; cookie?: never };
+    get: {
+      parameters: { query: { apikey: string }; header?: never; path?: never; cookie?: never };
+      requestBody?: never;
+      responses: { 200: { headers: Record<string, unknown>; content: { 'application/json': { alpha: number } } } };
+    };
+  };
+  '/api/v2?cmd=beta': {
+    parameters: { query?: never; header?: never; path?: never; cookie?: never };
+    get: {
+      parameters: { query: { apikey: string }; header?: never; path?: never; cookie?: never };
+      requestBody?: never;
+      responses: { 200: { headers: Record<string, unknown>; content: { 'application/json': { beta: string } } } };
+    };
+  };
   '/write-only': {
     parameters: { query?: never; header?: never; path?: never; cookie?: never };
     get?: never;
@@ -40,6 +56,7 @@ export async function contractChecks(): Promise<void> {
   const item = await toy.get('/items/{id}', { path: { id: 42 }, query: { lang: 'en' } });
   const itemTitle: string = item.title;
   const count = await toy.get('/count', { header: { 'X-Page-Size': 0 } });
+  const alpha: number = (await toy.get('/api/v2?cmd=alpha', { query: { apikey: 'k' } })).alpha;
 
   // @ts-expect-error unknown endpoint
   await radarr.get('/api/v3/nope');
@@ -63,8 +80,12 @@ export async function contractChecks(): Promise<void> {
   await radarr.get('/api/v3/movie', { header: { 'X-Nope': 1 } });
   // @ts-expect-error wrong header parameter type
   await toy.get('/count', { header: { 'X-Page-Size': 'zero' } });
+  // @ts-expect-error command not declared by the spec
+  await toy.get('/api/v2?cmd=gamma', { query: { apikey: 'k' } });
+  // @ts-expect-error response field of another command
+  void (await toy.get('/api/v2?cmd=alpha', { query: { apikey: 'k' } })).beta;
   // @ts-expect-error paginated helper on a non-paginated endpoint
   await radarr.getAllPages('/api/v3/movie');
 
-  void [firstTitle, tmdbIds, recordIds, itemTitle, count];
+  void [firstTitle, tmdbIds, recordIds, itemTitle, count, alpha];
 }
