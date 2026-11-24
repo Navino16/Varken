@@ -9,13 +9,21 @@ export type ServiceId = 'radarr' | 'bazarr' | 'sonarr' | 'lidarr' | 'readarr' | 
 
 export type SpecFormat = 'openapi3.0' | 'openapi3.1' | 'swagger2';
 
+/** How `npm run contracts:update` refreshes a pinned spec; `{tag}` is the latest release of `repo`. */
+export type RefreshSource =
+  | { kind: 'github-raw'; repo: string }
+  | { kind: 'url' }
+  | { kind: 'redoc-page' }
+  | { kind: 'runtime'; repo: string; image: string; port: number; path: string }
+  | { kind: 'docstrings'; repo: string; url: string; snapshot: string };
+
 export interface ManifestEntry {
   file: string;
   format: SpecFormat;
   source: string;
   version: string;
   pathPrefix: string;
-  refresh: boolean;
+  refresh: RefreshSource | false;
 }
 
 export interface OpenApiDocument {

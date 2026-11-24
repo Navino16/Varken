@@ -177,6 +177,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -200,12 +206,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -245,6 +245,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -268,12 +274,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -305,6 +305,12 @@
           "204": {
             "description": "Api key created."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -328,12 +334,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -367,6 +367,12 @@
           "204": {
             "description": "Api key deleted."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -390,12 +396,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -756,6 +756,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -779,12 +785,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "deprecated": true,
@@ -845,6 +845,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -868,12 +874,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "deprecated": true,
@@ -1235,6 +1235,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -1258,12 +1264,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "deprecated": true,
@@ -3287,6 +3287,9 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
           "403": {
             "description": "User does not have permission to retrieve information.",
             "content": {
@@ -3330,9 +3333,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
           }
         },
         "security": [
@@ -3407,6 +3407,9 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
           "403": {
             "description": "User does not have permission to retrieve information.",
             "content": {
@@ -3450,9 +3453,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
           }
         },
         "security": [
@@ -3506,8 +3506,11 @@
           "204": {
             "description": "Not a valid jellyfin Archive."
           },
-          "404": {
-            "description": "Not a valid path.",
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "User does not have permission to retrieve information.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3526,8 +3529,8 @@
               }
             }
           },
-          "403": {
-            "description": "User does not have permission to retrieve information.",
+          "404": {
+            "description": "Not a valid path.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3569,9 +3572,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
           }
         },
         "security": [
@@ -3630,8 +3630,11 @@
           "204": {
             "description": "Backup restore started."
           },
-          "404": {
-            "description": "Not Found",
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "User does not have permission to retrieve information.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3650,8 +3653,8 @@
               }
             }
           },
-          "403": {
-            "description": "User does not have permission to retrieve information.",
+          "404": {
+            "description": "Not Found",
             "content": {
               "application/json": {
                 "schema": {
@@ -3693,9 +3696,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
           }
         },
         "security": [
@@ -3969,6 +3969,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -3992,12 +3998,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -4049,6 +4049,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -4072,12 +4078,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -4209,6 +4209,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -4232,12 +4238,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -4286,6 +4286,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -4309,12 +4315,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -4417,6 +4417,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -4440,12 +4446,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -4494,6 +4494,9 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Unauthorized"
           },
           "403": {
             "description": "Event logging disabled.",
@@ -4558,9 +4561,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
           }
         },
         "security": [
@@ -4639,6 +4639,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -4662,12 +4668,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -4716,6 +4716,12 @@
           "204": {
             "description": "Items added to collection."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -4739,12 +4745,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -4791,6 +4791,12 @@
           "204": {
             "description": "Items removed from collection."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -4814,12 +4820,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -4860,6 +4860,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -4883,12 +4889,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -4945,6 +4945,12 @@
           "204": {
             "description": "Configuration updated."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -4968,12 +4974,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -5016,6 +5016,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -5039,12 +5045,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -5091,6 +5091,12 @@
           "204": {
             "description": "Named configuration updated."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -5114,12 +5120,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -5179,6 +5179,12 @@
           "204": {
             "description": "Branding configuration updated."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -5202,12 +5208,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -5248,6 +5248,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -5271,12 +5277,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -5418,6 +5418,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Server still loading.",
             "content": {
@@ -5461,12 +5467,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -5517,6 +5517,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -5540,12 +5546,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -5599,6 +5599,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -5622,12 +5628,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -5678,6 +5678,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Device not found.",
             "content": {
@@ -5721,12 +5727,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -5777,6 +5777,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Device not found.",
             "content": {
@@ -5820,12 +5826,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -5893,6 +5893,12 @@
           "204": {
             "description": "Device options updated."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -5916,12 +5922,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -5990,6 +5990,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -6013,12 +6019,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -6104,6 +6104,12 @@
           "204": {
             "description": "Display preferences updated."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -6127,12 +6133,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -6172,6 +6172,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -6195,12 +6201,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -6279,6 +6279,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -6302,12 +6308,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -6357,6 +6357,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -6380,12 +6386,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -6437,6 +6437,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -6460,12 +6466,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -6525,6 +6525,12 @@
           "204": {
             "description": "Path validated."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Path not found.",
             "content": {
@@ -6568,12 +6574,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -6656,6 +6656,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -6679,12 +6685,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -6811,6 +6811,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -6834,12 +6840,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -7050,6 +7050,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -7073,12 +7079,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -7138,6 +7138,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -7161,12 +7167,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -7791,6 +7791,9 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
           "403": {
             "description": "User does not have permission to upload splashscreen..",
             "content": {
@@ -7834,9 +7837,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
           }
         },
         "security": [
@@ -7856,6 +7856,9 @@
         "responses": {
           "204": {
             "description": "Successfully deleted the custom splashscreen."
+          },
+          "401": {
+            "description": "Unauthorized"
           },
           "403": {
             "description": "User does not have permission to delete splashscreen.."
@@ -7883,9 +7886,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
           }
         },
         "security": [
@@ -8940,6 +8940,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -8983,12 +8989,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -9061,6 +9061,12 @@
           "204": {
             "description": "Image deleted."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -9104,12 +9110,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -9201,6 +9201,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -9244,12 +9250,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -9819,6 +9819,12 @@
           "204": {
             "description": "Image deleted."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -9862,12 +9868,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -9969,6 +9969,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -10012,12 +10018,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -11113,6 +11113,12 @@
           "204": {
             "description": "Image index updated."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -11156,12 +11162,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -14207,6 +14207,9 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
           "403": {
             "description": "User does not have permission to delete the image.",
             "content": {
@@ -14270,9 +14273,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
           }
         },
         "security": [
@@ -14303,6 +14303,9 @@
         "responses": {
           "204": {
             "description": "Image deleted."
+          },
+          "401": {
+            "description": "Unauthorized"
           },
           "403": {
             "description": "User does not have permission to delete the image.",
@@ -14347,9 +14350,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
           }
         },
         "security": [
@@ -14712,6 +14712,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -14755,12 +14761,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -14877,6 +14877,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -14920,12 +14926,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -15042,6 +15042,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -15085,12 +15091,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -15206,6 +15206,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -15229,12 +15235,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "deprecated": true,
@@ -15352,6 +15352,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -15395,12 +15401,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "deprecated": true,
@@ -15518,6 +15518,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -15561,12 +15567,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -15683,6 +15683,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -15726,12 +15732,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -15792,6 +15792,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -15835,12 +15841,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -15918,6 +15918,12 @@
           "204": {
             "description": "Item metadata refreshed."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -15961,12 +15967,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -16049,6 +16049,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -16072,12 +16078,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -16159,6 +16159,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -16182,12 +16188,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -16269,6 +16269,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -16292,12 +16298,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -16379,6 +16379,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -16402,12 +16408,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -16489,6 +16489,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -16512,12 +16518,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -16599,6 +16599,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -16622,12 +16628,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -16709,6 +16709,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -16732,12 +16738,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -16820,6 +16820,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -16843,12 +16849,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -16930,6 +16930,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -16953,12 +16959,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -17058,6 +17058,12 @@
           "204": {
             "description": "Item metadata refresh queued."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item to refresh not found.",
             "content": {
@@ -17101,12 +17107,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -17982,6 +17982,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -18005,12 +18011,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -18065,6 +18065,9 @@
               }
             }
           },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Not Found",
             "content": {
@@ -18108,9 +18111,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -18171,6 +18171,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item is not found.",
             "content": {
@@ -18214,12 +18220,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -18314,6 +18314,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item is not found.",
             "content": {
@@ -18357,12 +18363,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -18547,6 +18547,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -18570,12 +18576,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -18646,6 +18646,12 @@
           "204": {
             "description": "Item updated."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -18689,12 +18695,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -18747,6 +18747,9 @@
               }
             }
           },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -18790,9 +18793,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -18851,6 +18851,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -18874,12 +18880,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -18921,6 +18921,12 @@
         "responses": {
           "204": {
             "description": "Item content type updated."
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
           },
           "404": {
             "description": "Item not found.",
@@ -18965,12 +18971,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -19022,6 +19022,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -19065,12 +19071,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -19163,6 +19163,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -19186,12 +19192,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -19284,6 +19284,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -19307,12 +19313,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -19382,6 +19382,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -19425,12 +19431,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -19520,6 +19520,12 @@
               }
             }
           },
+          "401": {
+            "description": "User context missing."
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -19539,9 +19545,6 @@
                 }
               }
             }
-          },
-          "401": {
-            "description": "User context missing."
           },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
@@ -19566,9 +19569,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -19617,6 +19617,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -19660,12 +19666,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -19715,6 +19715,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -19758,12 +19764,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -19856,6 +19856,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -19879,12 +19885,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -19976,6 +19976,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found."
           },
@@ -20002,12 +20008,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -20099,6 +20099,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -20142,12 +20148,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -20239,6 +20239,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -20282,12 +20288,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -20346,6 +20346,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -20369,12 +20375,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -20452,6 +20452,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -20475,12 +20481,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -20540,6 +20540,12 @@
           "204": {
             "description": "Report success."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -20563,12 +20569,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -20618,6 +20618,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -20641,12 +20647,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -20687,6 +20687,12 @@
           "204": {
             "description": "Report success."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -20710,12 +20716,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -20756,6 +20756,12 @@
           "204": {
             "description": "Report success."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -20779,12 +20785,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -20833,6 +20833,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -20856,12 +20862,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -20884,6 +20884,12 @@
           "204": {
             "description": "Library scan started."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -20907,12 +20913,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -20945,6 +20945,12 @@
           "204": {
             "description": "Report success."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -20968,12 +20974,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -21006,6 +21006,12 @@
           "204": {
             "description": "Report success."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -21029,12 +21035,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -21127,6 +21127,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -21150,12 +21156,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -21248,6 +21248,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -21271,12 +21277,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -21369,6 +21369,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -21392,12 +21398,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -21446,6 +21446,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -21469,12 +21475,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -21584,6 +21584,12 @@
           "204": {
             "description": "Folder added."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -21607,12 +21613,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -21653,6 +21653,12 @@
           "204": {
             "description": "Folder removed."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Folder not found."
           },
@@ -21679,12 +21685,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -21743,6 +21743,12 @@
           "204": {
             "description": "Library updated."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -21786,12 +21792,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -21862,6 +21862,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Library doesn't exist.",
             "content": {
@@ -21925,12 +21931,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -22001,6 +22001,12 @@
           "204": {
             "description": "Media path added."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -22024,12 +22030,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -22078,6 +22078,12 @@
           "204": {
             "description": "Media path removed."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -22101,12 +22107,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -22166,6 +22166,12 @@
           "204": {
             "description": "Media path updated."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -22189,12 +22195,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -22245,6 +22245,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -22268,12 +22274,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -22349,6 +22349,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -22372,12 +22378,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -22618,6 +22618,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -22641,12 +22647,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -22708,6 +22708,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -22751,12 +22757,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -22797,6 +22797,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -22820,12 +22826,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -22866,6 +22866,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -22889,12 +22895,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -22995,6 +22995,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -23018,12 +23024,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -23054,6 +23054,12 @@
           "204": {
             "description": "Listing provider deleted."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -23077,12 +23083,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -23122,6 +23122,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -23145,12 +23151,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -23234,6 +23234,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -23257,12 +23263,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -23294,6 +23294,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -23317,12 +23323,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -23777,6 +23777,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -23800,12 +23806,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -23879,6 +23879,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -23902,12 +23908,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -23968,6 +23968,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Program not found.",
             "content": {
@@ -24011,12 +24017,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -24210,6 +24210,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -24233,12 +24239,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -24457,6 +24457,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -24480,12 +24486,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -24547,6 +24547,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -24590,12 +24596,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -24629,6 +24629,12 @@
           "204": {
             "description": "Recording deleted."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -24672,12 +24678,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -24729,6 +24729,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -24752,12 +24758,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -24824,6 +24824,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -24847,12 +24853,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -24909,6 +24909,12 @@
           "204": {
             "description": "Series timer info created."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -24932,12 +24938,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -24989,6 +24989,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Series timer not found.",
             "content": {
@@ -25032,12 +25038,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -25070,6 +25070,12 @@
           "204": {
             "description": "Timer cancelled."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -25093,12 +25099,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -25166,6 +25166,12 @@
           "204": {
             "description": "Series timer updated."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -25189,12 +25195,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -25269,6 +25269,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -25292,12 +25298,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -25351,6 +25351,12 @@
           "204": {
             "description": "Timer created."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -25374,12 +25380,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -25431,6 +25431,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -25454,12 +25460,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -25492,6 +25492,12 @@
           "204": {
             "description": "Timer deleted."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -25515,12 +25521,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -25585,6 +25585,12 @@
           "204": {
             "description": "Timer updated."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -25608,12 +25614,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -25664,6 +25664,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -25687,12 +25693,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -25765,6 +25765,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -25788,12 +25794,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -25824,6 +25824,12 @@
           "204": {
             "description": "Tuner host deleted."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -25847,12 +25853,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -25901,6 +25901,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -25924,12 +25930,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -25964,6 +25964,12 @@
           "204": {
             "description": "Tuner reset."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -25987,12 +25993,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -26052,6 +26052,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -26075,12 +26081,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -26140,6 +26140,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -26163,12 +26169,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -26217,6 +26217,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -26240,12 +26246,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -26295,6 +26295,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -26318,12 +26324,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -26373,6 +26373,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -26396,12 +26402,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -26451,6 +26451,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -26474,12 +26480,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -26532,6 +26532,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Something went wrong. No Lyrics will be returned.",
             "content": {
@@ -26575,12 +26581,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -26669,6 +26669,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -26712,12 +26718,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -26751,6 +26751,12 @@
           "204": {
             "description": "Lyric deleted."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -26794,12 +26800,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -26861,6 +26861,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -26904,12 +26910,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -26971,6 +26971,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -27014,12 +27020,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -27071,6 +27071,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Lyric not found.",
             "content": {
@@ -27114,12 +27120,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -27181,6 +27181,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -27224,12 +27230,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -27447,6 +27447,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -27490,12 +27496,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -27529,6 +27529,12 @@
           "204": {
             "description": "Livestream closed."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -27552,12 +27558,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -27737,6 +27737,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -27760,12 +27766,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -27810,6 +27810,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -27833,12 +27839,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -27901,6 +27901,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Not Found",
             "content": {
@@ -27944,12 +27950,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -28049,6 +28049,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -28072,12 +28078,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -28137,6 +28137,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -28160,12 +28166,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "deprecated": true,
@@ -28215,6 +28215,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -28238,12 +28244,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -28303,6 +28303,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -28326,12 +28332,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -28390,6 +28390,12 @@
           "204": {
             "description": "Package found."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Package not found.",
             "content": {
@@ -28433,12 +28439,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -28473,6 +28473,12 @@
           "204": {
             "description": "Installation cancelled."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -28496,12 +28502,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -28550,6 +28550,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -28573,12 +28579,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -28629,6 +28629,12 @@
           "204": {
             "description": "Package repositories saved."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -28652,12 +28658,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -28865,6 +28865,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -28888,12 +28894,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -28953,6 +28953,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Person not found.",
             "content": {
@@ -28996,12 +29002,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -29131,6 +29131,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -29154,12 +29160,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -29230,6 +29230,9 @@
           "204": {
             "description": "Playlist updated."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
           "403": {
             "description": "Access forbidden.",
             "content": {
@@ -29293,9 +29296,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
           }
         },
         "security": [
@@ -29345,6 +29345,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Playlist not found.",
             "content": {
@@ -29388,12 +29394,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -29458,6 +29458,9 @@
           "204": {
             "description": "Items added to playlist."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
           "403": {
             "description": "Access forbidden.",
             "content": {
@@ -29521,9 +29524,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
           }
         },
         "security": [
@@ -29566,6 +29566,9 @@
           "204": {
             "description": "Items removed."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
           "403": {
             "description": "Access forbidden.",
             "content": {
@@ -29629,9 +29632,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
           }
         },
         "security": [
@@ -29755,6 +29755,9 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
           "403": {
             "description": "Forbidden",
             "content": {
@@ -29818,9 +29821,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
           }
         },
         "security": [
@@ -29872,6 +29872,9 @@
         "responses": {
           "204": {
             "description": "Item moved to new index."
+          },
+          "401": {
+            "description": "Unauthorized"
           },
           "403": {
             "description": "Access forbidden.",
@@ -29936,9 +29939,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
           }
         },
         "security": [
@@ -29999,6 +29999,9 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
           "403": {
             "description": "Access forbidden.",
             "content": {
@@ -30062,9 +30065,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
           }
         },
         "security": [
@@ -30126,6 +30126,9 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
           "403": {
             "description": "Access forbidden.",
             "content": {
@@ -30189,9 +30192,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
           }
         },
         "security": [
@@ -30270,6 +30270,9 @@
           "204": {
             "description": "User's permissions modified."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
           "403": {
             "description": "Access forbidden.",
             "content": {
@@ -30333,9 +30336,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
           }
         },
         "security": [
@@ -30378,6 +30378,9 @@
           "204": {
             "description": "User permissions removed from playlist."
           },
+          "401": {
+            "description": "Unauthorized access."
+          },
           "403": {
             "description": "Forbidden",
             "content": {
@@ -30417,9 +30420,6 @@
                 }
               }
             }
-          },
-          "401": {
-            "description": "Unauthorized access."
           },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
@@ -30501,6 +30501,12 @@
           "204": {
             "description": "Playback start recorded."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -30524,12 +30530,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -30563,6 +30563,12 @@
           "204": {
             "description": "Playback session pinged."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -30586,12 +30592,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -30649,6 +30649,12 @@
           "204": {
             "description": "Playback progress recorded."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -30672,12 +30678,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -30735,6 +30735,12 @@
           "204": {
             "description": "Playback stop recorded."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -30758,12 +30764,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -30833,6 +30833,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -30876,12 +30882,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -30940,6 +30940,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -30983,12 +30989,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -31037,6 +31037,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -31060,12 +31066,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -31099,6 +31099,12 @@
         "responses": {
           "204": {
             "description": "Plugin uninstalled."
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
           },
           "404": {
             "description": "Plugin not found.",
@@ -31143,12 +31149,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -31192,6 +31192,12 @@
           "204": {
             "description": "Plugin uninstalled."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Plugin not found.",
             "content": {
@@ -31235,12 +31241,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -31284,6 +31284,12 @@
           "204": {
             "description": "Plugin disabled."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Plugin not found.",
             "content": {
@@ -31327,12 +31333,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -31376,6 +31376,12 @@
           "204": {
             "description": "Plugin enabled."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Plugin not found.",
             "content": {
@@ -31419,12 +31425,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -31476,6 +31476,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Not Found",
             "content": {
@@ -31519,12 +31525,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -31576,6 +31576,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Plugin not found or plugin configuration not found.",
             "content": {
@@ -31619,12 +31625,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -31657,6 +31657,12 @@
         "responses": {
           "204": {
             "description": "Plugin configuration updated."
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
           },
           "404": {
             "description": "Plugin not found or plugin does not have configuration.",
@@ -31701,12 +31707,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -31740,6 +31740,12 @@
         "responses": {
           "204": {
             "description": "Plugin manifest returned."
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
           },
           "404": {
             "description": "Plugin not found.",
@@ -31784,12 +31790,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -31849,6 +31849,9 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
           "403": {
             "description": "Unknown user id.",
             "content": {
@@ -31892,9 +31895,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
           }
         },
         "security": [
@@ -32224,6 +32224,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -32267,12 +32273,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -32344,6 +32344,12 @@
           "204": {
             "description": "Remote image downloaded."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Remote image not found.",
             "content": {
@@ -32387,12 +32393,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -32453,6 +32453,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -32496,12 +32502,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -32568,6 +32568,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -32591,12 +32597,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -32647,6 +32647,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Task not found.",
             "content": {
@@ -32690,12 +32696,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -32759,6 +32759,12 @@
           "204": {
             "description": "Task triggers updated."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Task not found.",
             "content": {
@@ -32802,12 +32808,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -32841,6 +32841,12 @@
           "204": {
             "description": "Task started."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Task not found.",
             "content": {
@@ -32884,12 +32890,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -32921,6 +32921,12 @@
           "204": {
             "description": "Task stopped."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Task not found.",
             "content": {
@@ -32964,12 +32970,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -33174,6 +33174,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -33197,12 +33203,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -33251,6 +33251,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -33274,12 +33280,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -33328,6 +33328,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -33351,12 +33357,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -33433,6 +33433,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -33456,12 +33462,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -33528,6 +33528,12 @@
           "204": {
             "description": "Full general command sent to session."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -33551,12 +33557,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -33649,6 +33649,12 @@
           "204": {
             "description": "General command sent to session."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -33672,12 +33678,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -33747,6 +33747,12 @@
           "204": {
             "description": "Message sent."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -33770,12 +33776,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -33887,6 +33887,12 @@
           "204": {
             "description": "Instruction sent to session."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -33910,12 +33916,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -33991,6 +33991,12 @@
           "204": {
             "description": "Playstate command sent to session."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -34014,12 +34020,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -34112,6 +34112,12 @@
           "204": {
             "description": "System command sent to session."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -34135,12 +34141,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -34184,6 +34184,12 @@
           "204": {
             "description": "User added to session."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -34207,12 +34213,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -34254,6 +34254,12 @@
           "204": {
             "description": "User removed from session."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -34277,12 +34283,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -34387,6 +34387,12 @@
           "204": {
             "description": "Instruction sent to session."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -34410,12 +34416,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -34488,6 +34488,12 @@
           "204": {
             "description": "Capabilities posted."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -34511,12 +34517,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -34585,6 +34585,12 @@
           "204": {
             "description": "Capabilities updated."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -34608,12 +34614,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -34636,6 +34636,12 @@
           "204": {
             "description": "Session end reported to server."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -34659,12 +34665,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -34706,6 +34706,12 @@
           "204": {
             "description": "Session reported to server."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -34729,12 +34735,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -34757,6 +34757,12 @@
           "204": {
             "description": "Startup wizard completed."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -34780,12 +34786,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -34826,6 +34826,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -34849,12 +34855,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "deprecated": true,
@@ -34913,6 +34913,12 @@
           "204": {
             "description": "Configuration saved."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -34936,12 +34942,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "deprecated": true,
@@ -34983,6 +34983,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -35006,12 +35012,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "deprecated": true,
@@ -35072,6 +35072,12 @@
           "204": {
             "description": "Configuration saved."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -35095,12 +35101,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "deprecated": true,
@@ -35142,6 +35142,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -35165,12 +35171,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "deprecated": true,
@@ -35228,6 +35228,12 @@
           "204": {
             "description": "Updated user name and password."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -35251,12 +35257,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -35454,6 +35454,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -35477,12 +35483,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -35542,6 +35542,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -35565,12 +35571,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -35619,6 +35619,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -35642,12 +35648,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -35689,6 +35689,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -35712,12 +35718,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -35795,6 +35795,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -35838,12 +35844,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -35888,6 +35888,12 @@
           "204": {
             "description": "Subtitle downloaded."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -35931,12 +35937,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -35979,6 +35979,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -36002,12 +36008,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -36080,6 +36080,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -36123,12 +36129,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -36199,6 +36199,12 @@
           "204": {
             "description": "Subtitle uploaded."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -36242,12 +36248,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -36293,6 +36293,12 @@
           "204": {
             "description": "Subtitle deleted."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -36336,12 +36342,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -36773,6 +36773,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -36796,12 +36802,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -36853,6 +36853,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Not Found",
             "content": {
@@ -36896,12 +36902,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -36962,6 +36962,12 @@
           "204": {
             "description": "Group state update sent to all group members."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -36985,12 +36991,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -37051,6 +37051,12 @@
           "204": {
             "description": "Group join successful."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -37074,12 +37080,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -37104,6 +37104,12 @@
           "204": {
             "description": "Group leave successful."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -37127,12 +37133,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -37183,6 +37183,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -37206,12 +37212,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -37272,6 +37272,12 @@
           "204": {
             "description": "Queue update sent to all group members."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -37295,12 +37301,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -37381,6 +37381,12 @@
           "204": {
             "description": "New group created."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -37404,12 +37410,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -37470,6 +37470,12 @@
           "204": {
             "description": "Next item update sent to all group members."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -37493,12 +37499,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -37523,6 +37523,12 @@
           "204": {
             "description": "Pause update sent to all group members."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -37546,12 +37552,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -37612,6 +37612,12 @@
           "204": {
             "description": "Ping updated."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -37635,12 +37641,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -37700,6 +37700,12 @@
           "204": {
             "description": "Previous item update sent to all group members."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -37723,12 +37729,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -37789,6 +37789,12 @@
           "204": {
             "description": "Queue update sent to all group members."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -37812,12 +37818,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -37878,6 +37878,12 @@
           "204": {
             "description": "Group state update sent to all group members."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -37901,12 +37907,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -37967,6 +37967,12 @@
           "204": {
             "description": "Queue update sent to all group members."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -37990,12 +37996,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -38056,6 +38056,12 @@
           "204": {
             "description": "Seek update sent to all group members."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -38079,12 +38085,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -38145,6 +38145,12 @@
           "204": {
             "description": "Member state updated."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -38168,12 +38174,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -38234,6 +38234,12 @@
           "204": {
             "description": "Queue update sent to all group members."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -38257,12 +38263,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -38323,6 +38323,12 @@
           "204": {
             "description": "Queue update sent to all group members."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -38346,12 +38352,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -38412,6 +38412,12 @@
           "204": {
             "description": "Play queue update sent to all group members."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -38435,12 +38441,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -38501,6 +38501,12 @@
           "204": {
             "description": "Play queue update sent to all group members."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -38524,12 +38530,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -38554,6 +38554,12 @@
           "204": {
             "description": "Stop update sent to all group members."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -38577,12 +38583,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -38607,6 +38607,12 @@
           "204": {
             "description": "Unpause update sent to all group members."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -38630,12 +38636,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -38676,6 +38676,9 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Unauthorized"
           },
           "403": {
             "description": "User does not have permission to get endpoint information.",
@@ -38720,9 +38723,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
           }
         },
         "security": [
@@ -38761,6 +38761,9 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Unauthorized"
           },
           "403": {
             "description": "User does not have permission to retrieve information.",
@@ -38805,9 +38808,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
           }
         },
         "security": [
@@ -38903,6 +38903,9 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
           "403": {
             "description": "User does not have permission to retrieve information.",
             "content": {
@@ -38946,9 +38949,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
           }
         },
         "security": [
@@ -38997,6 +38997,9 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
           "403": {
             "description": "User does not have permission to get server logs.",
             "content": {
@@ -39040,9 +39043,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
           }
         },
         "security": [
@@ -39083,6 +39083,9 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Unauthorized"
           },
           "403": {
             "description": "User does not have permission to get log files.",
@@ -39147,9 +39150,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
           }
         },
         "security": [
@@ -39280,6 +39280,9 @@
           "204": {
             "description": "Server restarted."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
           "403": {
             "description": "User does not have permission to restart server.",
             "content": {
@@ -39323,9 +39326,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
           }
         },
         "security": [
@@ -39347,6 +39347,9 @@
         "responses": {
           "204": {
             "description": "Server shut down."
+          },
+          "401": {
+            "description": "Unauthorized"
           },
           "403": {
             "description": "User does not have permission to shutdown server.",
@@ -39391,9 +39394,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
           }
         },
         "security": [
@@ -40304,6 +40304,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -40327,12 +40333,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "deprecated": true,
@@ -40405,6 +40405,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Not Found",
             "content": {
@@ -40448,12 +40454,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -40515,6 +40515,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Not Found",
             "content": {
@@ -40558,12 +40564,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -40777,6 +40777,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Not Found",
             "content": {
@@ -40820,12 +40826,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -40958,6 +40958,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Not Found",
             "content": {
@@ -41001,12 +41007,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -41176,6 +41176,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -41199,12 +41205,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -41329,6 +41329,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -41352,12 +41358,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -41562,6 +41562,12 @@
           "302": {
             "description": "Redirected to remote audio stream."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -41605,12 +41611,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -41813,6 +41813,12 @@
           "302": {
             "description": "Redirected to remote audio stream."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Item not found.",
             "content": {
@@ -41856,12 +41862,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -41928,6 +41928,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -41951,12 +41957,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -42044,6 +42044,9 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
           "403": {
             "description": "User update forbidden.",
             "content": {
@@ -42087,9 +42090,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
           }
         },
         "security": [
@@ -42141,6 +42141,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "User not found.",
             "content": {
@@ -42184,12 +42190,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -42223,6 +42223,12 @@
           "204": {
             "description": "User deleted."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "User not found.",
             "content": {
@@ -42266,12 +42272,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -42359,6 +42359,9 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
           "403": {
             "description": "User policy update forbidden.",
             "content": {
@@ -42402,9 +42405,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
           }
         },
         "security": [
@@ -42659,6 +42659,9 @@
           "204": {
             "description": "User configuration updated."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
           "403": {
             "description": "User configuration update forbidden.",
             "content": {
@@ -42702,9 +42705,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
           }
         },
         "security": [
@@ -42946,6 +42946,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -42969,12 +42975,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -43050,6 +43050,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -43073,12 +43079,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -43148,6 +43148,9 @@
           "204": {
             "description": "Password successfully reset."
           },
+          "401": {
+            "description": "Unauthorized"
+          },
           "403": {
             "description": "User is not allowed to update the password.",
             "content": {
@@ -43211,9 +43214,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
           }
         },
         "security": [
@@ -43338,6 +43338,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -43361,12 +43367,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -43436,6 +43436,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -43459,12 +43465,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -43534,6 +43534,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -43557,12 +43563,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -43716,6 +43716,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -43739,12 +43745,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -43795,6 +43795,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -43818,12 +43824,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -43884,6 +43884,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -43907,12 +43913,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -43971,6 +43971,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -43994,12 +44000,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -44060,6 +44060,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -44083,12 +44089,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -44155,6 +44155,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -44178,12 +44184,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -44262,6 +44262,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -44285,12 +44291,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -44350,6 +44350,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "User not found.",
             "content": {
@@ -44393,12 +44399,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -44556,6 +44556,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -44579,12 +44585,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -44618,6 +44618,12 @@
         "responses": {
           "204": {
             "description": "Alternate sources deleted."
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
           },
           "404": {
             "description": "Video not found.",
@@ -44662,12 +44668,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -46769,6 +46769,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -46792,12 +46798,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -46987,6 +46987,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "503": {
             "description": "The server is currently starting or is temporarily not available.",
             "headers": {
@@ -47010,12 +47016,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [
@@ -47076,6 +47076,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Year not found.",
             "content": {
@@ -47119,12 +47125,6 @@
             "content": {
               "text/html": {}
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         },
         "security": [

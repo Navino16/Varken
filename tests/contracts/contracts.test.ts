@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { contractRoutes, loadFixture } from './registry';
-import { loadContract } from './lib/spec';
+import fs from 'node:fs';
+import path from 'node:path';
+import { loadContract, loadManifest } from './lib/spec';
 import { findOperation, validateResponse } from './lib/validate';
 
 function findEmptyArrays(value: unknown, at = ''): string[] {
@@ -32,5 +34,17 @@ describe.each(contractRoutes)('$service GET $path', (route) => {
 
   it(`fixture ${route.fixture} has no empty arrays`, () => {
     expect(findEmptyArrays(loadFixture(route.fixture))).toEqual([]);
+  });
+});
+
+describe('pinned spec files', () => {
+  const canonical = Object.entries(loadManifest()).filter(
+    ([, entry]) => entry.file.endsWith('.json') && entry.refresh !== false && entry.refresh.kind !== 'github-raw'
+  );
+
+  it.each(canonical)('%s is written canonically so a refresh without upstream change is a no-op', (_service, entry) => {
+    const content = fs.readFileSync(path.join(__dirname, 'specs', entry.file), 'utf8');
+
+    expect(content === `${JSON.stringify(JSON.parse(content), null, 2)}\n`).toBe(true);
   });
 });
