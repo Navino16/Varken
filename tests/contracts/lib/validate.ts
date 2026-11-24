@@ -49,10 +49,23 @@ function toJsonSchema(contract: Contract, schema: unknown): Schema {
   return converted;
 }
 
+const COMPOSITION_KEYS = ['allOf', 'anyOf', 'oneOf'] as const;
+const CONDITIONAL_KEYS = ['if', 'then', 'else'] as const;
+
+function isObjectType(schema: Schema): boolean {
+  return schema.type === 'object' || (Array.isArray(schema.type) && schema.type.includes('object'));
+}
+
+function toOpenRef(member: unknown): void {
+  if (isSchema(member) && typeof member.$ref === 'string' && member.$ref.startsWith(COMPONENT_REF)) {
+    member.$ref = OPEN_COMPONENT_REF + member.$ref.slice(COMPONENT_REF.length);
+  }
+}
+
 // Unknown properties must fail even where specs allow them (spec §Contract check). unevaluatedProperties
-// is used instead of additionalProperties so allOf compositions still see their members' properties;
-// allOf members point to the open variant of a component, every other use gets the strict one.
-function strictify(schema: unknown, allOfMember: boolean): void {
+// is set on the outermost schema only, so properties declared by composition members (allOf/anyOf/oneOf,
+// if/then/else, dependentSchemas) still count; those members point to the open variant of components.
+function strictify(schema: unknown, compositionMember: boolean): void {
   if (!isSchema(schema)) {
     return;
   }
@@ -61,29 +74,42 @@ function strictify(schema: unknown, allOfMember: boolean): void {
   if (typeof schema.additionalProperties === 'boolean') {
     delete schema.additionalProperties;
   }
-  if ((schema.properties || schema.allOf || closed) && !allOfMember && !isMap) {
+  const composes =
+    COMPOSITION_KEYS.some((key) => Array.isArray(schema[key])) || 'if' in schema || isSchema(schema.dependentSchemas);
+  if ((schema.properties || composes || closed || isObjectType(schema)) && !compositionMember && !isMap) {
     schema.unevaluatedProperties = false;
   }
 
-  if (isSchema(schema.properties)) {
-    Object.values(schema.properties).forEach((child) => strictify(child, false));
+  for (const key of ['properties', 'patternProperties'] as const) {
+    if (isSchema(schema[key])) {
+      Object.values(schema[key]).forEach((child) => strictify(child, false));
+    }
   }
   if (isMap) {
     strictify(schema.additionalProperties, false);
   }
-  for (const key of ['items', 'not', 'contains']) {
+  for (const key of ['items', 'additionalItems', 'not', 'contains']) {
     strictify(schema[key], false);
   }
-  for (const key of ['anyOf', 'oneOf', 'prefixItems']) {
-    if (Array.isArray(schema[key])) {
-      (schema[key] as unknown[]).forEach((child) => strictify(child, false));
+  if (Array.isArray(schema.prefixItems)) {
+    schema.prefixItems.forEach((child) => strictify(child, false));
+  }
+  for (const key of COMPOSITION_KEYS) {
+    const members = schema[key];
+    if (Array.isArray(members)) {
+      for (const member of members) {
+        toOpenRef(member);
+        strictify(member, true);
+      }
     }
   }
-  if (Array.isArray(schema.allOf)) {
-    for (const member of schema.allOf) {
-      if (isSchema(member) && typeof member.$ref === 'string' && member.$ref.startsWith(COMPONENT_REF)) {
-        member.$ref = OPEN_COMPONENT_REF + member.$ref.slice(COMPONENT_REF.length);
-      }
+  for (const key of CONDITIONAL_KEYS) {
+    toOpenRef(schema[key]);
+    strictify(schema[key], true);
+  }
+  if (isSchema(schema.dependentSchemas)) {
+    for (const member of Object.values(schema.dependentSchemas)) {
+      toOpenRef(member);
       strictify(member, true);
     }
   }
@@ -139,7 +165,7 @@ function getCompiled(contract: Contract): CompiledContract {
 export function findOperation(contract: Contract, method: 'get', calledPath: string): OperationMatch | undefined {
   let path = stripQuery(calledPath);
   const prefix = contract.entry.pathPrefix;
-  if (prefix && path.startsWith(prefix)) {
+  if (prefix && (path === prefix || path.startsWith(`${prefix}/`))) {
     path = path.slice(prefix.length);
   }
 
@@ -152,10 +178,23 @@ export function findOperation(contract: Contract, method: 'get', calledPath: str
   return pick(path) ?? Object.keys(paths).filter((p) => matchPathTemplate(p, path)).map(pick).find(Boolean);
 }
 
+function isJsonMediaType(mediaType: string): boolean {
+  const base = mediaType.split(';')[0].trim().toLowerCase();
+  return base === 'application/json' || base.endsWith('+json');
+}
+
 function jsonResponseSchema(operation: Record<string, unknown>): unknown {
   const responses = operation.responses as Record<string, Schema> | undefined;
-  const content = responses?.['200']?.content as Record<string, Schema> | undefined;
-  return content?.['application/json']?.schema;
+  for (const status of ['200', 'default']) {
+    const content = responses?.[status]?.content;
+    if (isSchema(content)) {
+      const mediaType = Object.keys(content).find(isJsonMediaType);
+      if (mediaType) {
+        return (content[mediaType] as Schema).schema;
+      }
+    }
+  }
+  return undefined;
 }
 
 function formatError(error: ErrorObject): string {

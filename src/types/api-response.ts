@@ -1,5 +1,3 @@
-// Hand-written helpers for the generated API types in this folder (the other files are generated).
-
 type JsonBody<Operation> = Operation extends {
   responses: { 200: { content: { 'application/json': infer Body } } };
 }

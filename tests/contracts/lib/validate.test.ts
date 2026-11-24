@@ -41,6 +41,12 @@ describe('findOperation', () => {
     expect(findOperation(c, 'get', '/items/count')?.specPath).toBe('/items/count');
   });
 
+  it('only strips the path prefix on a segment boundary', () => {
+    const c = contract({ '/apikey/x': jsonGet(objectWithId) }, {}, { pathPrefix: '/api' });
+
+    expect(findOperation(c, 'get', '/apikey/x')?.specPath).toBe('/apikey/x');
+  });
+
   it('strips the service path prefix', () => {
     const c = contract({ '/movies/history': jsonGet(objectWithId) }, {}, { pathPrefix: '/api' });
 
@@ -145,6 +151,65 @@ describe('validateAgainstContract', () => {
 
     expect(validateAgainstContract(c, 'get', '/a', {})).toEqual([]);
     expect(validateAgainstContract(c, 'get', '/a', { z: 1 }).join()).toContain('z');
+  });
+
+  it('accepts parent properties combined with oneOf branches and rejects extras', () => {
+    const c = contract(
+      {
+        '/a': jsonGet({
+          type: 'object',
+          properties: { kind: { type: 'string' } },
+          oneOf: [{ $ref: '#/components/schemas/B' }, { properties: { c: { type: 'integer' } }, required: ['c'] }],
+        }),
+      },
+      { B: { type: 'object', properties: { b: { type: 'integer' } }, required: ['b'] } }
+    );
+
+    expect(validateAgainstContract(c, 'get', '/a', { kind: 'x', b: 1 })).toEqual([]);
+    expect(validateAgainstContract(c, 'get', '/a', { kind: 'x', c: 1 })).toEqual([]);
+    expect(validateAgainstContract(c, 'get', '/a', { kind: 'x', b: 1, extra: 1 }).join()).toContain('extra');
+  });
+
+  it('rejects keys on free-form objects without declared properties', () => {
+    const c = contract({ '/a': jsonGet({ type: 'object' }) });
+
+    expect(validateAgainstContract(c, 'get', '/a', {})).toEqual([]);
+    expect(validateAgainstContract(c, 'get', '/a', { z: 1 }).join()).toContain('z');
+  });
+
+  it('strictifies objects nested under patternProperties and conditional keywords', () => {
+    const c = contract(
+      {
+        '/a': jsonGet({
+          type: 'object',
+          patternProperties: { '^x-': objectWithId },
+          if: { properties: { kind: { const: 'movie' } }, required: ['kind'] },
+          then: { properties: { kind: { type: 'string' }, tmdbId: { type: 'integer' } } },
+          else: { properties: { kind: { type: 'string' } } },
+        }),
+      },
+      {},
+      { openapi: '3.1.0' }
+    );
+
+    expect(validateAgainstContract(c, 'get', '/a', { kind: 'movie', tmdbId: 1, 'x-a': { id: 1 } })).toEqual([]);
+    expect(validateAgainstContract(c, 'get', '/a', { kind: 'movie', 'x-a': { id: 1, extra: 1 } }).join()).toContain('extra');
+    expect(validateAgainstContract(c, 'get', '/a', { kind: 'show', tmdbId: 1 }).join()).toContain('tmdbId');
+  });
+
+  it('falls back to the default response and accepts JSON media types with parameters', () => {
+    const c = contract({
+      '/default': { get: { responses: { default: { content: { 'application/json': { schema: objectWithId } } } } } },
+      '/profile': {
+        get: {
+          responses: { 200: { content: { 'application/json; profile="CamelCase"': { schema: objectWithId } } } },
+        },
+      },
+    });
+
+    expect(validateAgainstContract(c, 'get', '/default', { id: 1 })).toEqual([]);
+    expect(validateAgainstContract(c, 'get', '/profile', { id: 1 })).toEqual([]);
+    expect(validateAgainstContract(c, 'get', '/profile', { id: 1, extra: 1 }).join()).toContain('extra');
   });
 
   it('resolves component refs', () => {
