@@ -68,7 +68,9 @@ async function refreshSource(source: RefreshSource, entry: ManifestEntry, pinned
     }
     case 'runtime': {
       const tag = await latestRelease(source.repo, deps.fetchJson);
-      return result(entry, pinned, canonicalJson(JSON.parse(await captureRuntimeSpec(source, tag, deps))), tag);
+      // `servers` names the capture container (Emby uses its random hostname), not the API.
+      const { servers: _servers, ...spec } = JSON.parse(await captureRuntimeSpec(source, tag, deps)) as Record<string, unknown>;
+      return result(entry, pinned, canonicalJson(spec), tag);
     }
     case 'docstrings': {
       const tag = await latestRelease(source.repo, deps.fetchJson);

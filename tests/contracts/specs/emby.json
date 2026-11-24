@@ -117187,12 +117187,6 @@
       }
     }
   },
-  "servers": [
-    {
-      "description": "b0f5af7c2e8b",
-      "url": "http://localhost:8096/emby"
-    }
-  ],
   "tags": [
     {
       "externalDocs": {

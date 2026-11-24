@@ -87,6 +87,15 @@ describe('refreshService', () => {
     expect(result).toEqual({ status: 'updated', version: 'v2', content: '{\n  "swagger": "2.0"\n}\n' });
   });
 
+  it('runtime: drops servers, which describe the capture container', async () => {
+    const emby = entry({ kind: 'runtime', repo: 'MediaBrowser/Emby.Releases', image: 'emby/embyserver:{tag}', port: 8096, path: '/emby/openapi.json' });
+    const body = '{"openapi":"3.0.1","servers":[{"url":"http://localhost:8096/emby","description":"f31a67910e59"}]}';
+
+    const result = await refreshService(emby, { spec: '{}\n' }, deps({ 'http://localhost:8096/emby/openapi.json': body }));
+
+    expect(result.content).toBe('{\n  "openapi": "3.0.1"\n}\n');
+  });
+
   describe('docstrings', () => {
     const tautulli = entry({
       kind: 'docstrings',
