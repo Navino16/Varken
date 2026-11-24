@@ -6,5 +6,6 @@
  */
 
 export { createMockHttpClient, createMockAxios, type MockHttpClient } from './http';
+export { createContractHttpClient, type ContractHttpClient } from './contract-http';
 export { createMockVarkenConfig, createMockGlobalConfig } from './config';
 export { loggerMock } from './logger';
