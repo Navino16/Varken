@@ -1,0 +1,10 @@
+{
+  "radarr": {
+    "file": "radarr.json",
+    "format": "openapi3.0",
+    "source": "https://raw.githubusercontent.com/Radarr/Radarr/{tag}/src/Radarr.Api.V3/openapi.json",
+    "version": "v7.0.3.10918",
+    "pathPrefix": "",
+    "refresh": true
+  }
+}
