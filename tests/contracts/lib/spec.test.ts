@@ -7,12 +7,16 @@ const contractsDir = path.resolve(__dirname, '..');
 const overlayPath = path.join(contractsDir, 'overlays', 'radarr.json');
 const manifestPath = path.join(contractsDir, 'specs', 'manifest.json');
 
+function serialize(content: unknown): string {
+  return typeof content === 'string' ? content : JSON.stringify(content);
+}
+
 function fakeFiles(files: Record<string, unknown>): void {
   const realExists = fs.existsSync;
   const realRead = fs.readFileSync;
   vi.spyOn(fs, 'existsSync').mockImplementation((p) => String(p) in files || realExists(p));
   vi.spyOn(fs, 'readFileSync').mockImplementation(((p: fs.PathOrFileDescriptor, options?: unknown) =>
-    String(p) in files ? JSON.stringify(files[String(p)]) : realRead(p, options as BufferEncoding)) as typeof fs.readFileSync);
+    String(p) in files ? serialize(files[String(p)]) : realRead(p, options as BufferEncoding)) as typeof fs.readFileSync);
 }
 
 function fakeFile(target: string, content: unknown): void {
@@ -86,6 +90,21 @@ describe('contract loading', () => {
     const operation = loadContract('bazarr').spec.paths['/movies/wanted'].get as { responses: Record<string, unknown> };
 
     expect(operation.responses['200']).toEqual(response);
+  });
+
+  it('loads YAML specs', () => {
+    fakeFiles({
+      [manifestPath]: {
+        radarr: { file: 'toy.yml', format: 'openapi3.0', source: 'test', version: 'v1', pathPrefix: '/api/v1', refresh: true },
+      },
+      [path.join(contractsDir, 'specs', 'toy.yml')]:
+        "openapi: '3.0.2'\npaths:\n  /status:\n    get:\n      responses:\n        '200':\n          description: ok\n",
+    });
+
+    const spec = loadContract('radarr').spec;
+
+    expect(spec.openapi).toBe('3.0.2');
+    expect(spec.paths['/status']).toBeDefined();
   });
 
   it('hash is stable and changes with the spec', () => {
