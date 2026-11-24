@@ -1,51 +1,53 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+import axios from 'axios';
 import { OmbiPlugin } from '../../../src/plugins/inputs/OmbiPlugin';
-import {
-  OmbiRequestCounts,
-  OmbiIssuesCounts,
-  OmbiMovieRequest,
-  OmbiTVRequest,
-  OmbiUser,
-} from '../../../src/types/inputs/ombi.types';
+import type { OmbiConfig } from '../../../src/types/inputs/ombi.types';
+import type { components } from '../../../src/types/generated/ombi';
+import { createContractHttpClient, type ContractHttpClient } from '../../fixtures/contract-http';
+import { loadFixture } from '../../contracts/registry';
+import type { DataPoint } from '../../../src/types/plugin.types';
 
-// Mock users data
-const mockUsers: OmbiUser[] = [
-  { id: 'user1', userName: 'john_doe', alias: 'John', email: 'john@test.com', userType: 1 },
-  { id: 'user2', userName: 'jane_smith', email: 'jane@test.com', userType: 1 },
-];
+vi.mock('../../../src/core/Logger', async () => {
+  const { loggerMock } = await import('../../fixtures/logger');
+  return loggerMock();
+});
 
-// Mock the logger
-vi.mock('../../../src/core/Logger', () => ({
-  createLogger: () => ({
-    info: vi.fn(),
-    debug: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  }),
-  withContext: (logger: unknown) => logger,
-}));
+vi.mock('axios', () => ({ default: { create: vi.fn() } }));
+
+type MovieRequest = components['schemas']['Ombi.Store.Entities.Requests.MovieRequests'];
+type TvRequest = components['schemas']['Ombi.Store.Entities.Requests.TvRequests'];
+
+function movies(): MovieRequest[] {
+  return loadFixture<MovieRequest[]>('ombi/request-movie');
+}
+
+function shows(): TvRequest[] {
+  return loadFixture<TvRequest[]>('ombi/request-tv');
+}
+
+function requestPoint(points: DataPoint[], title: string): DataPoint | undefined {
+  return points.find((p) => p.tags.type === 'Requests' && p.tags.title === title);
+}
 
 describe('OmbiPlugin', () => {
   let plugin: OmbiPlugin;
-  const mockConfig = {
+  let client: ContractHttpClient;
+
+  const testConfig: OmbiConfig = {
     id: 1,
     url: 'http://localhost:3579',
     apiKey: 'test-api-key',
     verifySsl: false,
-    requestCounts: {
-      enabled: true,
-      intervalSeconds: 300,
-    },
-    issueCounts: {
-      enabled: true,
-      intervalSeconds: 300,
-    },
+    requestCounts: { enabled: true, intervalSeconds: 300 },
+    issueCounts: { enabled: true, intervalSeconds: 300 },
   };
 
   beforeEach(async () => {
     vi.clearAllMocks();
     plugin = new OmbiPlugin();
-    await plugin.initialize(mockConfig);
+    client = createContractHttpClient('ombi');
+    (axios.create as Mock).mockReturnValue(client);
+    await plugin.initialize(testConfig);
   });
 
   describe('metadata', () => {
@@ -55,541 +57,199 @@ describe('OmbiPlugin', () => {
     });
   });
 
-  describe('initialize', () => {
-    it('should set ApiKey header on initialization', async () => {
-      const newPlugin = new OmbiPlugin();
-      await newPlugin.initialize(mockConfig);
+  describe('health', () => {
+    it('should return the correct health endpoint', () => {
+      const endpoint = (plugin as unknown as { getHealthEndpoint: () => string }).getHealthEndpoint();
+      expect(endpoint).toBe('/api/v1/Status');
+    });
 
-      // Access internal httpClient to verify header
-      const headers = (newPlugin as unknown as { httpClient: { defaults: { headers: { common: Record<string, string> } } } }).httpClient.defaults.headers.common;
-      expect(headers['ApiKey']).toBe('test-api-key');
+    it('should pass the health check against the contract route', async () => {
+      await expect(plugin.healthCheck()).resolves.toBe(true);
+    });
+  });
+
+  describe('initialize', () => {
+    it('should set ApiKey header on initialization', () => {
+      expect(client.defaults.headers.common.ApiKey).toBe('test-api-key');
     });
   });
 
   describe('getSchedules', () => {
     it('should return schedules for enabled collectors', () => {
-      const schedules = plugin.getSchedules();
-
-      expect(schedules).toHaveLength(2);
-      expect(schedules[0].name).toBe('Ombi_1_request_counts');
-      expect(schedules[0].intervalSeconds).toBe(300);
-      expect(schedules[1].name).toBe('Ombi_1_issue_counts');
-      expect(schedules[1].intervalSeconds).toBe(300);
+      expect(plugin.getSchedules().map((s) => [s.name, s.intervalSeconds])).toEqual([
+        ['Ombi_1_request_counts', 300],
+        ['Ombi_1_issue_counts', 300],
+      ]);
     });
 
     it('should only return request_counts schedule when issues disabled', async () => {
-      const configWithoutIssues = {
-        ...mockConfig,
-        issueCounts: { enabled: false, intervalSeconds: 300 },
-      };
-      const newPlugin = new OmbiPlugin();
-      await newPlugin.initialize(configWithoutIssues);
+      await plugin.initialize({ ...testConfig, issueCounts: { enabled: false, intervalSeconds: 300 } });
 
-      const schedules = newPlugin.getSchedules();
-      expect(schedules).toHaveLength(1);
-      expect(schedules[0].name).toBe('Ombi_1_request_counts');
+      expect(plugin.getSchedules().map((s) => s.name)).toEqual(['Ombi_1_request_counts']);
     });
 
     it('should return empty array when both disabled', async () => {
-      const configDisabled = {
-        ...mockConfig,
+      await plugin.initialize({
+        ...testConfig,
         requestCounts: { enabled: false, intervalSeconds: 300 },
         issueCounts: { enabled: false, intervalSeconds: 300 },
-      };
-      const newPlugin = new OmbiPlugin();
-      await newPlugin.initialize(configDisabled);
+      });
 
-      const schedules = newPlugin.getSchedules();
-      expect(schedules).toHaveLength(0);
+      expect(plugin.getSchedules()).toEqual([]);
+      expect(await plugin.collect()).toEqual([]);
+      expect(client.get).not.toHaveBeenCalled();
+    });
+
+    it('should collect counts and requests from the request_counts schedule', async () => {
+      const points = await plugin.getSchedules()[0].collector();
+
+      expect(new Set(points.map((p) => p.tags.type))).toEqual(new Set(['Request_Counts', 'Requests', 'Request_Total']));
     });
   });
 
   describe('collect', () => {
     it('should collect request counts', async () => {
-      const mockRequestCounts: OmbiRequestCounts = {
-        pending: 5,
-        approved: 10,
-        available: 15,
-      };
+      const point = (await plugin.collect()).find((p) => p.tags.type === 'Request_Counts');
 
-      const mockTVRequests: OmbiTVRequest[] = [];
-      const mockMovieRequests: OmbiMovieRequest[] = [];
-
-      const httpGetSpy = vi.spyOn(plugin as unknown as { httpGet: <T>(path: string) => Promise<T> }, 'httpGet');
-      httpGetSpy.mockImplementation(async (path: string) => {
-        if (path === '/api/v1/Request/count') return mockRequestCounts;
-        if (path === '/api/v1/Request/tv') return mockTVRequests;
-        if (path === '/api/v1/Request/movie') return mockMovieRequests;
-        if (path === '/api/v1/Issues/count') return { pending: 0, inProgress: 0, resolved: 0 };
-        if (path === '/api/v1/Identity/Users') return mockUsers;
-        return null;
-      });
-
-      const points = await plugin.collect();
-
-      const requestCountsPoint = points.find(p => p.tags.type === 'Request_Counts');
-      expect(requestCountsPoint).toBeDefined();
-      expect(requestCountsPoint?.fields.pending).toBe(5);
-      expect(requestCountsPoint?.fields.approved).toBe(10);
-      expect(requestCountsPoint?.fields.available).toBe(15);
+      expect(point?.fields).toEqual({ pending: 4, approved: 7, available: 28 });
     });
 
     it('should collect issue counts', async () => {
-      const mockIssueCounts: OmbiIssuesCounts = {
-        pending: 3,
-        inProgress: 2,
-        resolved: 10,
-      };
+      const point = (await plugin.collect()).find((p) => p.tags.type === 'Issues_Counts');
 
-      const httpGetSpy = vi.spyOn(plugin as unknown as { httpGet: <T>(path: string) => Promise<T> }, 'httpGet');
-      httpGetSpy.mockImplementation(async (path: string) => {
-        if (path === '/api/v1/Issues/count') return mockIssueCounts;
-        if (path === '/api/v1/Request/count') return { pending: 0, approved: 0, available: 0 };
-        if (path === '/api/v1/Request/tv') return [];
-        if (path === '/api/v1/Request/movie') return [];
-        if (path === '/api/v1/Identity/Users') return mockUsers;
-        return null;
-      });
-
-      const points = await plugin.collect();
-
-      const issueCountsPoint = points.find(p => p.tags.type === 'Issues_Counts');
-      expect(issueCountsPoint).toBeDefined();
-      expect(issueCountsPoint?.fields.pending).toBe(3);
-      expect(issueCountsPoint?.fields.in_progress).toBe(2);
-      expect(issueCountsPoint?.fields.resolved).toBe(10);
+      expect(point?.fields).toEqual({ pending: 3, in_progress: 1, resolved: 12 });
     });
 
     it('should process movie requests correctly', async () => {
-      const mockMovieRequests: OmbiMovieRequest[] = [
-        {
-          id: 1,
-          theMovieDbId: 123,
-          title: 'Test Movie',
-          overview: 'A test movie',
-          status: 'Available',
-          requestStatus: 'Approved',
-          approved: true,
-          available: true,
-          requestedDate: '2024-01-15T10:00:00Z',
-          requestedUserId: 'user1',
-          requestedByAlias: 'TestUser',
-          requestType: 1,
-        },
-      ];
+      const dune = requestPoint(await plugin.collect(), 'Dune: Part Two');
 
-      const httpGetSpy = vi.spyOn(plugin as unknown as { httpGet: <T>(path: string) => Promise<T> }, 'httpGet');
-      httpGetSpy.mockImplementation(async (path: string) => {
-        if (path === '/api/v1/Request/movie') return mockMovieRequests;
-        if (path === '/api/v1/Request/tv') return [];
-        if (path === '/api/v1/Request/count') return { pending: 0, approved: 1, available: 1 };
-        if (path === '/api/v1/Issues/count') return { pending: 0, inProgress: 0, resolved: 0 };
-        if (path === '/api/v1/Identity/Users') return mockUsers;
-        return null;
+      expect(dune?.tags).toMatchObject({
+        server: 1,
+        request_type: 1,
+        status: 2,
+        requested_user: 'Alice',
+        requested_date: '2026-11-19T09:12:45.301Z',
       });
-
-      const points = await plugin.collect();
-
-      const requestPoint = points.find(p => p.tags.type === 'Requests' && p.tags.request_type === 1);
-      expect(requestPoint).toBeDefined();
-      expect(requestPoint?.tags.title).toBe('Test Movie');
-      expect(requestPoint?.tags.status).toBe(2); // Completed (approved + available)
-      // user1 has alias 'John' in mockUsers, but requestedByAlias takes precedence when present
-      expect(requestPoint?.tags.requested_user).toBe('John');
-      expect(requestPoint?.fields.hash).toBeDefined();
+      expect(dune?.fields.hash).toMatch(/^[a-f0-9]{32}$/);
     });
 
     it('should process TV requests correctly', async () => {
-      const mockTVRequests: OmbiTVRequest[] = [
-        {
-          id: 2,
-          tvDbId: 456,
-          title: 'Test Show',
-          overview: 'A test show',
-          status: 'Pending',
-          requestStatus: 'Pending',
-          totalSeasons: 3,
-          childRequests: [
-            {
-              id: 1,
-              parentRequestId: 2,
-              seasonRequests: [],
-              title: 'Test Show',
-              approved: false,
-              available: false,
-              requestedDate: '2024-01-16T10:00:00Z',
-              requestedUserId: 'user2',
-              requestedByAlias: 'AnotherUser',
-              requestType: 0,
-              requestStatus: 'Pending',
-            },
-          ],
-        },
-      ];
+      const shogun = requestPoint(await plugin.collect(), 'Shōgun');
 
-      const httpGetSpy = vi.spyOn(plugin as unknown as { httpGet: <T>(path: string) => Promise<T> }, 'httpGet');
-      httpGetSpy.mockImplementation(async (path: string) => {
-        if (path === '/api/v1/Request/tv') return mockTVRequests;
-        if (path === '/api/v1/Request/movie') return [];
-        if (path === '/api/v1/Request/count') return { pending: 1, approved: 0, available: 0 };
-        if (path === '/api/v1/Issues/count') return { pending: 0, inProgress: 0, resolved: 0 };
-        if (path === '/api/v1/Identity/Users') return mockUsers;
-        return null;
+      expect(shogun?.tags).toMatchObject({
+        request_type: 0,
+        status: 3,
+        requested_user: 'bob_dupont',
+        requested_date: '2026-11-17T20:21:09.554Z',
       });
-
-      const points = await plugin.collect();
-
-      const requestPoint = points.find(p => p.tags.type === 'Requests' && p.tags.request_type === 0);
-      expect(requestPoint).toBeDefined();
-      expect(requestPoint?.tags.title).toBe('Test Show');
-      expect(requestPoint?.tags.status).toBe(3); // Pending
-      // user2 has no alias, so userName 'jane_smith' should be used
-      expect(requestPoint?.tags.requested_user).toBe('jane_smith');
     });
 
     it('should create Request_Total summary', async () => {
-      const mockTVRequests: OmbiTVRequest[] = [
-        {
-          id: 1,
-          tvDbId: 100,
-          title: 'Show 1',
-          status: 'Pending',
-          requestStatus: 'Pending',
-          totalSeasons: 1,
-          childRequests: [
-            {
-              id: 1,
-              parentRequestId: 1,
-              seasonRequests: [],
-              title: 'Show 1',
-              approved: false,
-              available: false,
-              requestedDate: '2024-01-01',
-              requestedUserId: 'user1',
-              requestType: 0,
-              requestStatus: 'Pending',
-            },
-          ],
-        },
-      ];
-      const mockMovieRequests: OmbiMovieRequest[] = [
-        {
-          id: 2,
-          theMovieDbId: 200,
-          title: 'Movie 1',
-          status: 'Pending',
-          requestStatus: 'Pending',
-          approved: false,
-          available: false,
-          requestedDate: '2024-01-01',
-          requestedUserId: 'user1',
-          requestType: 1,
-        },
-        {
-          id: 3,
-          theMovieDbId: 300,
-          title: 'Movie 2',
-          status: 'Pending',
-          requestStatus: 'Pending',
-          approved: false,
-          available: false,
-          requestedDate: '2024-01-01',
-          requestedUserId: 'user2',
-          requestType: 1,
-        },
-      ];
+      const total = (await plugin.collect()).find((p) => p.tags.type === 'Request_Total');
 
-      const httpGetSpy = vi.spyOn(plugin as unknown as { httpGet: <T>(path: string) => Promise<T> }, 'httpGet');
-      httpGetSpy.mockImplementation(async (path: string) => {
-        if (path === '/api/v1/Request/tv') return mockTVRequests;
-        if (path === '/api/v1/Request/movie') return mockMovieRequests;
-        if (path === '/api/v1/Request/count') return { pending: 3, approved: 0, available: 0 };
-        if (path === '/api/v1/Issues/count') return { pending: 0, inProgress: 0, resolved: 0 };
-        if (path === '/api/v1/Identity/Users') return mockUsers;
-        return null;
-      });
-
-      const points = await plugin.collect();
-
-      const totalPoint = points.find(p => p.tags.type === 'Request_Total');
-      expect(totalPoint).toBeDefined();
-      expect(totalPoint?.fields.total).toBe(3);
-      expect(totalPoint?.fields.movies).toBe(2);
-      expect(totalPoint?.fields.tv_shows).toBe(1);
+      expect(total?.fields).toEqual({ total: 5, movies: 3, tv_shows: 2 });
     });
 
     it('should handle denied requests', async () => {
-      const mockMovieRequests: OmbiMovieRequest[] = [
-        {
-          id: 1,
-          theMovieDbId: 123,
-          title: 'Denied Movie',
-          status: 'Denied',
-          requestStatus: 'Denied',
-          approved: false,
-          available: false,
-          denied: true,
-          deniedReason: 'Not appropriate',
-          requestedDate: '2024-01-15',
-          requestedUserId: 'user1',
-          requestType: 1,
-        },
-      ];
+      expect(requestPoint(await plugin.collect(), 'The Marvels')?.tags.status).toBe(0);
+    });
 
-      const httpGetSpy = vi.spyOn(plugin as unknown as { httpGet: <T>(path: string) => Promise<T> }, 'httpGet');
-      httpGetSpy.mockImplementation(async (path: string) => {
-        if (path === '/api/v1/Request/movie') return mockMovieRequests;
-        if (path === '/api/v1/Request/tv') return [];
-        if (path === '/api/v1/Request/count') return { pending: 0, approved: 0, available: 0 };
-        if (path === '/api/v1/Issues/count') return { pending: 0, inProgress: 0, resolved: 0 };
-        if (path === '/api/v1/Identity/Users') return mockUsers;
-        return null;
-      });
+    it('treats a null denied as not denied', async () => {
+      const [oppenheimer] = movies();
+      client.override('/api/v1/Request/movie', [{ ...oppenheimer, denied: null }]);
 
-      const points = await plugin.collect();
-
-      const requestPoint = points.find(p => p.tags.type === 'Requests');
-      expect(requestPoint?.tags.status).toBe(0); // Denied
+      expect(requestPoint(await plugin.collect(), 'Oppenheimer')?.tags.status).toBe(3);
     });
 
     it('should handle approved but not available requests', async () => {
-      const mockMovieRequests: OmbiMovieRequest[] = [
-        {
-          id: 1,
-          theMovieDbId: 123,
-          title: 'Approved Movie',
-          status: 'Approved',
-          requestStatus: 'Approved',
-          approved: true,
-          available: false,
-          requestedDate: '2024-01-15',
-          requestedUserId: 'user1',
-          requestType: 1,
-        },
-      ];
-
-      const httpGetSpy = vi.spyOn(plugin as unknown as { httpGet: <T>(path: string) => Promise<T> }, 'httpGet');
-      httpGetSpy.mockImplementation(async (path: string) => {
-        if (path === '/api/v1/Request/movie') return mockMovieRequests;
-        if (path === '/api/v1/Request/tv') return [];
-        if (path === '/api/v1/Request/count') return { pending: 0, approved: 1, available: 0 };
-        if (path === '/api/v1/Issues/count') return { pending: 0, inProgress: 0, resolved: 0 };
-        if (path === '/api/v1/Identity/Users') return mockUsers;
-        return null;
-      });
-
-      const points = await plugin.collect();
-
-      const requestPoint = points.find(p => p.tags.type === 'Requests');
-      expect(requestPoint?.tags.status).toBe(1); // Approved only
+      expect(requestPoint(await plugin.collect(), 'Severance')?.tags.status).toBe(1);
     });
 
-    it('should skip TV requests without child requests', async () => {
-      const mockTVRequests: OmbiTVRequest[] = [
-        {
-          id: 1,
-          tvDbId: 100,
-          title: 'Show Without Children',
-          status: 'Pending',
-          requestStatus: 'Pending',
-          totalSeasons: 1,
-          childRequests: [], // Empty child requests
-        },
-      ];
-
-      const httpGetSpy = vi.spyOn(plugin as unknown as { httpGet: <T>(path: string) => Promise<T> }, 'httpGet');
-      httpGetSpy.mockImplementation(async (path: string) => {
-        if (path === '/api/v1/Request/tv') return mockTVRequests;
-        if (path === '/api/v1/Request/movie') return [];
-        if (path === '/api/v1/Request/count') return { pending: 0, approved: 0, available: 0 };
-        if (path === '/api/v1/Issues/count') return { pending: 0, inProgress: 0, resolved: 0 };
-        if (path === '/api/v1/Identity/Users') return mockUsers;
-        return null;
-      });
+    it('should skip TV requests without child requests but still count them', async () => {
+      const [severance, shogun] = shows();
+      client.override('/api/v1/Request/tv', [
+        { ...severance, childRequests: [] },
+        { ...shogun, childRequests: null },
+      ]);
 
       const points = await plugin.collect();
 
-      const requestPoints = points.filter(p => p.tags.type === 'Requests');
-      expect(requestPoints).toHaveLength(0);
+      expect(points.filter((p) => p.tags.request_type === 0)).toEqual([]);
+      expect(points.find((p) => p.tags.type === 'Request_Total')?.fields.tv_shows).toBe(2);
     });
 
     it('should propagate API errors for circuit breaker', async () => {
-      const httpGetSpy = vi.spyOn(plugin as unknown as { httpGet: <T>(path: string) => Promise<T> }, 'httpGet');
-      httpGetSpy.mockRejectedValue(new Error('API Error'));
+      client.fail('/api/v1/Request/count', new Error('API Error'));
 
       await expect(plugin.collect()).rejects.toThrow('API Error');
     });
 
     it('should resolve userName from Identity API when alias is missing', async () => {
-      const mockMovieRequests: OmbiMovieRequest[] = [
-        {
-          id: 1,
-          theMovieDbId: 123,
-          title: 'Movie No Alias',
-          status: 'Pending',
-          requestStatus: 'Pending',
-          approved: false,
-          available: false,
-          requestedDate: '2024-01-15',
-          requestedUserId: 'user2', // user2 has no alias in mockUsers
-          requestType: 1,
-          // requestedByAlias is undefined
-        },
-      ];
-
-      const httpGetSpy = vi.spyOn(plugin as unknown as { httpGet: <T>(path: string) => Promise<T> }, 'httpGet');
-      httpGetSpy.mockImplementation(async (path: string) => {
-        if (path === '/api/v1/Request/movie') return mockMovieRequests;
-        if (path === '/api/v1/Request/tv') return [];
-        if (path === '/api/v1/Request/count') return { pending: 1, approved: 0, available: 0 };
-        if (path === '/api/v1/Issues/count') return { pending: 0, inProgress: 0, resolved: 0 };
-        if (path === '/api/v1/Identity/Users') return mockUsers;
-        return null;
-      });
-
-      const points = await plugin.collect();
-
-      const requestPoint = points.find(p => p.tags.type === 'Requests');
-      // user2 has userName 'jane_smith' and no alias
-      expect(requestPoint?.tags.requested_user).toBe('jane_smith');
+      expect(requestPoint(await plugin.collect(), 'Oppenheimer')?.tags.requested_user).toBe('bob_dupont');
     });
 
     it('should use alias from Identity API when user has one', async () => {
-      const mockMovieRequests: OmbiMovieRequest[] = [
-        {
-          id: 1,
-          theMovieDbId: 123,
-          title: 'Movie With User Alias',
-          status: 'Pending',
-          requestStatus: 'Pending',
-          approved: false,
-          available: false,
-          requestedDate: '2024-01-15',
-          requestedUserId: 'user1', // user1 has alias 'John' in mockUsers
-          requestType: 1,
-        },
-      ];
+      expect(requestPoint(await plugin.collect(), 'Dune: Part Two')?.tags.requested_user).toBe('Alice');
+    });
 
-      const httpGetSpy = vi.spyOn(plugin as unknown as { httpGet: <T>(path: string) => Promise<T> }, 'httpGet');
-      httpGetSpy.mockImplementation(async (path: string) => {
-        if (path === '/api/v1/Request/movie') return mockMovieRequests;
-        if (path === '/api/v1/Request/tv') return [];
-        if (path === '/api/v1/Request/count') return { pending: 1, approved: 0, available: 0 };
-        if (path === '/api/v1/Issues/count') return { pending: 0, inProgress: 0, resolved: 0 };
-        if (path === '/api/v1/Identity/Users') return mockUsers;
-        return null;
-      });
-
-      const points = await plugin.collect();
-
-      const requestPoint = points.find(p => p.tags.type === 'Requests');
-      // user1 has alias 'John'
-      expect(requestPoint?.tags.requested_user).toBe('John');
+    it('should use requestedByAlias when the user is not returned by Identity API', async () => {
+      expect(requestPoint(await plugin.collect(), 'The Marvels')?.tags.requested_user).toBe('Plex Guest');
     });
 
     it('should fallback to requestedByAlias when Identity API fails', async () => {
-      const mockMovieRequests: OmbiMovieRequest[] = [
-        {
-          id: 1,
-          theMovieDbId: 123,
-          title: 'Movie Fallback Alias',
-          status: 'Pending',
-          requestStatus: 'Pending',
-          approved: false,
-          available: false,
-          requestedDate: '2024-01-15',
-          requestedUserId: 'user1',
-          requestedByAlias: 'FallbackAlias',
-          requestType: 1,
-        },
-      ];
-
-      const httpGetSpy = vi.spyOn(plugin as unknown as { httpGet: <T>(path: string) => Promise<T> }, 'httpGet');
-      httpGetSpy.mockImplementation(async (path: string) => {
-        if (path === '/api/v1/Request/movie') return mockMovieRequests;
-        if (path === '/api/v1/Request/tv') return [];
-        if (path === '/api/v1/Request/count') return { pending: 1, approved: 0, available: 0 };
-        if (path === '/api/v1/Issues/count') return { pending: 0, inProgress: 0, resolved: 0 };
-        if (path === '/api/v1/Identity/Users') throw new Error('API Error');
-        return null;
-      });
+      client.fail('/api/v1/Identity/Users', new Error('Forbidden'));
 
       const points = await plugin.collect();
 
-      const requestPoint = points.find(p => p.tags.type === 'Requests');
-      // Falls back to requestedByAlias when Identity API fails
-      expect(requestPoint?.tags.requested_user).toBe('FallbackAlias');
+      expect(requestPoint(points, 'The Marvels')?.tags.requested_user).toBe('Plex Guest');
+      expect(requestPoint(points, 'Dune: Part Two')?.tags.requested_user).toBe('Unknown');
     });
 
     it('should use Unknown when userId not in userMap and no alias', async () => {
-      const mockMovieRequests: OmbiMovieRequest[] = [
-        {
-          id: 1,
-          theMovieDbId: 123,
-          title: 'Movie Unknown User',
-          status: 'Pending',
-          requestStatus: 'Pending',
-          approved: false,
-          available: false,
-          requestedDate: '2024-01-15',
-          requestedUserId: 'unknown_user', // Not in mockUsers
-          requestType: 1,
-          // requestedByAlias is undefined
-        },
-      ];
+      const [oppenheimer] = movies();
+      client.override('/api/v1/Request/movie', [
+        { ...oppenheimer, requestedUserId: '0e1f2a3b-4c5d-4e6f-8a9b-0c1d2e3f4a5b', requestedByAlias: null },
+      ]);
 
-      const httpGetSpy = vi.spyOn(plugin as unknown as { httpGet: <T>(path: string) => Promise<T> }, 'httpGet');
-      httpGetSpy.mockImplementation(async (path: string) => {
-        if (path === '/api/v1/Request/movie') return mockMovieRequests;
-        if (path === '/api/v1/Request/tv') return [];
-        if (path === '/api/v1/Request/count') return { pending: 1, approved: 0, available: 0 };
-        if (path === '/api/v1/Issues/count') return { pending: 0, inProgress: 0, resolved: 0 };
-        if (path === '/api/v1/Identity/Users') return mockUsers;
-        return null;
+      expect(requestPoint(await plugin.collect(), 'Oppenheimer')?.tags.requested_user).toBe('Unknown');
+    });
+
+    it('should use Unknown when the request has no user at all', async () => {
+      const [oppenheimer] = movies();
+      client.override('/api/v1/Request/movie', [{ ...oppenheimer, requestedUserId: null, requestedByAlias: null }]);
+
+      expect(requestPoint(await plugin.collect(), 'Oppenheimer')?.tags.requested_user).toBe('Unknown');
+    });
+
+    it('should skip Identity users without id or name', async () => {
+      const users = loadFixture<components['schemas']['Ombi.Core.Models.UI.UserViewModel'][]>('ombi/identity-users');
+      client.override('/api/v1/Identity/Users', users.map((u) => ({ ...u, alias: null, userName: null })));
+
+      expect(requestPoint(await plugin.collect(), 'Oppenheimer')?.tags.requested_user).toBe('Unknown');
+    });
+
+    it('should fall back for absent request fields', async () => {
+      client.override('/api/v1/Request/movie', [{ id: 13, theMovieDbId: 550 }]);
+
+      expect((await plugin.collect()).find((p) => p.tags.request_type === 1)?.tags).toMatchObject({
+        status: 3,
+        title: 'unknown',
+        requested_user: 'Unknown',
+        requested_date: '',
       });
-
-      const points = await plugin.collect();
-
-      const requestPoint = points.find(p => p.tags.type === 'Requests');
-      expect(requestPoint?.tags.requested_user).toBe('Unknown');
     });
   });
 
   describe('hash generation', () => {
     it('should generate consistent hashes for same input', async () => {
-      const mockMovieRequests: OmbiMovieRequest[] = [
-        {
-          id: 1,
-          theMovieDbId: 123,
-          title: 'Test Movie',
-          status: 'Pending',
-          requestStatus: 'Pending',
-          approved: false,
-          available: false,
-          requestedDate: '2024-01-15',
-          requestedUserId: 'user1',
-          requestType: 1,
-        },
-      ];
+      const hashes = async (): Promise<unknown[]> =>
+        (await plugin.collect()).filter((p) => p.tags.type === 'Requests').map((p) => p.fields.hash);
 
-      const httpGetSpy = vi.spyOn(plugin as unknown as { httpGet: <T>(path: string) => Promise<T> }, 'httpGet');
-      httpGetSpy.mockImplementation(async (path: string) => {
-        if (path === '/api/v1/Request/movie') return mockMovieRequests;
-        if (path === '/api/v1/Request/tv') return [];
-        if (path === '/api/v1/Request/count') return { pending: 1, approved: 0, available: 0 };
-        if (path === '/api/v1/Issues/count') return { pending: 0, inProgress: 0, resolved: 0 };
-        if (path === '/api/v1/Identity/Users') return mockUsers;
-        return null;
-      });
+      const first = await hashes();
 
-      const points1 = await plugin.collect();
-      const points2 = await plugin.collect();
-
-      const hash1 = points1.find(p => p.tags.type === 'Requests')?.fields.hash;
-      const hash2 = points2.find(p => p.tags.type === 'Requests')?.fields.hash;
-
-      expect(hash1).toBe(hash2);
-      expect(hash1).toMatch(/^[a-f0-9]{32}$/); // MD5 hash format
+      expect(first).toHaveLength(5);
+      expect(new Set(first).size).toBe(5);
+      expect(await hashes()).toEqual(first);
     });
   });
 });

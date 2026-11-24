@@ -54,5 +54,13 @@
     "version": "v3.5.2",
     "pathPrefix": "/api/v1",
     "refresh": true
+  },
+  "ombi": {
+    "file": "ombi.json",
+    "format": "openapi3.0",
+    "source": "runtime:/swagger/v1/swagger.json (lscr.io/linuxserver/ombi:{tag})",
+    "version": "v4.53.10-ls278",
+    "pathPrefix": "",
+    "refresh": true
   }
 }

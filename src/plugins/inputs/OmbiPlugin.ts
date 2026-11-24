@@ -1,18 +1,15 @@
 import { BaseInputPlugin } from './BaseInputPlugin';
 import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
-import type {
-  OmbiConfig,
-  OmbiRequestCounts,
-  OmbiIssuesCounts,
-  OmbiMovieRequest,
-  OmbiTVRequest,
-  OmbiUser,
-} from '../../types/inputs/ombi.types';
+import type { OmbiConfig } from '../../types/inputs/ombi.types';
+import type { components, paths } from '../../types/generated/ombi';
+
+type OmbiMovieRequest = components['schemas']['Ombi.Store.Entities.Requests.MovieRequests'];
+type OmbiTVRequest = components['schemas']['Ombi.Store.Entities.Requests.TvRequests'];
 
 const REQUEST_STATUS = { DENIED: 0, APPROVED: 1, COMPLETED: 2, PENDING: 3 } as const;
 const REQUEST_TYPE = { TV: 0, MOVIE: 1 } as const;
 
-function getRequestStatus(approved: boolean, available: boolean, denied: boolean): number {
+function getRequestStatus(approved = false, available = false, denied: boolean | null = false): number {
   if (denied) {
     return REQUEST_STATUS.DENIED;
   }
@@ -35,6 +32,8 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
     version: '1.0.0',
     description: 'Collects request counts and requests from Ombi',
   };
+
+  private readonly ombi = this.api<paths>();
 
   /**
    * Initialize the plugin and configure the HTTP client with API key header
@@ -113,7 +112,7 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
   private async collectRequestCounts(): Promise<DataPoint[]> {
     return this.safeFetch('collect Ombi request counts', async () => {
       const points: DataPoint[] = [];
-      const counts = await this.httpGet<OmbiRequestCounts>('/api/v1/Request/count');
+      const counts = await this.ombi.get('/api/v1/Request/count');
 
       points.push(
         this.createDataPoint(
@@ -123,9 +122,9 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
             server: this.config.id,
           },
           {
-            pending: counts.pending,
-            approved: counts.approved,
-            available: counts.available,
+            pending: counts.pending ?? 0,
+            approved: counts.approved ?? 0,
+            available: counts.available ?? 0,
           }
         )
       );
@@ -141,7 +140,7 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
   private async collectIssueCounts(): Promise<DataPoint[]> {
     return this.safeFetch('collect Ombi issue counts', async () => {
       const points: DataPoint[] = [];
-      const issues = await this.httpGet<OmbiIssuesCounts>('/api/v1/Issues/count');
+      const issues = await this.ombi.get('/api/v1/Issues/count');
 
       points.push(
         this.createDataPoint(
@@ -151,9 +150,9 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
             server: this.config.id,
           },
           {
-            pending: issues.pending,
-            in_progress: issues.inProgress,
-            resolved: issues.resolved,
+            pending: issues.pending ?? 0,
+            in_progress: issues.inProgress ?? 0,
+            resolved: issues.resolved ?? 0,
           }
         )
       );
@@ -168,8 +167,12 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
    */
   private async fetchUserMap(): Promise<Map<string, string>> {
     try {
-      const users = await this.httpGet<OmbiUser[]>('/api/v1/Identity/Users');
-      return new Map(users.map((u) => [u.id, u.alias || u.userName]));
+      const users = await this.ombi.get('/api/v1/Identity/Users');
+      const entries = users.flatMap((u): [string, string][] => {
+        const name = u.alias || u.userName;
+        return u.id && name ? [[u.id, name]] : [];
+      });
+      return new Map(entries);
     } catch (error) {
       this.logger.warn(`Failed to fetch Ombi users, falling back to alias: ${error instanceof Error ? error.message : String(error)}`);
       return new Map();
@@ -185,8 +188,8 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
       // Fetch users and requests in parallel
       const [userMap, tvRequests, movieRequests] = await Promise.all([
         this.fetchUserMap(),
-        this.httpGet<OmbiTVRequest[]>('/api/v1/Request/tv'),
-        this.httpGet<OmbiMovieRequest[]>('/api/v1/Request/movie'),
+        this.ombi.get('/api/v1/Request/tv'),
+        this.ombi.get('/api/v1/Request/movie'),
       ]);
 
       // Process TV requests
@@ -233,8 +236,8 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
    * Priority: userMap lookup > requestedByAlias > 'Unknown'
    */
   private resolveUserName(
-    userId: string | undefined,
-    alias: string | undefined,
+    userId: string | null | undefined,
+    alias: string | null | undefined,
     userMap: Map<string, string>
   ): string {
     if (userId) {
@@ -247,18 +250,14 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
    * Process a TV request into a DataPoint
    */
   private processTVRequest(request: OmbiTVRequest, userMap: Map<string, string>): DataPoint | null {
-    if (!request.childRequests || request.childRequests.length === 0) {
+    if (!request.childRequests?.length) {
       return null;
     }
 
     // Get the first child request for user/date info (matching legacy behavior)
     const childRequest = request.childRequests[0];
 
-    const status = getRequestStatus(
-      childRequest.approved,
-      childRequest.available,
-      childRequest.denied || false
-    );
+    const status = getRequestStatus(childRequest.approved, childRequest.available, childRequest.denied);
 
     const hashId = this.hashit(`${request.id}${request.tvDbId}${request.title}`);
     const requestedUser = this.resolveUserName(
@@ -275,7 +274,7 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
         server: this.config.id,
         request_type: REQUEST_TYPE.TV,
         status,
-        title: request.title,
+        title: request.title || 'unknown',
         requested_user: requestedUser,
         requested_date: requestedDate,
       },
@@ -292,7 +291,7 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
     request: OmbiMovieRequest,
     userMap: Map<string, string>
   ): DataPoint | null {
-    const status = getRequestStatus(request.approved, request.available, request.denied || false);
+    const status = getRequestStatus(request.approved, request.available, request.denied);
 
     const hashId = this.hashit(`${request.id}${request.theMovieDbId}${request.title}`);
     const requestedUser = this.resolveUserName(
@@ -309,7 +308,7 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
         server: this.config.id,
         request_type: REQUEST_TYPE.MOVIE,
         status,
-        title: request.title,
+        title: request.title || 'unknown',
         requested_user: requestedUser,
         requested_date: requestedDate,
       },
