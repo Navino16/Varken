@@ -181,8 +181,7 @@
             "type": "string"
           },
           "monitored": {
-            "type": "boolean",
-            "nullable": true
+            "type": "boolean"
           },
           "language": {
             "$ref": "#/components/schemas/SubtitleLanguage"
@@ -232,7 +231,7 @@
           }
         }
       },
-      "why": "https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/api/movies/history.py — history_movies_data_model; path is deleted before marshal, timestamp is NOT NULL so parsed_timestamp is always set"
+      "why": "https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/api/movies/history.py — history_movies_data_model; path is deleted before marshal, timestamp is NOT NULL so parsed_timestamp is always set; monitored coerced to a boolean by api/utils.py postprocess"
     },
     {
       "op": "add",
@@ -287,8 +286,7 @@
             "type": "string"
           },
           "monitored": {
-            "type": "boolean",
-            "nullable": true
+            "type": "boolean"
           },
           "language": {
             "$ref": "#/components/schemas/SubtitleLanguage"
@@ -338,7 +336,7 @@
           }
         }
       },
-      "why": "https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/api/episodes/history.py — history_episodes_data_model; inner joins on shows and episodes, timestamp NOT NULL"
+      "why": "https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/api/episodes/history.py — history_episodes_data_model; inner joins on shows and episodes, timestamp NOT NULL, monitored coerced to a boolean by api/utils.py postprocess"
     },
     {
       "op": "add",

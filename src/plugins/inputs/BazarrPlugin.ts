@@ -240,8 +240,8 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
    * Bazarr formats history dates with strftime('%x %X') in its own local time.
    * Only the default C locale layout (MM/DD/YY HH:MM:SS) is parsed; anything else falls back to now.
    */
-  private parseHistoryTimestamp(parsed: string | undefined): Date {
-    const match = parsed?.match(/^(\d{2})\/(\d{2})\/(\d{2}|\d{4}) (\d{2}):(\d{2}):(\d{2})$/);
+  private parseHistoryTimestamp(parsed: string): Date {
+    const match = parsed.match(/^(\d{2})\/(\d{2})\/(\d{2}|\d{4}) (\d{2}):(\d{2}):(\d{2})$/);
     if (!match) {
       return new Date();
     }

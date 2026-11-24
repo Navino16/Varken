@@ -75,7 +75,7 @@
       "action": 2,
       "timestamp": "3 days ago",
       "description": "Subtitles file deleted.",
-      "monitored": null,
+      "monitored": false,
       "language": {
         "name": null,
         "code2": null,

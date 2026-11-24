@@ -121,11 +121,11 @@ describe('BazarrPlugin', () => {
       const points = ofKind(await plugin.collect(), 'Wanted', 'episode');
 
       expect(points.map((p) => p.tags.name)).toEqual([
-        'Severance - 1x01 - English',
-        'Severance - 2x03 - English',
-        'Severance - 2x03 - French',
+        'Severance - 1x1 - English',
+        'Severance - 2x3 - English',
+        'Severance - 2x3 - French',
       ]);
-      expect(points[0].tags).toMatchObject({ sonarrSeriesId: 10, sonarrEpisodeId: 101, episodeNumber: '1x01' });
+      expect(points[0].tags).toMatchObject({ sonarrSeriesId: 10, sonarrEpisodeId: 101, episodeNumber: '1x1' });
     });
 
     it('should skip wanted items without missing subtitles', async () => {
@@ -149,7 +149,7 @@ describe('BazarrPlugin', () => {
     it('should collect series history', async () => {
       const points = ofKind(await plugin.collect(), 'History', 'series');
 
-      expect(points.map((p) => p.tags.name)).toEqual(['Severance - 1x01 - English', 'Severance - 2x03 - French']);
+      expect(points.map((p) => p.tags.name)).toEqual(['Severance - 1x1 - English', 'Severance - 2x3 - French']);
       expect(points[1].timestamp).toEqual(new Date(2026, 10, 20, 11, 0, 0));
     });
 
