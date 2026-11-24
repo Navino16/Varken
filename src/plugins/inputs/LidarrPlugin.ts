@@ -1,11 +1,8 @@
 import { BaseInputPlugin } from './BaseInputPlugin';
 import { PROTOCOL_ID } from './constants';
 import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
-import type {
-  LidarrConfig,
-  LidarrQueue,
-  LidarrAlbum,
-} from '../../types/inputs/lidarr.types';
+import type { LidarrConfig } from '../../types/inputs/lidarr.types';
+import type { paths } from '../../types/generated/lidarr';
 
 /**
  * Lidarr input plugin
@@ -17,6 +14,8 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
     version: '1.0.0',
     description: 'Collects queue and missing albums data from Lidarr',
   };
+
+  private readonly lidarr = this.api<paths>();
 
   /**
    * Initialize the plugin and configure the HTTP client with API key header
@@ -79,10 +78,8 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
   private async collectQueue(): Promise<DataPoint[]> {
     return this.safeFetch('collect Lidarr queue', async () => {
       const points: DataPoint[] = [];
-      const allRecords = await this.fetchAllPages<LidarrQueue>('/api/v1/queue', {
-        includeAlbum: true,
-        includeArtist: true,
-        includeUnknownArtistItems: false,
+      const allRecords = await this.lidarr.getAllPages('/api/v1/queue', {
+        query: { includeAlbum: true, includeArtist: true, includeUnknownArtistItems: false },
       });
 
       if (allRecords.length === 0) {
@@ -99,7 +96,7 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
         const album = queueItem.album;
         const artistName = queueItem.artist?.artistName || 'Unknown Artist';
         const name = `${album.title} - ${artistName}`;
-        const protocol = queueItem.protocol.toUpperCase();
+        const protocol = (queueItem.protocol ?? 'unknown').toUpperCase();
         const protocolId = protocol === 'USENET' ? PROTOCOL_ID.USENET : PROTOCOL_ID.TORRENT;
         const quality = queueItem.quality?.quality?.name || 'Unknown';
 
@@ -110,7 +107,7 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
             'Lidarr',
             {
               type: 'Queue',
-              albumId: queueItem.albumId,
+              albumId: queueItem.albumId ?? 0,
               server: this.config.id,
               name,
               quality,
@@ -135,10 +132,8 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
   private async collectMissing(): Promise<DataPoint[]> {
     return this.safeFetch('collect Lidarr missing albums', async () => {
       const points: DataPoint[] = [];
-      const albums = await this.fetchAllPages<LidarrAlbum>('/api/v1/wanted/missing', {
-        sortKey: 'releaseDate',
-        sortDirection: 'descending',
-        monitored: true,
+      const albums = await this.lidarr.getAllPages('/api/v1/wanted/missing', {
+        query: { sortKey: 'releaseDate', sortDirection: 'descending', monitored: true, includeArtist: true },
       });
 
       if (albums.length === 0) {
@@ -157,8 +152,8 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
             'Lidarr',
             {
               type: 'Missing',
-              albumId: album.id,
-              foreignAlbumId: album.foreignAlbumId,
+              albumId: album.id ?? 0,
+              foreignAlbumId: album.foreignAlbumId ?? 'unknown',
               server: this.config.id,
               name: albumName,
             },

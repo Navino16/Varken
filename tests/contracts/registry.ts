@@ -22,6 +22,9 @@ export const contractRoutes: ContractRoute[] = [
   { service: 'sonarr', method: 'get', path: '/api/v3/queue', fixture: 'sonarr/queue' },
   { service: 'sonarr', method: 'get', path: '/api/v3/calendar', fixture: 'sonarr/calendar' },
   { service: 'sonarr', method: 'get', path: '/api/v3/system/status', fixture: 'sonarr/system-status' },
+  { service: 'lidarr', method: 'get', path: '/api/v1/queue', fixture: 'lidarr/queue' },
+  { service: 'lidarr', method: 'get', path: '/api/v1/wanted/missing', fixture: 'lidarr/wanted-missing' },
+  { service: 'lidarr', method: 'get', path: '/api/v1/system/status', fixture: 'lidarr/system-status' },
 ];
 
 const fixturesDir = path.resolve(__dirname, '../fixtures/api');

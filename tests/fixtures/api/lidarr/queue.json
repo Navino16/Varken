@@ -1,0 +1,169 @@
+{
+  "page": 1,
+  "pageSize": 10,
+  "sortKey": "timeleft",
+  "sortDirection": "ascending",
+  "totalRecords": 2,
+  "records": [
+    {
+      "id": 1,
+      "artistId": 1,
+      "albumId": 11,
+      "artist": {
+        "id": 1,
+        "status": "continuing",
+        "ended": false,
+        "artistName": "Radiohead",
+        "foreignArtistId": "a74b1b7f-71a5-4011-9441-d0b5e4122711",
+        "mbId": "a74b1b7f-71a5-4011-9441-d0b5e4122711",
+        "overview": "Radiohead overview.",
+        "artistType": "Group",
+        "disambiguation": "",
+        "path": "/music/Radiohead",
+        "qualityProfileId": 1,
+        "metadataProfileId": 1,
+        "monitored": true,
+        "monitorNewItems": "all",
+        "rootFolderPath": "/music",
+        "genres": [
+          "Rock"
+        ],
+        "cleanName": "radiohead",
+        "sortName": "radiohead",
+        "tags": [
+          1
+        ],
+        "added": "2024-02-01T10:00:00Z"
+      },
+      "album": {
+        "id": 11,
+        "title": "OK Computer",
+        "disambiguation": "",
+        "overview": "OK Computer overview.",
+        "artistId": 1,
+        "foreignAlbumId": "b1392450-e666-3926-a536-22c65f834433",
+        "monitored": true,
+        "anyReleaseOk": true,
+        "profileId": 1,
+        "duration": 2940000,
+        "albumType": "Album",
+        "secondaryTypes": [
+          "Studio"
+        ],
+        "mediumCount": 1,
+        "releaseDate": "1997-05-21T00:00:00Z",
+        "genres": [
+          "Rock"
+        ]
+      },
+      "quality": {
+        "quality": {
+          "id": 6,
+          "name": "FLAC"
+        },
+        "revision": {
+          "version": 1,
+          "real": 0,
+          "isRepack": false
+        }
+      },
+      "customFormatScore": 0,
+      "size": 524288000,
+      "title": "Radiohead - OK Computer (1997) [FLAC]",
+      "sizeleft": 262144000,
+      "timeleft": "00:05:00",
+      "estimatedCompletionTime": "2026-11-24T19:00:00Z",
+      "added": "2026-11-24T18:00:00Z",
+      "status": "downloading",
+      "trackedDownloadStatus": "ok",
+      "trackedDownloadState": "downloading",
+      "downloadId": "dl-1",
+      "protocol": "torrent",
+      "downloadClient": "qBittorrent",
+      "indexer": "Redacted",
+      "trackFileCount": 0,
+      "trackHasFileCount": 0,
+      "downloadForced": false
+    },
+    {
+      "id": 2,
+      "artistId": 2,
+      "albumId": 21,
+      "artist": {
+        "id": 2,
+        "status": "continuing",
+        "ended": false,
+        "artistName": "Daft Punk",
+        "foreignArtistId": "056e4f3e-d505-4dad-8ec1-d04f521cbb56",
+        "mbId": "056e4f3e-d505-4dad-8ec1-d04f521cbb56",
+        "overview": "Daft Punk overview.",
+        "artistType": "Group",
+        "disambiguation": "",
+        "path": "/music/Daft Punk",
+        "qualityProfileId": 1,
+        "metadataProfileId": 1,
+        "monitored": true,
+        "monitorNewItems": "all",
+        "rootFolderPath": "/music",
+        "genres": [
+          "Rock"
+        ],
+        "cleanName": "daftpunk",
+        "sortName": "daft punk",
+        "tags": [
+          1
+        ],
+        "added": "2024-02-01T10:00:00Z"
+      },
+      "album": {
+        "id": 21,
+        "title": "Random Access Memories",
+        "disambiguation": "",
+        "overview": "Random Access Memories overview.",
+        "artistId": 2,
+        "foreignAlbumId": "aa997ea0-2936-40bd-884d-3af8a0e064dc",
+        "monitored": true,
+        "anyReleaseOk": true,
+        "profileId": 1,
+        "duration": 2940000,
+        "albumType": "Album",
+        "secondaryTypes": [
+          "Studio"
+        ],
+        "mediumCount": 1,
+        "releaseDate": "2013-05-17T00:00:00Z",
+        "genres": [
+          "Rock"
+        ]
+      },
+      "quality": {
+        "quality": {
+          "id": 4,
+          "name": "MP3-320"
+        },
+        "revision": {
+          "version": 1,
+          "real": 0,
+          "isRepack": false
+        }
+      },
+      "customFormatScore": 0,
+      "size": 524288000,
+      "title": "Daft Punk - Random Access Memories (2013) [MP3 320]",
+      "sizeleft": 262144000,
+      "timeleft": "00:05:00",
+      "estimatedCompletionTime": "2026-11-24T19:00:00Z",
+      "added": "2026-11-24T18:00:00Z",
+      "status": "downloading",
+      "trackedDownloadStatus": "ok",
+      "trackedDownloadState": "downloading",
+      "downloadId": "dl-2",
+      "protocol": "usenet",
+      "downloadClient": "SABnzbd",
+      "indexer": "Redacted",
+      "trackFileCount": 0,
+      "trackHasFileCount": 0,
+      "downloadForced": false
+    }
+  ]
+}
