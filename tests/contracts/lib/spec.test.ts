@@ -1,19 +1,37 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { contractHash, loadContract, resetContractCache } from './spec';
+import { contractHash, loadContract, resetContractCache, upgradeSwagger2 } from './spec';
 
 const contractsDir = path.resolve(__dirname, '..');
 const overlayPath = path.join(contractsDir, 'overlays', 'radarr.json');
 const manifestPath = path.join(contractsDir, 'specs', 'manifest.json');
 
-function fakeFile(target: string, content: unknown): void {
+function fakeFiles(files: Record<string, unknown>): void {
   const realExists = fs.existsSync;
   const realRead = fs.readFileSync;
-  vi.spyOn(fs, 'existsSync').mockImplementation((p) => p === target || realExists(p));
+  vi.spyOn(fs, 'existsSync').mockImplementation((p) => String(p) in files || realExists(p));
   vi.spyOn(fs, 'readFileSync').mockImplementation(((p: fs.PathOrFileDescriptor, options?: unknown) =>
-    p === target ? JSON.stringify(content) : realRead(p, options as BufferEncoding)) as typeof fs.readFileSync);
+    String(p) in files ? JSON.stringify(files[String(p)]) : realRead(p, options as BufferEncoding)) as typeof fs.readFileSync);
 }
+
+function fakeFile(target: string, content: unknown): void {
+  fakeFiles({ [target]: content });
+}
+
+const swaggerDocument = {
+  swagger: '2.0',
+  basePath: '/api',
+  info: { title: 'Toy', version: '1' },
+  paths: {
+    '/movies/wanted': {
+      get: {
+        parameters: [{ name: 'length', in: 'query', type: 'integer', default: -1 }],
+        responses: { 401: { description: 'Not Authenticated' } },
+      },
+    },
+  },
+};
 
 const overlay = {
   patches: [{ op: 'add', path: '/info/x-varken-test', value: true, why: 'test overlay' }],
@@ -41,11 +59,33 @@ describe('contract loading', () => {
     expect(spec.info['x-varken-test']).toBe(true);
   });
 
-  it('rejects unsupported formats', () => {
-    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-    fakeFile(manifestPath, { radarr: { ...manifest.radarr, format: 'swagger2' } });
+  it('upgrades swagger2 documents to OpenAPI 3.0', () => {
+    const spec = upgradeSwagger2(swaggerDocument, '/api');
+    const parameters = spec.paths['/movies/wanted'].get as { parameters: { name: string; schema: { type: string } }[] };
 
-    expect(() => loadContract('radarr')).toThrow(/swagger2/);
+    expect(spec.openapi.startsWith('3.0')).toBe(true);
+    expect(parameters.parameters[0]).toMatchObject({ name: 'length', schema: { type: 'integer' } });
+  });
+
+  it('rejects a pathPrefix that differs from basePath', () => {
+    expect(() => upgradeSwagger2(swaggerDocument, '')).toThrow(/basePath/);
+  });
+
+  it('applies the overlay after the upgrade', () => {
+    const response = { description: 'OK', content: { 'application/json': { schema: { type: 'object' } } } };
+    fakeFiles({
+      [manifestPath]: {
+        bazarr: { file: 'bazarr.json', format: 'swagger2', source: 'runtime', version: 'v1', pathPrefix: '/api', refresh: true },
+      },
+      [path.join(contractsDir, 'specs', 'bazarr.json')]: swaggerDocument,
+      [path.join(contractsDir, 'overlays', 'bazarr.json')]: {
+        patches: [{ op: 'add', path: '/paths/~1movies~1wanted/get/responses/200', value: response, why: 'test overlay' }],
+      },
+    });
+
+    const operation = loadContract('bazarr').spec.paths['/movies/wanted'].get as { responses: Record<string, unknown> };
+
+    expect(operation.responses['200']).toEqual(response);
   });
 
   it('hash is stable and changes with the spec', () => {
