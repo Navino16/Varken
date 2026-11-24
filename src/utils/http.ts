@@ -6,7 +6,7 @@ import type {
   InternalAxiosRequestConfig,
 } from 'axios';
 import axios from 'axios';
-import https from 'https';
+import https from 'node:https';
 import { createLogger } from '../core/Logger';
 import type { HttpClientConfig, RetryConfig } from '../types/http.types';
 
@@ -85,7 +85,7 @@ function addRetryInterceptor(client: AxiosInstance, retryConfig: RetryConfig): v
       config._retryCount++;
 
       // Calculate delay with exponential backoff
-      const delay = retryConfig.retryDelay * Math.pow(2, config._retryCount - 1);
+      const delay = retryConfig.retryDelay * 2 ** (config._retryCount - 1);
 
       logger.debug(
         `Retrying request to ${config.url} (attempt ${config._retryCount}/${retryConfig.retries}) after ${delay}ms`

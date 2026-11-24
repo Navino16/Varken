@@ -1,5 +1,5 @@
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import * as yaml from 'yaml';
 import { createLogger } from '../core/Logger';
 
@@ -181,19 +181,19 @@ export class ConfigMigrator {
     };
 
     // Parse global section
-    const globalConfig = this.parseGlobalSection(ini['global'] || {});
+    const globalConfig = this.parseGlobalSection(ini.global || {});
 
     // Convert InfluxDB config - detect v1 vs v2 based on 'org' field
-    if (ini['influxdb']) {
-      const influxSection = ini['influxdb'];
-      const isInfluxDB2 = !!influxSection['org'] && influxSection['org'] !== '-';
+    if (ini.influxdb) {
+      const influxSection = ini.influxdb;
+      const isInfluxDB2 = !!influxSection.org && influxSection.org !== '-';
 
       if (isInfluxDB2) {
         const influxConfig = this.convertInfluxDB2Config(influxSection);
-        (config.outputs as Record<string, unknown>)['influxdb2'] = influxConfig;
+        (config.outputs as Record<string, unknown>).influxdb2 = influxConfig;
       } else {
         const influxConfig = this.convertInfluxDB1Config(influxSection);
-        (config.outputs as Record<string, unknown>)['influxdb1'] = influxConfig;
+        (config.outputs as Record<string, unknown>).influxdb1 = influxConfig;
       }
     }
 
@@ -202,28 +202,28 @@ export class ConfigMigrator {
 
     // Sonarr
     if (globalConfig.sonarrServerIds.length > 0) {
-      inputs['sonarr'] = globalConfig.sonarrServerIds
+      inputs.sonarr = globalConfig.sonarrServerIds
         .map((id) => this.convertSonarrConfig(ini[`sonarr-${id}`], id))
         .filter(Boolean);
     }
 
     // Radarr
     if (globalConfig.radarrServerIds.length > 0) {
-      inputs['radarr'] = globalConfig.radarrServerIds
+      inputs.radarr = globalConfig.radarrServerIds
         .map((id) => this.convertRadarrConfig(ini[`radarr-${id}`], id))
         .filter(Boolean);
     }
 
     // Lidarr
     if (globalConfig.lidarrServerIds.length > 0) {
-      inputs['lidarr'] = globalConfig.lidarrServerIds
+      inputs.lidarr = globalConfig.lidarrServerIds
         .map((id) => this.convertLidarrConfig(ini[`lidarr-${id}`], id))
         .filter(Boolean);
     }
 
     // Tautulli
     if (globalConfig.tautulliServerIds.length > 0) {
-      inputs['tautulli'] = globalConfig.tautulliServerIds
+      inputs.tautulli = globalConfig.tautulliServerIds
         .map((id) =>
           this.convertTautulliConfig(ini[`tautulli-${id}`], id, globalConfig.maxmindLicenseKey)
         )
@@ -232,14 +232,14 @@ export class ConfigMigrator {
 
     // Ombi
     if (globalConfig.ombiServerIds.length > 0) {
-      inputs['ombi'] = globalConfig.ombiServerIds
+      inputs.ombi = globalConfig.ombiServerIds
         .map((id) => this.convertOmbiConfig(ini[`ombi-${id}`], id))
         .filter(Boolean);
     }
 
     // Overseerr
     if (globalConfig.overseerrServerIds.length > 0) {
-      inputs['overseerr'] = globalConfig.overseerrServerIds
+      inputs.overseerr = globalConfig.overseerrServerIds
         .map((id) => this.convertOverseerrConfig(ini[`overseerr-${id}`], id))
         .filter(Boolean);
     }
@@ -252,13 +252,13 @@ export class ConfigMigrator {
    */
   private parseGlobalSection(section: ParsedIniSection): LegacyGlobalConfig {
     return {
-      sonarrServerIds: this.parseServerIds(section['sonarr_server_ids']),
-      radarrServerIds: this.parseServerIds(section['radarr_server_ids']),
-      lidarrServerIds: this.parseServerIds(section['lidarr_server_ids']),
-      tautulliServerIds: this.parseServerIds(section['tautulli_server_ids']),
-      ombiServerIds: this.parseServerIds(section['ombi_server_ids']),
-      overseerrServerIds: this.parseServerIds(section['overseerr_server_ids']),
-      maxmindLicenseKey: section['maxmind_license_key'],
+      sonarrServerIds: this.parseServerIds(section.sonarr_server_ids),
+      radarrServerIds: this.parseServerIds(section.radarr_server_ids),
+      lidarrServerIds: this.parseServerIds(section.lidarr_server_ids),
+      tautulliServerIds: this.parseServerIds(section.tautulli_server_ids),
+      ombiServerIds: this.parseServerIds(section.ombi_server_ids),
+      overseerrServerIds: this.parseServerIds(section.overseerr_server_ids),
+      maxmindLicenseKey: section.maxmind_license_key,
     };
   }
 
@@ -272,7 +272,7 @@ export class ConfigMigrator {
     return value
       .split(',')
       .map((s) => parseInt(s.trim(), 10))
-      .filter((n) => !isNaN(n));
+      .filter((n) => !Number.isNaN(n));
   }
 
   /**
@@ -289,7 +289,7 @@ export class ConfigMigrator {
   private parseIntWithDefault(value: string | undefined, defaultValue: number): number {
     if (!value) {return defaultValue;}
     const parsed = parseInt(value, 10);
-    return isNaN(parsed) ? defaultValue : parsed;
+    return Number.isNaN(parsed) ? defaultValue : parsed;
   }
 
   /**
@@ -307,13 +307,13 @@ export class ConfigMigrator {
    */
   private convertInfluxDB1Config(section: ParsedIniSection): Record<string, unknown> {
     return {
-      url: section['url'] || 'localhost',
-      port: this.parseIntWithDefault(section['port'], 8086),
-      username: section['username'] || 'root',
-      password: section['password'] || 'root',
+      url: section.url || 'localhost',
+      port: this.parseIntWithDefault(section.port, 8086),
+      username: section.username || 'root',
+      password: section.password || 'root',
       database: 'varken',
-      ssl: this.parseBool(section['ssl']),
-      verifySsl: this.parseBool(section['verify_ssl']),
+      ssl: this.parseBool(section.ssl),
+      verifySsl: this.parseBool(section.verify_ssl),
     };
   }
 
@@ -323,13 +323,13 @@ export class ConfigMigrator {
   private convertInfluxDB2Config(section: ParsedIniSection): Record<string, unknown> {
     // In legacy format, password is used as token for InfluxDB 2.x
     return {
-      url: section['url'] || 'localhost',
-      port: this.parseIntWithDefault(section['port'], 8086),
-      token: section['password'] || '',
-      org: section['org'] || 'varken',
+      url: section.url || 'localhost',
+      port: this.parseIntWithDefault(section.port, 8086),
+      token: section.password || '',
+      org: section.org || 'varken',
       bucket: 'varken',
-      ssl: this.parseBool(section['ssl']),
-      verifySsl: this.parseBool(section['verify_ssl']),
+      ssl: this.parseBool(section.ssl),
+      verifySsl: this.parseBool(section.verify_ssl),
     };
   }
 
@@ -347,20 +347,20 @@ export class ConfigMigrator {
 
     return {
       id,
-      url: this.buildUrl(section['url'], this.parseBool(section['ssl'])),
-      apiKey: section['apikey'] || '',
-      verifySsl: this.parseBool(section['verify_ssl']),
+      url: this.buildUrl(section.url, this.parseBool(section.ssl)),
+      apiKey: section.apikey || '',
+      verifySsl: this.parseBool(section.verify_ssl),
       queue: {
-        enabled: this.parseBool(section['queue']),
-        intervalSeconds: this.parseIntWithDefault(section['queue_run_seconds'], 300),
+        enabled: this.parseBool(section.queue),
+        intervalSeconds: this.parseIntWithDefault(section.queue_run_seconds, 300),
       },
       calendar: {
         enabled:
-          this.parseIntWithDefault(section['missing_days'], 0) > 0 ||
-          this.parseIntWithDefault(section['future_days'], 0) > 0,
-        futureDays: this.parseIntWithDefault(section['future_days'], 7),
-        missingDays: this.parseIntWithDefault(section['missing_days'], 30),
-        intervalSeconds: this.parseIntWithDefault(section['missing_days_run_seconds'], 300),
+          this.parseIntWithDefault(section.missing_days, 0) > 0 ||
+          this.parseIntWithDefault(section.future_days, 0) > 0,
+        futureDays: this.parseIntWithDefault(section.future_days, 7),
+        missingDays: this.parseIntWithDefault(section.missing_days, 30),
+        intervalSeconds: this.parseIntWithDefault(section.missing_days_run_seconds, 300),
       },
     };
   }
@@ -379,16 +379,16 @@ export class ConfigMigrator {
 
     return {
       id,
-      url: this.buildUrl(section['url'], this.parseBool(section['ssl'])),
-      apiKey: section['apikey'] || '',
-      verifySsl: this.parseBool(section['verify_ssl']),
+      url: this.buildUrl(section.url, this.parseBool(section.ssl)),
+      apiKey: section.apikey || '',
+      verifySsl: this.parseBool(section.verify_ssl),
       queue: {
-        enabled: this.parseBool(section['queue']),
-        intervalSeconds: this.parseIntWithDefault(section['queue_run_seconds'], 300),
+        enabled: this.parseBool(section.queue),
+        intervalSeconds: this.parseIntWithDefault(section.queue_run_seconds, 300),
       },
       missing: {
-        enabled: this.parseBool(section['get_missing']),
-        intervalSeconds: this.parseIntWithDefault(section['get_missing_run_seconds'], 300),
+        enabled: this.parseBool(section.get_missing),
+        intervalSeconds: this.parseIntWithDefault(section.get_missing_run_seconds, 300),
       },
     };
   }
@@ -407,18 +407,18 @@ export class ConfigMigrator {
 
     return {
       id,
-      url: this.buildUrl(section['url'], this.parseBool(section['ssl'])),
-      apiKey: section['apikey'] || '',
-      verifySsl: this.parseBool(section['verify_ssl']),
+      url: this.buildUrl(section.url, this.parseBool(section.ssl)),
+      apiKey: section.apikey || '',
+      verifySsl: this.parseBool(section.verify_ssl),
       queue: {
-        enabled: this.parseBool(section['queue']),
-        intervalSeconds: this.parseIntWithDefault(section['queue_run_seconds'], 300),
+        enabled: this.parseBool(section.queue),
+        intervalSeconds: this.parseIntWithDefault(section.queue_run_seconds, 300),
       },
       missing: {
         enabled:
-          this.parseIntWithDefault(section['missing_days'], 0) > 0 ||
-          this.parseIntWithDefault(section['future_days'], 0) > 0,
-        intervalSeconds: this.parseIntWithDefault(section['missing_days_run_seconds'], 300),
+          this.parseIntWithDefault(section.missing_days, 0) > 0 ||
+          this.parseIntWithDefault(section.future_days, 0) > 0,
+        intervalSeconds: this.parseIntWithDefault(section.missing_days_run_seconds, 300),
       },
     };
   }
@@ -438,20 +438,20 @@ export class ConfigMigrator {
 
     const config: Record<string, unknown> = {
       id,
-      url: this.buildUrl(section['url'], this.parseBool(section['ssl'])),
-      apiKey: section['apikey'] || '',
-      verifySsl: this.parseBool(section['verify_ssl']),
+      url: this.buildUrl(section.url, this.parseBool(section.ssl)),
+      apiKey: section.apikey || '',
+      verifySsl: this.parseBool(section.verify_ssl),
       activity: {
-        enabled: this.parseBool(section['get_activity']),
-        intervalSeconds: this.parseIntWithDefault(section['get_activity_run_seconds'], 30),
+        enabled: this.parseBool(section.get_activity),
+        intervalSeconds: this.parseIntWithDefault(section.get_activity_run_seconds, 30),
       },
       libraries: {
-        enabled: this.parseBool(section['get_libraries']),
-        intervalDays: this.parseIntWithDefault(section['get_libraries_run_days'], 1),
+        enabled: this.parseBool(section.get_libraries),
+        intervalDays: this.parseIntWithDefault(section.get_libraries_run_days, 1),
       },
       stats: {
-        enabled: this.parseBool(section['get_stats']),
-        intervalSeconds: this.parseIntWithDefault(section['get_stats_run_seconds'], 3600),
+        enabled: this.parseBool(section.get_stats),
+        intervalSeconds: this.parseIntWithDefault(section.get_stats_run_seconds, 3600),
       },
       geoip: {
         enabled: !!maxmindLicenseKey,
@@ -459,8 +459,8 @@ export class ConfigMigrator {
       },
     };
 
-    if (section['fallback_ip']) {
-      config['fallbackIp'] = section['fallback_ip'];
+    if (section.fallback_ip) {
+      config.fallbackIp = section.fallback_ip;
     }
 
     return config;
@@ -480,18 +480,18 @@ export class ConfigMigrator {
 
     return {
       id,
-      url: this.buildUrl(section['url'], this.parseBool(section['ssl'])),
-      apiKey: section['apikey'] || '',
-      verifySsl: this.parseBool(section['verify_ssl']),
+      url: this.buildUrl(section.url, this.parseBool(section.ssl)),
+      apiKey: section.apikey || '',
+      verifySsl: this.parseBool(section.verify_ssl),
       requestCounts: {
         enabled:
-          this.parseBool(section['get_request_type_counts']) ||
-          this.parseBool(section['get_request_total_counts']),
-        intervalSeconds: this.parseIntWithDefault(section['request_type_run_seconds'], 300),
+          this.parseBool(section.get_request_type_counts) ||
+          this.parseBool(section.get_request_total_counts),
+        intervalSeconds: this.parseIntWithDefault(section.request_type_run_seconds, 300),
       },
       issueCounts: {
-        enabled: this.parseBool(section['get_issue_status_counts']),
-        intervalSeconds: this.parseIntWithDefault(section['issue_status_run_seconds'], 300),
+        enabled: this.parseBool(section.get_issue_status_counts),
+        intervalSeconds: this.parseIntWithDefault(section.issue_status_run_seconds, 300),
       },
     };
   }
@@ -510,17 +510,17 @@ export class ConfigMigrator {
 
     return {
       id,
-      url: this.buildUrl(section['url'], this.parseBool(section['ssl'])),
-      apiKey: section['apikey'] || '',
-      verifySsl: this.parseBool(section['verify_ssl']),
+      url: this.buildUrl(section.url, this.parseBool(section.ssl)),
+      apiKey: section.apikey || '',
+      verifySsl: this.parseBool(section.verify_ssl),
       requestCounts: {
-        enabled: this.parseBool(section['get_request_total_counts']),
-        intervalSeconds: this.parseIntWithDefault(section['request_total_run_seconds'], 300),
+        enabled: this.parseBool(section.get_request_total_counts),
+        intervalSeconds: this.parseIntWithDefault(section.request_total_run_seconds, 300),
       },
       latestRequests: {
-        enabled: this.parseBool(section['get_latest_requests']),
-        count: this.parseIntWithDefault(section['num_latest_requests_to_fetch'], 10),
-        intervalSeconds: this.parseIntWithDefault(section['num_latest_requests_seconds'], 300),
+        enabled: this.parseBool(section.get_latest_requests),
+        count: this.parseIntWithDefault(section.num_latest_requests_to_fetch, 10),
+        intervalSeconds: this.parseIntWithDefault(section.num_latest_requests_seconds, 300),
       },
     };
   }

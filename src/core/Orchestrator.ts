@@ -27,7 +27,7 @@ export class Orchestrator {
   private metrics: Metrics | null = null;
   private isRunning = false;
   private shutdownPromise: Promise<void> | null = null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // biome-ignore lint/suspicious/noExplicitAny: process.on listeners have heterogeneous signatures
   private signalHandlers: Array<{ event: string; handler: (...args: any[]) => void }> = [];
 
   constructor(config: VarkenConfig, healthConfig?: HealthServerConfig, metricsEnabled = true) {

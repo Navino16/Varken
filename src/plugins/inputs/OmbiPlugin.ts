@@ -42,7 +42,7 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
   async initialize(...args: Parameters<BaseInputPlugin<OmbiConfig>['initialize']>): Promise<void> {
     await super.initialize(...args);
     // Add API key header for Ombi (different from Overseerr)
-    this.httpClient.defaults.headers.common['ApiKey'] = this.config.apiKey;
+    this.httpClient.defaults.headers.common.ApiKey = this.config.apiKey;
   }
 
   /**

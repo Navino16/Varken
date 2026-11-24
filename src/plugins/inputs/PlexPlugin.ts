@@ -32,7 +32,7 @@ export class PlexPlugin extends BaseInputPlugin<PlexConfig> {
     await super.initialize(...args);
     this.httpClient.defaults.headers.common['X-Plex-Token'] = this.config.token;
     // Plex defaults to XML; this flips responses to JSON.
-    this.httpClient.defaults.headers.common['Accept'] = 'application/json';
+    this.httpClient.defaults.headers.common.Accept = 'application/json';
   }
 
   protected getHealthEndpoint(): string {

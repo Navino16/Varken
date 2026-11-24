@@ -5,6 +5,7 @@ import { ConfigWatcher } from './core/ConfigWatcher';
 import { getInputPluginRegistry } from './plugins/inputs';
 import { getOutputPluginRegistry } from './plugins/outputs';
 import type { HealthServerConfig } from './core/HealthServer';
+import type { VarkenConfig } from './config/schemas/config.schema';
 import { validateEnvironment } from './utils/env';
 import { version as VERSION } from '../package.json';
 
@@ -69,7 +70,7 @@ export async function main(deps: MainDependencies = defaultDependencies): Promis
 
   // Load and validate configuration
   const configLoader = new deps.ConfigLoader(configFolder);
-  let config;
+  let config: VarkenConfig;
   try {
     config = configLoader.load();
   } catch (error) {

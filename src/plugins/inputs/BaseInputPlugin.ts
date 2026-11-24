@@ -1,7 +1,7 @@
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import axios from 'axios';
-import * as https from 'https';
-import { createHash } from 'crypto';
+import * as https from 'node:https';
+import { createHash } from 'node:crypto';
 import { createLogger, withContext } from '../../core/Logger';
 import { formatHelpfulError } from '../../utils/errors';
 import { RequestCache } from '../../utils/RequestCache';

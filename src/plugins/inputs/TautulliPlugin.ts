@@ -176,7 +176,7 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
             server: this.config.id,
           },
           {
-            stream_count: parseInt(activity.stream_count) || 0,
+            stream_count: parseInt(activity.stream_count, 10) || 0,
             total_bandwidth: activity.total_bandwidth || 0,
             wan_bandwidth: activity.wan_bandwidth || 0,
             lan_bandwidth: activity.lan_bandwidth || 0,
@@ -327,7 +327,7 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
     } else if (session.stream_video_full_resolution) {
       quality = session.stream_video_full_resolution;
     } else {
-      quality = quality + 'p';
+      quality = `${quality}p`;
     }
 
     // Player state mapping
@@ -427,17 +427,17 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
 
       for (const library of libraries) {
         const fields: Record<string, string | number | boolean> = {
-          total: parseInt(library.count) || 0,
+          total: parseInt(library.count, 10) || 0,
         };
 
         // Add section-type specific fields
         if (library.section_type === 'show') {
-          fields.seasons = parseInt(library.parent_count || '0') || 0;
-          fields.episodes = parseInt(library.child_count || '0') || 0;
+          fields.seasons = parseInt(library.parent_count || '0', 10) || 0;
+          fields.episodes = parseInt(library.child_count || '0', 10) || 0;
         } else if (library.section_type === 'artist') {
-          fields.artists = parseInt(library.count) || 0;
-          fields.albums = parseInt(library.parent_count || '0') || 0;
-          fields.tracks = parseInt(library.child_count || '0') || 0;
+          fields.artists = parseInt(library.count, 10) || 0;
+          fields.albums = parseInt(library.parent_count || '0', 10) || 0;
+          fields.tracks = parseInt(library.child_count || '0', 10) || 0;
         }
 
         // For backward compatibility, also add 'libraries' field
