@@ -12,8 +12,8 @@ export type SpecFormat = 'openapi3.0' | 'openapi3.1' | 'swagger2';
 /** How `npm run contracts:update` refreshes a pinned spec; `{tag}` is the latest release of `repo`. */
 export type RefreshSource =
   | { kind: 'github-raw'; repo: string }
-  | { kind: 'url' }
-  | { kind: 'redoc-page' }
+  | { kind: 'url'; url: string }
+  | { kind: 'redoc-page'; url: string }
   | { kind: 'runtime'; repo: string; image: string; port: number; path: string }
   | { kind: 'docstrings'; repo: string; url: string; snapshot: string };
 
@@ -65,6 +65,12 @@ export function upgradeSwagger2(document: unknown, pathPrefix: string): OpenApiD
   return upgradeFromTwoToThree(structuredClone(document) as Record<string, unknown>) as unknown as OpenApiDocument;
 }
 
+/** The pinned spec as OpenAPI 3.x, before the overlay. */
+export function loadPinnedSpec(entry: ManifestEntry): OpenApiDocument {
+  const pinned = readSpec(path.join(contractsDir, 'specs', entry.file));
+  return entry.format === 'swagger2' ? upgradeSwagger2(pinned, entry.pathPrefix) : (pinned as OpenApiDocument);
+}
+
 export function loadContract(service: ServiceId): Contract {
   const cached = cache.get(service);
   if (cached) {
@@ -75,8 +81,7 @@ export function loadContract(service: ServiceId): Contract {
   if (!entry) {
     throw new Error(`No contract manifest entry for ${service}`);
   }
-  const pinned = readSpec(path.join(contractsDir, 'specs', entry.file));
-  let spec = entry.format === 'swagger2' ? upgradeSwagger2(pinned, entry.pathPrefix) : (pinned as OpenApiDocument);
+  let spec = loadPinnedSpec(entry);
   const overlayFile = path.join(contractsDir, 'overlays', `${service}.json`);
   let formats: FormatOverride[] = [];
   if (fs.existsSync(overlayFile)) {

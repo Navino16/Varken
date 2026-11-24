@@ -97,7 +97,8 @@
     "version": "2026-11-24",
     "pathPrefix": "",
     "refresh": {
-      "kind": "redoc-page"
+      "kind": "redoc-page",
+      "url": "https://developer.plex.tv/pms/"
     }
   },
   "jellyfin": {
@@ -107,7 +108,8 @@
     "version": "12.4.0",
     "pathPrefix": "",
     "refresh": {
-      "kind": "url"
+      "kind": "url",
+      "url": "https://api.jellyfin.org/openapi/jellyfin-openapi-stable.json"
     }
   },
   "emby": {

@@ -1,3 +1,5 @@
+import { isDeepStrictEqual } from 'node:util';
+
 export interface OverlayPatch {
   op: 'add' | 'replace' | 'remove';
   path: string;
@@ -92,4 +94,39 @@ export function applyOverlay<T>(spec: T, overlay: Overlay): T {
     applyPatch(copy, patch);
   }
   return copy;
+}
+
+function valueAt(root: unknown, tokens: string[]): { found: boolean; value?: unknown } {
+  let current: unknown = root;
+  for (const token of tokens) {
+    if (!isContainer(current) || !hasKey(current, token)) {
+      return { found: false };
+    }
+    current = (current as Record<string, unknown>)[token];
+  }
+  return { found: true, value: current };
+}
+
+/** Patches the upstream spec now covers by itself (refresh report): each is checked against upstream plus the patches before it. */
+export function findRedundantPatches(spec: unknown, overlay: Overlay): OverlayPatch[] {
+  const current = structuredClone(spec);
+  const redundant: OverlayPatch[] = [];
+  for (const patch of overlay.patches) {
+    const tokens = parsePointer(patch.path);
+    const target = valueAt(current, tokens);
+    const parent = valueAt(current, tokens.slice(0, -1));
+    const appended = tokens[tokens.length - 1] === '-' && Array.isArray(parent.value);
+    const covered =
+      patch.op === 'remove'
+        ? !target.found
+        : appended
+          ? (parent.value as unknown[]).some((item) => isDeepStrictEqual(item, patch.value))
+          : target.found && isDeepStrictEqual(target.value, patch.value);
+    if (covered) {
+      redundant.push(patch);
+    } else {
+      applyPatch(current, patch);
+    }
+  }
+  return redundant;
 }

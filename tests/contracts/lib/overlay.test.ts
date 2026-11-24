@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { applyOverlay, type OverlayPatch } from './overlay';
+import { applyOverlay, findRedundantPatches, type OverlayPatch } from './overlay';
 
 const patch = (p: Omit<OverlayPatch, 'why'> & { why?: string }): OverlayPatch => ({ why: 'test', ...p });
 
@@ -58,5 +58,34 @@ describe('applyOverlay', () => {
     expect(() => applyOverlay({ a: {} }, { patches: [patch({ op: 'add', path: '/x/y', value: 1 })] })).toThrow(
       /not found/
     );
+  });
+});
+
+describe('findRedundantPatches', () => {
+  const spec = { a: { b: 1 }, list: [{ name: 'x' }] };
+
+  it('reports adds and replaces whose value is already upstream', () => {
+    const add = patch({ op: 'add', path: '/a/b', value: 1 });
+    const replace = patch({ op: 'replace', path: '/a/b', value: 1 });
+    const append = patch({ op: 'add', path: '/list/-', value: { name: 'x' } });
+
+    expect(findRedundantPatches(spec, { patches: [add, replace, append] })).toEqual([add, replace, append]);
+  });
+
+  it('reports removes whose target is already gone', () => {
+    const remove = patch({ op: 'remove', path: '/a/c' });
+
+    expect(findRedundantPatches(spec, { patches: [remove] })).toEqual([remove]);
+  });
+
+  it('does not report patches that still change the spec', () => {
+    const patches = [
+      patch({ op: 'add', path: '/a/c', value: 2 }),
+      patch({ op: 'replace', path: '/a/b', value: 3 }),
+      patch({ op: 'remove', path: '/a/b' }),
+      patch({ op: 'add', path: '/list/-', value: { name: 'y' } }),
+    ];
+
+    expect(findRedundantPatches(spec, { patches })).toEqual([]);
   });
 });
