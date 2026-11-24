@@ -76,6 +76,15 @@ describe('createContractHttpClient', () => {
     await expect(client.get('/api/v3/queue', { params: { page: 2 } })).resolves.toMatchObject({ data: { page: 2 } });
   });
 
+  it('passes the called path to function overrides', async () => {
+    const client = createContractHttpClient('seerr');
+    client.override('/api/v1/movie/{movieId}', (_params, path) => ({ id: Number(path.split('/').pop()), title: path }));
+
+    await expect(client.get('/api/v1/movie/329865')).resolves.toEqual({
+      data: { id: 329865, title: '/api/v1/movie/329865' },
+    });
+  });
+
   it('overrideUnchecked bypasses validation', async () => {
     const client = createContractHttpClient('radarr');
     client.overrideUnchecked('/api/v3/movie', null);

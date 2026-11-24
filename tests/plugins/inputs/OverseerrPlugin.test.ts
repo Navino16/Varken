@@ -1,70 +1,71 @@
-import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
-import { OverseerrPlugin } from '../../../src/plugins/inputs/OverseerrPlugin';
-import { OverseerrConfig } from '../../../src/types/inputs/overseerr.types';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import axios from 'axios';
+import { OverseerrPlugin } from '../../../src/plugins/inputs/OverseerrPlugin';
+import type { OverseerrConfig } from '../../../src/types/inputs/overseerr.types';
+import type { components, paths } from '../../../src/types/generated/seerr';
+import { createContractHttpClient, type ContractHttpClient } from '../../fixtures/contract-http';
+import { loadFixture } from '../../contracts/registry';
 
-// Mock the logger
-vi.mock('../../../src/core/Logger', () => ({
-  createLogger: () => ({
-    info: vi.fn(),
-    debug: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  }),
-  withContext: (logger: unknown) => logger,
-}));
+vi.mock('../../../src/core/Logger', async () => {
+  const { loggerMock } = await import('../../fixtures/logger');
+  return loggerMock();
+});
 
-// Mock axios
-vi.mock('axios', () => ({
-  default: {
-    create: vi.fn(() => ({
-      get: vi.fn(),
-      defaults: {
-        headers: {
-          common: {},
-        },
-      },
-    })),
-  },
-}));
+vi.mock('axios', () => ({ default: { create: vi.fn() } }));
+
+type MovieDetails = components['schemas']['MovieDetails'];
+type RequestPage = paths['/request']['get']['responses'][200]['content']['application/json'];
+
+const ARRIVAL_TMDB_ID = 329865;
+
+function duneDetails(): MovieDetails {
+  return loadFixture<MovieDetails>('seerr/movie');
+}
+
+function arrivalDetails(): MovieDetails {
+  const dune = duneDetails();
+  const { media: _media, ...request } = loadFixture<RequestPage>('seerr/request').results?.[2] ?? { id: 0, status: 0, type: 'movie' };
+  return {
+    id: ARRIVAL_TMDB_ID,
+    imdbId: 'tt2543164',
+    title: 'Arrival',
+    originalTitle: 'Arrival',
+    releaseDate: '2016-11-10',
+    runtime: 116,
+    status: 'Released',
+    voteAverage: 7.6,
+    mediaInfo: {
+      ...dune.mediaInfo,
+      id: 116,
+      tmdbId: ARRIVAL_TMDB_ID,
+      status: 2,
+      requests: [request],
+    },
+  };
+}
+
+function movieById(_params: unknown, path: string): MovieDetails {
+  return path.endsWith(`/${ARRIVAL_TMDB_ID}`) ? arrivalDetails() : duneDetails();
+}
 
 describe('OverseerrPlugin', () => {
   let plugin: OverseerrPlugin;
-  let mockHttpClient: { get: Mock; defaults: { headers: { common: Record<string, string> } } };
+  let client: ContractHttpClient;
 
   const testConfig: OverseerrConfig = {
     id: 1,
     url: 'http://localhost:5055',
     apiKey: 'overseerr-api-key',
     verifySsl: false,
-    requestCounts: {
-      enabled: true,
-      intervalSeconds: 300,
-    },
-    latestRequests: {
-      enabled: true,
-      intervalSeconds: 60,
-      count: 10,
-    },
+    requestCounts: { enabled: true, intervalSeconds: 300 },
+    latestRequests: { enabled: true, intervalSeconds: 60, count: 10 },
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
     plugin = new OverseerrPlugin();
-
-    mockHttpClient = {
-      get: vi.fn(),
-      defaults: {
-        headers: {
-          common: {},
-        },
-      },
-      interceptors: {
-        response: { use: vi.fn() },
-        request: { use: vi.fn() },
-      },
-    };
-    (axios.create as Mock).mockReturnValue(mockHttpClient);
+    client = createContractHttpClient('seerr');
+    (axios.create as Mock).mockReturnValue(client);
   });
 
   describe('metadata', () => {
@@ -75,468 +76,227 @@ describe('OverseerrPlugin', () => {
     });
   });
 
+  describe('health', () => {
+    it('should return the correct health endpoint', () => {
+      const endpoint = (plugin as unknown as { getHealthEndpoint: () => string }).getHealthEndpoint();
+      expect(endpoint).toBe('/api/v1/status');
+    });
+
+    it('should pass the health check against the contract route', async () => {
+      await plugin.initialize(testConfig);
+
+      await expect(plugin.healthCheck()).resolves.toBe(true);
+    });
+  });
+
   describe('initialize', () => {
     it('should initialize with API key header', async () => {
       await plugin.initialize(testConfig);
-      expect(mockHttpClient.defaults.headers.common['X-Api-Key']).toBe('overseerr-api-key');
+      expect(client.defaults.headers.common['X-Api-Key']).toBe('overseerr-api-key');
     });
   });
 
   describe('getSchedules', () => {
     it('should return schedules for enabled collectors', async () => {
       await plugin.initialize(testConfig);
-      const schedules = plugin.getSchedules();
 
-      expect(schedules.length).toBe(2);
-      expect(schedules[0].name).toBe('Overseerr_1_request_counts');
-      expect(schedules[0].intervalSeconds).toBe(300);
-      expect(schedules[1].name).toBe('Overseerr_1_latest_requests');
-      expect(schedules[1].intervalSeconds).toBe(60);
+      expect(plugin.getSchedules().map((s) => [s.name, s.intervalSeconds])).toEqual([
+        ['Overseerr_1_request_counts', 300],
+        ['Overseerr_1_latest_requests', 60],
+      ]);
     });
 
     it('should only return request_counts schedule when latestRequests is disabled', async () => {
-      const configWithoutLatest = {
-        ...testConfig,
-        latestRequests: { ...testConfig.latestRequests, enabled: false },
-      };
-      await plugin.initialize(configWithoutLatest);
-      const schedules = plugin.getSchedules();
+      await plugin.initialize({ ...testConfig, latestRequests: { ...testConfig.latestRequests, enabled: false } });
 
-      expect(schedules.length).toBe(1);
-      expect(schedules[0].name).toBe('Overseerr_1_request_counts');
+      expect(plugin.getSchedules().map((s) => s.name)).toEqual(['Overseerr_1_request_counts']);
     });
 
     it('should only return latest_requests schedule when requestCounts is disabled', async () => {
-      const configWithoutCounts = {
-        ...testConfig,
-        requestCounts: { ...testConfig.requestCounts, enabled: false },
-      };
-      await plugin.initialize(configWithoutCounts);
-      const schedules = plugin.getSchedules();
+      await plugin.initialize({ ...testConfig, requestCounts: { ...testConfig.requestCounts, enabled: false } });
 
-      expect(schedules.length).toBe(1);
-      expect(schedules[0].name).toBe('Overseerr_1_latest_requests');
+      expect(plugin.getSchedules().map((s) => s.name)).toEqual(['Overseerr_1_latest_requests']);
+    });
+
+    it('should run both count collectors from the request_counts schedule', async () => {
+      await plugin.initialize(testConfig);
+
+      const points = await plugin.getSchedules()[0].collector();
+
+      expect(points.map((p) => p.tags.type)).toEqual(['Request_Counts', 'Issues_Counts']);
     });
   });
 
   describe('collect', () => {
     beforeEach(async () => {
       await plugin.initialize(testConfig);
+      client.override('/api/v1/movie/{movieId}', movieById);
     });
 
     it('should collect request counts', async () => {
-      // Mock request counts
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          pending: 5,
-          approved: 10,
-          processing: 2,
-          available: 50,
-          total: 67,
-          movie: 30,
-          tv: 37,
-          declined: 3,
-        },
-      });
+      const point = (await plugin.collect()).find((p) => p.tags.type === 'Request_Counts');
 
-      // Mock issue counts
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          total: 10,
-          video: 3,
-          audio: 2,
-          subtitles: 4,
-          others: 1,
-          open: 6,
-          closed: 4,
-        },
+      expect(point?.fields).toEqual({
+        pending: 3,
+        approved: 5,
+        processing: 2,
+        available: 31,
+        total: 42,
+        movies: 30,
+        tv: 12,
+        declined: 1,
       });
+    });
 
-      // Mock latest requests (empty for this test)
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { results: [] },
-      });
+    it('should fall back to zero for absent counters', async () => {
+      client.override('/api/v1/request/count', { total: 4 });
+      client.override('/api/v1/issue/count', { open: 1 });
 
       const points = await plugin.collect();
 
-      const requestCountsPoint = points.find((p) => p.tags.type === 'Request_Counts');
-      expect(requestCountsPoint).toBeDefined();
-      expect(requestCountsPoint?.fields.pending).toBe(5);
-      expect(requestCountsPoint?.fields.approved).toBe(10);
-      expect(requestCountsPoint?.fields.processing).toBe(2);
-      expect(requestCountsPoint?.fields.available).toBe(50);
-      expect(requestCountsPoint?.fields.total).toBe(67);
-      expect(requestCountsPoint?.fields.movies).toBe(30);
-      expect(requestCountsPoint?.fields.tv).toBe(37);
-      expect(requestCountsPoint?.fields.declined).toBe(3);
+      expect(points.find((p) => p.tags.type === 'Request_Counts')?.fields).toMatchObject({ total: 4, pending: 0 });
+      expect(points.find((p) => p.tags.type === 'Issues_Counts')?.fields).toMatchObject({ open: 1, closed: 0 });
     });
 
     it('should collect issue counts', async () => {
-      // Mock request counts
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          pending: 0,
-          approved: 0,
-          processing: 0,
-          available: 0,
-          total: 0,
-          movie: 0,
-          tv: 0,
-          declined: 0,
-        },
+      const point = (await plugin.collect()).find((p) => p.tags.type === 'Issues_Counts');
+
+      expect(point?.fields).toEqual({ total: 7, video: 2, audio: 1, subtitles: 3, others: 1, open: 4, closed: 3 });
+    });
+
+    it('requests the latest requests with declared query parameters', async () => {
+      await plugin.collect();
+
+      expect(client.get).toHaveBeenCalledWith('/api/v1/request', {
+        params: { take: 10, filter: 'all', sort: 'added' },
       });
-
-      // Mock issue counts
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          total: 15,
-          video: 5,
-          audio: 3,
-          subtitles: 6,
-          others: 1,
-          open: 10,
-          closed: 5,
-        },
-      });
-
-      // Mock latest requests (empty)
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { results: [] },
-      });
-
-      const points = await plugin.collect();
-
-      const issuesPoint = points.find((p) => p.tags.type === 'Issues_Counts');
-      expect(issuesPoint).toBeDefined();
-      expect(issuesPoint?.fields.total).toBe(15);
-      expect(issuesPoint?.fields.video).toBe(5);
-      expect(issuesPoint?.fields.audio).toBe(3);
-      expect(issuesPoint?.fields.subtitles).toBe(6);
-      expect(issuesPoint?.fields.others).toBe(1);
-      expect(issuesPoint?.fields.open).toBe(10);
-      expect(issuesPoint?.fields.closed).toBe(5);
     });
 
     it('should collect latest movie requests', async () => {
-      // Mock request counts
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { pending: 0, approved: 0, processing: 0, available: 0, total: 0, movie: 0, tv: 0, declined: 0 },
+      const dune = (await plugin.collect()).find((p) => p.tags.title === 'Dune: Part Two');
+
+      expect(dune?.tags).toMatchObject({
+        type: 'Requests',
+        server: 1,
+        request_type: 1,
+        status: 5,
+        requested_user: 'alice',
+        requested_date: '2026-11-22T18:03:51.000Z',
       });
-
-      // Mock issue counts
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { total: 0, video: 0, audio: 0, subtitles: 0, others: 0, open: 0, closed: 0 },
-      });
-
-      // Mock latest requests
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          results: [
-            {
-              id: 1,
-              type: 'movie',
-              media: { tmdbId: 12345 },
-            },
-          ],
-        },
-      });
-
-      // Mock movie details
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          id: 12345,
-          title: 'Inception',
-          mediaInfo: {
-            status: 5,
-            requests: [
-              {
-                requestedBy: { displayName: 'John Doe' },
-                createdAt: '2024-01-15T10:00:00Z',
-              },
-            ],
-          },
-        },
-      });
-
-      const points = await plugin.collect();
-
-      const requestPoint = points.find((p) => p.tags.type === 'Requests');
-      expect(requestPoint).toBeDefined();
-      expect(requestPoint?.tags.title).toBe('Inception');
-      expect(requestPoint?.tags.request_type).toBe(1); // Movie = 1
-      expect(requestPoint?.tags.requested_user).toBe('John Doe');
-      expect(requestPoint?.tags.status).toBe(5);
+      expect(client.get).toHaveBeenCalledWith('/api/v1/movie/693134', { params: undefined });
     });
 
     it('should collect latest TV requests', async () => {
-      // Mock request counts
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { pending: 0, approved: 0, processing: 0, available: 0, total: 0, movie: 0, tv: 0, declined: 0 },
-      });
+      const severance = (await plugin.collect()).find((p) => p.tags.title === 'Severance');
 
-      // Mock issue counts
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { total: 0, video: 0, audio: 0, subtitles: 0, others: 0, open: 0, closed: 0 },
-      });
-
-      // Mock latest requests
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          results: [
-            {
-              id: 2,
-              type: 'tv',
-              media: { tmdbId: 67890 },
-            },
-          ],
-        },
-      });
-
-      // Mock TV show details
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          id: 67890,
-          name: 'Breaking Bad',
-          mediaInfo: {
-            status: 3,
-            requests: [
-              {
-                requestedBy: { displayName: 'Jane Smith' },
-                createdAt: '2024-01-10T15:30:00Z',
-              },
-            ],
-          },
-        },
-      });
-
-      const points = await plugin.collect();
-
-      const requestPoint = points.find((p) => p.tags.type === 'Requests');
-      expect(requestPoint).toBeDefined();
-      expect(requestPoint?.tags.title).toBe('Breaking Bad');
-      expect(requestPoint?.tags.request_type).toBe(0); // TV = 0
-      expect(requestPoint?.tags.requested_user).toBe('Jane Smith');
+      expect(severance?.tags).toMatchObject({ request_type: 0, status: 4, requested_user: 'bob' });
+      expect(client.get).toHaveBeenCalledWith('/api/v1/tv/95396', { params: undefined });
     });
 
     it('should skip requests without media tmdbId', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { pending: 0, approved: 0, processing: 0, available: 0, total: 0, movie: 0, tv: 0, declined: 0 },
-      });
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { total: 0, video: 0, audio: 0, subtitles: 0, others: 0, open: 0, closed: 0 },
-      });
+      const page = loadFixture<RequestPage>('seerr/request');
+      const [dune, severance] = page.results ?? [];
+      const { tmdbId: _tmdbId, ...mediaWithoutTmdb } = severance.media ?? {};
+      client.override('/api/v1/request', { ...page, results: [dune, { ...severance, media: mediaWithoutTmdb }] });
 
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          results: [
-            {
-              id: 1,
-              type: 'movie',
-              media: { tmdbId: null }, // No tmdbId
-            },
-            {
-              id: 2,
-              type: 'movie',
-              media: { tmdbId: 12345 },
-            },
-          ],
-        },
-      });
+      const requests = (await plugin.collect()).filter((p) => p.tags.type === 'Requests');
 
-      // Only one valid request should fetch details
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          id: 12345,
-          title: 'Valid Movie',
-          mediaInfo: {
-            status: 5,
-            requests: [{ requestedBy: { displayName: 'User' }, createdAt: '2024-01-01' }],
-          },
-        },
-      });
-
-      const points = await plugin.collect();
-
-      const requestPoints = points.filter((p) => p.tags.type === 'Requests');
-      expect(requestPoints.length).toBe(1);
-      expect(requestPoints[0].tags.title).toBe('Valid Movie');
+      expect(requests.map((p) => p.tags.title)).toEqual(['Dune: Part Two']);
+      expect(client.get).not.toHaveBeenCalledWith(expect.stringMatching(/^\/api\/v1\/tv\//), expect.anything());
     });
 
     it('should handle empty results gracefully', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { pending: 0, approved: 0, processing: 0, available: 0, total: 0, movie: 0, tv: 0, declined: 0 },
-      });
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { total: 0, video: 0, audio: 0, subtitles: 0, others: 0, open: 0, closed: 0 },
-      });
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { results: [] },
-      });
+      client.override('/api/v1/request', { pageInfo: { page: 1, pages: 0, results: 0 }, results: [] });
 
       const points = await plugin.collect();
 
-      // Should still have request counts and issue counts
-      expect(points.find((p) => p.tags.type === 'Request_Counts')).toBeDefined();
-      expect(points.find((p) => p.tags.type === 'Issues_Counts')).toBeDefined();
-      expect(points.filter((p) => p.tags.type === 'Requests').length).toBe(0);
+      expect(points.map((p) => p.tags.type)).toEqual(['Request_Counts', 'Issues_Counts']);
     });
 
     it('should propagate API errors for circuit breaker', async () => {
-      mockHttpClient.get.mockRejectedValueOnce(new Error('Request counts API error'));
+      client.fail('/api/v1/request/count', new Error('Request counts API error'));
 
       await expect(plugin.collect()).rejects.toThrow('Request counts API error');
     });
 
     it('should handle media details fetch failure gracefully', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { pending: 0, approved: 0, processing: 0, available: 0, total: 0, movie: 0, tv: 0, declined: 0 },
-      });
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { total: 0, video: 0, audio: 0, subtitles: 0, others: 0, open: 0, closed: 0 },
-      });
-
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          results: [
-            { id: 1, type: 'movie', media: { tmdbId: 12345 } },
-          ],
-        },
-      });
-
-      // Movie details fetch fails
-      mockHttpClient.get.mockRejectedValueOnce(new Error('Movie details error'));
+      client.fail('/api/v1/movie/{movieId}', new Error('Movie details error'));
+      client.fail('/api/v1/tv/{tvId}', new Error('TV details error'));
 
       const points = await plugin.collect();
 
-      // Should have counts but no request details
-      expect(points.find((p) => p.tags.type === 'Request_Counts')).toBeDefined();
-      expect(points.find((p) => p.tags.type === 'Issues_Counts')).toBeDefined();
-      expect(points.filter((p) => p.tags.type === 'Requests').length).toBe(0);
+      expect(points.map((p) => p.tags.type)).toEqual(['Request_Counts', 'Issues_Counts']);
     });
 
     it('should collect successful requests even when one fails in parallel', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { pending: 0, approved: 0, processing: 0, available: 0, total: 0, movie: 0, tv: 0, declined: 0 },
-      });
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { total: 0, video: 0, audio: 0, subtitles: 0, others: 0, open: 0, closed: 0 },
-      });
-
-      // Latest requests: 3 items
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          results: [
-            { id: 1, type: 'movie', media: { tmdbId: 100 } },
-            { id: 2, type: 'movie', media: { tmdbId: 200 } },
-            { id: 3, type: 'tv', media: { tmdbId: 300 } },
-          ],
-        },
+      client.override('/api/v1/movie/{movieId}', (params, path) => {
+        if (path.endsWith(`/${ARRIVAL_TMDB_ID}`)) {
+          throw new Error('TMDB API error');
+        }
+        return movieById(params, path);
       });
 
-      // Movie 100 — succeeds
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          id: 100,
-          title: 'Good Movie 1',
-          mediaInfo: {
-            status: 5,
-            requests: [{ requestedBy: { displayName: 'Alice' }, createdAt: '2024-01-01' }],
-          },
-        },
-      });
+      const titles = (await plugin.collect()).filter((p) => p.tags.type === 'Requests').map((p) => p.tags.title);
 
-      // Movie 200 — fails
-      mockHttpClient.get.mockRejectedValueOnce(new Error('TMDB API error'));
-
-      // TV 300 — succeeds
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          id: 300,
-          name: 'Good Show',
-          mediaInfo: {
-            status: 3,
-            requests: [{ requestedBy: { displayName: 'Bob' }, createdAt: '2024-02-01' }],
-          },
-        },
-      });
-
-      const points = await plugin.collect();
-
-      const requestPoints = points.filter((p) => p.tags.type === 'Requests');
-      expect(requestPoints).toHaveLength(2);
-
-      const titles = requestPoints.map((p) => p.tags.title);
-      expect(titles).toContain('Good Movie 1');
-      expect(titles).toContain('Good Show');
+      expect(titles).toEqual(['Dune: Part Two', 'Severance']);
     });
 
     it('should generate deterministic hash IDs', async () => {
-      const setupMocks = () => {
-        mockHttpClient.get.mockResolvedValueOnce({
-          data: { pending: 0, approved: 0, processing: 0, available: 0, total: 0, movie: 0, tv: 0, declined: 0 },
-        });
-        mockHttpClient.get.mockResolvedValueOnce({
-          data: { total: 0, video: 0, audio: 0, subtitles: 0, others: 0, open: 0, closed: 0 },
-        });
-        mockHttpClient.get.mockResolvedValueOnce({
-          data: {
-            results: [{ id: 1, type: 'movie', media: { tmdbId: 12345 } }],
-          },
-        });
-        mockHttpClient.get.mockResolvedValueOnce({
-          data: {
-            id: 12345,
-            title: 'Test Movie',
-            mediaInfo: {
-              status: 5,
-              requests: [{ requestedBy: { displayName: 'User' }, createdAt: '2024-01-01' }],
-            },
-          },
-        });
-      };
+      const hashes = async (): Promise<unknown[]> =>
+        (await plugin.collect()).filter((p) => p.tags.type === 'Requests').map((p) => p.fields.hash);
 
-      setupMocks();
-      const points1 = await plugin.collect();
+      const first = await hashes();
 
-      setupMocks();
-      const points2 = await plugin.collect();
-
-      const request1 = points1.find((p) => p.tags.type === 'Requests');
-      const request2 = points2.find((p) => p.tags.type === 'Requests');
-
-      expect(request1?.fields.hash).toBe(request2?.fields.hash);
+      expect(first).toHaveLength(3);
+      expect(new Set(first).size).toBe(3);
+      expect(await hashes()).toEqual(first);
     });
 
     it('should handle missing requestedBy information', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { pending: 0, approved: 0, processing: 0, available: 0, total: 0, movie: 0, tv: 0, declined: 0 },
-      });
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { total: 0, video: 0, audio: 0, subtitles: 0, others: 0, open: 0, closed: 0 },
-      });
-
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          results: [{ id: 1, type: 'movie', media: { tmdbId: 12345 } }],
-        },
+      client.override('/api/v1/movie/{movieId}', () => {
+        const dune = duneDetails();
+        const requests = dune.mediaInfo?.requests?.map(({ requestedBy: _r, ...request }) => request);
+        return { ...dune, mediaInfo: { ...dune.mediaInfo, requests } };
       });
 
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          id: 12345,
-          title: 'Test Movie',
-          mediaInfo: {
-            status: 5,
-            requests: [{ createdAt: '2024-01-01' }], // No requestedBy
-          },
-        },
-      });
+      const dune = (await plugin.collect()).find((p) => p.tags.title === 'Dune: Part Two');
 
-      const points = await plugin.collect();
-
-      const requestPoint = points.find((p) => p.tags.type === 'Requests');
-      expect(requestPoint?.tags.requested_user).toBe('Unknown');
+      expect(dune?.tags.requested_user).toBe('Unknown');
     });
+
+    it('falls back when details have no mediaInfo', async () => {
+      client.override('/api/v1/movie/{movieId}', () => {
+        const { mediaInfo: _mediaInfo, ...dune } = duneDetails();
+        return dune;
+      });
+
+      const dune = (await plugin.collect()).find((p) => p.tags.title === 'Dune: Part Two');
+
+      expect(dune?.tags).toMatchObject({ status: 0, requested_user: 'Unknown', requested_date: '' });
+    });
+
+    it('should skip requests whose details have no title', async () => {
+      client.override('/api/v1/tv/{tvId}', () => {
+        const { name: _name, ...severance } = loadFixture<components['schemas']['TvDetails']>('seerr/tv');
+        return severance;
+      });
+
+      const titles = (await plugin.collect()).filter((p) => p.tags.type === 'Requests').map((p) => p.tags.title);
+
+      expect(titles).not.toContain('Severance');
+      expect(titles).toHaveLength(2);
+    });
+  });
+
+  it('does not collect when every collector is disabled', async () => {
+    await plugin.initialize({
+      ...testConfig,
+      requestCounts: { ...testConfig.requestCounts, enabled: false },
+      latestRequests: { ...testConfig.latestRequests, enabled: false },
+    });
+
+    expect(await plugin.collect()).toEqual([]);
+    expect(client.get).not.toHaveBeenCalled();
   });
 
   describe('shutdown', () => {

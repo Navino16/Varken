@@ -1,0 +1,39 @@
+{
+  "id": 693134,
+  "imdbId": "tt15239678",
+  "title": "Dune: Part Two",
+  "originalTitle": "Dune: Part Two",
+  "releaseDate": "2024-02-27",
+  "runtime": 167,
+  "status": "Released",
+  "voteAverage": 8.1,
+  "mediaInfo": {
+    "id": 118,
+    "tmdbId": 693134,
+    "status": 5,
+    "createdAt": "2026-11-22T18:03:51.000Z",
+    "updatedAt": "2026-11-21T03:15:27.000Z",
+    "requests": [
+      {
+        "id": 41,
+        "status": 2,
+        "type": "movie",
+        "createdAt": "2026-11-22T18:03:51.000Z",
+        "updatedAt": "2026-11-22T18:05:10.000Z",
+        "requestedBy": {
+          "id": 1,
+          "email": "alice@example.com",
+          "username": "alice",
+          "userType": 2,
+          "permissions": 32,
+          "avatar": "/avatarproxy/1",
+          "createdAt": "2025-03-02T19:04:11.000Z",
+          "updatedAt": "2026-11-20T08:12:44.000Z",
+          "requestCount": 12,
+          "displayName": "alice"
+        },
+        "is4k": false
+      }
+    ]
+  }
+}

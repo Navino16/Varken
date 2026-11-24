@@ -46,5 +46,13 @@
     "version": "v3.1.0.5799",
     "pathPrefix": "",
     "refresh": true
+  },
+  "seerr": {
+    "file": "seerr.yml",
+    "format": "openapi3.0",
+    "source": "https://raw.githubusercontent.com/seerr-team/seerr/{tag}/seerr-api.yml",
+    "version": "v3.5.2",
+    "pathPrefix": "/api/v1",
+    "refresh": true
   }
 }

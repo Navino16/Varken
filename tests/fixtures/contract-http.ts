@@ -5,7 +5,7 @@ import { assertMatchesContract, assertRequestMatchesContract } from '../contract
 import type { ServiceId } from '../contracts/lib/spec';
 
 type Params = Record<string, unknown> | undefined;
-type OverrideBody = object | string | number | boolean | null | ((params?: Record<string, unknown>) => unknown);
+type OverrideBody = object | string | number | boolean | null | ((params: Record<string, unknown> | undefined, path: string) => unknown);
 
 export interface ContractHttpClient extends MockHttpClient {
   override(path: string, body: OverrideBody): void;
@@ -56,7 +56,7 @@ export function createContractHttpClient(service: ServiceId): ContractHttpClient
     }
     if (overrides.has(route.path)) {
       const override = overrides.get(route.path);
-      const body = structuredClone(typeof override === 'function' ? override(params) : override);
+      const body = structuredClone(typeof override === 'function' ? override(params, path) : override);
       try {
         assertMatchesContract(service, 'get', path, body);
       } catch (error) {
