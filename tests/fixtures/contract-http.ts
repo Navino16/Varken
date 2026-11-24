@@ -5,7 +5,7 @@ import { assertMatchesContract } from '../contracts/lib/validate';
 import type { ServiceId } from '../contracts/lib/spec';
 
 type Params = Record<string, unknown> | undefined;
-type OverrideBody = unknown | ((params?: Record<string, unknown>) => unknown);
+type OverrideBody = object | string | number | boolean | null | ((params?: Record<string, unknown>) => unknown);
 
 export interface ContractHttpClient extends MockHttpClient {
   override(path: string, body: OverrideBody): void;

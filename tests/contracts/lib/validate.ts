@@ -112,6 +112,7 @@ function getCompiled(contract: Contract): CompiledContract {
   for (const format of ['int32', 'int64', 'float', 'double']) {
     ajv.addFormat(format, { type: 'number', validate: () => true });
   }
+  ajv.addFormat('date-span', { type: 'string', validate: () => true });
 
   const rawSchemas = contract.spec.components?.schemas ?? {};
   const allOfRefs = new Set<string>();

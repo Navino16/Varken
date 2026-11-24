@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import type { Contract, OpenApiDocument } from './spec';
 import { findOperation, validateAgainstContract, validateResponse } from './validate';
 
@@ -128,6 +128,15 @@ describe('validateAgainstContract', () => {
     });
 
     expect(validateAgainstContract(c, 'get', '/a', { i: 1, d: 1.5 })).toEqual([]);
+  });
+
+  it('knows the Servarr date-span format without warning', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const c = contract({ '/a': jsonGet({ type: 'object', properties: { t: { type: 'string', format: 'date-span' } } }) });
+
+    expect(validateAgainstContract(c, 'get', '/a', { t: '01:30:00' })).toEqual([]);
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
   });
 
   it('uses OpenAPI 3.1 schemas as JSON Schema', () => {

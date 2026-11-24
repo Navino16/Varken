@@ -39,10 +39,10 @@ const DEFAULT_GLOBAL_CONFIG: GlobalConfig = {
  * Interface for paginated API responses
  */
 export interface PaginatedResponse<T> {
-  page: number;
-  pageSize: number;
-  totalRecords: number;
-  records: T[];
+  page?: number;
+  pageSize?: number;
+  totalRecords?: number;
+  records?: T[] | null;
 }
 
 /**
@@ -258,8 +258,8 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
         page,
       });
 
-      totalRecords = response.totalRecords;
-      allRecords.push(...response.records);
+      totalRecords = response.totalRecords ?? 0;
+      allRecords.push(...(response.records ?? []));
       page++;
 
       if (allRecords.length >= maxRecords) {
