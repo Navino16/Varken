@@ -1,76 +1,82 @@
-import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
-import { TautulliPlugin } from '../../../src/plugins/inputs/TautulliPlugin';
-import { TautulliConfig } from '../../../src/types/inputs/tautulli.types';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import axios from 'axios';
+import { TautulliPlugin } from '../../../src/plugins/inputs/TautulliPlugin';
+import type { TautulliConfig } from '../../../src/types/inputs/tautulli.types';
+import type { components } from '../../../src/types/generated/tautulli';
+import { createContractHttpClient, type ContractHttpClient } from '../../fixtures/contract-http';
+import { loadFixture } from '../../contracts/registry';
+import type { DataPoint } from '../../../src/types/plugin.types';
 
-// Mock the logger
-vi.mock('../../../src/core/Logger', () => ({
-  createLogger: () => ({
-    info: vi.fn(),
-    debug: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  }),
-  withContext: (logger: unknown) => logger,
-}));
+vi.mock('../../../src/core/Logger', async () => {
+  const { loggerMock } = await import('../../fixtures/logger');
+  return loggerMock();
+});
 
-// Mock axios
-vi.mock('axios', () => ({
-  default: {
-    create: vi.fn(() => ({
-      get: vi.fn(),
-      defaults: {
-        headers: {
-          common: {},
-        },
-      },
-    })),
-  },
-}));
+vi.mock('axios', () => ({ default: { create: vi.fn() } }));
+
+type Schemas = components['schemas'];
+type Session = Schemas['Session'];
+
+const ACTIVITY = '/api/v2?cmd=get_activity';
+const LIBRARIES = '/api/v2?cmd=get_libraries';
+const GEOIP = '/api/v2?cmd=get_geoip_lookup';
+const SERVER_INFO = '/api/v2?cmd=get_server_info';
+
+function activity(): Schemas['ActivityResponse'] {
+  return loadFixture<Schemas['ActivityResponse']>('tautulli/get-activity');
+}
+
+/** Fixture sessions: a local episode in direct play (macOS) and a remote movie transcoding (Android). */
+function sessions(): { local: Session; remote: Session } {
+  const [local, remote] = activity().response.data.sessions ?? [];
+  return { local, remote };
+}
+
+function geoip(): Schemas['GeoIpResponse'] {
+  return loadFixture<Schemas['GeoIpResponse']>('tautulli/get-geoip-lookup');
+}
+
+function libraries(): Schemas['LibrariesResponse'] {
+  return loadFixture<Schemas['LibrariesResponse']>('tautulli/get-libraries');
+}
+
+function sessionPoints(points: DataPoint[]): DataPoint[] {
+  return points.filter((p) => p.tags.type === 'Session');
+}
 
 describe('TautulliPlugin', () => {
   let plugin: TautulliPlugin;
-  let mockHttpClient: { get: Mock; defaults: { headers: { common: Record<string, string> } } };
+  let client: ContractHttpClient;
 
   const testConfig: TautulliConfig = {
     id: 1,
     url: 'http://localhost:8181',
     apiKey: 'tautulli-api-key',
     verifySsl: false,
-    activity: {
-      enabled: true,
-      intervalSeconds: 30,
-    },
-    libraries: {
-      enabled: true,
-      intervalDays: 1,
-    },
-    stats: {
-      enabled: true,
-      intervalSeconds: 300,
-    },
-    geoip: {
-      enabled: true,
-    },
+    activity: { enabled: true, intervalSeconds: 30 },
+    libraries: { enabled: true, intervalDays: 1 },
+    stats: { enabled: true, intervalSeconds: 300 },
+    geoip: { enabled: true },
+  };
+
+  const withSessions = (...list: Session[]): void => {
+    const body = activity();
+    body.response.data.sessions = list;
+    client.override(ACTIVITY, body);
+  };
+
+  const geoipCalls = (): unknown[][] => client.get.mock.calls.filter((call) => call[0] === GEOIP);
+
+  const onlySession = async (session: Session): Promise<DataPoint | undefined> => {
+    withSessions(session);
+    return sessionPoints(await plugin.collect())[0];
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
     plugin = new TautulliPlugin();
-
-    mockHttpClient = {
-      get: vi.fn(),
-      defaults: {
-        headers: {
-          common: {},
-        },
-      },
-      interceptors: {
-        response: { use: vi.fn() },
-        request: { use: vi.fn() },
-      },
-    };
-    (axios.create as Mock).mockReturnValue(mockHttpClient);
+    client = createContractHttpClient('tautulli');
+    (axios.create as Mock).mockReturnValue(client);
   });
 
   describe('metadata', () => {
@@ -87,24 +93,32 @@ describe('TautulliPlugin', () => {
     });
 
     it('should log deprecation warning for licenseKey', async () => {
-      const configWithLicenseKey: TautulliConfig = {
-        ...testConfig,
-        geoip: {
-          enabled: true,
-          licenseKey: 'old-maxmind-key',
-        },
-      };
-      await plugin.initialize(configWithLicenseKey);
-      // Warning is logged internally, plugin should still work
+      await expect(
+        plugin.initialize({ ...testConfig, geoip: { enabled: true, licenseKey: 'old-maxmind-key' } })
+      ).resolves.toBeUndefined();
     });
 
     it('should log deprecation warning for fallbackIp', async () => {
-      const configWithFallbackIp: TautulliConfig = {
-        ...testConfig,
-        fallbackIp: '8.8.8.8',
-      };
-      await plugin.initialize(configWithFallbackIp);
-      // Warning is logged internally, plugin should still work
+      await expect(plugin.initialize({ ...testConfig, fallbackIp: '8.8.8.8' })).resolves.toBeUndefined();
+    });
+  });
+
+  describe('health', () => {
+    it('calls get_server_info with the API key and the health timeout', async () => {
+      await plugin.initialize(testConfig);
+
+      await expect(plugin.healthCheck()).resolves.toBe(true);
+      expect(client.get).toHaveBeenCalledWith(SERVER_INFO, {
+        params: { apikey: 'tautulli-api-key' },
+        timeout: 5000,
+      });
+    });
+
+    it('reports an unreachable server as unhealthy', async () => {
+      await plugin.initialize(testConfig);
+      client.fail(SERVER_INFO, new Error('connect ECONNREFUSED'));
+
+      await expect(plugin.healthCheck()).resolves.toBe(false);
     });
   });
 
@@ -121,19 +135,17 @@ describe('TautulliPlugin', () => {
 
     it('should calculate library interval in seconds from days', async () => {
       await plugin.initialize(testConfig);
-      const schedules = plugin.getSchedules();
+      const librarySchedule = plugin.getSchedules().find((s) => s.name === 'Tautulli_1_libraries');
 
-      const librarySchedule = schedules.find((s) => s.name === 'Tautulli_1_libraries');
-      expect(librarySchedule?.intervalSeconds).toBe(86400); // 1 day = 86400 seconds
+      expect(librarySchedule?.intervalSeconds).toBe(86400);
     });
 
     it('should only return activity schedule when others are disabled', async () => {
-      const configActivityOnly = {
+      await plugin.initialize({
         ...testConfig,
         libraries: { ...testConfig.libraries, enabled: false },
         stats: { ...testConfig.stats, enabled: false },
-      };
-      await plugin.initialize(configActivityOnly);
+      });
       const schedules = plugin.getSchedules();
 
       expect(schedules.length).toBe(1);
@@ -146,839 +158,268 @@ describe('TautulliPlugin', () => {
       await plugin.initialize(testConfig);
     });
 
+    it('requests each command through its discriminated path', async () => {
+      await plugin.collect();
+
+      expect(client.get).toHaveBeenCalledWith(ACTIVITY, { params: { apikey: 'tautulli-api-key' } });
+      expect(client.get).toHaveBeenCalledWith(GEOIP, { params: { apikey: 'tautulli-api-key', ip_address: '203.0.113.42' } });
+      expect(client.get).toHaveBeenCalledWith(LIBRARIES, { params: { apikey: 'tautulli-api-key' } });
+    });
+
     it('should collect activity data with sessions', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          response: {
-            result: 'success',
-            data: {
-              stream_count: '2',
-              total_bandwidth: 10000,
-              wan_bandwidth: 6000,
-              lan_bandwidth: 4000,
-              stream_count_transcode: 1,
-              stream_count_direct_play: 1,
-              stream_count_direct_stream: 0,
-              sessions: [
-                {
-                  session_id: 'session1',
-                  session_key: 'key1',
-                  username: 'user1',
-                  friendly_name: 'User One',
-                  ip_address: '192.168.1.100',
-                  full_title: 'Breaking Bad - S01E01 - Pilot',
-                  product: 'Plex Web',
-                  platform: 'windows',
-                  product_version: '4.100.1',
-                  state: 'playing',
-                  transcode_decision: 'transcode',
-                  video_decision: 'transcode',
-                  media_type: 'episode',
-                  audio_codec: 'aac',
-                  stream_audio_codec: 'aac',
-                  quality_profile: '1080p',
-                  progress_percent: '45',
-                  stream_video_resolution: '1080',
-                  transcode_hw_decoding: 1,
-                  transcode_hw_encoding: 1,
-                  relayed: 0,
-                  secure: '1',
-                  local: '1', // Local stream
-                },
-              ],
-            },
-          },
-        },
+      const points = await plugin.collect();
+
+      const remote = sessionPoints(points).find((p) => p.tags.session_id === 'k2m8ytq0rlvxw3hj5n7c1z9a');
+      expect(sessionPoints(points)).toHaveLength(2);
+      expect(remote?.tags).toMatchObject({
+        username: 'arrakis.fan',
+        friendly_name: 'Paul',
+        title: 'Dune: Part Two',
+        platform: 'Android',
+        player_state: 0,
+        transcode_decision: 'Transcode',
+        transcode_hw_decoding: 1,
+        media_type: 'Movie',
+        audio_codec: 'TRUEHD',
+        stream_audio_codec: 'AAC',
+        quality: '1080p',
+        quality_profile: '8 Mbps 1080p',
+        progress_percent: '37',
+        secure: 1,
       });
 
-      // Mock libraries response
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          response: {
-            result: 'success',
-            data: [],
-          },
-        },
+      const statsPoint = points.find((p) => p.tags.type === 'current_stream_stats');
+      expect(statsPoint?.fields).toEqual({
+        stream_count: 2,
+        total_bandwidth: 34438,
+        wan_bandwidth: 9120,
+        lan_bandwidth: 25318,
+        transcode_streams: 1,
+        direct_play_streams: 1,
+        direct_streams: 0,
       });
+    });
+
+    it('emits only zeroed stream stats when get_activity returns an empty object', async () => {
+      client.override(ACTIVITY, { response: { result: 'success', message: null, data: {} } });
 
       const points = await plugin.collect();
 
-      // Should have session point + current_stream_stats point
-      const sessionPoint = points.find((p) => p.tags.type === 'Session');
-      expect(sessionPoint).toBeDefined();
-      expect(sessionPoint?.tags.username).toBe('user1');
-      expect(sessionPoint?.tags.platform).toBe('Windows');
-      expect(sessionPoint?.tags.player_state).toBe(0); // playing = 0
+      expect(sessionPoints(points)).toHaveLength(0);
+      expect(points.find((p) => p.tags.type === 'current_stream_stats')?.fields).toEqual({
+        stream_count: 0,
+        total_bandwidth: 0,
+        wan_bandwidth: 0,
+        lan_bandwidth: 0,
+        transcode_streams: 0,
+        direct_play_streams: 0,
+        direct_streams: 0,
+      });
+    });
 
-      const statsPoint = points.find((p) => p.tags.type === 'current_stream_stats');
-      expect(statsPoint).toBeDefined();
-      expect(statsPoint?.fields.stream_count).toBe(2);
-      expect(statsPoint?.fields.total_bandwidth).toBe(10000);
+    it('keeps the secure fallback for sessions without a secure attribute', async () => {
+      const point = await onlySession(sessions().local);
+
+      expect(point?.tags.secure).toBe('0');
     });
 
     it('should detect local streams and set Local Network location', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          response: {
-            result: 'success',
-            data: {
-              stream_count: '1',
-              total_bandwidth: 5000,
-              wan_bandwidth: 0,
-              lan_bandwidth: 5000,
-              stream_count_transcode: 0,
-              stream_count_direct_play: 1,
-              stream_count_direct_stream: 0,
-              sessions: [
-                {
-                  session_id: 'session1',
-                  session_key: 'key1',
-                  username: 'user1',
-                  ip_address: '192.168.1.100',
-                  full_title: 'Test Movie',
-                  state: 'playing',
-                  local: '1', // Local stream
-                },
-              ],
-            },
-          },
-        },
-      });
+      const point = await onlySession(sessions().local);
 
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { response: { result: 'success', data: [] } },
-      });
-
-      const points = await plugin.collect();
-      const sessionPoint = points.find((p) => p.tags.type === 'Session');
-
-      expect(sessionPoint?.tags.location).toBe('Local');
-      expect(sessionPoint?.tags.full_location).toBe('Local Network');
-      expect(sessionPoint?.tags.region_code).toBe('LAN');
-      // No coordinates for local streams without localCoordinates config
-      expect(sessionPoint?.tags.latitude).toBeUndefined();
-      expect(sessionPoint?.tags.longitude).toBeUndefined();
+      expect(point?.tags.location).toBe('Local');
+      expect(point?.tags.full_location).toBe('Local Network');
+      expect(point?.tags.region_code).toBe('LAN');
+      expect(point?.tags.latitude).toBeUndefined();
+      expect(point?.tags.longitude).toBeUndefined();
     });
 
     it('should use localCoordinates for local streams when configured', async () => {
-      const configWithLocalCoords: TautulliConfig = {
+      await plugin.initialize({
         ...testConfig,
-        geoip: {
-          enabled: true,
-          localCoordinates: {
-            latitude: 48.8566,
-            longitude: 2.3522,
-          },
-        },
-      };
-
-      await plugin.initialize(configWithLocalCoords);
-
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          response: {
-            result: 'success',
-            data: {
-              stream_count: '1',
-              total_bandwidth: 5000,
-              wan_bandwidth: 0,
-              lan_bandwidth: 5000,
-              stream_count_transcode: 0,
-              stream_count_direct_play: 1,
-              stream_count_direct_stream: 0,
-              sessions: [
-                {
-                  session_id: 'session1',
-                  session_key: 'key1',
-                  username: 'user1',
-                  ip_address: '192.168.1.100',
-                  full_title: 'Test Movie',
-                  state: 'playing',
-                  local: '1',
-                },
-              ],
-            },
-          },
-        },
+        geoip: { enabled: true, localCoordinates: { latitude: 48.8566, longitude: 2.3522 } },
       });
 
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { response: { result: 'success', data: [] } },
-      });
+      const point = await onlySession(sessions().local);
 
-      const points = await plugin.collect();
-      const sessionPoint = points.find((p) => p.tags.type === 'Session');
-
-      expect(sessionPoint?.tags.location).toBe('Local');
-      expect(sessionPoint?.tags.full_location).toBe('Local Network');
-      expect(sessionPoint?.tags.latitude).toBe(48.8566);
-      expect(sessionPoint?.tags.longitude).toBe(2.3522);
+      expect(point?.tags.location).toBe('Local');
+      expect(point?.tags.full_location).toBe('Local Network');
+      expect(point?.tags.latitude).toBe(48.8566);
+      expect(point?.tags.longitude).toBe(2.3522);
     });
 
     it('should call Tautulli GeoIP API for remote streams', async () => {
-      // First call: get_activity
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          response: {
-            result: 'success',
-            data: {
-              stream_count: '1',
-              total_bandwidth: 5000,
-              wan_bandwidth: 5000,
-              lan_bandwidth: 0,
-              stream_count_transcode: 0,
-              stream_count_direct_play: 1,
-              stream_count_direct_stream: 0,
-              sessions: [
-                {
-                  session_id: 'session1',
-                  session_key: 'key1',
-                  username: 'user1',
-                  ip_address_public: '82.64.1.1',
-                  full_title: 'Test Movie',
-                  state: 'playing',
-                  local: '0', // Remote stream
-                },
-              ],
-            },
-          },
-        },
-      });
+      const point = await onlySession(sessions().remote);
 
-      // Second call: get_geoip_lookup
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          response: {
-            result: 'success',
-            data: {
-              city: 'Paris',
-              code: 'FR',
-              continent: 'Europe',
-              country: 'France',
-              latitude: 48.8566,
-              longitude: 2.3522,
-              postal_code: '75001',
-              region: 'Île-de-France',
-              timezone: 'Europe/Paris',
-              accuracy: 100,
-            },
-          },
-        },
-      });
-
-      // Third call: get_libraries
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { response: { result: 'success', data: [] } },
-      });
-
-      const points = await plugin.collect();
-      const sessionPoint = points.find((p) => p.tags.type === 'Session');
-
-      expect(sessionPoint?.tags.latitude).toBe(48.8566);
-      expect(sessionPoint?.tags.longitude).toBe(2.3522);
-      expect(sessionPoint?.tags.location).toBe('Paris');
-      expect(sessionPoint?.tags.region_code).toBe('Île-de-France');
-      expect(sessionPoint?.tags.full_location).toBe('Île-de-France - Paris');
-
-      // Verify GeoIP API was called
-      expect(mockHttpClient.get).toHaveBeenCalledWith('/api/v2', expect.objectContaining({
-        params: expect.objectContaining({
-          cmd: 'get_geoip_lookup',
-          ip_address: '82.64.1.1',
-        }),
-      }));
+      expect(point?.tags.latitude).toBe(45.7485);
+      expect(point?.tags.longitude).toBe(4.8467);
+      expect(point?.tags.location).toBe('Lyon');
+      expect(point?.tags.region_code).toBe('Auvergne-Rhône-Alpes');
+      expect(point?.tags.full_location).toBe('Auvergne-Rhône-Alpes - Lyon');
+      expect(geoipCalls()).toHaveLength(1);
     });
 
     it('should handle GeoIP API failure gracefully', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          response: {
-            result: 'success',
-            data: {
-              stream_count: '1',
-              total_bandwidth: 5000,
-              wan_bandwidth: 5000,
-              lan_bandwidth: 0,
-              stream_count_transcode: 0,
-              stream_count_direct_play: 1,
-              stream_count_direct_stream: 0,
-              sessions: [
-                {
-                  session_id: 'session1',
-                  session_key: 'key1',
-                  username: 'user1',
-                  ip_address_public: '1.2.3.4',
-                  full_title: 'Test',
-                  state: 'playing',
-                  local: '0',
-                },
-              ],
-            },
-          },
-        },
-      });
+      client.fail(GEOIP, new Error('Request failed with status code 400'));
 
-      // GeoIP lookup fails
-      mockHttpClient.get.mockRejectedValueOnce(new Error('GeoIP API error'));
+      const point = await onlySession(sessions().remote);
 
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { response: { result: 'success', data: [] } },
-      });
-
-      const points = await plugin.collect();
-      const sessionPoint = points.find((p) => p.tags.type === 'Session');
-
-      // Should use unknown values when GeoIP fails
-      expect(sessionPoint?.tags.location).toBe('unknown');
-      expect(sessionPoint?.tags.full_location).toBe('unknown');
-      expect(sessionPoint?.tags.latitude).toBeUndefined();
-      expect(sessionPoint?.tags.longitude).toBeUndefined();
+      expect(point?.tags.location).toBe('unknown');
+      expect(point?.tags.full_location).toBe('unknown');
+      expect(point?.tags.latitude).toBeUndefined();
+      expect(point?.tags.longitude).toBeUndefined();
     });
 
     it('should handle GeoIP API returning error result', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          response: {
-            result: 'success',
-            data: {
-              stream_count: '1',
-              total_bandwidth: 5000,
-              wan_bandwidth: 5000,
-              lan_bandwidth: 0,
-              stream_count_transcode: 0,
-              stream_count_direct_play: 1,
-              stream_count_direct_stream: 0,
-              sessions: [
-                {
-                  session_id: 'session1',
-                  session_key: 'key1',
-                  username: 'user1',
-                  ip_address_public: '1.2.3.4',
-                  full_title: 'Test',
-                  state: 'playing',
-                  local: '0',
-                },
-              ],
-            },
-          },
-        },
+      client.override(GEOIP, { response: { result: 'error', message: 'Failed to lookup GeoIP info', data: {} } });
+
+      const point = await onlySession(sessions().remote);
+
+      expect(point?.tags.location).toBe('unknown');
+      expect(point?.tags.full_location).toBe('unknown');
+    });
+
+    it('falls back to unknown location for GeoIP data with null fields', async () => {
+      const body = geoip();
+      body.response.data = { ...body.response.data, city: null, region: null, latitude: null, longitude: null };
+      client.override(GEOIP, body);
+
+      const point = await onlySession(sessions().remote);
+
+      expect(point?.tags).toMatchObject({
+        location: 'unknown',
+        region_code: 'unknown',
+        full_location: 'unknown',
+        latitude: 0,
+        longitude: 0,
       });
-
-      // GeoIP returns error result
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          response: {
-            result: 'error',
-            message: 'Invalid IP address',
-          },
-        },
-      });
-
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { response: { result: 'success', data: [] } },
-      });
-
-      const points = await plugin.collect();
-      const sessionPoint = points.find((p) => p.tags.type === 'Session');
-
-      expect(sessionPoint?.tags.location).toBe('unknown');
-      expect(sessionPoint?.tags.full_location).toBe('unknown');
     });
 
     it('should not call GeoIP API for local streams', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          response: {
-            result: 'success',
-            data: {
-              stream_count: '1',
-              total_bandwidth: 5000,
-              wan_bandwidth: 0,
-              lan_bandwidth: 5000,
-              stream_count_transcode: 0,
-              stream_count_direct_play: 1,
-              stream_count_direct_stream: 0,
-              sessions: [
-                {
-                  session_id: 'session1',
-                  session_key: 'key1',
-                  username: 'user1',
-                  ip_address: '192.168.1.100',
-                  ip_address_public: '82.64.1.1', // Even with public IP, should skip if local
-                  full_title: 'Test',
-                  state: 'playing',
-                  local: '1', // Local stream
-                },
-              ],
-            },
-          },
-        },
-      });
+      const { local } = sessions();
+      expect(local.ip_address_public).toBe('198.51.100.7');
 
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { response: { result: 'success', data: [] } },
-      });
+      await onlySession(local);
 
-      await plugin.collect();
-
-      // Should only have 2 calls: get_activity and get_libraries
-      // No get_geoip_lookup for local streams
-      const geoipCalls = mockHttpClient.get.mock.calls.filter(
-        (call) => call[1]?.params?.cmd === 'get_geoip_lookup'
-      );
-      expect(geoipCalls.length).toBe(0);
+      expect(geoipCalls()).toHaveLength(0);
     });
 
     it('should not call GeoIP API when geoip is disabled', async () => {
-      const configNoGeoip: TautulliConfig = {
-        ...testConfig,
-        geoip: { enabled: false },
-      };
-      await plugin.initialize(configNoGeoip);
+      await plugin.initialize({ ...testConfig, geoip: { enabled: false } });
 
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          response: {
-            result: 'success',
-            data: {
-              stream_count: '1',
-              total_bandwidth: 5000,
-              wan_bandwidth: 5000,
-              lan_bandwidth: 0,
-              stream_count_transcode: 0,
-              stream_count_direct_play: 1,
-              stream_count_direct_stream: 0,
-              sessions: [
-                {
-                  session_id: 'session1',
-                  session_key: 'key1',
-                  username: 'user1',
-                  ip_address_public: '82.64.1.1',
-                  full_title: 'Test',
-                  state: 'playing',
-                  local: '0',
-                },
-              ],
-            },
-          },
-        },
-      });
+      await onlySession(sessions().remote);
 
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { response: { result: 'success', data: [] } },
-      });
-
-      await plugin.collect();
-
-      const geoipCalls = mockHttpClient.get.mock.calls.filter(
-        (call) => call[1]?.params?.cmd === 'get_geoip_lookup'
-      );
-      expect(geoipCalls.length).toBe(0);
+      expect(geoipCalls()).toHaveLength(0);
     });
 
-    it('should normalize platform names', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          response: {
-            result: 'success',
-            data: {
-              stream_count: '1',
-              total_bandwidth: 5000,
-              wan_bandwidth: 3000,
-              lan_bandwidth: 2000,
-              stream_count_transcode: 0,
-              stream_count_direct_play: 1,
-              stream_count_direct_stream: 0,
-              sessions: [
-                {
-                  session_id: 'session1',
-                  session_key: 'key1',
-                  username: 'user1',
-                  full_title: 'Test',
-                  platform: 'osx',
-                  state: 'playing',
-                  local: '1',
-                },
-              ],
-            },
-          },
-        },
-      });
+    it.each([
+      ['osx', 'macOS'],
+      ['windows', 'Windows'],
+      ['Android', 'Android'],
+    ])('should normalize platform %s to %s', async (platform, expected) => {
+      const point = await onlySession({ ...sessions().local, platform });
 
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { response: { result: 'success', data: [] } },
-      });
+      expect(point?.tags.platform).toBe(expected);
+    });
 
-      const points = await plugin.collect();
-      const sessionPoint = points.find((p) => p.tags.type === 'Session');
-      expect(sessionPoint?.tags.platform).toBe('macOS');
+    it('should strip build suffixes from product versions on osx', async () => {
+      const point = await onlySession(sessions().local);
+
+      expect(point?.tags.product_version).toBe('1.108.1.4874');
     });
 
     it('should set video_decision to Music for audio-only sessions', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          response: {
-            result: 'success',
-            data: {
-              stream_count: '1',
-              total_bandwidth: 0,
-              wan_bandwidth: 0,
-              lan_bandwidth: 0,
-              stream_count_transcode: 0,
-              stream_count_direct_play: 1,
-              stream_count_direct_stream: 0,
-              sessions: [
-                {
-                  session_id: 'session1',
-                  session_key: 'key1',
-                  username: 'user1',
-                  full_title: 'Some Album - Track 1',
-                  state: 'playing',
-                  local: '1',
-                  video_decision: '',
-                  media_type: 'track',
-                },
-              ],
-            },
-          },
-        },
-      });
+      const point = await onlySession({ ...sessions().local, video_decision: '', media_type: 'track' });
 
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { response: { result: 'success', data: [] } },
-      });
-
-      const points = await plugin.collect();
-      const sessionPoint = points.find((p) => p.tags.type === 'Session');
-      expect(sessionPoint?.tags.video_decision).toBe('Music');
+      expect(point?.tags.video_decision).toBe('Music');
     });
 
     it('should normalize transcode decisions', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          response: {
-            result: 'success',
-            data: {
-              stream_count: '1',
-              total_bandwidth: 5000,
-              wan_bandwidth: 0,
-              lan_bandwidth: 5000,
-              stream_count_transcode: 0,
-              stream_count_direct_play: 0,
-              stream_count_direct_stream: 1,
-              sessions: [
-                {
-                  session_id: 'session1',
-                  session_key: 'key1',
-                  username: 'user1',
-                  full_title: 'Test',
-                  state: 'playing',
-                  transcode_decision: 'copy',
-                  video_decision: 'copy',
-                  local: '1',
-                },
-              ],
-            },
-          },
-        },
-      });
+      const point = await onlySession({ ...sessions().local, transcode_decision: 'copy', video_decision: 'copy' });
 
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { response: { result: 'success', data: [] } },
-      });
-
-      const points = await plugin.collect();
-      const sessionPoint = points.find((p) => p.tags.type === 'Session');
-      expect(sessionPoint?.tags.transcode_decision).toBe('Direct stream');
-      expect(sessionPoint?.tags.video_decision).toBe('Direct stream');
+      expect(point?.tags.transcode_decision).toBe('Direct stream');
+      expect(point?.tags.video_decision).toBe('Direct stream');
     });
 
-    it('should map player states correctly', async () => {
-      const testStates = [
-        { state: 'playing', expected: 0 },
-        { state: 'paused', expected: 1 },
-        { state: 'buffering', expected: 3 },
-        { state: 'unknown', expected: 0 },
-      ];
+    it.each([
+      ['playing', 0],
+      ['paused', 1],
+      ['buffering', 3],
+      ['unknown', 0],
+    ])('should map player state %s to %i', async (state, expected) => {
+      const point = await onlySession({ ...sessions().local, state });
 
-      for (const { state, expected } of testStates) {
-        mockHttpClient.get.mockResolvedValueOnce({
-          data: {
-            response: {
-              result: 'success',
-              data: {
-                stream_count: '1',
-                total_bandwidth: 0,
-                wan_bandwidth: 0,
-                lan_bandwidth: 0,
-                stream_count_transcode: 0,
-                stream_count_direct_play: 0,
-                stream_count_direct_stream: 0,
-                sessions: [
-                  {
-                    session_id: 'session1',
-                    session_key: 'key1',
-                    username: 'user1',
-                    full_title: 'Test',
-                    state,
-                    local: '1',
-                  },
-                ],
-              },
-            },
-          },
-        });
-
-        mockHttpClient.get.mockResolvedValueOnce({
-          data: { response: { result: 'success', data: [] } },
-        });
-
-        const points = await plugin.collect();
-        const sessionPoint = points.find((p) => p.tags.type === 'Session');
-        expect(sessionPoint?.tags.player_state).toBe(expected);
-      }
+      expect(point?.tags.player_state).toBe(expected);
     });
 
     it('should collect library statistics', async () => {
-      // Mock activity (empty)
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          response: {
-            result: 'success',
-            data: {
-              stream_count: '0',
-              total_bandwidth: 0,
-              wan_bandwidth: 0,
-              lan_bandwidth: 0,
-              stream_count_transcode: 0,
-              stream_count_direct_play: 0,
-              stream_count_direct_stream: 0,
-              sessions: [],
-            },
-          },
-        },
-      });
+      const points = await plugin.collect();
+      const libraryPoints = points.filter((p) => p.tags.type === 'library_stats');
 
-      // Mock libraries
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          response: {
-            result: 'success',
-            data: [
-              {
-                section_id: '1',
-                section_name: 'Movies',
-                section_type: 'movie',
-                count: '500',
-              },
-              {
-                section_id: '2',
-                section_name: 'TV Shows',
-                section_type: 'show',
-                count: '100',
-                parent_count: '500',
-                child_count: '5000',
-              },
-              {
-                section_id: '3',
-                section_name: 'Music',
-                section_type: 'artist',
-                count: '200',
-                parent_count: '1000',
-                child_count: '10000',
-              },
-            ],
-          },
-        },
+      expect(libraryPoints.length).toBe(3);
+      expect(libraryPoints.find((p) => p.tags.section_name === 'Movies')?.fields).toEqual({ total: 1342, libraries: 'Movies' });
+      expect(libraryPoints.find((p) => p.tags.section_name === 'TV Shows')?.fields).toEqual({
+        total: 214,
+        seasons: 687,
+        episodes: 9815,
+        libraries: 'TV Shows',
       });
+      expect(libraryPoints.find((p) => p.tags.section_name === 'Music')?.fields).toEqual({
+        total: 388,
+        artists: 388,
+        albums: 1702,
+        tracks: 21034,
+        libraries: 'Music',
+      });
+    });
+
+    it('emits only total for libraries without parent and child counts', async () => {
+      const body = libraries();
+      const show = body.response.data.find((l) => l.section_type === 'show');
+      body.response.data = [{ ...show, parent_count: undefined, child_count: undefined }];
+      client.override(LIBRARIES, JSON.parse(JSON.stringify(body)));
 
       const points = await plugin.collect();
 
-      const libraryPoints = points.filter((p) => p.tags.type === 'library_stats');
-      expect(libraryPoints.length).toBe(3);
-
-      const movieLib = libraryPoints.find((p) => p.tags.section_name === 'Movies');
-      expect(movieLib?.fields.total).toBe(500);
-
-      const tvLib = libraryPoints.find((p) => p.tags.section_name === 'TV Shows');
-      expect(tvLib?.fields.total).toBe(100);
-      expect(tvLib?.fields.seasons).toBe(500);
-      expect(tvLib?.fields.episodes).toBe(5000);
-
-      const musicLib = libraryPoints.find((p) => p.tags.section_name === 'Music');
-      expect(musicLib?.fields.artists).toBe(200);
-      expect(musicLib?.fields.albums).toBe(1000);
-      expect(musicLib?.fields.tracks).toBe(10000);
+      expect(points.find((p) => p.tags.type === 'library_stats')?.fields).toEqual({
+        total: 214,
+        seasons: 0,
+        episodes: 0,
+        libraries: 'TV Shows',
+      });
     });
 
     it('should use cached GeoIP data on subsequent calls for same IP', async () => {
-      const remoteActivityResponse = {
-        data: {
-          response: {
-            result: 'success',
-            data: {
-              stream_count: '1',
-              total_bandwidth: 5000,
-              wan_bandwidth: 5000,
-              lan_bandwidth: 0,
-              stream_count_transcode: 0,
-              stream_count_direct_play: 1,
-              stream_count_direct_stream: 0,
-              sessions: [
-                {
-                  session_id: 'session1',
-                  session_key: 'key1',
-                  username: 'user1',
-                  ip_address_public: '82.64.1.1',
-                  full_title: 'Test Movie',
-                  state: 'playing',
-                  local: '0',
-                },
-              ],
-            },
-          },
-        },
-      };
+      withSessions(sessions().remote);
 
-      const geoipResponse = {
-        data: {
-          response: {
-            result: 'success',
-            data: {
-              city: 'Paris',
-              country: 'France',
-              latitude: 48.8566,
-              longitude: 2.3522,
-              region: 'Île-de-France',
-            },
-          },
-        },
-      };
+      const first = sessionPoints(await plugin.collect())[0];
+      const second = sessionPoints(await plugin.collect())[0];
 
-      const librariesResponse = {
-        data: { response: { result: 'success', data: [] } },
-      };
-
-      // First collect: activity + geoip + libraries
-      mockHttpClient.get.mockResolvedValueOnce(remoteActivityResponse);
-      mockHttpClient.get.mockResolvedValueOnce(geoipResponse);
-      mockHttpClient.get.mockResolvedValueOnce(librariesResponse);
-
-      const points1 = await plugin.collect();
-      const session1 = points1.find((p) => p.tags.type === 'Session');
-      expect(session1?.tags.location).toBe('Paris');
-
-      // Second collect: activity + libraries (no geoip call — cached)
-      mockHttpClient.get.mockResolvedValueOnce(remoteActivityResponse);
-      mockHttpClient.get.mockResolvedValueOnce(librariesResponse);
-
-      const points2 = await plugin.collect();
-      const session2 = points2.find((p) => p.tags.type === 'Session');
-      expect(session2?.tags.location).toBe('Paris');
-
-      // GeoIP API should have been called only once across both collects
-      const geoipCalls = mockHttpClient.get.mock.calls.filter(
-        (call) => call[1]?.params?.cmd === 'get_geoip_lookup'
-      );
-      expect(geoipCalls).toHaveLength(1);
+      expect(first?.tags.location).toBe('Lyon');
+      expect(second?.tags.location).toBe('Lyon');
+      expect(geoipCalls()).toHaveLength(1);
     });
 
     it('should re-fetch GeoIP data after cache TTL expires', async () => {
       vi.useFakeTimers();
+      try {
+        withSessions(sessions().remote);
 
-      const remoteActivityResponse = {
-        data: {
-          response: {
-            result: 'success',
-            data: {
-              stream_count: '1',
-              total_bandwidth: 5000,
-              wan_bandwidth: 5000,
-              lan_bandwidth: 0,
-              stream_count_transcode: 0,
-              stream_count_direct_play: 1,
-              stream_count_direct_stream: 0,
-              sessions: [
-                {
-                  session_id: 'session1',
-                  session_key: 'key1',
-                  username: 'user1',
-                  ip_address_public: '82.64.1.1',
-                  full_title: 'Test Movie',
-                  state: 'playing',
-                  local: '0',
-                },
-              ],
-            },
-          },
-        },
-      };
+        await plugin.collect();
+        vi.advanceTimersByTime(25 * 60 * 60 * 1000);
+        await plugin.collect();
 
-      const geoipResponse = {
-        data: {
-          response: {
-            result: 'success',
-            data: {
-              city: 'Paris',
-              country: 'France',
-              latitude: 48.8566,
-              longitude: 2.3522,
-              region: 'Île-de-France',
-            },
-          },
-        },
-      };
-
-      const librariesResponse = {
-        data: { response: { result: 'success', data: [] } },
-      };
-
-      // First collect
-      mockHttpClient.get.mockResolvedValueOnce(remoteActivityResponse);
-      mockHttpClient.get.mockResolvedValueOnce(geoipResponse);
-      mockHttpClient.get.mockResolvedValueOnce(librariesResponse);
-      await plugin.collect();
-
-      // Advance time past 24h TTL
-      vi.advanceTimersByTime(25 * 60 * 60 * 1000);
-
-      // Second collect — cache expired, should re-fetch
-      mockHttpClient.get.mockResolvedValueOnce(remoteActivityResponse);
-      mockHttpClient.get.mockResolvedValueOnce(geoipResponse);
-      mockHttpClient.get.mockResolvedValueOnce(librariesResponse);
-      await plugin.collect();
-
-      // GeoIP API should have been called twice (once per collect)
-      const geoipCalls = mockHttpClient.get.mock.calls.filter(
-        (call) => call[1]?.params?.cmd === 'get_geoip_lookup'
-      );
-      expect(geoipCalls).toHaveLength(2);
-
-      vi.useRealTimers();
+        expect(geoipCalls()).toHaveLength(2);
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     describe('quality normalization', () => {
-      const qualityCases = [
-        {
-          desc: 'appends "p" to numeric resolution',
-          session: { stream_video_resolution: '1080' },
-          expected: '1080p',
-        },
-        {
-          desc: 'uppercases "SD"',
-          session: { stream_video_resolution: 'SD' },
-          expected: 'SD',
-        },
-        {
-          desc: 'uppercases "sd"',
-          session: { stream_video_resolution: 'sd' },
-          expected: 'SD',
-        },
-        {
-          desc: 'uppercases "4k"',
-          session: { stream_video_resolution: '4k' },
-          expected: '4K',
-        },
+      it.each([
+        { desc: 'appends "p" to numeric resolution', session: { stream_video_resolution: '1080' }, expected: '1080p' },
+        { desc: 'uppercases "SD"', session: { stream_video_resolution: 'SD' }, expected: 'SD' },
+        { desc: 'uppercases "sd"', session: { stream_video_resolution: 'sd' }, expected: 'SD' },
+        { desc: 'uppercases "4k"', session: { stream_video_resolution: '4k' }, expected: '4K' },
         {
           desc: 'uses stream_video_full_resolution when available',
           session: { stream_video_resolution: '1080', stream_video_full_resolution: '1080p60' },
@@ -989,52 +430,17 @@ describe('TautulliPlugin', () => {
           session: { stream_video_resolution: '', container: 'flac' },
           expected: 'FLAC',
         },
-      ];
+      ])('should produce "$expected" when $desc', async ({ session, expected }) => {
+        const point = await onlySession({ ...sessions().local, stream_video_full_resolution: '', ...session });
 
-      it.each(qualityCases)(
-        'should produce "$expected" when $desc',
-        async ({ session, expected }) => {
-          mockHttpClient.get.mockResolvedValueOnce({
-            data: {
-              response: {
-                result: 'success',
-                data: {
-                  stream_count: '1',
-                  total_bandwidth: 0,
-                  wan_bandwidth: 0,
-                  lan_bandwidth: 0,
-                  stream_count_transcode: 0,
-                  stream_count_direct_play: 1,
-                  stream_count_direct_stream: 0,
-                  sessions: [
-                    {
-                      session_id: 'session1',
-                      session_key: 'key1',
-                      username: 'user1',
-                      full_title: 'Test',
-                      state: 'playing',
-                      local: '1',
-                      ...session,
-                    },
-                  ],
-                },
-              },
-            },
-          });
-
-          mockHttpClient.get.mockResolvedValueOnce({
-            data: { response: { result: 'success', data: [] } },
-          });
-
-          const points = await plugin.collect();
-          const sessionPoint = points.find((p) => p.tags.type === 'Session');
-          expect(sessionPoint?.tags.quality).toBe(expected);
-        }
-      );
+        expect(point?.tags.quality).toBe(expected);
+      });
     });
 
     describe('private IP detection', () => {
-      const privateIPs = [
+      const remoteFrom = (ip: string): Session => ({ ...sessions().remote, ip_address: ip, ip_address_public: '' });
+
+      it.each([
         ['10.0.0.1', '10.x.x.x (Class A)'],
         ['10.255.255.255', '10.x.x.x boundary'],
         ['172.16.0.1', '172.16.x.x (Class B start)'],
@@ -1045,176 +451,38 @@ describe('TautulliPlugin', () => {
         ['169.254.1.1', 'link-local'],
         ['224.0.0.1', 'multicast'],
         ['255.255.255.255', 'broadcast'],
-      ];
-
-      it.each(privateIPs)(
-        'should treat %s (%s) as local — no GeoIP call',
-        async (ip) => {
-          mockHttpClient.get.mockResolvedValueOnce({
-            data: {
-              response: {
-                result: 'success',
-                data: {
-                  stream_count: '1',
-                  total_bandwidth: 0,
-                  wan_bandwidth: 0,
-                  lan_bandwidth: 0,
-                  stream_count_transcode: 0,
-                  stream_count_direct_play: 1,
-                  stream_count_direct_stream: 0,
-                  sessions: [
-                    {
-                      session_id: 'session1',
-                      session_key: 'key1',
-                      username: 'user1',
-                      ip_address: ip,
-                      full_title: 'Test',
-                      state: 'playing',
-                      local: '0', // Tautulli says remote, but IP is private
-                    },
-                  ],
-                },
-              },
-            },
-          });
-
-          mockHttpClient.get.mockResolvedValueOnce({
-            data: { response: { result: 'success', data: [] } },
-          });
-
-          const points = await plugin.collect();
-          const session = points.find((p) => p.tags.type === 'Session');
-          expect(session?.tags.location).toBe('Local');
-
-          const geoipCalls = mockHttpClient.get.mock.calls.filter(
-            (call) => call[1]?.params?.cmd === 'get_geoip_lookup'
-          );
-          expect(geoipCalls).toHaveLength(0);
-        }
-      );
-
-      const privateIPv6s = [
         ['::1', 'IPv6 loopback'],
         ['fe80::1', 'IPv6 link-local'],
         ['fc00::1', 'IPv6 unique local (fc00)'],
         ['fd00::abcd', 'IPv6 unique local (fd00)'],
-      ];
+      ])('should treat %s (%s) as local — no GeoIP call', async (ip) => {
+        const point = await onlySession(remoteFrom(ip));
 
-      it.each(privateIPv6s)(
-        'should treat %s (%s) as local — no GeoIP call',
-        async (ip) => {
-          mockHttpClient.get.mockResolvedValueOnce({
-            data: {
-              response: {
-                result: 'success',
-                data: {
-                  stream_count: '1',
-                  total_bandwidth: 0,
-                  wan_bandwidth: 0,
-                  lan_bandwidth: 0,
-                  stream_count_transcode: 0,
-                  stream_count_direct_play: 1,
-                  stream_count_direct_stream: 0,
-                  sessions: [
-                    {
-                      session_id: 'session1',
-                      session_key: 'key1',
-                      username: 'user1',
-                      ip_address: ip,
-                      full_title: 'Test',
-                      state: 'playing',
-                      local: '0',
-                    },
-                  ],
-                },
-              },
-            },
-          });
-
-          mockHttpClient.get.mockResolvedValueOnce({
-            data: { response: { result: 'success', data: [] } },
-          });
-
-          const points = await plugin.collect();
-          const session = points.find((p) => p.tags.type === 'Session');
-          expect(session?.tags.location).toBe('Local');
-
-          const geoipCalls = mockHttpClient.get.mock.calls.filter(
-            (call) => call[1]?.params?.cmd === 'get_geoip_lookup'
-          );
-          expect(geoipCalls).toHaveLength(0);
-        }
-      );
+        expect(point?.tags.location).toBe('Local');
+        expect(geoipCalls()).toHaveLength(0);
+      });
 
       it('should treat public IP as remote — triggers GeoIP call', async () => {
-        mockHttpClient.get.mockResolvedValueOnce({
-          data: {
-            response: {
-              result: 'success',
-              data: {
-                stream_count: '1',
-                total_bandwidth: 0,
-                wan_bandwidth: 0,
-                lan_bandwidth: 0,
-                stream_count_transcode: 0,
-                stream_count_direct_play: 1,
-                stream_count_direct_stream: 0,
-                sessions: [
-                  {
-                    session_id: 'session1',
-                    session_key: 'key1',
-                    username: 'user1',
-                    ip_address_public: '82.64.1.1',
-                    full_title: 'Test',
-                    state: 'playing',
-                    local: '0',
-                  },
-                ],
-              },
-            },
-          },
-        });
+        const point = await onlySession(remoteFrom('82.64.1.1'));
 
-        mockHttpClient.get.mockResolvedValueOnce({
-          data: {
-            response: {
-              result: 'success',
-              data: { city: 'Paris', country: 'France', latitude: 48.85, longitude: 2.35, region: 'IDF' },
-            },
-          },
-        });
-
-        mockHttpClient.get.mockResolvedValueOnce({
-          data: { response: { result: 'success', data: [] } },
-        });
-
-        const points = await plugin.collect();
-        const session = points.find((p) => p.tags.type === 'Session');
-        expect(session?.tags.location).toBe('Paris');
-
-        const geoipCalls = mockHttpClient.get.mock.calls.filter(
-          (call) => call[1]?.params?.cmd === 'get_geoip_lookup'
-        );
-        expect(geoipCalls).toHaveLength(1);
+        expect(point?.tags.location).toBe('Lyon');
+        expect(client.get).toHaveBeenCalledWith(GEOIP, { params: { apikey: 'tautulli-api-key', ip_address: '82.64.1.1' } });
       });
     });
 
     it('should propagate API errors for circuit breaker', async () => {
-      mockHttpClient.get.mockRejectedValueOnce(new Error('API Error'));
+      client.fail(ACTIVITY, new Error('API Error'));
 
       await expect(plugin.collect()).rejects.toThrow('API Error');
     });
 
     it('should handle invalid API responses', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { response: null },
-      });
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { response: { result: 'success', data: [] } },
-      });
+      client.overrideUnchecked(ACTIVITY, { response: null });
+      client.overrideUnchecked(LIBRARIES, { response: null });
 
       const points = await plugin.collect();
-      expect(points).toBeDefined();
+
+      expect(points).toEqual([]);
     });
   });
 
