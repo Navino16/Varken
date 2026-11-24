@@ -218,16 +218,15 @@ describe('BazarrPlugin', () => {
         data: {
           data: [
             {
-              id: 1,
               radarrId: 100,
               title: 'Test Movie',
               language: { name: 'French', code2: 'fr', code3: 'fre' },
               provider: 'opensubtitles',
               score: '85',
               description: 'Downloaded',
-              timestamp: '2024-01-15 10:00:00',
+              timestamp: '2 hours ago',
               action: 1,
-              raw_timestamp: 1705312800,
+              parsed_timestamp: '01/15/24 10:00:00',
             },
           ],
           total: 1,
@@ -258,7 +257,6 @@ describe('BazarrPlugin', () => {
         data: {
           data: [
             {
-              id: 2,
               sonarrSeriesId: 50,
               sonarrEpisodeId: 500,
               seriesTitle: 'Test Series',
@@ -266,9 +264,9 @@ describe('BazarrPlugin', () => {
               language: { name: 'English', code2: 'en', code3: 'eng' },
               provider: 'subscene',
               description: 'Downloaded',
-              timestamp: '2024-01-15 11:00:00',
+              timestamp: '1 hour ago',
               action: 1,
-              raw_timestamp: 1705316400,
+              parsed_timestamp: '01/15/24 11:00:00',
             },
           ],
           total: 1,
@@ -284,6 +282,96 @@ describe('BazarrPlugin', () => {
       expect(historyPoints[0].tags.episodeNumber).toBe('S01E05');
     });
 
+    describe('Bazarr 1.x history API', () => {
+      const emptyPage = { data: { data: [], total: 0 } };
+
+      const movieItem = {
+        action: 1,
+        title: 'Test Movie',
+        timestamp: '2 hours ago',
+        parsed_timestamp: '01/15/24 10:00:00',
+        description: 'French subtitles downloaded',
+        radarrId: 100,
+        monitored: true,
+        language: { name: 'French', code2: 'fr', code3: 'fre', forced: false, hi: false },
+        tags: [],
+        score: '91.67%',
+        subs_id: 'abc',
+        provider: 'opensubtitles',
+        subtitles_path: '/movies/test.fr.srt',
+        upgradable: false,
+        blacklisted: false,
+        matches: [],
+        dont_matches: [],
+      };
+
+      const episodeItem = {
+        action: 1,
+        seriesTitle: 'Test Series',
+        episode_number: '1x05',
+        episodeTitle: 'Pilot',
+        timestamp: '1 hour ago',
+        parsed_timestamp: '01/15/24 11:00:00',
+        description: 'English subtitles downloaded',
+        sonarrSeriesId: 50,
+        sonarrEpisodeId: 500,
+        monitored: true,
+        language: { name: 'English', code2: 'en', code3: 'eng', forced: false, hi: false },
+        tags: [],
+        score: '88.5%',
+        subs_id: 'def',
+        provider: 'subscene',
+        subtitles_path: '/tv/test.en.srt',
+        upgradable: false,
+        blacklisted: false,
+        matches: [],
+        dont_matches: [],
+      };
+
+      const collectHistory = async (movies: unknown[], episodes: unknown[]) => {
+        mockHttpClient.get.mockResolvedValueOnce(emptyPage);
+        mockHttpClient.get.mockResolvedValueOnce(emptyPage);
+        mockHttpClient.get.mockResolvedValueOnce({ data: { data: movies, total: movies.length } });
+        mockHttpClient.get.mockResolvedValueOnce({ data: { data: episodes, total: episodes.length } });
+        const points = await plugin.collect();
+        return points.filter((p) => p.tags.type === 'History');
+      };
+
+      it('should request the movies and episodes history endpoints', async () => {
+        await collectHistory([], []);
+
+        expect(mockHttpClient.get).toHaveBeenCalledWith('/api/movies/history', expect.anything());
+        expect(mockHttpClient.get).toHaveBeenCalledWith('/api/episodes/history', expect.anything());
+      });
+
+      it('should timestamp history points from parsed_timestamp', async () => {
+        const points = await collectHistory([movieItem], [episodeItem]);
+
+        expect(points).toHaveLength(2);
+        expect(points[0].timestamp).toEqual(new Date(2024, 0, 15, 10, 0, 0));
+        expect(points[1].timestamp).toEqual(new Date(2024, 0, 15, 11, 0, 0));
+      });
+
+      it('should fall back to collection time when parsed_timestamp is not parseable', async () => {
+        const before = Date.now();
+        const points = await collectHistory([{ ...movieItem, parsed_timestamp: '15.01.2024 10:00:00' }], []);
+
+        expect(points).toHaveLength(1);
+        expect(Number.isNaN(points[0].timestamp.getTime())).toBe(false);
+        expect(points[0].timestamp.getTime()).toBeGreaterThanOrEqual(before);
+      });
+
+      it('should give distinct hashes to distinct history events', async () => {
+        const points = await collectHistory(
+          [movieItem, { ...movieItem, parsed_timestamp: '01/15/24 12:00:00' }],
+          [episodeItem]
+        );
+
+        const hashes = points.map((p) => p.fields.hash);
+        expect(new Set(hashes).size).toBe(3);
+      });
+    });
+
     it('should handle missing score in history', async () => {
       // Mock wanted (empty)
       mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
@@ -293,15 +381,14 @@ describe('BazarrPlugin', () => {
         data: {
           data: [
             {
-              id: 1,
               radarrId: 100,
               title: 'Test Movie',
               language: { name: 'French', code2: 'fr', code3: 'fre' },
               provider: 'opensubtitles',
               description: 'Downloaded',
-              timestamp: '2024-01-15 10:00:00',
+              timestamp: '2 hours ago',
               action: 1,
-              raw_timestamp: 1705312800,
+              parsed_timestamp: '01/15/24 10:00:00',
             },
           ],
           total: 1,
@@ -365,35 +452,6 @@ describe('BazarrPlugin', () => {
       const points2 = await plugin.collect();
 
       expect(points1[0].fields.hash).toBe(points2[0].fields.hash);
-    });
-
-    it('should use timestamp from history items', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
-      mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          data: [
-            {
-              id: 1,
-              radarrId: 100,
-              title: 'Test Movie',
-              language: { name: 'French', code2: 'fr', code3: 'fre' },
-              provider: 'opensubtitles',
-              description: 'Downloaded',
-              timestamp: '2024-01-15 10:00:00',
-              action: 1,
-              raw_timestamp: 1705312800,
-            },
-          ],
-          total: 1,
-        },
-      });
-      mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
-
-      const points = await plugin.collect();
-
-      // raw_timestamp 1705312800 = Mon Jan 15 2024 10:00:00 GMT+0000
-      expect(points[0].timestamp.getTime()).toBe(1705312800 * 1000);
     });
   });
 
