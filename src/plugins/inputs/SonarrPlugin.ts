@@ -185,7 +185,7 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
 
         // For Missing query, only include monitored episodes without files
         if (queryType === 'Missing') {
-          if (!episode.monitored || downloaded) {
+          if (!episode.monitored || downloaded || this.isStillAiring(episode.airDateUtc, episode.runtime)) {
             continue;
           }
         }
@@ -217,6 +217,11 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
       this.logger.info(`Collected ${points.length} ${queryType.toLowerCase()} episodes from Sonarr`);
       return points;
     });
+  }
+
+  /** Like Sonarr's Wanted view, an episode only counts as missing once it has finished airing. */
+  private isStillAiring(airDateUtc?: string | null, runtimeMinutes = 0): boolean {
+    return Date.parse(airDateUtc ?? '') + runtimeMinutes * 60_000 > Date.now();
   }
 
   /**

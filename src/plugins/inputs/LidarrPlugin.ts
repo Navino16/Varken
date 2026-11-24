@@ -143,9 +143,10 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
 
       for (const album of albums) {
         const artistName = album.artist?.artistName || 'Unknown Artist';
-        const albumName = `${album.title} - ${artistName}`;
+        const albumName = `${album.title ?? 'unknown'} - ${artistName}`;
+        const foreignAlbumId = album.foreignAlbumId ?? 'unknown';
 
-        const hashId = this.hashit(`${this.config.id}${albumName}${album.foreignAlbumId}`);
+        const hashId = this.hashit(`${this.config.id}${albumName}${foreignAlbumId}`);
 
         points.push(
           this.createDataPoint(
@@ -153,7 +154,7 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
             {
               type: 'Missing',
               albumId: album.id ?? 0,
-              foreignAlbumId: album.foreignAlbumId ?? 'unknown',
+              foreignAlbumId,
               server: this.config.id,
               name: albumName,
             },

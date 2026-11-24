@@ -145,9 +145,10 @@ export class ReadarrPlugin extends BaseInputPlugin<ReadarrConfig> {
 
       for (const book of books) {
         const authorName = book.author?.authorName || 'Unknown Author';
-        const bookName = `${book.title} - ${authorName}`;
+        const bookName = `${book.title ?? 'unknown'} - ${authorName}`;
+        const foreignBookId = book.foreignBookId ?? 'unknown';
 
-        const hashId = this.hashit(`${this.config.id}${bookName}${book.foreignBookId}`);
+        const hashId = this.hashit(`${this.config.id}${bookName}${foreignBookId}`);
 
         points.push(
           this.createDataPoint(
@@ -155,7 +156,7 @@ export class ReadarrPlugin extends BaseInputPlugin<ReadarrConfig> {
             {
               type: 'Missing',
               bookId: book.id ?? 0,
-              foreignBookId: book.foreignBookId ?? 'unknown',
+              foreignBookId,
               server: this.config.id,
               name: bookName,
               titleSlug: book.titleSlug ?? 'unknown',

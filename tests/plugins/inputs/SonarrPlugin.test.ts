@@ -68,6 +68,15 @@ describe('SonarrPlugin', () => {
     });
   });
 
+  describe('health', () => {
+    it('should pass the health check against the contract route', async () => {
+      await plugin.initialize(testConfig);
+
+      await expect(plugin.healthCheck()).resolves.toBe(true);
+      expect(client.get).toHaveBeenCalledWith('/api/v3/system/status', expect.anything());
+    });
+  });
+
   describe('initialize', () => {
     it('should initialize with API key header', async () => {
       await plugin.initialize(testConfig);
@@ -191,6 +200,28 @@ describe('SonarrPlugin', () => {
       const points = await ofType('Future');
 
       expect(points.map((p) => [p.tags.name, p.tags.sxe, p.tags.sonarrId])).toEqual([['The Bear', 'S04E01', 11]]);
+    });
+
+    it('handles an empty calendar', async () => {
+      client.override('/api/v3/calendar', []);
+
+      const points = await plugin.collect();
+
+      expect(points.filter((p) => p.tags.type !== 'Queue')).toEqual([]);
+    });
+
+    it('does not report an episode still airing as missing', async () => {
+      const [aired] = calendar();
+      const airing = { ...aired, airDateUtc: '2026-11-24T11:30:00Z', runtime: 50 };
+      client.override('/api/v3/calendar', calendarBetween([aired, airing]));
+
+      expect((await ofType('Missing')).map((p) => p.tags.airsUTC)).toEqual(['2026-11-20T02:00:00Z']);
+    });
+
+    it('skips unmonitored missing episodes', async () => {
+      client.override('/api/v3/calendar', calendarBetween(calendar().map((e) => ({ ...e, monitored: false }))));
+
+      expect(await ofType('Missing')).toEqual([]);
     });
 
     it('skips calendar episodes without series data', async () => {

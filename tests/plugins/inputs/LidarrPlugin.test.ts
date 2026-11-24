@@ -196,6 +196,23 @@ describe('LidarrPlugin', () => {
       expect((await ofType('Missing'))[0].tags.name).toBe('Flight b741 - Unknown Artist');
     });
 
+    it('handles no missing albums', async () => {
+      client.override('/api/v1/wanted/missing', { ...missingAlbums(), totalRecords: 0, records: [] });
+
+      expect(await ofType('Missing')).toEqual([]);
+    });
+
+    it('falls back when a missing album has no title or id', async () => {
+      const [first] = missingAlbums().records ?? [];
+      const { title: _title, foreignAlbumId: _id, ...untitled } = first;
+      client.override('/api/v1/wanted/missing', { ...missingAlbums(), totalRecords: 1, records: [untitled] });
+
+      const [point] = await ofType('Missing');
+
+      expect(point.tags.name).toMatch(/^unknown - /);
+      expect(point.tags.foreignAlbumId).toBe('unknown');
+    });
+
     it('propagates queue API errors for the circuit breaker', async () => {
       client.fail('/api/v1/queue', new Error('Queue API Error'));
 
