@@ -11,7 +11,10 @@ export default defineConfig({
       include: ['src/**/*.ts'],
       exclude: ['src/types/**'],
       thresholds: {
-        global: { lines: 80, functions: 780, branches: 80, statements: 80 },
+        lines: 80,
+        functions: 80,
+        branches: 80,
+        statements: 80,
       },
     },
     reporters: ['default', 'junit'],
