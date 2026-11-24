@@ -23,24 +23,15 @@ function duneDetails(): MovieDetails {
 }
 
 function arrivalDetails(): MovieDetails {
-  const dune = duneDetails();
-  const { media: _media, ...request } = loadFixture<RequestPage>('seerr/request').results?.[2] ?? { id: 0, status: 0, type: 'movie' };
+  const page = loadFixture<RequestPage>('seerr/request');
+  const { media, ...request } = page.results![2];
   return {
+    ...duneDetails(),
     id: ARRIVAL_TMDB_ID,
     imdbId: 'tt2543164',
     title: 'Arrival',
     originalTitle: 'Arrival',
-    releaseDate: '2016-11-10',
-    runtime: 116,
-    status: 'Released',
-    voteAverage: 7.6,
-    mediaInfo: {
-      ...dune.mediaInfo,
-      id: 116,
-      tmdbId: ARRIVAL_TMDB_ID,
-      status: 2,
-      requests: [request],
-    },
+    mediaInfo: { ...media, requests: [request] },
   };
 }
 

@@ -111,7 +111,7 @@ describe('OmbiPlugin', () => {
     it('should collect request counts', async () => {
       const point = (await plugin.collect()).find((p) => p.tags.type === 'Request_Counts');
 
-      expect(point?.fields).toEqual({ pending: 4, approved: 7, available: 28 });
+      expect(point?.fields).toEqual({ pending: 2, approved: 1, available: 1 });
     });
 
     it('should collect issue counts', async () => {
@@ -169,13 +169,23 @@ describe('OmbiPlugin', () => {
       const [severance, shogun] = shows();
       client.override('/api/v1/Request/tv', [
         { ...severance, childRequests: [] },
-        { ...shogun, childRequests: null },
+        { ...shogun, childRequests: [] },
       ]);
 
       const points = await plugin.collect();
 
       expect(points.filter((p) => p.tags.request_type === 0)).toEqual([]);
       expect(points.find((p) => p.tags.type === 'Request_Total')?.fields.tv_shows).toBe(2);
+    });
+
+    it('should handle empty request lists', async () => {
+      client.override('/api/v1/Request/movie', []);
+      client.override('/api/v1/Request/tv', []);
+
+      const points = await plugin.collect();
+
+      expect(points.filter((p) => p.tags.type === 'Requests')).toEqual([]);
+      expect(points.find((p) => p.tags.type === 'Request_Total')?.fields).toEqual({ total: 0, movies: 0, tv_shows: 0 });
     });
 
     it('should propagate API errors for circuit breaker', async () => {

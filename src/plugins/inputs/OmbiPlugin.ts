@@ -192,23 +192,20 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
         this.ombi.get('/api/v1/Request/movie'),
       ]);
 
-      // Process TV requests
-      for (const request of tvRequests || []) {
+      for (const request of tvRequests) {
         const tvPoint = this.processTVRequest(request, userMap);
         if (tvPoint) {
           points.push(tvPoint);
         }
       }
 
-      // Process movie requests
-      for (const request of movieRequests || []) {
+      for (const request of movieRequests) {
         const moviePoint = this.processMovieRequest(request, userMap);
         if (moviePoint) {
           points.push(moviePoint);
         }
       }
 
-      // Add request total summary
       points.push(
         this.createDataPoint(
           'Ombi',
@@ -217,15 +214,15 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
             server: this.config.id,
           },
           {
-            total: (tvRequests?.length || 0) + (movieRequests?.length || 0),
-            movies: movieRequests?.length || 0,
-            tv_shows: tvRequests?.length || 0,
+            total: tvRequests.length + movieRequests.length,
+            movies: movieRequests.length,
+            tv_shows: tvRequests.length,
           }
         )
       );
 
       this.logger.info(
-        `Collected ${tvRequests?.length || 0} TV and ${movieRequests?.length || 0} movie requests from Ombi`
+        `Collected ${tvRequests.length} TV and ${movieRequests.length} movie requests from Ombi`
       );
       return points;
     });
