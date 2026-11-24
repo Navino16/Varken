@@ -1,15 +1,13 @@
 import { BaseInputPlugin } from './BaseInputPlugin';
 import { RequestCache } from '../../utils/RequestCache';
 import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
-import type {
-  TautulliConfig,
-  TautulliActivity,
-  TautulliSession,
-  TautulliLibrary,
-  GeoIPInfo,
-  TautulliGeoIPResponse,
-  TautulliApiResponse,
-} from '../../types/inputs/tautulli.types';
+import type { TautulliConfig, GeoIPInfo } from '../../types/inputs/tautulli.types';
+import type { components, paths } from '../../types/generated/tautulli';
+import type { GetPath } from '../../types/api-contract';
+
+type TautulliSession = components['schemas']['Session'];
+
+const SERVER_INFO_PATH: GetPath<paths> = '/api/v2?cmd=get_server_info';
 
 /**
  * Tautulli input plugin
@@ -75,8 +73,8 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
    */
   async healthCheck(): Promise<boolean> {
     try {
-      await this.httpClient.get('/api/v2', {
-        params: { apikey: this.config.apiKey, cmd: 'get_server_info' },
+      await this.httpClient.get(SERVER_INFO_PATH, {
+        params: { apikey: this.config.apiKey },
         timeout: this.globalConfig.healthCheckTimeoutMs,
       });
       return true;
@@ -146,9 +144,8 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
   private async collectActivity(): Promise<DataPoint[]> {
     return this.safeFetch('collect Tautulli activity', async () => {
       const points: DataPoint[] = [];
-      const response = await this.httpGet<TautulliApiResponse<TautulliActivity>>('/api/v2', {
-        apikey: this.config.apiKey,
-        cmd: 'get_activity',
+      const response = await this.api<paths>().get('/api/v2?cmd=get_activity', {
+        query: { apikey: this.config.apiKey },
       });
 
       if (!response?.response?.data) {
@@ -176,7 +173,7 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
             server: this.config.id,
           },
           {
-            stream_count: parseInt(activity.stream_count, 10) || 0,
+            stream_count: parseInt(activity.stream_count ?? '0', 10) || 0,
             total_bandwidth: activity.total_bandwidth || 0,
             wan_bandwidth: activity.wan_bandwidth || 0,
             lan_bandwidth: activity.lan_bandwidth || 0,
@@ -205,14 +202,9 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
   private async geoipLookup(ip: string): Promise<GeoIPInfo | null> {
     return this.geoipCache.getOrFetch(ip, async () => {
       try {
-        const response = await this.httpGet<TautulliApiResponse<TautulliGeoIPResponse>>(
-          '/api/v2',
-          {
-            apikey: this.config.apiKey,
-            cmd: 'get_geoip_lookup',
-            ip_address: ip,
-          }
-        );
+        const response = await this.api<paths>().get('/api/v2?cmd=get_geoip_lookup', {
+          query: { apikey: this.config.apiKey, ip_address: ip },
+        });
 
         if (response?.response?.result !== 'success' || !response?.response?.data) {
           return null;
@@ -257,9 +249,7 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
    * Process a single Tautulli session into a DataPoint
    */
   private async processSession(session: TautulliSession): Promise<DataPoint | null> {
-    // Check if this is a local stream
-    // Tautulli may return local as string '1' or number 1
-    const tautulliSaysLocal = session.local === '1' || session.local === 1;
+    const tautulliSaysLocal = session.local === 1;
     const ip = session.ip_address_public || session.ip_address;
     const ipIsPrivate = ip ? this.isPrivateIP(ip) : false;
 
@@ -357,7 +347,7 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
 
     // Product version cleanup (remove build suffixes for some platforms)
     let productVersion = session.product_version || '';
-    if (['Roku', 'osx', 'windows'].includes(session.platform)) {
+    if (['Roku', 'osx', 'windows'].includes(session.platform ?? '')) {
       productVersion = productVersion.split('-')[0];
     }
 
@@ -413,9 +403,8 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
   private async collectLibraries(): Promise<DataPoint[]> {
     return this.safeFetch('collect Tautulli libraries', async () => {
       const points: DataPoint[] = [];
-      const response = await this.httpGet<TautulliApiResponse<TautulliLibrary[]>>('/api/v2', {
-        apikey: this.config.apiKey,
-        cmd: 'get_libraries',
+      const response = await this.api<paths>().get('/api/v2?cmd=get_libraries', {
+        query: { apikey: this.config.apiKey },
       });
 
       if (!response?.response?.data) {
@@ -426,23 +415,24 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
       const libraries = response.response.data;
 
       for (const library of libraries) {
-        const fields: Record<string, string | number | boolean> = {
-          total: parseInt(library.count, 10) || 0,
-        };
+        const total = parseInt(library.count ?? '0', 10) || 0;
+        const sectionName = library.section_name ?? 'unknown';
+        const sectionType = library.section_type ?? 'unknown';
+        const fields: Record<string, string | number | boolean> = { total };
 
         // Add section-type specific fields
-        if (library.section_type === 'show') {
+        if (sectionType === 'show') {
           fields.seasons = parseInt(library.parent_count || '0', 10) || 0;
           fields.episodes = parseInt(library.child_count || '0', 10) || 0;
-        } else if (library.section_type === 'artist') {
-          fields.artists = parseInt(library.count, 10) || 0;
+        } else if (sectionType === 'artist') {
+          fields.artists = total;
           fields.albums = parseInt(library.parent_count || '0', 10) || 0;
           fields.tracks = parseInt(library.child_count || '0', 10) || 0;
         }
 
         // For backward compatibility, also add 'libraries' field
         if (this.config.libraries.enabled) {
-          fields.libraries = library.section_name;
+          fields.libraries = sectionName;
         }
 
         points.push(
@@ -451,9 +441,9 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
             {
               type: 'library_stats',
               server: this.config.id,
-              section_name: library.section_name,
-              section_type: library.section_type,
-              name: library.section_name, // Legacy compatibility
+              section_name: sectionName,
+              section_type: sectionType,
+              name: sectionName, // Legacy compatibility
             },
             fields
           )

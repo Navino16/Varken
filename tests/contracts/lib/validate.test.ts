@@ -61,6 +61,38 @@ describe('findOperation', () => {
   });
 });
 
+describe('query-discriminated spec paths', () => {
+  const apikey = { name: 'apikey', in: 'query', required: true, schema: { type: 'string' } };
+  const command = (schema: unknown): Record<string, unknown> => ({
+    get: { parameters: [apikey], responses: { 200: { content: { 'application/json': { schema } } } } },
+  });
+  const c = contract({
+    '/api/v2?cmd=alpha': command(objectWithId),
+    '/api/v2?cmd=beta': command({ type: 'object', properties: { name: { type: 'string' } } }),
+  });
+
+  it('matches a spec path discriminated by its query string', () => {
+    expect(findOperation(c, 'get', '/api/v2?cmd=beta')?.specPath).toBe('/api/v2?cmd=beta');
+  });
+
+  it('does not fall back to another command', () => {
+    expect(findOperation(c, 'get', '/api/v2?cmd=gamma')).toBeUndefined();
+    expect(findOperation(c, 'get', '/api/v2')).toBeUndefined();
+  });
+
+  it('validates the response against the discriminated operation', () => {
+    expect(validateAgainstContract(c, 'get', '/api/v2?cmd=beta', { name: 'x' })).toEqual([]);
+    expect(validateAgainstContract(c, 'get', '/api/v2?cmd=beta', { id: 1 })).not.toEqual([]);
+  });
+
+  it('does not report the discriminator as an unknown query parameter', () => {
+    expect(validateRequestParams(c, 'get', '/api/v2?cmd=beta', { apikey: 'k' })).toEqual([]);
+    expect(validateRequestParams(c, 'get', '/api/v2?cmd=beta', {})).toEqual([
+      'missing required query parameter "apikey" for GET /api/v2?cmd=beta',
+    ]);
+  });
+});
+
 describe('validateAgainstContract', () => {
   it('reports a missing operation', () => {
     const c = contract({});

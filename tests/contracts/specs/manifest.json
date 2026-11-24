@@ -86,5 +86,13 @@
     "version": "4.10.2.0",
     "pathPrefix": "/emby",
     "refresh": true
+  },
+  "tautulli": {
+    "file": "tautulli.json",
+    "format": "openapi3.1",
+    "source": "handwritten:plexpy/webserve.py @addtoapi docstrings (https://github.com/Tautulli/Tautulli/blob/{tag}/plexpy/webserve.py)",
+    "version": "v2.19.1",
+    "pathPrefix": "",
+    "refresh": true
   }
 }

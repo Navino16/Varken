@@ -1,0 +1,1212 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Tautulli API v2 (Varken contract)",
+    "version": "v2.19.1",
+    "description": "Hand-written from the @addtoapi docstrings of plexpy/webserve.py (the source of the wiki API reference) and checked against Tautulli's source, linked from each corrected schema. Only the commands Varken calls. Every command is a fixed query string on /api/v2."
+  },
+  "paths": {
+    "/api/v2?cmd=get_activity": {
+      "get": {
+        "summary": "Get the current activity on the PMS. session_key/session_id are not declared: they return a single session instead.",
+        "parameters": [
+          {
+            "name": "apikey",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "API key; the X-Api-Key header alternative only exists since v2.18.0 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L106)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivityResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2?cmd=get_geoip_lookup": {
+      "get": {
+        "summary": "Get the geolocation info for an IP address.",
+        "parameters": [
+          {
+            "name": "apikey",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "API key; the X-Api-Key header alternative only exists since v2.18.0 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L106)"
+          },
+          {
+            "name": "ip_address",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeoIpResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2?cmd=get_libraries": {
+      "get": {
+        "summary": "Get a list of all libraries on your server.",
+        "parameters": [
+          {
+            "name": "apikey",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "API key; the X-Api-Key header alternative only exists since v2.18.0 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L106)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LibrariesResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2?cmd=get_server_info": {
+      "get": {
+        "summary": "Get the PMS server information.",
+        "parameters": [
+          {
+            "name": "apikey",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "API key; the X-Api-Key header alternative only exists since v2.18.0 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L106)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerInfoResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Activity": {
+        "type": "object",
+        "properties": {
+          "lan_bandwidth": {
+            "type": "integer"
+          },
+          "sessions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Session"
+            }
+          },
+          "stream_count": {
+            "type": "string",
+            "description": "Plex MediaContainer size attribute, a string (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/pmsconnect.py#L1892, https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/pmsconnect.py#L1924)"
+          },
+          "stream_count_direct_play": {
+            "type": "integer"
+          },
+          "stream_count_direct_stream": {
+            "type": "integer"
+          },
+          "stream_count_transcode": {
+            "type": "integer"
+          },
+          "total_bandwidth": {
+            "type": "integer"
+          },
+          "wan_bandwidth": {
+            "type": "integer"
+          }
+        },
+        "description": "No required property: get_activity returns {} when Tautulli cannot reach Plex (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/webserve.py#L6422); counters are integers (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/webserve.py#L6396-L6415)"
+      },
+      "Session": {
+        "type": "object",
+        "properties": {
+          "actors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "added_at": {
+            "type": "string"
+          },
+          "allow_guest": {
+            "type": "integer"
+          },
+          "art": {
+            "type": "string"
+          },
+          "aspect_ratio": {
+            "type": "string"
+          },
+          "audience_rating": {
+            "type": "string"
+          },
+          "audience_rating_image": {
+            "type": "string"
+          },
+          "audio_atmos": {
+            "type": "integer"
+          },
+          "audio_bitrate": {
+            "type": "string"
+          },
+          "audio_bitrate_mode": {
+            "type": "string"
+          },
+          "audio_channel_layout": {
+            "type": "string"
+          },
+          "audio_channels": {
+            "type": "string"
+          },
+          "audio_codec": {
+            "type": "string"
+          },
+          "audio_decision": {
+            "type": "string"
+          },
+          "audio_language": {
+            "type": "string"
+          },
+          "audio_language_code": {
+            "type": "string"
+          },
+          "audio_profile": {
+            "type": "string"
+          },
+          "audio_sample_rate": {
+            "type": "string"
+          },
+          "bandwidth": {
+            "type": "string"
+          },
+          "banner": {
+            "type": "string"
+          },
+          "bif_thumb": {
+            "type": "string"
+          },
+          "bitrate": {
+            "type": "string"
+          },
+          "channel_call_sign": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
+          },
+          "channel_identifier": {
+            "type": "string"
+          },
+          "channel_stream": {
+            "type": "integer"
+          },
+          "channel_title": {
+            "type": "string"
+          },
+          "channel_thumb": {
+            "type": "string"
+          },
+          "channel_vcn": {
+            "type": "string"
+          },
+          "children_count": {
+            "type": "string"
+          },
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Tag names (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/pmsconnect.py#L626-L630)"
+          },
+          "container": {
+            "type": "string"
+          },
+          "container_decision": {
+            "type": "string"
+          },
+          "content_rating": {
+            "type": "string"
+          },
+          "deleted_user": {
+            "type": "integer"
+          },
+          "device": {
+            "type": "string"
+          },
+          "directors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "duration": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "file": {
+            "type": "string"
+          },
+          "file_size": {
+            "type": "string"
+          },
+          "friendly_name": {
+            "type": "string"
+          },
+          "full_title": {
+            "type": "string"
+          },
+          "genres": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "grandparent_guid": {
+            "type": "string"
+          },
+          "grandparent_rating_key": {
+            "type": "string"
+          },
+          "grandparent_thumb": {
+            "type": "string"
+          },
+          "grandparent_title": {
+            "type": "string"
+          },
+          "guid": {
+            "type": "string"
+          },
+          "height": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "indexes": {
+            "type": "integer"
+          },
+          "ip_address": {
+            "type": "string"
+          },
+          "ip_address_public": {
+            "type": "string"
+          },
+          "is_admin": {
+            "type": "integer"
+          },
+          "is_allow_sync": {
+            "type": "integer"
+          },
+          "is_home_user": {
+            "type": "integer"
+          },
+          "is_restricted": {
+            "type": "integer"
+          },
+          "keep_history": {
+            "type": "integer"
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Tag names (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/pmsconnect.py#L626-L630)"
+          },
+          "last_viewed_at": {
+            "type": "string"
+          },
+          "library_name": {
+            "type": "string"
+          },
+          "live": {
+            "type": "integer"
+          },
+          "live_uuid": {
+            "type": "string"
+          },
+          "local": {
+            "type": "integer",
+            "description": "0 or 1; the docstring shows \"1\" but plexpy emits an integer (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/pmsconnect.py#L1979)"
+          },
+          "location": {
+            "type": "string"
+          },
+          "machine_id": {
+            "type": "string"
+          },
+          "markers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer"
+                },
+                "type": {
+                  "type": "string"
+                },
+                "start_time_offset": {
+                  "type": "integer"
+                },
+                "end_time_offset": {
+                  "type": "integer"
+                },
+                "first": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "final": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "media_index": {
+            "type": "string"
+          },
+          "media_type": {
+            "type": "string"
+          },
+          "optimized_version": {
+            "type": "integer"
+          },
+          "optimized_version_profile": {
+            "type": "string"
+          },
+          "optimized_version_title": {
+            "type": "string"
+          },
+          "original_title": {
+            "type": "string"
+          },
+          "originally_available_at": {
+            "type": "string"
+          },
+          "parent_guid": {
+            "type": "string"
+          },
+          "parent_media_index": {
+            "type": "string"
+          },
+          "parent_rating_key": {
+            "type": "string"
+          },
+          "parent_thumb": {
+            "type": "string"
+          },
+          "parent_title": {
+            "type": "string"
+          },
+          "platform": {
+            "type": "string"
+          },
+          "platform_name": {
+            "type": "string"
+          },
+          "platform_version": {
+            "type": "string"
+          },
+          "player": {
+            "type": "string"
+          },
+          "product": {
+            "type": "string"
+          },
+          "product_version": {
+            "type": "string"
+          },
+          "profile": {
+            "type": "string"
+          },
+          "progress_percent": {
+            "type": "string"
+          },
+          "quality_profile": {
+            "type": "string"
+          },
+          "rating": {
+            "type": "string"
+          },
+          "rating_image": {
+            "type": "string"
+          },
+          "rating_key": {
+            "type": "string"
+          },
+          "relayed": {
+            "type": "integer",
+            "description": "https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/pmsconnect.py#L1999-L2004"
+          },
+          "section_id": {
+            "type": "string"
+          },
+          "secure": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "null when the player sends no secure attribute (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/pmsconnect.py#L1981, https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/pmsconnect.py#L2007-L2008)"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "session_key": {
+            "type": "string"
+          },
+          "shared_libraries": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sort_title": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "stream_aspect_ratio": {
+            "type": "string"
+          },
+          "stream_audio_atmos": {
+            "type": "integer"
+          },
+          "stream_audio_bitrate": {
+            "type": "string"
+          },
+          "stream_audio_bitrate_mode": {
+            "type": "string"
+          },
+          "stream_audio_channel_layout": {
+            "type": "string"
+          },
+          "stream_audio_channel_layout_": {
+            "type": "string"
+          },
+          "stream_audio_channels": {
+            "type": "string"
+          },
+          "stream_audio_codec": {
+            "type": "string"
+          },
+          "stream_audio_decision": {
+            "type": "string"
+          },
+          "stream_audio_language": {
+            "type": "string"
+          },
+          "stream_audio_language_code": {
+            "type": "string"
+          },
+          "stream_audio_profile": {
+            "type": "string"
+          },
+          "stream_audio_sample_rate": {
+            "type": "string"
+          },
+          "stream_bitrate": {
+            "type": "string"
+          },
+          "stream_container": {
+            "type": "string"
+          },
+          "stream_container_decision": {
+            "type": "string"
+          },
+          "stream_duration": {
+            "type": "string"
+          },
+          "stream_subtitle_codec": {
+            "type": "string"
+          },
+          "stream_subtitle_container": {
+            "type": "string"
+          },
+          "stream_subtitle_decision": {
+            "type": "string"
+          },
+          "stream_subtitle_forced": {
+            "type": "integer"
+          },
+          "stream_subtitle_format": {
+            "type": "string"
+          },
+          "stream_subtitle_language": {
+            "type": "string"
+          },
+          "stream_subtitle_language_code": {
+            "type": "string"
+          },
+          "stream_subtitle_location": {
+            "type": "string"
+          },
+          "stream_video_bit_depth": {
+            "type": "string"
+          },
+          "stream_video_bitrate": {
+            "type": "string"
+          },
+          "stream_video_chroma_subsampling": {
+            "type": "string"
+          },
+          "stream_video_codec": {
+            "type": "string"
+          },
+          "stream_video_codec_level": {
+            "type": "string"
+          },
+          "stream_video_color_primaries": {
+            "type": "string"
+          },
+          "stream_video_color_range": {
+            "type": "string"
+          },
+          "stream_video_color_space": {
+            "type": "string"
+          },
+          "stream_video_color_trc": {
+            "type": "string"
+          },
+          "stream_video_decision": {
+            "type": "string"
+          },
+          "stream_video_dovi_bl_present": {
+            "type": "integer"
+          },
+          "stream_video_dovi_el_present": {
+            "type": "integer"
+          },
+          "stream_video_dovi_level": {
+            "type": "string"
+          },
+          "stream_video_dovi_present": {
+            "type": "integer"
+          },
+          "stream_video_dovi_profile": {
+            "type": "string"
+          },
+          "stream_video_dovi_rpu_present": {
+            "type": "integer"
+          },
+          "stream_video_dovi_version": {
+            "type": "integer"
+          },
+          "stream_video_dynamic_range": {
+            "type": "string"
+          },
+          "stream_video_framerate": {
+            "type": "string"
+          },
+          "stream_video_full_resolution": {
+            "type": "string"
+          },
+          "stream_video_height": {
+            "type": "string"
+          },
+          "stream_video_language": {
+            "type": "string"
+          },
+          "stream_video_language_code": {
+            "type": "string"
+          },
+          "stream_video_ref_frames": {
+            "type": "string"
+          },
+          "stream_video_resolution": {
+            "type": "string"
+          },
+          "stream_video_scan_type": {
+            "type": "string"
+          },
+          "stream_video_width": {
+            "type": "string"
+          },
+          "studio": {
+            "type": "string"
+          },
+          "subtitle_codec": {
+            "type": "string"
+          },
+          "subtitle_container": {
+            "type": "string"
+          },
+          "subtitle_decision": {
+            "type": "string"
+          },
+          "subtitle_forced": {
+            "type": "integer"
+          },
+          "subtitle_format": {
+            "type": "string"
+          },
+          "subtitle_language": {
+            "type": "string"
+          },
+          "subtitle_language_code": {
+            "type": "string"
+          },
+          "subtitle_location": {
+            "type": "string"
+          },
+          "subtitles": {
+            "type": "integer"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "synced_version": {
+            "type": "integer"
+          },
+          "synced_version_profile": {
+            "type": "string"
+          },
+          "tagline": {
+            "type": "string"
+          },
+          "throttled": {
+            "type": "string"
+          },
+          "thumb": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "transcode_audio_channels": {
+            "type": "string"
+          },
+          "transcode_audio_codec": {
+            "type": "string"
+          },
+          "transcode_container": {
+            "type": "string"
+          },
+          "transcode_decision": {
+            "type": "string"
+          },
+          "transcode_height": {
+            "type": "string"
+          },
+          "transcode_hw_decode": {
+            "type": "string"
+          },
+          "transcode_hw_decode_title": {
+            "type": "string"
+          },
+          "transcode_hw_decoding": {
+            "type": "integer"
+          },
+          "transcode_hw_encode": {
+            "type": "string"
+          },
+          "transcode_hw_encode_title": {
+            "type": "string"
+          },
+          "transcode_hw_encoding": {
+            "type": "integer"
+          },
+          "transcode_hw_full_pipeline": {
+            "type": "integer"
+          },
+          "transcode_hw_requested": {
+            "type": "integer"
+          },
+          "transcode_key": {
+            "type": "string"
+          },
+          "transcode_max_offset_available": {
+            "type": "integer"
+          },
+          "transcode_min_offset_available": {
+            "type": "integer"
+          },
+          "transcode_progress": {
+            "type": "integer"
+          },
+          "transcode_protocol": {
+            "type": "string"
+          },
+          "transcode_speed": {
+            "type": "string"
+          },
+          "transcode_throttled": {
+            "type": "integer"
+          },
+          "transcode_video_codec": {
+            "type": "string"
+          },
+          "transcode_width": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "integer"
+          },
+          "user_rating": {
+            "type": "string"
+          },
+          "user_thumb": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "video_bit_depth": {
+            "type": "string"
+          },
+          "video_bitrate": {
+            "type": "string"
+          },
+          "video_chroma_subsampling": {
+            "type": "string"
+          },
+          "video_codec": {
+            "type": "string"
+          },
+          "video_codec_level": {
+            "type": "string"
+          },
+          "video_color_primaries": {
+            "type": "string"
+          },
+          "video_color_range": {
+            "type": "string"
+          },
+          "video_color_space": {
+            "type": "string"
+          },
+          "video_color_trc": {
+            "type": "string"
+          },
+          "video_decision": {
+            "type": "string"
+          },
+          "video_dovi_bl_present": {
+            "type": "integer"
+          },
+          "video_dovi_el_present": {
+            "type": "integer"
+          },
+          "video_dovi_level": {
+            "type": "string"
+          },
+          "video_dovi_present": {
+            "type": "integer"
+          },
+          "video_dovi_profile": {
+            "type": "string"
+          },
+          "video_dovi_rpu_present": {
+            "type": "integer"
+          },
+          "video_dovi_version": {
+            "type": "integer"
+          },
+          "video_dynamic_range": {
+            "type": "string"
+          },
+          "video_frame_rate": {
+            "type": "string"
+          },
+          "video_framerate": {
+            "type": "string"
+          },
+          "video_full_resolution": {
+            "type": "string"
+          },
+          "video_height": {
+            "type": "string"
+          },
+          "video_language": {
+            "type": "string"
+          },
+          "video_language_code": {
+            "type": "string"
+          },
+          "video_profile": {
+            "type": "string"
+          },
+          "video_ref_frames": {
+            "type": "string"
+          },
+          "video_resolution": {
+            "type": "string"
+          },
+          "video_scan_type": {
+            "type": "string"
+          },
+          "video_width": {
+            "type": "string"
+          },
+          "view_offset": {
+            "type": "string"
+          },
+          "width": {
+            "type": "string"
+          },
+          "writers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "year": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_key",
+          "session_id",
+          "media_type",
+          "progress_percent",
+          "quality_profile",
+          "ip_address",
+          "ip_address_public",
+          "platform",
+          "product",
+          "product_version",
+          "state",
+          "local",
+          "relayed",
+          "secure",
+          "transcode_decision",
+          "transcode_hw_decoding",
+          "transcode_hw_encoding"
+        ],
+        "description": "Required: keys get_session_each always emits and Varken reads (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/pmsconnect.py#L1967-L1996, https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/pmsconnect.py#L2074-L2075, https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/pmsconnect.py#L2406, https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/pmsconnect.py#L2475-L2479)"
+      },
+      "Library": {
+        "type": "object",
+        "properties": {
+          "agent": {
+            "type": "string",
+            "description": "Missing from the docstring (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/pmsconnect.py#L3033)"
+          },
+          "art": {
+            "type": "string"
+          },
+          "child_count": {
+            "type": "string",
+            "description": "Only for show, artist and photo libraries (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/pmsconnect.py#L3040-L3071)"
+          },
+          "count": {
+            "type": "string"
+          },
+          "is_active": {
+            "type": "integer"
+          },
+          "parent_count": {
+            "type": "string",
+            "description": "Only for show, artist and photo libraries (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/pmsconnect.py#L3040-L3071)"
+          },
+          "section_id": {
+            "type": "string"
+          },
+          "section_name": {
+            "type": "string"
+          },
+          "section_type": {
+            "type": "string"
+          },
+          "thumb": {
+            "type": "string"
+          }
+        }
+      },
+      "GeoIp": {
+        "type": "object",
+        "properties": {
+          "city": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "continent": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "country": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "latitude": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "longitude": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "postal_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "region": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "timezone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "accuracy": {
+            "type": "null"
+          }
+        },
+        "description": "Every field is null when plex.tv does not know it (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/plextv.py#L907-L916); on failure data becomes {error} (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L653-L657) with HTTP 400 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L777-L783)"
+      },
+      "ServerInfo": {
+        "type": "object",
+        "properties": {
+          "pms_identifier": {
+            "type": "string"
+          },
+          "pms_ip": {
+            "type": "string"
+          },
+          "pms_name": {
+            "type": "string"
+          },
+          "pms_platform": {
+            "type": "string"
+          },
+          "pms_plexpass": {
+            "type": "integer"
+          },
+          "pms_port": {
+            "type": "integer"
+          },
+          "pms_ssl": {
+            "type": "integer"
+          },
+          "pms_url": {
+            "type": "string"
+          },
+          "pms_url_manual": {
+            "type": "integer"
+          },
+          "pms_version": {
+            "type": "string"
+          }
+        },
+        "description": "https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/plextv.py#L36-L49, integer settings in https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/config.py#L57-L66"
+      },
+      "ActivityResponse": {
+        "type": "object",
+        "required": [
+          "response"
+        ],
+        "properties": {
+          "response": {
+            "type": "object",
+            "required": [
+              "result",
+              "message",
+              "data"
+            ],
+            "description": "https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L632-L638",
+            "properties": {
+              "result": {
+                "const": "success",
+                "description": "An error result is always sent with HTTP 400 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L777-L783)"
+              },
+              "message": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "data": {
+                "$ref": "#/components/schemas/Activity"
+              }
+            }
+          }
+        }
+      },
+      "LibrariesResponse": {
+        "type": "object",
+        "required": [
+          "response"
+        ],
+        "properties": {
+          "response": {
+            "type": "object",
+            "required": [
+              "result",
+              "message",
+              "data"
+            ],
+            "description": "https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L632-L638",
+            "properties": {
+              "result": {
+                "const": "success",
+                "description": "An error result is always sent with HTTP 400 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L777-L783)"
+              },
+              "message": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Library"
+                }
+              }
+            }
+          }
+        }
+      },
+      "GeoIpResponse": {
+        "type": "object",
+        "required": [
+          "response"
+        ],
+        "properties": {
+          "response": {
+            "type": "object",
+            "required": [
+              "result",
+              "message",
+              "data"
+            ],
+            "description": "https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L632-L638",
+            "properties": {
+              "result": {
+                "const": "success",
+                "description": "An error result is always sent with HTTP 400 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L777-L783)"
+              },
+              "message": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "data": {
+                "$ref": "#/components/schemas/GeoIp"
+              }
+            }
+          }
+        }
+      },
+      "ServerInfoResponse": {
+        "type": "object",
+        "required": [
+          "response"
+        ],
+        "properties": {
+          "response": {
+            "type": "object",
+            "required": [
+              "result",
+              "message",
+              "data"
+            ],
+            "description": "https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L632-L638",
+            "properties": {
+              "result": {
+                "const": "success",
+                "description": "An error result is always sent with HTTP 400 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L777-L783)"
+              },
+              "message": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "data": {
+                "$ref": "#/components/schemas/ServerInfo"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
