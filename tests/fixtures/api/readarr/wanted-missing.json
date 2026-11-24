@@ -1,0 +1,153 @@
+{
+  "page": 1,
+  "pageSize": 10,
+  "sortKey": "releaseDate",
+  "sortDirection": "descending",
+  "totalRecords": 3,
+  "records": [
+    {
+      "id": 31,
+      "title": "Exhalation",
+      "authorTitle": "chiang, ted Exhalation",
+      "seriesTitle": "",
+      "disambiguation": "",
+      "overview": "Exhalation overview.",
+      "authorId": 3,
+      "foreignBookId": "41160292",
+      "foreignEditionId": "41160292",
+      "titleSlug": "41160292-exhalation",
+      "monitored": true,
+      "anyEditionOk": true,
+      "releaseDate": "2019-05-07T00:00:00Z",
+      "pageCount": 352,
+      "genres": [
+        "Science Fiction"
+      ],
+      "author": {
+        "id": 3,
+        "authorMetadataId": 3,
+        "status": "continuing",
+        "ended": false,
+        "authorName": "Ted Chiang",
+        "authorNameLastFirst": "Chiang, Ted",
+        "foreignAuthorId": "130012",
+        "titleSlug": "130012-ted-chiang",
+        "overview": "Ted Chiang overview.",
+        "disambiguation": "",
+        "path": "/books/Ted Chiang",
+        "qualityProfileId": 1,
+        "metadataProfileId": 1,
+        "monitored": true,
+        "monitorNewItems": "all",
+        "rootFolderPath": "/books",
+        "genres": [
+          "Science Fiction"
+        ],
+        "cleanName": "tedchiang",
+        "sortName": "ted chiang",
+        "sortNameLastFirst": "chiang, ted",
+        "tags": [
+          1
+        ],
+        "added": "2024-02-01T10:00:00Z"
+      },
+      "added": "2024-02-01T10:00:00Z"
+    },
+    {
+      "id": 22,
+      "title": "Children of Dune",
+      "authorTitle": "herbert, frank Children of Dune",
+      "seriesTitle": "",
+      "disambiguation": "",
+      "overview": "Children of Dune overview.",
+      "authorId": 2,
+      "foreignBookId": "44492285",
+      "foreignEditionId": "44492285",
+      "titleSlug": "44492285-children-of-dune",
+      "monitored": true,
+      "anyEditionOk": true,
+      "releaseDate": "1976-04-01T00:00:00Z",
+      "pageCount": 444,
+      "genres": [
+        "Science Fiction"
+      ],
+      "author": {
+        "id": 2,
+        "authorMetadataId": 2,
+        "status": "continuing",
+        "ended": false,
+        "authorName": "Frank Herbert",
+        "authorNameLastFirst": "Herbert, Frank",
+        "foreignAuthorId": "58",
+        "titleSlug": "58-frank-herbert",
+        "overview": "Frank Herbert overview.",
+        "disambiguation": "",
+        "path": "/books/Frank Herbert",
+        "qualityProfileId": 1,
+        "metadataProfileId": 1,
+        "monitored": true,
+        "monitorNewItems": "all",
+        "rootFolderPath": "/books",
+        "genres": [
+          "Science Fiction"
+        ],
+        "cleanName": "frankherbert",
+        "sortName": "frank herbert",
+        "sortNameLastFirst": "herbert, frank",
+        "tags": [
+          1
+        ],
+        "added": "2024-02-01T10:00:00Z"
+      },
+      "added": "2024-02-01T10:00:00Z"
+    },
+    {
+      "id": 12,
+      "title": "The Left Hand of Darkness",
+      "authorTitle": "le guin, ursula k. The Left Hand of Darkness",
+      "seriesTitle": "",
+      "disambiguation": "",
+      "overview": "The Left Hand of Darkness overview.",
+      "authorId": 1,
+      "foreignBookId": "18423",
+      "foreignEditionId": "18423",
+      "titleSlug": "18423-the-left-hand-of-darkness",
+      "monitored": true,
+      "anyEditionOk": true,
+      "releaseDate": "1969-03-01T00:00:00Z",
+      "pageCount": 304,
+      "genres": [
+        "Science Fiction"
+      ],
+      "author": {
+        "id": 1,
+        "authorMetadataId": 1,
+        "status": "continuing",
+        "ended": false,
+        "authorName": "Ursula K. Le Guin",
+        "authorNameLastFirst": "Le Guin, Ursula K.",
+        "foreignAuthorId": "874602",
+        "titleSlug": "874602-ursula-k-le-guin",
+        "overview": "Ursula K. Le Guin overview.",
+        "disambiguation": "",
+        "path": "/books/Ursula K. Le Guin",
+        "qualityProfileId": 1,
+        "metadataProfileId": 1,
+        "monitored": true,
+        "monitorNewItems": "all",
+        "rootFolderPath": "/books",
+        "genres": [
+          "Science Fiction"
+        ],
+        "cleanName": "ursulakleguin",
+        "sortName": "ursula k. le guin",
+        "sortNameLastFirst": "le guin, ursula k.",
+        "tags": [
+          1
+        ],
+        "added": "2024-02-01T10:00:00Z"
+      },
+      "added": "2024-02-01T10:00:00Z"
+    }
+  ]
+}

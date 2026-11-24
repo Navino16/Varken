@@ -25,6 +25,9 @@ export const contractRoutes: ContractRoute[] = [
   { service: 'lidarr', method: 'get', path: '/api/v1/queue', fixture: 'lidarr/queue' },
   { service: 'lidarr', method: 'get', path: '/api/v1/wanted/missing', fixture: 'lidarr/wanted-missing' },
   { service: 'lidarr', method: 'get', path: '/api/v1/system/status', fixture: 'lidarr/system-status' },
+  { service: 'readarr', method: 'get', path: '/api/v1/queue', fixture: 'readarr/queue' },
+  { service: 'readarr', method: 'get', path: '/api/v1/wanted/missing', fixture: 'readarr/wanted-missing' },
+  { service: 'readarr', method: 'get', path: '/api/v1/system/status', fixture: 'readarr/system-status' },
 ];
 
 const fixturesDir = path.resolve(__dirname, '../fixtures/api');

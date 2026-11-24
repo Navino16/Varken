@@ -1,11 +1,8 @@
 import { BaseInputPlugin } from './BaseInputPlugin';
 import { PROTOCOL_ID } from './constants';
 import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
-import type {
-  ReadarrConfig,
-  ReadarrQueue,
-  ReadarrBook,
-} from '../../types/inputs/readarr.types';
+import type { ReadarrConfig } from '../../types/inputs/readarr.types';
+import type { paths } from '../../types/generated/readarr';
 
 /**
  * Readarr input plugin
@@ -17,6 +14,8 @@ export class ReadarrPlugin extends BaseInputPlugin<ReadarrConfig> {
     version: '1.0.0',
     description: 'Collects queue and missing books data from Readarr',
   };
+
+  private readonly readarr = this.api<paths>();
 
   /**
    * Initialize the plugin and configure the HTTP client with API key header
@@ -80,10 +79,8 @@ export class ReadarrPlugin extends BaseInputPlugin<ReadarrConfig> {
   private async collectQueue(): Promise<DataPoint[]> {
     return this.safeFetch('collect Readarr queue', async () => {
       const points: DataPoint[] = [];
-      const allRecords = await this.fetchAllPages<ReadarrQueue>('/api/v1/queue', {
-        includeBook: true,
-        includeAuthor: true,
-        includeUnknownBookItems: false,
+      const allRecords = await this.readarr.getAllPages('/api/v1/queue', {
+        query: { includeBook: true, includeAuthor: true, includeUnknownAuthorItems: false },
       });
 
       if (allRecords.length === 0) {
@@ -100,7 +97,7 @@ export class ReadarrPlugin extends BaseInputPlugin<ReadarrConfig> {
         const book = queueItem.book;
         const authorName = queueItem.author?.authorName || 'Unknown Author';
         const name = `${book.title} - ${authorName}`;
-        const protocol = queueItem.protocol.toUpperCase();
+        const protocol = (queueItem.protocol ?? 'unknown').toUpperCase();
         const protocolId = protocol === 'USENET' ? PROTOCOL_ID.USENET : PROTOCOL_ID.TORRENT;
         const quality = queueItem.quality?.quality?.name || 'Unknown';
 
@@ -111,13 +108,13 @@ export class ReadarrPlugin extends BaseInputPlugin<ReadarrConfig> {
             'Readarr',
             {
               type: 'Queue',
-              bookId: queueItem.bookId,
+              bookId: queueItem.bookId ?? 0,
               server: this.config.id,
               name,
               quality,
               protocol,
               protocol_id: protocolId,
-              titleSlug: book.titleSlug,
+              titleSlug: book.titleSlug ?? 'unknown',
             },
             {
               hash: hashId,
@@ -137,10 +134,8 @@ export class ReadarrPlugin extends BaseInputPlugin<ReadarrConfig> {
   private async collectMissing(): Promise<DataPoint[]> {
     return this.safeFetch('collect Readarr missing books', async () => {
       const points: DataPoint[] = [];
-      const books = await this.fetchAllPages<ReadarrBook>('/api/v1/wanted/missing', {
-        sortKey: 'releaseDate',
-        sortDirection: 'descending',
-        monitored: true,
+      const books = await this.readarr.getAllPages('/api/v1/wanted/missing', {
+        query: { sortKey: 'releaseDate', sortDirection: 'descending', monitored: true, includeAuthor: true },
       });
 
       if (books.length === 0) {
@@ -159,11 +154,11 @@ export class ReadarrPlugin extends BaseInputPlugin<ReadarrConfig> {
             'Readarr',
             {
               type: 'Missing',
-              bookId: book.id,
-              foreignBookId: book.foreignBookId,
+              bookId: book.id ?? 0,
+              foreignBookId: book.foreignBookId ?? 'unknown',
               server: this.config.id,
               name: bookName,
-              titleSlug: book.titleSlug,
+              titleSlug: book.titleSlug ?? 'unknown',
             },
             {
               hash: hashId,

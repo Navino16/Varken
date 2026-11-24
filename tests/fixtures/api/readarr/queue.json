@@ -1,0 +1,165 @@
+{
+  "page": 1,
+  "pageSize": 10,
+  "sortKey": "timeleft",
+  "sortDirection": "ascending",
+  "totalRecords": 2,
+  "records": [
+    {
+      "id": 1,
+      "authorId": 1,
+      "bookId": 11,
+      "author": {
+        "id": 1,
+        "authorMetadataId": 1,
+        "status": "continuing",
+        "ended": false,
+        "authorName": "Ursula K. Le Guin",
+        "authorNameLastFirst": "Le Guin, Ursula K.",
+        "foreignAuthorId": "874602",
+        "titleSlug": "874602-ursula-k-le-guin",
+        "overview": "Ursula K. Le Guin overview.",
+        "disambiguation": "",
+        "path": "/books/Ursula K. Le Guin",
+        "qualityProfileId": 1,
+        "metadataProfileId": 1,
+        "monitored": true,
+        "monitorNewItems": "all",
+        "rootFolderPath": "/books",
+        "genres": [
+          "Science Fiction"
+        ],
+        "cleanName": "ursulakleguin",
+        "sortName": "ursula k. le guin",
+        "sortNameLastFirst": "le guin, ursula k.",
+        "tags": [
+          1
+        ],
+        "added": "2024-02-01T10:00:00Z"
+      },
+      "book": {
+        "id": 11,
+        "title": "The Dispossessed",
+        "authorTitle": "le guin, ursula k. The Dispossessed",
+        "seriesTitle": "",
+        "disambiguation": "",
+        "overview": "The Dispossessed overview.",
+        "authorId": 1,
+        "foreignBookId": "13651",
+        "foreignEditionId": "1235",
+        "titleSlug": "13651-the-dispossessed",
+        "monitored": true,
+        "anyEditionOk": true,
+        "releaseDate": "1974-05-01T00:00:00Z",
+        "pageCount": 387,
+        "genres": [
+          "Science Fiction"
+        ],
+        "added": "2024-02-01T10:00:00Z"
+      },
+      "quality": {
+        "quality": {
+          "id": 3,
+          "name": "EPUB"
+        },
+        "revision": {
+          "version": 1,
+          "real": 0,
+          "isRepack": false
+        }
+      },
+      "customFormatScore": 0,
+      "size": 5242880,
+      "title": "Ursula K. Le Guin - The Dispossessed (epub)",
+      "sizeleft": 1048576,
+      "timeleft": "00:01:00",
+      "estimatedCompletionTime": "2026-11-24T18:30:00Z",
+      "status": "downloading",
+      "trackedDownloadStatus": "ok",
+      "trackedDownloadState": "downloading",
+      "downloadId": "dl-1",
+      "protocol": "torrent",
+      "downloadClient": "qBittorrent",
+      "indexer": "MyAnonamouse",
+      "downloadForced": false
+    },
+    {
+      "id": 2,
+      "authorId": 2,
+      "bookId": 21,
+      "author": {
+        "id": 2,
+        "authorMetadataId": 2,
+        "status": "continuing",
+        "ended": false,
+        "authorName": "Frank Herbert",
+        "authorNameLastFirst": "Herbert, Frank",
+        "foreignAuthorId": "58",
+        "titleSlug": "58-frank-herbert",
+        "overview": "Frank Herbert overview.",
+        "disambiguation": "",
+        "path": "/books/Frank Herbert",
+        "qualityProfileId": 1,
+        "metadataProfileId": 1,
+        "monitored": true,
+        "monitorNewItems": "all",
+        "rootFolderPath": "/books",
+        "genres": [
+          "Science Fiction"
+        ],
+        "cleanName": "frankherbert",
+        "sortName": "frank herbert",
+        "sortNameLastFirst": "herbert, frank",
+        "tags": [
+          1
+        ],
+        "added": "2024-02-01T10:00:00Z"
+      },
+      "book": {
+        "id": 21,
+        "title": "Dune",
+        "authorTitle": "herbert, frank Dune",
+        "seriesTitle": "",
+        "disambiguation": "",
+        "overview": "Dune overview.",
+        "authorId": 2,
+        "foreignBookId": "44767458",
+        "foreignEditionId": "44767458",
+        "titleSlug": "44767458-dune",
+        "monitored": true,
+        "anyEditionOk": true,
+        "releaseDate": "1965-08-01T00:00:00Z",
+        "pageCount": 658,
+        "genres": [
+          "Science Fiction"
+        ],
+        "added": "2024-02-01T10:00:00Z"
+      },
+      "quality": {
+        "quality": {
+          "id": 2,
+          "name": "MOBI"
+        },
+        "revision": {
+          "version": 1,
+          "real": 0,
+          "isRepack": false
+        }
+      },
+      "customFormatScore": 0,
+      "size": 5242880,
+      "title": "Frank Herbert - Dune (mobi)",
+      "sizeleft": 1048576,
+      "timeleft": "00:01:00",
+      "estimatedCompletionTime": "2026-11-24T18:30:00Z",
+      "status": "downloading",
+      "trackedDownloadStatus": "ok",
+      "trackedDownloadState": "downloading",
+      "downloadId": "dl-2",
+      "protocol": "usenet",
+      "downloadClient": "SABnzbd",
+      "indexer": "MyAnonamouse",
+      "downloadForced": false
+    }
+  ]
+}
