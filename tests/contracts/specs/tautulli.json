@@ -917,7 +917,27 @@
           "year": {
             "type": "string"
           }
-        }
+        },
+        "required": [
+          "session_key",
+          "session_id",
+          "media_type",
+          "progress_percent",
+          "quality_profile",
+          "ip_address",
+          "ip_address_public",
+          "platform",
+          "product",
+          "product_version",
+          "state",
+          "local",
+          "relayed",
+          "secure",
+          "transcode_decision",
+          "transcode_hw_decoding",
+          "transcode_hw_encoding"
+        ],
+        "description": "Required: keys get_session_each always emits and Varken reads (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/pmsconnect.py#L1967-L1996, https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/pmsconnect.py#L2074-L2075, https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/pmsconnect.py#L2406, https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/pmsconnect.py#L2475-L2479)"
       },
       "Library": {
         "type": "object",
@@ -1018,7 +1038,7 @@
             "type": "null"
           }
         },
-        "description": "Every field is null when plex.tv does not know it (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/plextv.py#L907-L916); failures are HTTP 400 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L653)"
+        "description": "Every field is null when plex.tv does not know it (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/plextv.py#L907-L916); on failure data becomes {error} (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L653-L657) with HTTP 400 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L777-L783)"
       },
       "ServerInfo": {
         "type": "object",
@@ -1072,11 +1092,8 @@
             "description": "https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L632-L638",
             "properties": {
               "result": {
-                "type": "string",
-                "enum": [
-                  "success",
-                  "error"
-                ]
+                "const": "success",
+                "description": "An error result is always sent with HTTP 400 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L777-L783)"
               },
               "message": {
                 "type": [
@@ -1107,11 +1124,8 @@
             "description": "https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L632-L638",
             "properties": {
               "result": {
-                "type": "string",
-                "enum": [
-                  "success",
-                  "error"
-                ]
+                "const": "success",
+                "description": "An error result is always sent with HTTP 400 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L777-L783)"
               },
               "message": {
                 "type": [
@@ -1145,11 +1159,8 @@
             "description": "https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L632-L638",
             "properties": {
               "result": {
-                "type": "string",
-                "enum": [
-                  "success",
-                  "error"
-                ]
+                "const": "success",
+                "description": "An error result is always sent with HTTP 400 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L777-L783)"
               },
               "message": {
                 "type": [
@@ -1180,11 +1191,8 @@
             "description": "https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L632-L638",
             "properties": {
               "result": {
-                "type": "string",
-                "enum": [
-                  "success",
-                  "error"
-                ]
+                "const": "success",
+                "description": "An error result is always sent with HTTP 400 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L777-L783)"
               },
               "message": {
                 "type": [

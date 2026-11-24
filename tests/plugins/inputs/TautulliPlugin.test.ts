@@ -79,6 +79,20 @@ describe('TautulliPlugin', () => {
     (axios.create as Mock).mockReturnValue(client);
   });
 
+  describe('contract', () => {
+    it('rejects an error envelope on a 200 response', () => {
+      expect(() =>
+        client.override(GEOIP, { response: { result: 'error', message: 'Failed to lookup GeoIP info', data: {} } })
+      ).toThrow(/result/);
+    });
+
+    it('rejects a session without a field Tautulli always sends', () => {
+      const { state: _state, ...session } = sessions().remote;
+
+      expect(() => withSessions(session as Session)).toThrow(/state/);
+    });
+  });
+
   describe('metadata', () => {
     it('should have correct metadata', () => {
       expect(plugin.metadata.name).toBe('Tautulli');
@@ -270,7 +284,8 @@ describe('TautulliPlugin', () => {
     });
 
     it('should handle GeoIP API returning error result', async () => {
-      client.override(GEOIP, { response: { result: 'error', message: 'Failed to lookup GeoIP info', data: {} } });
+      // Upstream sends error results with HTTP 400; this pins the plugin's defensive result check.
+      client.overrideUnchecked(GEOIP, { response: { result: 'error', message: 'Failed to lookup GeoIP info', data: {} } });
 
       const point = await onlySession(sessions().remote);
 
@@ -372,11 +387,11 @@ describe('TautulliPlugin', () => {
       });
     });
 
-    it('emits only total for libraries without parent and child counts', async () => {
+    it('zeroes seasons and episodes for a show without parent and child counts', async () => {
       const body = libraries();
-      const show = body.response.data.find((l) => l.section_type === 'show');
-      body.response.data = [{ ...show, parent_count: undefined, child_count: undefined }];
-      client.override(LIBRARIES, JSON.parse(JSON.stringify(body)));
+      const { parent_count: _parent, child_count: _child, ...show } = body.response.data[1];
+      body.response.data = [show];
+      client.override(LIBRARIES, body);
 
       const points = await plugin.collect();
 
@@ -466,6 +481,7 @@ describe('TautulliPlugin', () => {
         const point = await onlySession(remoteFrom('82.64.1.1'));
 
         expect(point?.tags.location).toBe('Lyon');
+        expect(geoipCalls()).toHaveLength(1);
         expect(client.get).toHaveBeenCalledWith(GEOIP, { params: { apikey: 'tautulli-api-key', ip_address: '82.64.1.1' } });
       });
     });
