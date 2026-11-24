@@ -1,69 +1,47 @@
-import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
-import { BazarrPlugin } from '../../../src/plugins/inputs/BazarrPlugin';
-import { BazarrConfig } from '../../../src/types/inputs/bazarr.types';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import axios from 'axios';
+import { BazarrPlugin } from '../../../src/plugins/inputs/BazarrPlugin';
+import type { BazarrConfig } from '../../../src/types/inputs/bazarr.types';
+import type { components } from '../../../src/types/generated/bazarr';
+import type { DataPoint } from '../../../src/types/plugin.types';
+import { createContractHttpClient, type ContractHttpClient } from '../../fixtures/contract-http';
+import { loadFixture } from '../../contracts/registry';
 
-// Mock the logger
-vi.mock('../../../src/core/Logger', () => ({
-  createLogger: () => ({
-    info: vi.fn(),
-    debug: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  }),
-  withContext: (logger: unknown) => logger,
-}));
+vi.mock('../../../src/core/Logger', async () => {
+  const { loggerMock } = await import('../../fixtures/logger');
+  return loggerMock();
+});
 
-// Mock axios
-vi.mock('axios', () => ({
-  default: {
-    create: vi.fn(() => ({
-      get: vi.fn(),
-      defaults: {
-        headers: {
-          common: {},
-        },
-      },
-    })),
-  },
-}));
+vi.mock('axios', () => ({ default: { create: vi.fn() } }));
+
+type WantedMovie = components['schemas']['WantedMovie'];
+type MovieHistoryItem = components['schemas']['MovieHistoryItem'];
+
+const ROUTES = ['/api/movies/wanted', '/api/episodes/wanted', '/api/movies/history', '/api/episodes/history'];
+const wantedMovies = (): WantedMovie[] => loadFixture<{ data: WantedMovie[] }>('bazarr/movies-wanted').data;
+const movieHistory = (): MovieHistoryItem[] => loadFixture<{ data: MovieHistoryItem[] }>('bazarr/movies-history').data;
+
+const ofKind = (points: DataPoint[], type: string, mediaType: string): DataPoint[] =>
+  points.filter((p) => p.tags.type === type && p.tags.mediaType === mediaType);
 
 describe('BazarrPlugin', () => {
   let plugin: BazarrPlugin;
-  let mockHttpClient: { get: Mock; defaults: { headers: { common: Record<string, string> } } };
+  let client: ContractHttpClient;
 
   const testConfig: BazarrConfig = {
     id: 1,
     url: 'http://localhost:6767',
     apiKey: 'bazarr-api-key',
     verifySsl: false,
-    wanted: {
-      enabled: true,
-      intervalSeconds: 300,
-    },
-    history: {
-      enabled: true,
-      intervalSeconds: 600,
-    },
+    wanted: { enabled: true, intervalSeconds: 300 },
+    history: { enabled: true, intervalSeconds: 600 },
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
     plugin = new BazarrPlugin();
-
-    mockHttpClient = {
-      get: vi.fn(),
-      defaults: {
-        headers: {
-          common: {},
-        },
-      },
-      interceptors: {
-        response: { use: vi.fn() },
-        request: { use: vi.fn() },
-      },
-    };
-    (axios.create as Mock).mockReturnValue(mockHttpClient);
+    client = createContractHttpClient('bazarr');
+    (axios.create as Mock).mockReturnValue(client);
   });
 
   describe('metadata', () => {
@@ -74,54 +52,47 @@ describe('BazarrPlugin', () => {
     });
   });
 
-  describe('getHealthEndpoint', () => {
+  describe('health', () => {
     it('should return the correct health endpoint', () => {
       const endpoint = (plugin as unknown as { getHealthEndpoint: () => string }).getHealthEndpoint();
       expect(endpoint).toBe('/api/system/health');
+    });
+
+    it('should pass the health check against the contract route', async () => {
+      await plugin.initialize(testConfig);
+
+      await expect(plugin.healthCheck()).resolves.toBe(true);
+      expect(client.get).toHaveBeenCalledWith('/api/system/health', expect.anything());
     });
   });
 
   describe('initialize', () => {
     it('should initialize with API key header', async () => {
       await plugin.initialize(testConfig);
-      expect(mockHttpClient.defaults.headers.common['X-API-KEY']).toBe('bazarr-api-key');
+      expect(client.defaults.headers.common['X-API-KEY']).toBe('bazarr-api-key');
     });
   });
 
   describe('getSchedules', () => {
     it('should return schedules for enabled collectors', async () => {
       await plugin.initialize(testConfig);
-      const schedules = plugin.getSchedules();
 
-      expect(schedules.length).toBe(2);
-      expect(schedules[0].name).toBe('Bazarr_1_wanted');
-      expect(schedules[0].intervalSeconds).toBe(300);
-      expect(schedules[1].name).toBe('Bazarr_1_history');
-      expect(schedules[1].intervalSeconds).toBe(600);
+      expect(plugin.getSchedules().map((s) => [s.name, s.intervalSeconds])).toEqual([
+        ['Bazarr_1_wanted', 300],
+        ['Bazarr_1_history', 600],
+      ]);
     });
 
     it('should only return wanted schedule when history is disabled', async () => {
-      const configWithoutHistory = {
-        ...testConfig,
-        history: { ...testConfig.history, enabled: false },
-      };
-      await plugin.initialize(configWithoutHistory);
-      const schedules = plugin.getSchedules();
+      await plugin.initialize({ ...testConfig, history: { ...testConfig.history, enabled: false } });
 
-      expect(schedules.length).toBe(1);
-      expect(schedules[0].name).toBe('Bazarr_1_wanted');
+      expect(plugin.getSchedules().map((s) => s.name)).toEqual(['Bazarr_1_wanted']);
     });
 
     it('should only return history schedule when wanted is disabled', async () => {
-      const configWithoutWanted = {
-        ...testConfig,
-        wanted: { ...testConfig.wanted, enabled: false },
-      };
-      await plugin.initialize(configWithoutWanted);
-      const schedules = plugin.getSchedules();
+      await plugin.initialize({ ...testConfig, wanted: { ...testConfig.wanted, enabled: false } });
 
-      expect(schedules.length).toBe(1);
-      expect(schedules[0].name).toBe('Bazarr_1_history');
+      expect(plugin.getSchedules().map((s) => s.name)).toEqual(['Bazarr_1_history']);
     });
   });
 
@@ -130,328 +101,117 @@ describe('BazarrPlugin', () => {
       await plugin.initialize(testConfig);
     });
 
+    it('should request each endpoint with its page length', async () => {
+      await plugin.collect();
+
+      expect(client.get).toHaveBeenCalledWith('/api/movies/wanted', { params: { length: 1000 } });
+      expect(client.get).toHaveBeenCalledWith('/api/episodes/wanted', { params: { length: 1000 } });
+      expect(client.get).toHaveBeenCalledWith('/api/movies/history', { params: { length: 100 } });
+      expect(client.get).toHaveBeenCalledWith('/api/episodes/history', { params: { length: 100 } });
+    });
+
     it('should collect wanted movie subtitles', async () => {
-      // Mock wanted movies
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          data: [
-            {
-              radarrId: 100,
-              title: 'Test Movie',
-              monitored: true,
-              missing_subtitles: [
-                { name: 'French', code2: 'fr', code3: 'fre', forced: false, hi: false },
-                { name: 'English', code2: 'en', code3: 'eng', forced: false, hi: true },
-              ],
-            },
-          ],
-          total: 1,
-        },
-      });
-      // Mock wanted episodes (empty)
-      mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
-      // Mock movie history (empty)
-      mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
-      // Mock series history (empty)
-      mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
+      const points = ofKind(await plugin.collect(), 'Wanted', 'movie');
 
-      const points = await plugin.collect();
-
-      const wantedPoints = points.filter((p) => p.tags.type === 'Wanted');
-      expect(wantedPoints.length).toBe(2);
-
-      const frenchSubtitle = wantedPoints.find((p) => p.tags.languageCode === 'fre');
-      expect(frenchSubtitle).toBeDefined();
-      expect(frenchSubtitle?.tags.title).toBe('Test Movie');
-      expect(frenchSubtitle?.tags.mediaType).toBe('movie');
-      expect(frenchSubtitle?.tags.forced).toBe(0);
-      expect(frenchSubtitle?.tags.hi).toBe(0);
-
-      const englishSubtitle = wantedPoints.find((p) => p.tags.languageCode === 'eng');
-      expect(englishSubtitle).toBeDefined();
-      expect(englishSubtitle?.tags.hi).toBe(1);
+      expect(points.map((p) => p.tags.name)).toEqual(['Heat - English', 'Heat - French', 'Arrival - English']);
+      expect(points[1].tags).toMatchObject({ radarrId: 1, title: 'Heat', languageCode: 'fra', forced: 0, hi: 1 });
     });
 
     it('should collect wanted episode subtitles', async () => {
-      // Mock wanted movies (empty)
-      mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
-      // Mock wanted episodes
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          data: [
-            {
-              sonarrSeriesId: 50,
-              sonarrEpisodeId: 500,
-              seriesTitle: 'Test Series',
-              episode_number: 'S01E05',
-              monitored: true,
-              missing_subtitles: [
-                { name: 'Spanish', code2: 'es', code3: 'spa', forced: true, hi: false },
-              ],
-            },
-          ],
-          total: 1,
-        },
-      });
-      // Mock movie history (empty)
-      mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
-      // Mock series history (empty)
-      mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
+      const points = ofKind(await plugin.collect(), 'Wanted', 'episode');
 
-      const points = await plugin.collect();
-
-      const wantedPoints = points.filter((p) => p.tags.type === 'Wanted');
-      expect(wantedPoints.length).toBe(1);
-      expect(wantedPoints[0].tags.mediaType).toBe('episode');
-      expect(wantedPoints[0].tags.seriesTitle).toBe('Test Series');
-      expect(wantedPoints[0].tags.episodeNumber).toBe('S01E05');
-      expect(wantedPoints[0].tags.forced).toBe(1);
+      expect(points.map((p) => p.tags.name)).toEqual([
+        'Severance - 1x01 - English',
+        'Severance - 2x03 - English',
+        'Severance - 2x03 - French',
+      ]);
+      expect(points[0].tags).toMatchObject({ sonarrSeriesId: 10, sonarrEpisodeId: 101, episodeNumber: '1x01' });
     });
 
-    it('should collect movie history', async () => {
-      // Mock wanted movies (empty)
-      mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
-      // Mock wanted episodes (empty)
-      mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
-      // Mock movie history
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          data: [
-            {
-              radarrId: 100,
-              title: 'Test Movie',
-              language: { name: 'French', code2: 'fr', code3: 'fre' },
-              provider: 'opensubtitles',
-              score: '85',
-              description: 'Downloaded',
-              timestamp: '2 hours ago',
-              action: 1,
-              parsed_timestamp: '01/15/24 10:00:00',
-            },
-          ],
-          total: 1,
-        },
-      });
-      // Mock series history (empty)
-      mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
+    it('should skip wanted items without missing subtitles', async () => {
+      const [heat, arrival] = wantedMovies();
+      client.override('/api/movies/wanted', { data: [{ ...heat, missing_subtitles: [] }, arrival], total: 2 });
 
-      const points = await plugin.collect();
+      const points = ofKind(await plugin.collect(), 'Wanted', 'movie');
 
-      const historyPoints = points.filter((p) => p.tags.type === 'History');
-      expect(historyPoints.length).toBe(1);
-      expect(historyPoints[0].tags.mediaType).toBe('movie');
-      expect(historyPoints[0].tags.title).toBe('Test Movie');
-      expect(historyPoints[0].tags.provider).toBe('opensubtitles');
-      expect(historyPoints[0].fields.score).toBe('85');
+      expect(points.map((p) => p.tags.name)).toEqual(['Arrival - English']);
+    });
+
+    it('should timestamp movie history from parsed_timestamp', async () => {
+      const points = ofKind(await plugin.collect(), 'History', 'movie');
+
+      expect(points).toHaveLength(3);
+      expect(points[0].tags).toMatchObject({ name: 'Heat - English', provider: 'opensubtitlescom', action: 1 });
+      expect(points[0].fields.score).toBe('92.5%');
+      expect(points[0].timestamp).toEqual(new Date(2026, 10, 20, 14, 5, 9));
     });
 
     it('should collect series history', async () => {
-      // Mock wanted movies (empty)
-      mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
-      // Mock wanted episodes (empty)
-      mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
-      // Mock movie history (empty)
-      mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
-      // Mock series history
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          data: [
-            {
-              sonarrSeriesId: 50,
-              sonarrEpisodeId: 500,
-              seriesTitle: 'Test Series',
-              episode_number: 'S01E05',
-              language: { name: 'English', code2: 'en', code3: 'eng' },
-              provider: 'subscene',
-              description: 'Downloaded',
-              timestamp: '1 hour ago',
-              action: 1,
-              parsed_timestamp: '01/15/24 11:00:00',
-            },
-          ],
-          total: 1,
-        },
-      });
+      const points = ofKind(await plugin.collect(), 'History', 'series');
 
-      const points = await plugin.collect();
-
-      const historyPoints = points.filter((p) => p.tags.type === 'History');
-      expect(historyPoints.length).toBe(1);
-      expect(historyPoints[0].tags.mediaType).toBe('series');
-      expect(historyPoints[0].tags.seriesTitle).toBe('Test Series');
-      expect(historyPoints[0].tags.episodeNumber).toBe('S01E05');
+      expect(points.map((p) => p.tags.name)).toEqual(['Severance - 1x01 - English', 'Severance - 2x03 - French']);
+      expect(points[1].timestamp).toEqual(new Date(2026, 10, 20, 11, 0, 0));
     });
 
-    describe('Bazarr 1.x history API', () => {
-      const emptyPage = { data: { data: [], total: 0 } };
+    it('should fall back for null history fields', async () => {
+      const tenet = ofKind(await plugin.collect(), 'History', 'movie')[2];
 
-      const movieItem = {
-        action: 1,
-        title: 'Test Movie',
-        timestamp: '2 hours ago',
-        parsed_timestamp: '01/15/24 10:00:00',
-        description: 'French subtitles downloaded',
-        radarrId: 100,
-        monitored: true,
-        language: { name: 'French', code2: 'fr', code3: 'fre', forced: false, hi: false },
-        tags: [],
-        score: '91.67%',
-        subs_id: 'abc',
-        provider: 'opensubtitles',
-        subtitles_path: '/movies/test.fr.srt',
-        upgradable: false,
-        blacklisted: false,
-        matches: [],
-        dont_matches: [],
-      };
-
-      const episodeItem = {
-        action: 1,
-        seriesTitle: 'Test Series',
-        episode_number: '1x05',
-        episodeTitle: 'Pilot',
-        timestamp: '1 hour ago',
-        parsed_timestamp: '01/15/24 11:00:00',
-        description: 'English subtitles downloaded',
-        sonarrSeriesId: 50,
-        sonarrEpisodeId: 500,
-        monitored: true,
-        language: { name: 'English', code2: 'en', code3: 'eng', forced: false, hi: false },
-        tags: [],
-        score: '88.5%',
-        subs_id: 'def',
-        provider: 'subscene',
-        subtitles_path: '/tv/test.en.srt',
-        upgradable: false,
-        blacklisted: false,
-        matches: [],
-        dont_matches: [],
-      };
-
-      const collectHistory = async (movies: unknown[], episodes: unknown[]) => {
-        mockHttpClient.get.mockResolvedValueOnce(emptyPage);
-        mockHttpClient.get.mockResolvedValueOnce(emptyPage);
-        mockHttpClient.get.mockResolvedValueOnce({ data: { data: movies, total: movies.length } });
-        mockHttpClient.get.mockResolvedValueOnce({ data: { data: episodes, total: episodes.length } });
-        const points = await plugin.collect();
-        return points.filter((p) => p.tags.type === 'History');
-      };
-
-      it('should request the movies and episodes history endpoints', async () => {
-        await collectHistory([], []);
-
-        expect(mockHttpClient.get).toHaveBeenCalledWith('/api/movies/history', expect.anything());
-        expect(mockHttpClient.get).toHaveBeenCalledWith('/api/episodes/history', expect.anything());
+      expect(tenet.tags).toMatchObject({
+        name: 'Tenet - unknown',
+        language: 'unknown',
+        languageCode: 'unknown',
+        provider: 'unknown',
       });
-
-      it('should timestamp history points from parsed_timestamp', async () => {
-        const points = await collectHistory([movieItem], [episodeItem]);
-
-        expect(points).toHaveLength(2);
-        expect(points[0].timestamp).toEqual(new Date(2024, 0, 15, 10, 0, 0));
-        expect(points[1].timestamp).toEqual(new Date(2024, 0, 15, 11, 0, 0));
-      });
-
-      it('should fall back to collection time when parsed_timestamp is not parseable', async () => {
-        const before = Date.now();
-        const points = await collectHistory([{ ...movieItem, parsed_timestamp: '15.01.2024 10:00:00' }], []);
-
-        expect(points).toHaveLength(1);
-        expect(Number.isNaN(points[0].timestamp.getTime())).toBe(false);
-        expect(points[0].timestamp.getTime()).toBeGreaterThanOrEqual(before);
-      });
-
-      it('should give distinct hashes to distinct history events', async () => {
-        const points = await collectHistory(
-          [movieItem, { ...movieItem, parsed_timestamp: '01/15/24 12:00:00' }],
-          [episodeItem]
-        );
-
-        const hashes = points.map((p) => p.fields.hash);
-        expect(new Set(hashes).size).toBe(3);
-      });
+      expect(tenet.fields.score).toBe('');
     });
 
-    it('should handle missing score in history', async () => {
-      // Mock wanted (empty)
-      mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
-      mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
-      // Mock movie history with no score
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          data: [
-            {
-              radarrId: 100,
-              title: 'Test Movie',
-              language: { name: 'French', code2: 'fr', code3: 'fre' },
-              provider: 'opensubtitles',
-              description: 'Downloaded',
-              timestamp: '2 hours ago',
-              action: 1,
-              parsed_timestamp: '01/15/24 10:00:00',
-            },
-          ],
-          total: 1,
-        },
-      });
-      mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
+    it('should fall back to collection time when parsed_timestamp is not parseable', async () => {
+      const [heat] = movieHistory();
+      client.override('/api/movies/history', { data: [{ ...heat, parsed_timestamp: '20.11.2026 14:05:09' }], total: 1 });
+      const before = Date.now();
 
-      const points = await plugin.collect();
+      const [point] = ofKind(await plugin.collect(), 'History', 'movie');
 
-      expect(points[0].fields.score).toBe('');
+      expect(point.timestamp.getTime()).toBeGreaterThanOrEqual(before);
     });
 
-    it('should handle empty wanted responses', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
-      mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
-      mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
-      mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
+    it('should give distinct hashes to distinct history events', async () => {
+      const [heat] = movieHistory();
+      client.override('/api/movies/history', {
+        data: [heat, { ...heat, parsed_timestamp: '11/20/26 16:00:00' }],
+        total: 2,
+      });
 
-      const points = await plugin.collect();
-      expect(points).toEqual([]);
+      const hashes = (await plugin.collect()).filter((p) => p.tags.type === 'History').map((p) => p.fields.hash);
+
+      expect(new Set(hashes).size).toBe(hashes.length);
+    });
+
+    it('should generate deterministic hash IDs', async () => {
+      const first = (await plugin.collect()).map((p) => p.fields.hash);
+      const second = (await plugin.collect()).map((p) => p.fields.hash);
+
+      expect(second).toEqual(first);
+    });
+
+    it('should handle empty responses', async () => {
+      for (const route of ROUTES) {
+        client.override(route, { data: [], total: 0 });
+      }
+
+      await expect(plugin.collect()).resolves.toEqual([]);
     });
 
     it('should propagate wanted API errors for circuit breaker', async () => {
-      mockHttpClient.get.mockRejectedValueOnce(new Error('Wanted API Error'));
+      client.fail('/api/movies/wanted', new Error('Wanted API Error'));
 
       await expect(plugin.collect()).rejects.toThrow('Wanted API Error');
     });
 
     it('should propagate history API errors for circuit breaker', async () => {
-      // Wanted calls succeed
-      mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
-      mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
-      // History error
-      mockHttpClient.get.mockRejectedValueOnce(new Error('History API Error'));
+      client.fail('/api/movies/history', new Error('History API Error'));
 
       await expect(plugin.collect()).rejects.toThrow('History API Error');
-    });
-
-    it('should generate deterministic hash IDs', async () => {
-      const movieData = {
-        radarrId: 100,
-        title: 'Test Movie',
-        monitored: true,
-        missing_subtitles: [
-          { name: 'French', code2: 'fr', code3: 'fre', forced: false, hi: false },
-        ],
-      };
-
-      mockHttpClient.get.mockResolvedValueOnce({ data: { data: [movieData], total: 1 } });
-      mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
-      mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
-      mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
-
-      const points1 = await plugin.collect();
-
-      mockHttpClient.get.mockResolvedValueOnce({ data: { data: [movieData], total: 1 } });
-      mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
-      mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
-      mockHttpClient.get.mockResolvedValueOnce({ data: { data: [], total: 0 } });
-
-      const points2 = await plugin.collect();
-
-      expect(points1[0].fields.hash).toBe(points2[0].fields.hash);
     });
   });
 

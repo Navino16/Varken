@@ -532,34 +532,6 @@ Error messages are annotated with actionable hints where possible. Look for the 
 - Verify InfluxDB connection settings
 - Ensure at least one input is enabled with `enabled: true`
 
-### Integration tests
-
-A separate `npm run test:integration` target runs end-to-end tests against real services. Start the stack first (InfluxDB 2.x on port 8087 by default):
-
-```bash
-docker compose -f docker-compose.test.yaml --profile influxdb2 up -d
-npm run test:integration
-```
-
-Tests skip themselves automatically when a service isn't reachable, so the command is safe to run with or without containers up. Unit tests (`npm test`) are hermetic and never touch the integration folder.
-
-### Contract tests
-
-Input plugins migrated to contract tests (currently Radarr, the others follow) never hand-write API responses in their tests. Each endpoint such a plugin calls is registered in `tests/contracts/registry.ts` with a JSON fixture (`tests/fixtures/api/<service>/`), and `npm test` checks that:
-
-- the path exists in the service's pinned API spec (`tests/contracts/specs/`, see `manifest.json` for sources and versions);
-- every fixture, and every variant a test builds from it, validates against the spec's response schema, with unknown properties rejected;
-- the response types in `src/types/generated/` match the pinned spec, so plugins can only read fields the API declares;
-- the query parameters actually sent (including pagination) are declared by the spec, with the right types.
-
-Migrated plugins call their API through `this.api<paths>()`, typed from the same generated `paths`: an unknown endpoint, an unknown or mistyped parameter, a missing path parameter or an undeclared response field fails `tsc`. `npm run typecheck` (run in CI) also checks `tests/types/`, which pins those compile-time guarantees.
-
-Specs the upstream gets wrong are corrected with justified patches in `tests/contracts/overlays/<service>.json`. After changing a spec or an overlay, regenerate the types:
-
-```bash
-npm run contracts:types radarr
-```
-
 **GeoIP not working:**
 - Ensure `geoip.enabled: true` is set in your Tautulli configuration
 - Verify Tautulli is accessible and the API key is correct
@@ -610,11 +582,39 @@ src/
 
 ### Adding a New Input Plugin
 
-1. Create type definitions in `src/types/inputs/`
-2. Add Zod schema in `src/config/schemas/config.schema.ts`
-3. Create plugin in `src/plugins/inputs/`
-4. Register in `src/plugins/inputs/index.ts`
-5. Add tests in `tests/plugins/inputs/`
+1. Pin the service's API spec in `tests/contracts/specs/` (entry in `manifest.json`) and generate its response types: `npm run contracts:types <service>`
+2. Add the config type in `src/types/inputs/` and its Zod schema in `src/config/schemas/config.schema.ts`
+3. Create the plugin in `src/plugins/inputs/`, calling its API through `this.api<paths>()`
+4. Register it in `src/plugins/inputs/index.ts`
+5. Register each called endpoint with a fixture in `tests/contracts/registry.ts` and write the tests in `tests/plugins/inputs/` with `createContractHttpClient` (see [Contract tests](#contract-tests))
+
+### Integration tests
+
+A separate `npm run test:integration` target runs end-to-end tests against real services. Start the stack first (InfluxDB 2.x on port 8087 by default):
+
+```bash
+docker compose -f docker-compose.test.yaml --profile influxdb2 up -d
+npm run test:integration
+```
+
+Tests skip themselves automatically when a service isn't reachable, so the command is safe to run with or without containers up. Unit tests (`npm test`) are hermetic and never touch the integration folder.
+
+### Contract tests
+
+Input plugins migrated to contract tests (currently Radarr and Bazarr, the others follow) never hand-write API responses in their tests. Each endpoint such a plugin calls is registered in `tests/contracts/registry.ts` with a JSON fixture (`tests/fixtures/api/<service>/`), and `npm test` checks that:
+
+- the path exists in the service's pinned API spec (`tests/contracts/specs/`, see `manifest.json` for sources and versions);
+- every fixture, and every variant a test builds from it, validates against the spec's response schema, with unknown properties rejected;
+- the response types in `src/types/generated/` match the pinned spec, so plugins can only read fields the API declares;
+- the query parameters actually sent (including pagination) are declared by the spec, with the right types.
+
+Migrated plugins call their API through `this.api<paths>()` (or `this.api<paths>('/api')` when the spec's paths are relative to a base path, as Bazarr's are), typed from the same generated `paths`: an unknown endpoint, an unknown or mistyped parameter, a missing path parameter or an undeclared response field fails `tsc`. `npm run typecheck` (run in CI) also checks `tests/types/`, which pins those compile-time guarantees.
+
+Specs the upstream gets wrong or leaves incomplete are corrected with justified patches in `tests/contracts/overlays/<service>.json`, each linking its evidence. Bazarr publishes no static spec: its Swagger 2.0 document is captured from a running instance (served at `/api/swagger.json`), upgraded to OpenAPI 3.0 when loaded, and its response schemas, which the runtime spec omits, live in the overlay with links to the Bazarr models they come from. After changing a spec or an overlay, regenerate the types:
+
+```bash
+npm run contracts:types radarr
+```
 
 ### Pull Request Guidelines
 
