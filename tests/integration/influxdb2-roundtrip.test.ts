@@ -8,7 +8,6 @@ const endpoint = getInfluxDB2Endpoint();
 const available = await isServiceReachable(endpoint.url, endpoint.port);
 
 if (!available) {
-  // eslint-disable-next-line no-console
   console.warn(
     `[integration] InfluxDB 2.x not reachable at ${endpoint.url}:${endpoint.port} — ` +
       'run `docker compose -f docker-compose.test.yaml --profile influxdb2 up -d` to enable.'
