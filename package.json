@@ -11,6 +11,7 @@
     "clean": "rm -rf dist .reports node_modules logs data",
     "lint": "biome lint src/",
     "lint:fix": "biome lint --write src/",
+    "contracts:types": "tsx scripts/contracts/generate-types.ts",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:integration": "RUN_INTEGRATION=1 vitest run --config vitest.integration.config.ts",
