@@ -147,6 +147,71 @@ describe('EmbyPlugin', () => {
       expect(summary?.fields.stream_count).toBe(2);
       expect(summary?.fields.transcode_streams).toBe(1);
     });
+
+    it('defaults missing session metadata to unknown', async () => {
+      const bare = { Id: 'bare', NowPlayingItem: { Id: 'i', ServerId: 'srv' } } as unknown as EmbySession;
+      mockHttpClient.get.mockResolvedValueOnce({ data: [bare] });
+
+      const points = await plugin.collect();
+      const session = points.find((p) => p.tags.type === 'Session');
+
+      expect(session?.tags).toMatchObject({
+        ip_address: 'unknown',
+        username: 'unknown',
+        title: 'unknown',
+        product: 'unknown',
+        platform: 'unknown',
+        product_version: 'unknown',
+        quality: 'unknown',
+        video_decision: 'direct play',
+        media_type: 'unknown',
+        audio_codec: 'unknown',
+        player_state: 0,
+        play_method: 'unknown',
+      });
+      expect(session?.fields.progress_percent).toBe(0);
+    });
+
+    it('falls back to container quality, item name and item type for movies', async () => {
+      const movie = {
+        ...baseSession,
+        NowPlayingItem: { Id: 'm', ServerId: 'srv', Name: 'Heat', Type: 'Movie', Container: 'mkv' },
+      } as unknown as EmbySession;
+      mockHttpClient.get.mockResolvedValueOnce({ data: [movie] });
+
+      const points = await plugin.collect();
+      const session = points.find((p) => p.tags.type === 'Session');
+
+      expect(session?.tags.title).toBe('Heat');
+      expect(session?.tags.quality).toBe('MKV');
+      expect(session?.tags.media_type).toBe('Movie');
+    });
+
+    it('reports direct stream and transcode decisions with the audio codec', async () => {
+      const transcodingInfo = { AudioCodec: 'aac', IsVideoDirect: true };
+      const directStream = { ...baseSession, Id: 'ds', TranscodingInfo: transcodingInfo } as unknown as EmbySession;
+      const transcode = {
+        ...baseSession,
+        Id: 'tc',
+        TranscodingInfo: { ...transcodingInfo, IsVideoDirect: false },
+      } as unknown as EmbySession;
+      mockHttpClient.get.mockResolvedValueOnce({ data: [directStream, transcode] });
+
+      const points = await plugin.collect();
+      const sessions = points.filter((p) => p.tags.type === 'Session');
+
+      expect(sessions.map((p) => p.tags.video_decision)).toEqual(['direct stream', 'transcode']);
+      expect(sessions[0].tags.audio_codec).toBe('AAC');
+    });
+
+    it('emits only an empty summary when the sessions payload is null', async () => {
+      mockHttpClient.get.mockResolvedValueOnce({ data: null });
+
+      const points = await plugin.collect();
+
+      expect(points).toHaveLength(1);
+      expect(points[0].fields.stream_count).toBe(0);
+    });
   });
 
   describe('collect libraries', () => {
@@ -194,6 +259,25 @@ describe('EmbyPlugin', () => {
       const points = await plugin.collect();
       expect(points.filter((p) => p.tags.type === 'library_stats')).toHaveLength(1);
       expect(points.find((p) => p.tags.type === 'item_counts')).toBeUndefined();
+    });
+    it('defaults missing collection type and locations', async () => {
+      mockHttpClient.get
+        .mockResolvedValueOnce({ data: [{ Name: 'Mixed', LibraryOptions: {}, ItemId: 'x' }] })
+        .mockRejectedValueOnce(new Error('no counts'));
+
+      const points = await plugin.collect();
+      const lib = points.find((p) => p.tags.type === 'library_stats');
+
+      expect(lib?.tags.section_type).toBe('unknown');
+      expect(lib?.fields.locations).toBe(0);
+    });
+
+    it('emits no library points when the libraries payload is null', async () => {
+      mockHttpClient.get.mockResolvedValueOnce({ data: null }).mockRejectedValueOnce(new Error('no counts'));
+
+      const points = await plugin.collect();
+
+      expect(points.filter((p) => p.tags.type === 'library_stats')).toHaveLength(0);
     });
   });
 });
