@@ -1,7 +1,7 @@
 import { onTestFinished, vi } from 'vitest';
 import { createMockHttpClient, type MockHttpClient } from './http';
 import { findRoute, loadFixture, type ContractRoute } from '../contracts/registry';
-import { assertMatchesContract } from '../contracts/lib/validate';
+import { assertMatchesContract, assertRequestMatchesContract } from '../contracts/lib/validate';
 import type { ServiceId } from '../contracts/lib/spec';
 
 type Params = Record<string, unknown> | undefined;
@@ -43,6 +43,7 @@ export function createContractHttpClient(service: ServiceId): ContractHttpClient
     let route: ContractRoute;
     try {
       route = routeFor(path);
+      assertRequestMatchesContract(service, 'get', path, params);
     } catch (error) {
       violations.push((error as Error).message);
       throw error;

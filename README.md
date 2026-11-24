@@ -549,7 +549,10 @@ Input plugins migrated to contract tests (currently Radarr, the others follow) n
 
 - the path exists in the service's pinned API spec (`tests/contracts/specs/`, see `manifest.json` for sources and versions);
 - every fixture, and every variant a test builds from it, validates against the spec's response schema, with unknown properties rejected;
-- the response types in `src/types/generated/` match the pinned spec, so plugins can only read fields the API declares.
+- the response types in `src/types/generated/` match the pinned spec, so plugins can only read fields the API declares;
+- the query parameters actually sent (including pagination) are declared by the spec, with the right types.
+
+Migrated plugins call their API through `this.api<paths>()`, typed from the same generated `paths`: an unknown endpoint, an unknown or mistyped parameter, a missing path parameter or an undeclared response field fails `tsc`. `npm run typecheck` (run in CI) also checks `tests/types/`, which pins those compile-time guarantees.
 
 Specs the upstream gets wrong are corrected with justified patches in `tests/contracts/overlays/<service>.json`. After changing a spec or an overlay, regenerate the types:
 

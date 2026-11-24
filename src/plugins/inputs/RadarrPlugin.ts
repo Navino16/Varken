@@ -2,10 +2,7 @@ import { BaseInputPlugin } from './BaseInputPlugin';
 import { PROTOCOL_ID } from './constants';
 import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
 import type { RadarrConfig } from '../../types/inputs/radarr.types';
-import type { components, paths } from '../../types/generated/radarr';
-import type { JsonResponse } from '../../types/api-response';
-
-type QueueResource = components['schemas']['QueueResource'];
+import type { paths } from '../../types/generated/radarr';
 
 /**
  * Radarr input plugin
@@ -17,6 +14,8 @@ export class RadarrPlugin extends BaseInputPlugin<RadarrConfig> {
     version: '1.0.0',
     description: 'Collects queue and missing movies data from Radarr',
   };
+
+  private readonly radarr = this.api<paths>();
 
   /**
    * Initialize the plugin and configure the HTTP client with API key header
@@ -80,9 +79,8 @@ export class RadarrPlugin extends BaseInputPlugin<RadarrConfig> {
   private async collectQueue(): Promise<DataPoint[]> {
     return this.safeFetch('collect Radarr queue', async () => {
       const points: DataPoint[] = [];
-      const allRecords = await this.fetchAllPages<QueueResource>('/api/v3/queue', {
-        includeMovie: true,
-        includeUnknownMovieItems: false,
+      const allRecords = await this.radarr.getAllPages('/api/v3/queue', {
+        query: { includeMovie: true, includeUnknownMovieItems: false },
       });
 
       if (allRecords.length === 0) {
@@ -135,7 +133,7 @@ export class RadarrPlugin extends BaseInputPlugin<RadarrConfig> {
   private async collectMissing(): Promise<DataPoint[]> {
     return this.safeFetch('collect Radarr missing movies', async () => {
       const points: DataPoint[] = [];
-      const movies = await this.httpGet<JsonResponse<paths, '/api/v3/movie'>>('/api/v3/movie');
+      const movies = await this.radarr.get('/api/v3/movie');
 
       if (!movies || movies.length === 0) {
         this.logger.debug('No movies found in Radarr');

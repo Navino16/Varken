@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import type { Contract, OpenApiDocument } from './spec';
-import { findOperation, validateAgainstContract, validateResponse } from './validate';
+import { findOperation, validateAgainstContract, validateRequestParams, validateResponse } from './validate';
 
 function contract(
   paths: OpenApiDocument['paths'],
@@ -263,5 +263,58 @@ describe('validateResponse', () => {
     const errors = validateResponse('radarr', 'get', '/api/v3/movie', [{ id: 1, raw_timestamp: 2 }]);
 
     expect(errors.join()).toContain('raw_timestamp');
+  });
+});
+
+describe('validateRequestParams', () => {
+  const c = contract(
+    {
+      '/a': {
+        parameters: [{ $ref: '#/components/parameters/Lang' }],
+        get: {
+          parameters: [
+            { name: 'page', in: 'query', schema: { type: 'integer' } },
+            { name: 'ids', in: 'query', schema: { type: 'array', items: { type: 'integer' } } },
+            { name: 'kind', in: 'query', required: true, schema: { type: 'string', enum: ['movie', 'show'] } },
+            { name: 'X-Trace', in: 'header', schema: { type: 'string' } },
+          ],
+          responses: { 200: { content: { 'application/json': { schema: objectWithId } } } },
+        },
+      },
+    },
+    {}
+  );
+  c.spec.components = { ...c.spec.components, parameters: { Lang: { name: 'lang', in: 'query', schema: { type: 'string' } } } } as never;
+
+  it('accepts declared query parameters with valid values', () => {
+    expect(validateRequestParams(c, 'get', '/a', { kind: 'movie', page: 2, ids: [1, 2], lang: 'en' })).toEqual([]);
+  });
+
+  it('ignores parameters whose value is undefined', () => {
+    expect(validateRequestParams(c, 'get', '/a', { kind: 'movie', page: undefined })).toEqual([]);
+  });
+
+  it('rejects unknown query parameters', () => {
+    expect(validateRequestParams(c, 'get', '/a', { kind: 'movie', pages: 2 })).toEqual([
+      'unknown query parameter "pages" for GET /a',
+    ]);
+  });
+
+  it('rejects query parameter values of the wrong type', () => {
+    expect(validateRequestParams(c, 'get', '/a', { kind: 'film', page: 'two' }).join()).toMatch(/kind.*page|page.*kind/s);
+  });
+
+  it('reports missing required query parameters', () => {
+    expect(validateRequestParams(c, 'get', '/a', {})).toEqual(['missing required query parameter "kind" for GET /a']);
+  });
+
+  it('checks parameters embedded in the path', () => {
+    expect(validateRequestParams(c, 'get', '/a?kind=movie&bogus=1', undefined)).toEqual([
+      'unknown query parameter "bogus" for GET /a',
+    ]);
+  });
+
+  it('reports a missing operation', () => {
+    expect(validateRequestParams(c, 'get', '/nope', {})).toEqual(['no GET operation for /nope']);
   });
 });

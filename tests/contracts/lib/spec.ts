@@ -19,7 +19,7 @@ export interface ManifestEntry {
 export interface OpenApiDocument {
   openapi: string;
   paths: Record<string, Record<string, unknown>>;
-  components?: { schemas?: Record<string, unknown> };
+  components?: { schemas?: Record<string, unknown>; parameters?: Record<string, unknown> };
 }
 
 export interface Contract {

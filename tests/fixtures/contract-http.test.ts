@@ -24,7 +24,7 @@ describe('createContractHttpClient', () => {
   it('matches paths that carry a query string', async () => {
     const client = createContractHttpClient('radarr');
 
-    await expect(client.get('/api/v3/movie?x=1')).resolves.toEqual({ data: loadFixture('radarr/movie') });
+    await expect(client.get('/api/v3/movie?tmdbId=949')).resolves.toEqual({ data: loadFixture('radarr/movie') });
   });
 
   it('throws on unregistered paths', async () => {
@@ -99,11 +99,26 @@ describe('createContractHttpClient', () => {
     expect(() => client.fail('/api/v3/nope', new Error('x'))).toThrow(/No contract route/);
   });
 
+  it('rejects unknown query parameters at call time', async () => {
+    const client = createContractHttpClient('radarr');
+
+    await expect(client.get('/api/v3/movie', { params: { bogus: 1 } })).rejects.toThrow(/unknown query parameter "bogus"/);
+    expect(client.takeViolations()).toHaveLength(1);
+  });
+
+  it('accepts declared query parameters', async () => {
+    const client = createContractHttpClient('radarr');
+
+    await expect(
+      client.get('/api/v3/queue', { params: { page: 1, pageSize: 10, includeMovie: true } })
+    ).resolves.toMatchObject({ data: { page: 1 } });
+  });
+
   it('records calls for assertions', async () => {
     const client = createContractHttpClient('radarr');
-    await client.get('/api/v3/movie', { params: { a: 1 } });
+    await client.get('/api/v3/movie', { params: { tmdbId: 1 } });
 
-    expect(client.get).toHaveBeenCalledWith('/api/v3/movie', { params: { a: 1 } });
+    expect(client.get).toHaveBeenCalledWith('/api/v3/movie', { params: { tmdbId: 1 } });
   });
 });
 

@@ -231,6 +231,96 @@ export function validateAgainstContract(
   return validate(body) ? [] : (validate.errors ?? []).map(formatError);
 }
 
+interface QueryParameter {
+  name: string;
+  required: boolean;
+  schema: unknown;
+}
+
+function declaredQueryParameters(contract: Contract, match: OperationMatch): QueryParameter[] {
+  const resolve = (parameter: unknown): Schema | undefined => {
+    if (!isSchema(parameter)) {
+      return undefined;
+    }
+    const ref = parameter.$ref;
+    if (typeof ref === 'string' && ref.startsWith('#/components/parameters/')) {
+      return resolve(contract.spec.components?.parameters?.[ref.slice('#/components/parameters/'.length)]);
+    }
+    return parameter;
+  };
+  const pathItem = contract.spec.paths[match.specPath] as Schema;
+  const all = [pathItem.parameters, match.operation.parameters].flatMap((list) => (Array.isArray(list) ? list : []));
+  return all
+    .map(resolve)
+    .filter((p): p is Schema => p?.in === 'query' && typeof p.name === 'string')
+    .map((p) => ({ name: p.name as string, required: p.required === true, schema: p.schema ?? {} }));
+}
+
+function embeddedQuery(calledPath: string): Record<string, unknown> {
+  const index = calledPath.indexOf('?');
+  return index === -1 ? {} : Object.fromEntries(new URLSearchParams(calledPath.slice(index + 1)).keys().map((k) => [k, undefined]));
+}
+
+export function validateRequestParams(
+  contract: Contract,
+  method: 'get',
+  calledPath: string,
+  params: Record<string, unknown> | undefined
+): string[] {
+  const match = findOperation(contract, method, calledPath);
+  if (!match) {
+    return [`no ${method.toUpperCase()} operation for ${stripQuery(calledPath)}`];
+  }
+  const where = `${method.toUpperCase()} ${match.specPath}`;
+  const declared = new Map(declaredQueryParameters(contract, match).map((p) => [p.name, p]));
+  const embedded = embeddedQuery(calledPath);
+  const sent = Object.entries({ ...embedded, ...params });
+  const errors: string[] = [];
+
+  for (const [name, value] of sent) {
+    const parameter = declared.get(name);
+    if (!parameter) {
+      errors.push(`unknown query parameter "${name}" for ${where}`);
+      continue;
+    }
+    if (value === undefined) {
+      continue;
+    }
+    const { ajv, validators } = getCompiled(contract);
+    const key = `${match.specPath}?${name}`;
+    let validate = validators.get(key);
+    if (!validate) {
+      const converted = toJsonSchema(contract, parameter.schema);
+      strictify(converted, false);
+      rewriteRefs(converted, contractId(contract));
+      validate = ajv.compile(converted);
+      validators.set(key, validate);
+    }
+    if (!validate(value)) {
+      errors.push(...(validate.errors ?? []).map((e) => `query parameter "${name}" ${formatError(e).replace(/^\/ /, '')}`));
+    }
+  }
+  for (const parameter of declared.values()) {
+    const value = (params ?? {})[parameter.name];
+    if (parameter.required && value === undefined && !(parameter.name in embedded)) {
+      errors.push(`missing required query parameter "${parameter.name}" for ${where}`);
+    }
+  }
+  return errors;
+}
+
+export function assertRequestMatchesContract(
+  service: ServiceId,
+  method: 'get',
+  calledPath: string,
+  params: Record<string, unknown> | undefined
+): void {
+  const errors = validateRequestParams(loadContract(service), method, calledPath, params);
+  if (errors.length > 0) {
+    throw new Error(`Request GET ${calledPath} breaks the ${service} contract:\n  ${errors.join('\n  ')}`);
+  }
+}
+
 export function validateResponse(service: ServiceId, method: 'get', calledPath: string, body: unknown): string[] {
   return validateAgainstContract(loadContract(service), method, calledPath, body);
 }
