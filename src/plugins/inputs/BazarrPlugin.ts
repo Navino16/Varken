@@ -169,7 +169,7 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
       const points: DataPoint[] = [];
       // Collect movie history
       const moviesResponse = await this.httpGet<BazarrMovieHistoryResponse>(
-        '/api/history/movies',
+        '/api/movies/history',
         { length: 100 }
       );
 
@@ -177,7 +177,9 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
 
       for (const item of movieHistory) {
         const name = `${item.title} - ${item.language.name}`;
-        const hashId = this.hashit(`${this.config.id}${item.id}${item.raw_timestamp}`);
+        const hashId = this.hashit(
+          `${this.config.id}${item.radarrId}${item.language.code3}${item.action}${item.parsed_timestamp}`
+        );
 
         points.push(
           this.createDataPoint(
@@ -198,14 +200,14 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
               hash: hashId,
               score: item.score || '',
             },
-            new Date(item.raw_timestamp * 1000)
+            this.parseHistoryTimestamp(item.parsed_timestamp)
           )
         );
       }
 
       // Collect series history
       const seriesResponse = await this.httpGet<BazarrSeriesHistoryResponse>(
-        '/api/history/series',
+        '/api/episodes/history',
         { length: 100 }
       );
 
@@ -213,7 +215,9 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
 
       for (const item of seriesHistory) {
         const name = `${item.seriesTitle} - ${item.episode_number} - ${item.language.name}`;
-        const hashId = this.hashit(`${this.config.id}${item.id}${item.raw_timestamp}`);
+        const hashId = this.hashit(
+          `${this.config.id}${item.sonarrEpisodeId}${item.language.code3}${item.action}${item.parsed_timestamp}`
+        );
 
         points.push(
           this.createDataPoint(
@@ -236,7 +240,7 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
               hash: hashId,
               score: item.score || '',
             },
-            new Date(item.raw_timestamp * 1000)
+            this.parseHistoryTimestamp(item.parsed_timestamp)
           )
         );
       }
@@ -244,5 +248,19 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
       this.logger.info(`Collected ${points.length} history items from Bazarr`);
       return points;
     });
+  }
+
+  /**
+   * Bazarr formats history dates with strftime('%x %X') in its own local time.
+   * Only the default C locale layout (MM/DD/YY HH:MM:SS) is parsed; anything else falls back to now.
+   */
+  private parseHistoryTimestamp(parsed: string | undefined): Date {
+    const match = parsed?.match(/^(\d{2})\/(\d{2})\/(\d{2}|\d{4}) (\d{2}):(\d{2}):(\d{2})$/);
+    if (!match) {
+      return new Date();
+    }
+    const [, month, day, year, hours, minutes, seconds] = match.map(Number);
+    const fullYear = year < 100 ? 2000 + year : year;
+    return new Date(fullYear, month - 1, day, hours, minutes, seconds);
   }
 }

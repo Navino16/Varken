@@ -40,7 +40,7 @@ export interface BazarrWantedEpisode {
   failedAttempts?: string;
 }
 
-export interface BazarrMissingSubtitle {
+export interface BazarrLanguage {
   name: string;
   code2: string;
   code3: string;
@@ -48,40 +48,40 @@ export interface BazarrMissingSubtitle {
   hi: boolean;
 }
 
-// API Response Types - /api/history/movies
+export type BazarrMissingSubtitle = BazarrLanguage;
+
+// API Response Types - /api/movies/history (Bazarr 1.x): no id nor raw timestamp,
+// `timestamp` is humanized ("2 hours ago") and `parsed_timestamp` is strftime('%x %X')
 export interface BazarrMovieHistory {
-  id: number;
   radarrId: number;
   title: string;
-  language: { name: string; code2: string; code3: string };
+  language: BazarrLanguage;
   provider: string;
   score?: string;
   subs_id?: string;
   description: string;
   timestamp: string;
+  parsed_timestamp?: string;
   action: number;
-  video_path?: string;
   subtitles_path?: string;
-  raw_timestamp: number;
 }
 
-// API Response Types - /api/history/series
+// API Response Types - /api/episodes/history
 export interface BazarrSeriesHistory {
-  id: number;
   sonarrSeriesId: number;
   sonarrEpisodeId: number;
   seriesTitle: string;
   episode_number: string;
-  language: { name: string; code2: string; code3: string };
+  episodeTitle?: string;
+  language: BazarrLanguage;
   provider: string;
   score?: string;
   subs_id?: string;
   description: string;
   timestamp: string;
+  parsed_timestamp?: string;
   action: number;
-  video_path?: string;
   subtitles_path?: string;
-  raw_timestamp: number;
 }
 
 // API Response Types - /api/system/health
