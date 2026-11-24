@@ -1,69 +1,51 @@
-import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
-import { ReadarrPlugin } from '../../../src/plugins/inputs/ReadarrPlugin';
-import { ReadarrConfig } from '../../../src/types/inputs/readarr.types';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import axios from 'axios';
+import { ReadarrPlugin } from '../../../src/plugins/inputs/ReadarrPlugin';
+import { PROTOCOL_ID } from '../../../src/plugins/inputs/constants';
+import type { ReadarrConfig } from '../../../src/types/inputs/readarr.types';
+import type { components } from '../../../src/types/generated/readarr';
+import type { DataPoint } from '../../../src/types/plugin.types';
+import { createContractHttpClient, type ContractHttpClient } from '../../fixtures/contract-http';
+import { loadFixture } from '../../contracts/registry';
 
-// Mock the logger
-vi.mock('../../../src/core/Logger', () => ({
-  createLogger: () => ({
-    info: vi.fn(),
-    debug: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  }),
-  withContext: (logger: unknown) => logger,
-}));
+vi.mock('../../../src/core/Logger', async () => {
+  const { loggerMock } = await import('../../fixtures/logger');
+  return loggerMock();
+});
 
-// Mock axios
-vi.mock('axios', () => ({
-  default: {
-    create: vi.fn(() => ({
-      get: vi.fn(),
-      defaults: {
-        headers: {
-          common: {},
-        },
-      },
-    })),
-  },
-}));
+vi.mock('axios', () => ({ default: { create: vi.fn() } }));
+
+type QueuePage = components['schemas']['QueueResourcePagingResource'];
+type QueueRecord = components['schemas']['QueueResource'];
+type BookPage = components['schemas']['BookResourcePagingResource'];
+
+const queueRecords = (): QueueRecord[] => loadFixture<QueuePage>('readarr/queue').records ?? [];
+const missingBooks = (): BookPage => loadFixture<BookPage>('readarr/wanted-missing');
+const page = (records: QueueRecord[] | null, totalRecords = records?.length ?? 0): QueuePage => ({
+  page: 1,
+  pageSize: 10,
+  totalRecords,
+  records,
+});
 
 describe('ReadarrPlugin', () => {
   let plugin: ReadarrPlugin;
-  let mockHttpClient: { get: Mock; defaults: { headers: { common: Record<string, string> } } };
+  let client: ContractHttpClient;
 
   const testConfig: ReadarrConfig = {
     id: 1,
     url: 'http://localhost:8787',
     apiKey: 'readarr-api-key',
     verifySsl: false,
-    queue: {
-      enabled: true,
-      intervalSeconds: 30,
-    },
-    missing: {
-      enabled: true,
-      intervalSeconds: 300,
-    },
+    queue: { enabled: true, intervalSeconds: 30 },
+    missing: { enabled: true, intervalSeconds: 300 },
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
     plugin = new ReadarrPlugin();
-
-    mockHttpClient = {
-      get: vi.fn(),
-      defaults: {
-        headers: {
-          common: {},
-        },
-      },
-      interceptors: {
-        response: { use: vi.fn() },
-        request: { use: vi.fn() },
-      },
-    };
-    (axios.create as Mock).mockReturnValue(mockHttpClient);
+    client = createContractHttpClient('readarr');
+    (axios.create as Mock).mockReturnValue(client);
   });
 
   describe('metadata', () => {
@@ -74,47 +56,46 @@ describe('ReadarrPlugin', () => {
     });
   });
 
+  describe('health', () => {
+    it('should return the correct health endpoint', () => {
+      const endpoint = (plugin as unknown as { getHealthEndpoint: () => string }).getHealthEndpoint();
+      expect(endpoint).toBe('/api/v1/system/status');
+    });
+
+    it('should pass the health check against the contract route', async () => {
+      await plugin.initialize(testConfig);
+
+      await expect(plugin.healthCheck()).resolves.toBe(true);
+    });
+  });
+
   describe('initialize', () => {
     it('should initialize with API key header', async () => {
       await plugin.initialize(testConfig);
-      expect(mockHttpClient.defaults.headers.common['X-Api-Key']).toBe('readarr-api-key');
+      expect(client.defaults.headers.common['X-Api-Key']).toBe('readarr-api-key');
     });
   });
 
   describe('getSchedules', () => {
     it('should return schedules for enabled collectors', async () => {
       await plugin.initialize(testConfig);
-      const schedules = plugin.getSchedules();
 
-      expect(schedules.length).toBe(2);
-      expect(schedules[0].name).toBe('Readarr_1_queue');
-      expect(schedules[0].intervalSeconds).toBe(30);
-      expect(schedules[1].name).toBe('Readarr_1_missing');
-      expect(schedules[1].intervalSeconds).toBe(300);
+      expect(plugin.getSchedules().map((s) => [s.name, s.intervalSeconds])).toEqual([
+        ['Readarr_1_queue', 30],
+        ['Readarr_1_missing', 300],
+      ]);
     });
 
     it('should only return queue schedule when missing is disabled', async () => {
-      const configWithoutMissing = {
-        ...testConfig,
-        missing: { ...testConfig.missing, enabled: false },
-      };
-      await plugin.initialize(configWithoutMissing);
-      const schedules = plugin.getSchedules();
+      await plugin.initialize({ ...testConfig, missing: { ...testConfig.missing, enabled: false } });
 
-      expect(schedules.length).toBe(1);
-      expect(schedules[0].name).toBe('Readarr_1_queue');
+      expect(plugin.getSchedules().map((s) => s.name)).toEqual(['Readarr_1_queue']);
     });
 
     it('should only return missing schedule when queue is disabled', async () => {
-      const configWithoutQueue = {
-        ...testConfig,
-        queue: { ...testConfig.queue, enabled: false },
-      };
-      await plugin.initialize(configWithoutQueue);
-      const schedules = plugin.getSchedules();
+      await plugin.initialize({ ...testConfig, queue: { ...testConfig.queue, enabled: false } });
 
-      expect(schedules.length).toBe(1);
-      expect(schedules[0].name).toBe('Readarr_1_missing');
+      expect(plugin.getSchedules().map((s) => s.name)).toEqual(['Readarr_1_missing']);
     });
   });
 
@@ -123,309 +104,144 @@ describe('ReadarrPlugin', () => {
       await plugin.initialize(testConfig);
     });
 
-    it('should collect queue data', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          page: 1,
-          pageSize: 250,
-          totalRecords: 1,
-          records: [
-            {
-              id: 1,
-              bookId: 100,
-              protocol: 'usenet',
-              quality: { quality: { name: 'EPUB' } },
-              book: {
-                title: 'The Hobbit',
-                titleSlug: 'the-hobbit',
-              },
-              author: {
-                authorName: 'J.R.R. Tolkien',
-              },
-            },
-          ],
-        },
-      });
+    const ofType = async (type: string): Promise<DataPoint[]> =>
+      (await plugin.collect()).filter((p) => p.tags.type === type);
 
-      // Mock empty missing books
-      mockHttpClient.get.mockResolvedValueOnce({ data: { totalRecords: 0, records: [] } });
+    it('collects queue items from the queue fixture', async () => {
+      const points = await ofType('Queue');
 
-      const points = await plugin.collect();
-
-      expect(points.length).toBeGreaterThan(0);
-      const queuePoint = points.find((p) => p.tags.type === 'Queue');
-      expect(queuePoint).toBeDefined();
-      expect(queuePoint?.tags.name).toBe('The Hobbit - J.R.R. Tolkien');
-      expect(queuePoint?.tags.protocol).toBe('USENET');
-      expect(queuePoint?.tags.quality).toBe('EPUB');
-      expect(queuePoint?.tags.titleSlug).toBe('the-hobbit');
+      expect(points.map((p) => [p.tags.name, p.tags.quality, p.tags.bookId])).toEqual([
+        ['The Dispossessed - Ursula K. Le Guin', 'EPUB', 11],
+        ['Dune - Frank Herbert', 'MOBI', 21],
+      ]);
     });
 
-    it('should set protocol_id correctly for usenet', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          totalRecords: 1,
-          records: [
-            {
-              id: 1,
-              bookId: 100,
-              protocol: 'usenet',
-              quality: { quality: { name: 'EPUB' } },
-              book: { title: 'Test Book', titleSlug: 'test-book' },
-              author: { authorName: 'Test Author' },
-            },
-          ],
-        },
-      });
-      mockHttpClient.get.mockResolvedValueOnce({ data: { totalRecords: 0, records: [] } });
+    it('maps protocol ids', async () => {
+      const points = await ofType('Queue');
 
-      const points = await plugin.collect();
-      const queuePoint = points.find((p) => p.tags.type === 'Queue');
-      expect(queuePoint?.tags.protocol_id).toBe(1);
+      expect(points.map((p) => [p.tags.protocol, p.tags.protocol_id])).toEqual([
+        ['TORRENT', PROTOCOL_ID.TORRENT],
+        ['USENET', PROTOCOL_ID.USENET],
+      ]);
     });
 
-    it('should set protocol_id correctly for torrent', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          totalRecords: 1,
-          records: [
-            {
-              id: 1,
-              bookId: 100,
-              protocol: 'torrent',
-              quality: { quality: { name: 'MOBI' } },
-              book: { title: 'Test Book', titleSlug: 'test-book' },
-              author: { authorName: 'Test Author' },
-            },
-          ],
-        },
-      });
-      mockHttpClient.get.mockResolvedValueOnce({ data: { totalRecords: 0, records: [] } });
+    it('falls back when the queue author is missing', async () => {
+      const { author: _author, ...withoutAuthor } = queueRecords()[0];
+      client.override('/api/v1/queue', page([withoutAuthor]));
 
-      const points = await plugin.collect();
-      const queuePoint = points.find((p) => p.tags.type === 'Queue');
-      expect(queuePoint?.tags.protocol_id).toBe(0);
+      expect((await ofType('Queue'))[0].tags.name).toBe('The Dispossessed - Unknown Author');
     });
 
-    it('should handle missing author name', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          totalRecords: 1,
-          records: [
-            {
-              id: 1,
-              bookId: 100,
-              protocol: 'usenet',
-              quality: { quality: { name: 'EPUB' } },
-              book: { title: 'Unknown Book', titleSlug: 'unknown-book' },
-              author: null,
-            },
-          ],
-        },
-      });
-      mockHttpClient.get.mockResolvedValueOnce({ data: { totalRecords: 0, records: [] } });
+    it('skips queue items without book data', async () => {
+      const [first, second] = queueRecords();
+      const { book: _book, ...withoutBook } = first;
+      client.override('/api/v1/queue', page([withoutBook, second]));
 
-      const points = await plugin.collect();
-      const queuePoint = points.find((p) => p.tags.type === 'Queue');
-      expect(queuePoint?.tags.name).toBe('Unknown Book - Unknown Author');
+      expect((await ofType('Queue')).map((p) => p.tags.name)).toEqual(['Dune - Frank Herbert']);
     });
 
-    it('should collect missing books', async () => {
-      // Mock empty queue
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { totalRecords: 0, records: [] },
-      });
+    it('falls back when optional queue fields are missing', async () => {
+      const { quality: _quality, protocol: _protocol, ...bare } = queueRecords()[0];
+      client.override('/api/v1/queue', page([bare]));
 
-      // Mock missing books
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          totalRecords: 2,
-          records: [
-            {
-              id: 1,
-              foreignBookId: 'abc123',
-              title: '1984',
-              titleSlug: '1984',
-              author: {
-                authorName: 'George Orwell',
-              },
-            },
-            {
-              id: 2,
-              foreignBookId: 'def456',
-              title: 'Animal Farm',
-              titleSlug: 'animal-farm',
-              author: {
-                authorName: 'George Orwell',
-              },
-            },
-          ],
-        },
-      });
+      const [point] = await ofType('Queue');
 
-      const points = await plugin.collect();
-
-      const missingPoints = points.filter((p) => p.tags.type === 'Missing');
-      expect(missingPoints.length).toBe(2);
-
-      const book1984 = missingPoints.find((p) => p.tags.name === '1984 - George Orwell');
-      expect(book1984).toBeDefined();
-      expect(book1984?.tags.foreignBookId).toBe('abc123');
-
-      const animalFarm = missingPoints.find((p) => p.tags.name === 'Animal Farm - George Orwell');
-      expect(animalFarm).toBeDefined();
+      expect([point.tags.quality, point.tags.protocol, point.tags.protocol_id]).toEqual([
+        'Unknown',
+        'UNKNOWN',
+        PROTOCOL_ID.TORRENT,
+      ]);
     });
 
-    it('should handle missing author in missing books', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { totalRecords: 0, records: [] },
-      });
+    it('handles an empty queue', async () => {
+      client.override('/api/v1/queue', page([]));
 
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          totalRecords: 1,
-          records: [
-            {
-              id: 1,
-              foreignBookId: 'xyz789',
-              title: 'Mystery Book',
-              titleSlug: 'mystery-book',
-              author: null,
-            },
-          ],
-        },
-      });
-
-      const points = await plugin.collect();
-
-      const missingPoints = points.filter((p) => p.tags.type === 'Missing');
-      expect(missingPoints.length).toBe(1);
-      expect(missingPoints[0].tags.name).toBe('Mystery Book - Unknown Author');
+      expect(await ofType('Queue')).toEqual([]);
     });
 
-    it('should handle empty queue gracefully', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { totalRecords: 0, records: [] },
-      });
-      mockHttpClient.get.mockResolvedValueOnce({ data: { totalRecords: 0, records: [] } });
+    it('handles null records in a queue page', async () => {
+      client.override('/api/v1/queue', page(null));
 
-      const points = await plugin.collect();
-      expect(points).toEqual([]);
+      expect(await ofType('Queue')).toEqual([]);
     });
 
-    it('should propagate API errors for circuit breaker', async () => {
-      mockHttpClient.get.mockRejectedValueOnce(new Error('API Error'));
+    it('requests the queue with unknown author items excluded', async () => {
+      await ofType('Queue');
 
-      await expect(plugin.collect()).rejects.toThrow('API Error');
+      const [, config] = (client.get as Mock).mock.calls.find(([path]) => path === '/api/v1/queue') ?? [];
+      expect(config.params).toMatchObject({ includeUnknownAuthorItems: false, includeBook: true, includeAuthor: true });
+      expect(config.params).not.toHaveProperty('includeUnknownBookItems');
     });
 
-    it('should skip queue items without book data', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          totalRecords: 2,
-          records: [
-            {
-              id: 1,
-              bookId: 100,
-              protocol: 'usenet',
-              quality: { quality: { name: 'EPUB' } },
-              book: null, // Missing book data
-              author: { authorName: 'Author' },
-            },
-            {
-              id: 2,
-              bookId: 101,
-              protocol: 'usenet',
-              quality: { quality: { name: 'EPUB' } },
-              book: { title: 'Valid Book', titleSlug: 'valid-book' },
-              author: { authorName: 'Valid Author' },
-            },
-          ],
-        },
-      });
-      mockHttpClient.get.mockResolvedValueOnce({ data: { totalRecords: 0, records: [] } });
-
-      const points = await plugin.collect();
-
-      const queuePoints = points.filter((p) => p.tags.type === 'Queue');
-      expect(queuePoints.length).toBe(1);
-      expect(queuePoints[0].tags.name).toBe('Valid Book - Valid Author');
+    it('tags queue items with the book title slug', async () => {
+      expect((await ofType('Queue')).map((p) => p.tags.titleSlug)).toEqual(['13651-the-dispossessed', '44767458-dune']);
     });
 
-    it('should paginate through large queues', async () => {
-      // First page
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          page: 1,
-          pageSize: 250,
-          totalRecords: 2,
-          records: [
-            {
-              id: 1,
-              bookId: 100,
-              protocol: 'torrent',
-              quality: { quality: { name: 'EPUB' } },
-              book: { title: 'Book 1', titleSlug: 'book-1' },
-              author: { authorName: 'Author 1' },
-            },
-          ],
-        },
-      });
+    it('paginates through large queues', async () => {
+      const records = queueRecords();
+      client.override('/api/v1/queue', (params) => page([records[Number(params?.page) - 1]], 2));
 
-      // Second page
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          page: 2,
-          pageSize: 250,
-          totalRecords: 2,
-          records: [
-            {
-              id: 2,
-              bookId: 101,
-              protocol: 'usenet',
-              quality: { quality: { name: 'MOBI' } },
-              book: { title: 'Book 2', titleSlug: 'book-2' },
-              author: { authorName: 'Author 2' },
-            },
-          ],
-        },
-      });
-
-      // Missing books mock
-      mockHttpClient.get.mockResolvedValueOnce({ data: { totalRecords: 0, records: [] } });
-
-      const points = await plugin.collect();
-
-      const queuePoints = points.filter((p) => p.tags.type === 'Queue');
-      expect(queuePoints.length).toBe(2);
+      expect(await ofType('Queue')).toHaveLength(2);
+      expect(client.get).toHaveBeenCalledWith('/api/v1/queue', { params: expect.objectContaining({ page: 1 }) });
+      expect(client.get).toHaveBeenCalledWith('/api/v1/queue', { params: expect.objectContaining({ page: 2 }) });
     });
 
-    it('should generate deterministic hash IDs', async () => {
-      const bookData = {
-        id: 1,
-        bookId: 100,
-        protocol: 'usenet',
-        quality: { quality: { name: 'EPUB' } },
-        book: { title: 'Test Book', titleSlug: 'test-book' },
-        author: { authorName: 'Test Author' },
-      };
+    it('requests missing books with their author', async () => {
+      const points = await ofType('Missing');
 
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { totalRecords: 1, records: [bookData] },
+      expect(client.get).toHaveBeenCalledWith('/api/v1/wanted/missing', {
+        params: expect.objectContaining({ includeAuthor: true, monitored: true }),
       });
-      mockHttpClient.get.mockResolvedValueOnce({ data: { totalRecords: 0, records: [] } });
+      expect(points.map((p) => p.tags.name)).toEqual([
+        'Exhalation - Ted Chiang',
+        'Children of Dune - Frank Herbert',
+        'The Left Hand of Darkness - Ursula K. Le Guin',
+      ]);
+      expect(points[2].tags).toMatchObject({ bookId: 12, foreignBookId: '18423', titleSlug: '18423-the-left-hand-of-darkness' });
+    });
 
-      const points1 = await plugin.collect();
+    it('falls back when a missing book has no author', async () => {
+      const [first] = missingBooks().records ?? [];
+      const { author: _author, ...withoutAuthor } = first;
+      client.override('/api/v1/wanted/missing', { ...missingBooks(), totalRecords: 1, records: [withoutAuthor] });
 
-      // Collect again with same data
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { totalRecords: 1, records: [bookData] },
-      });
-      mockHttpClient.get.mockResolvedValueOnce({ data: { totalRecords: 0, records: [] } });
+      expect((await ofType('Missing'))[0].tags.name).toBe('Exhalation - Unknown Author');
+    });
 
-      const points2 = await plugin.collect();
+    it('handles no missing books', async () => {
+      client.override('/api/v1/wanted/missing', { ...missingBooks(), totalRecords: 0, records: [] });
 
-      expect(points1[0].fields.hash).toBe(points2[0].fields.hash);
+      expect(await ofType('Missing')).toEqual([]);
+    });
+
+    it('falls back when a missing book has no title or id', async () => {
+      const [first] = missingBooks().records ?? [];
+      const { title: _title, foreignBookId: _id, ...untitled } = first;
+      client.override('/api/v1/wanted/missing', { ...missingBooks(), totalRecords: 1, records: [untitled] });
+
+      const [point] = await ofType('Missing');
+
+      expect(point.tags.name).toMatch(/^unknown - /);
+      expect(point.tags.foreignBookId).toBe('unknown');
+    });
+
+    it('propagates queue API errors for the circuit breaker', async () => {
+      client.fail('/api/v1/queue', new Error('Queue API Error'));
+
+      await expect(plugin.collect()).rejects.toThrow('Queue API Error');
+    });
+
+    it('propagates missing books API errors for the circuit breaker', async () => {
+      client.fail('/api/v1/wanted/missing', new Error('Missing API Error'));
+
+      await expect(plugin.collect()).rejects.toThrow('Missing API Error');
+    });
+
+    it('generates deterministic hash ids', async () => {
+      const first = (await plugin.collect()).map((p) => p.fields.hash);
+      const second = (await plugin.collect()).map((p) => p.fields.hash);
+
+      expect(second).toEqual(first);
     });
   });
 

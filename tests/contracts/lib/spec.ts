@@ -4,7 +4,7 @@ import path from 'node:path';
 import { upgradeFromTwoToThree } from '@scalar/openapi-upgrader/2.0-to-3.0';
 import { applyOverlay, type Overlay } from './overlay';
 
-export type ServiceId = 'radarr' | 'bazarr';
+export type ServiceId = 'radarr' | 'bazarr' | 'sonarr' | 'lidarr' | 'readarr' | 'prowlarr';
 
 export type SpecFormat = 'openapi3.0' | 'openapi3.1' | 'swagger2';
 

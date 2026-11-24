@@ -1,0 +1,61 @@
+{
+  "id": 1,
+  "indexers": [
+    {
+      "indexerId": 1,
+      "indexerName": "NZBgeek",
+      "averageResponseTime": 412,
+      "averageGrabResponseTime": 830,
+      "numberOfQueries": 1520,
+      "numberOfGrabs": 96,
+      "numberOfRssQueries": 288,
+      "numberOfAuthQueries": 4,
+      "numberOfFailedQueries": 12,
+      "numberOfFailedGrabs": 1,
+      "numberOfFailedRssQueries": 3,
+      "numberOfFailedAuthQueries": 0
+    },
+    {
+      "indexerId": 2,
+      "indexerName": "Nyaa.si",
+      "averageResponseTime": 655,
+      "averageGrabResponseTime": 1210,
+      "numberOfQueries": 840,
+      "numberOfGrabs": 41,
+      "numberOfRssQueries": 288,
+      "numberOfAuthQueries": 0,
+      "numberOfFailedQueries": 37,
+      "numberOfFailedGrabs": 2,
+      "numberOfFailedRssQueries": 9,
+      "numberOfFailedAuthQueries": 0
+    },
+    {
+      "indexerId": 5,
+      "indexerName": "DrunkenSlug",
+      "averageResponseTime": 298,
+      "averageGrabResponseTime": 540,
+      "numberOfQueries": 1105,
+      "numberOfGrabs": 73,
+      "numberOfRssQueries": 288,
+      "numberOfAuthQueries": 4,
+      "numberOfFailedQueries": 4,
+      "numberOfFailedGrabs": 0,
+      "numberOfFailedRssQueries": 1,
+      "numberOfFailedAuthQueries": 1
+    }
+  ],
+  "userAgents": [
+    {
+      "userAgent": "Sonarr/4.0.20.3014",
+      "numberOfQueries": 1820,
+      "numberOfGrabs": 130
+    }
+  ],
+  "hosts": [
+    {
+      "host": "sonarr",
+      "numberOfQueries": 1820,
+      "numberOfGrabs": 130
+    }
+  ]
+}

@@ -19,6 +19,17 @@ export const contractRoutes: ContractRoute[] = [
   { service: 'bazarr', method: 'get', path: '/api/movies/history', fixture: 'bazarr/movies-history' },
   { service: 'bazarr', method: 'get', path: '/api/episodes/history', fixture: 'bazarr/episodes-history' },
   { service: 'bazarr', method: 'get', path: '/api/system/health', fixture: 'bazarr/system-health' },
+  { service: 'sonarr', method: 'get', path: '/api/v3/queue', fixture: 'sonarr/queue' },
+  { service: 'sonarr', method: 'get', path: '/api/v3/calendar', fixture: 'sonarr/calendar' },
+  { service: 'sonarr', method: 'get', path: '/api/v3/system/status', fixture: 'sonarr/system-status' },
+  { service: 'lidarr', method: 'get', path: '/api/v1/queue', fixture: 'lidarr/queue' },
+  { service: 'lidarr', method: 'get', path: '/api/v1/wanted/missing', fixture: 'lidarr/wanted-missing' },
+  { service: 'lidarr', method: 'get', path: '/api/v1/system/status', fixture: 'lidarr/system-status' },
+  { service: 'readarr', method: 'get', path: '/api/v1/queue', fixture: 'readarr/queue' },
+  { service: 'readarr', method: 'get', path: '/api/v1/wanted/missing', fixture: 'readarr/wanted-missing' },
+  { service: 'readarr', method: 'get', path: '/api/v1/system/status', fixture: 'readarr/system-status' },
+  { service: 'prowlarr', method: 'get', path: '/api/v1/indexerstats', fixture: 'prowlarr/indexerstats' },
+  { service: 'prowlarr', method: 'get', path: '/api/v1/system/status', fixture: 'prowlarr/system-status' },
 ];
 
 const fixturesDir = path.resolve(__dirname, '../fixtures/api');
