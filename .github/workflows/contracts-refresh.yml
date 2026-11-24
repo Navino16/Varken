@@ -1,0 +1,96 @@
+name: Contracts refresh
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: contracts-refresh
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  BRANCH: contracts/refresh
+
+jobs:
+  refresh:
+    name: Refresh pinned API specs
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: develop
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+        env:
+          HUSKY: '0'
+
+      - name: Refresh specs
+        run: npm run contracts:update -- --report "$RUNNER_TEMP/report.md"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Detect changes
+        id: changes
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          elif grep -q '^## Failures' "$RUNNER_TEMP/report.md"; then
+            cat "$RUNNER_TEMP/report.md" >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::Some specs could not be refreshed, see the job summary"
+            exit 1
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # PRs opened with GITHUB_TOKEN do not trigger ci.yml, so the verification goes into the PR body.
+      - name: Verify
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          report="$RUNNER_TEMP/report.md"
+          printf '\n## Verification\n\n' >> "$report"
+          check() {
+            name="$1"; shift
+            if "$@" > "$RUNNER_TEMP/check.log" 2>&1; then
+              printf -- '- %s: pass\n' "$name" >> "$report"
+            else
+              printf -- '- %s: **fail**\n\n```\n%s\n```\n\n' "$name" "$(tail -n 40 "$RUNNER_TEMP/check.log")" >> "$report"
+            fi
+          }
+          check 'tsc' npx tsc --noEmit
+          check 'typecheck' npm run typecheck
+          check 'tests' npx vitest run
+          cat "$report" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Open or update the pull request
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch -c "$BRANCH"
+          git add -A
+          git commit -m 'chore(contracts): refresh pinned API specs'
+          git push --force origin "$BRANCH"
+          if [ -n "$(gh pr list --head "$BRANCH" --state open --json number --jq '.[].number')" ]; then
+            gh pr edit "$BRANCH" --body-file "$RUNNER_TEMP/report.md"
+          else
+            gh pr create --base develop --head "$BRANCH" \
+              --title 'chore(contracts): refresh pinned API specs' \
+              --label dependencies \
+              --body-file "$RUNNER_TEMP/report.md"
+          fi
