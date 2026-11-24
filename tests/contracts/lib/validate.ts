@@ -18,49 +18,50 @@ interface CompiledContract {
 
 const compiled = new WeakMap<Contract, CompiledContract>();
 const COMPONENT_REF = '#/components/schemas/';
+const OPEN_COMPONENT_REF = '#/components/openSchemas/';
 
 function isSchema(value: unknown): value is Schema {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+// The converter drops `nullable` on schemas without `type` (e.g. Swashbuckle's `{ allOf: [$ref], nullable }`).
+function wrapTypelessNullable(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(wrapTypelessNullable);
+  }
+  if (!isSchema(value)) {
+    return value;
+  }
+  const mapped = Object.fromEntries(Object.entries(value).map(([key, child]) => [key, wrapTypelessNullable(child)]));
+  if (mapped.nullable !== true || 'type' in mapped) {
+    return mapped;
+  }
+  const { nullable: _nullable, ...rest } = mapped;
+  return { anyOf: [rest, { type: 'null' }] };
 }
 
 function toJsonSchema(contract: Contract, schema: unknown): Schema {
   if (contract.entry.format === 'openapi3.1') {
     return structuredClone(schema) as Schema;
   }
-  const converted = openapiSchemaToJsonSchema(schema as never) as Schema;
+  const converted = openapiSchemaToJsonSchema(wrapTypelessNullable(schema) as never) as Schema;
   delete converted.$schema;
   return converted;
 }
 
-function collectAllOfRefs(value: unknown, refs: Set<string>): void {
-  if (Array.isArray(value)) {
-    value.forEach((item) => collectAllOfRefs(item, refs));
-    return;
-  }
-  if (!isSchema(value)) {
-    return;
-  }
-  if (Array.isArray(value.allOf)) {
-    for (const member of value.allOf) {
-      if (isSchema(member) && typeof member.$ref === 'string' && member.$ref.startsWith(COMPONENT_REF)) {
-        refs.add(member.$ref.slice(COMPONENT_REF.length));
-      }
-    }
-  }
-  Object.values(value).forEach((child) => collectAllOfRefs(child, refs));
-}
-
 // Unknown properties must fail even where specs allow them (spec §Contract check). unevaluatedProperties
-// is used instead of additionalProperties so allOf compositions still see their members' properties.
+// is used instead of additionalProperties so allOf compositions still see their members' properties;
+// allOf members point to the open variant of a component, every other use gets the strict one.
 function strictify(schema: unknown, allOfMember: boolean): void {
   if (!isSchema(schema)) {
     return;
   }
   const isMap = isSchema(schema.additionalProperties);
+  const closed = schema.additionalProperties === false;
   if (typeof schema.additionalProperties === 'boolean') {
     delete schema.additionalProperties;
   }
-  if ((schema.properties || schema.allOf) && !allOfMember && !isMap) {
+  if ((schema.properties || schema.allOf || closed) && !allOfMember && !isMap) {
     schema.unevaluatedProperties = false;
   }
 
@@ -79,7 +80,12 @@ function strictify(schema: unknown, allOfMember: boolean): void {
     }
   }
   if (Array.isArray(schema.allOf)) {
-    schema.allOf.forEach((child) => strictify(child, true));
+    for (const member of schema.allOf) {
+      if (isSchema(member) && typeof member.$ref === 'string' && member.$ref.startsWith(COMPONENT_REF)) {
+        member.$ref = OPEN_COMPONENT_REF + member.$ref.slice(COMPONENT_REF.length);
+      }
+      strictify(member, true);
+    }
   }
 }
 
@@ -114,17 +120,16 @@ function getCompiled(contract: Contract): CompiledContract {
   }
   ajv.addFormat('date-span', { type: 'string', validate: () => true });
 
-  const rawSchemas = contract.spec.components?.schemas ?? {};
-  const allOfRefs = new Set<string>();
-  collectAllOfRefs(contract.spec, allOfRefs);
-  const schemas = Object.fromEntries(
-    Object.entries(rawSchemas).map(([name, schema]) => {
-      const converted = toJsonSchema(contract, schema);
-      strictify(converted, allOfRefs.has(name));
-      return [name, converted];
-    })
-  );
-  ajv.addSchema({ $id: contractId(contract), components: { schemas } });
+  const rawSchemas = Object.entries(contract.spec.components?.schemas ?? {});
+  const variant = (open: boolean): Record<string, Schema> =>
+    Object.fromEntries(
+      rawSchemas.map(([name, schema]) => {
+        const converted = toJsonSchema(contract, schema);
+        strictify(converted, open);
+        return [name, converted];
+      })
+    );
+  ajv.addSchema({ $id: contractId(contract), components: { schemas: variant(false), openSchemas: variant(true) } });
 
   const entry = { ajv, validators: new Map<string, ValidateFunction>() };
   compiled.set(contract, entry);

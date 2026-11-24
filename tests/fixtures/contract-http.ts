@@ -1,4 +1,4 @@
-import { vi } from 'vitest';
+import { onTestFinished, vi } from 'vitest';
 import { createMockHttpClient, type MockHttpClient } from './http';
 import { findRoute, loadFixture, type ContractRoute } from '../contracts/registry';
 import { assertMatchesContract } from '../contracts/lib/validate';
@@ -11,16 +11,25 @@ export interface ContractHttpClient extends MockHttpClient {
   override(path: string, body: OverrideBody): void;
   overrideUnchecked(path: string, body: unknown): void;
   fail(path: string, error: unknown): void;
+  takeViolations(): string[];
 }
 
 /**
  * Mock axios client that only answers routes registered in tests/contracts/registry.ts,
- * serving their contract-checked fixtures. Overrides are validated against the spec when served.
+ * serving their contract-checked fixtures. Overrides are validated against the spec.
+ * Unregistered calls and contract violations also fail the test when the plugin swallows the error.
  */
 export function createContractHttpClient(service: ServiceId): ContractHttpClient {
   const failures = new Map<string, unknown>();
   const unchecked = new Map<string, unknown>();
   const overrides = new Map<string, OverrideBody>();
+  const violations: string[] = [];
+
+  onTestFinished(() => {
+    if (violations.length > 0) {
+      throw new Error(`Contract violations during the test:\n  ${violations.join('\n  ')}`);
+    }
+  });
 
   const routeFor = (path: string): ContractRoute => {
     const route = findRoute(service, 'get', path);
@@ -31,7 +40,13 @@ export function createContractHttpClient(service: ServiceId): ContractHttpClient
   };
 
   const resolve = (path: string, params: Params): unknown => {
-    const route = routeFor(path);
+    let route: ContractRoute;
+    try {
+      route = routeFor(path);
+    } catch (error) {
+      violations.push((error as Error).message);
+      throw error;
+    }
     if (failures.has(route.path)) {
       throw failures.get(route.path);
     }
@@ -41,7 +56,12 @@ export function createContractHttpClient(service: ServiceId): ContractHttpClient
     if (overrides.has(route.path)) {
       const override = overrides.get(route.path);
       const body = structuredClone(typeof override === 'function' ? override(params) : override);
-      assertMatchesContract(service, 'get', path, body);
+      try {
+        assertMatchesContract(service, 'get', path, body);
+      } catch (error) {
+        violations.push((error as Error).message);
+        throw error;
+      }
       return body;
     }
     return loadFixture(route.fixture);
@@ -53,8 +73,15 @@ export function createContractHttpClient(service: ServiceId): ContractHttpClient
     get: vi.fn(async (path: string, config?: { params?: Record<string, unknown> }) => ({
       data: resolve(path, config?.params),
     })),
-    override: (path, body) => overrides.set(routeFor(path).path, body),
+    override: (path, body) => {
+      const route = routeFor(path);
+      if (typeof body !== 'function') {
+        assertMatchesContract(service, 'get', path, body);
+      }
+      overrides.set(route.path, body);
+    },
     overrideUnchecked: (path, body) => unchecked.set(routeFor(path).path, body),
     fail: (path, error) => failures.set(routeFor(path).path, error),
+    takeViolations: () => violations.splice(0),
   };
 }

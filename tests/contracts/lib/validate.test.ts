@@ -109,6 +109,44 @@ describe('validateAgainstContract', () => {
     expect(validateAgainstContract(c, 'get', '/a', { never: null })).not.toEqual([]);
   });
 
+  it('rejects unknown properties on a component used both in allOf and directly', () => {
+    const c = contract(
+      {
+        '/a': jsonGet({ type: 'array', items: { $ref: '#/components/schemas/Item' } }),
+        '/b': jsonGet({ allOf: [{ $ref: '#/components/schemas/Item' }], nullable: true }),
+        '/c': jsonGet({ $ref: '#/components/schemas/Item' }),
+      },
+      { Item: objectWithId }
+    );
+
+    expect(validateAgainstContract(c, 'get', '/a', [{ id: 1, extra: 2 }]).join()).toContain('extra');
+    expect(validateAgainstContract(c, 'get', '/c', { id: 1, extra: 2 }).join()).toContain('extra');
+    expect(validateAgainstContract(c, 'get', '/b', { id: 1, extra: 2 }).join()).toContain('extra');
+  });
+
+  it('accepts null for a nullable allOf reference wrapper', () => {
+    const c = contract(
+      {
+        '/a': jsonGet({
+          type: 'object',
+          properties: { x: { allOf: [{ $ref: '#/components/schemas/Item' }], nullable: true } },
+        }),
+      },
+      { Item: objectWithId }
+    );
+
+    expect(validateAgainstContract(c, 'get', '/a', { x: null })).toEqual([]);
+    expect(validateAgainstContract(c, 'get', '/a', { x: { id: 1 } })).toEqual([]);
+    expect(validateAgainstContract(c, 'get', '/a', { x: { id: 1, extra: 1 } }).join()).toContain('extra');
+  });
+
+  it('rejects keys on additionalProperties false objects without properties', () => {
+    const c = contract({ '/a': jsonGet({ type: 'object', additionalProperties: false }) });
+
+    expect(validateAgainstContract(c, 'get', '/a', {})).toEqual([]);
+    expect(validateAgainstContract(c, 'get', '/a', { z: 1 }).join()).toContain('z');
+  });
+
   it('resolves component refs', () => {
     const c = contract(
       { '/a': jsonGet({ type: 'array', items: { $ref: '#/components/schemas/Item' } }) },

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { createContractHttpClient } from './contract-http';
 import { loadFixture } from '../contracts/registry';
 
@@ -31,13 +31,40 @@ describe('createContractHttpClient', () => {
     const client = createContractHttpClient('radarr');
 
     await expect(client.get('/api/v3/nope')).rejects.toThrow(/No contract route for GET \/api\/v3\/nope \(radarr\)/);
+    expect(client.takeViolations()).toHaveLength(1);
   });
 
-  it('validates overrides at call time', async () => {
+  it('validates static overrides when they are registered', () => {
     const client = createContractHttpClient('radarr');
-    client.override('/api/v3/movie', [{ title: 'X', raw_timestamp: 1 }]);
+
+    expect(() => client.override('/api/v3/movie', [{ title: 'X', raw_timestamp: 1 }])).toThrow(/raw_timestamp/);
+  });
+
+  it('validates function overrides at call time', async () => {
+    const client = createContractHttpClient('radarr');
+    client.override('/api/v3/movie', () => [{ title: 'X', raw_timestamp: 1 }]);
 
     await expect(client.get('/api/v3/movie')).rejects.toThrow(/raw_timestamp/);
+    expect(client.takeViolations().join()).toContain('raw_timestamp');
+  });
+
+  it('takeViolations returns and clears recorded violations', async () => {
+    const client = createContractHttpClient('radarr');
+    await client.get('/api/v3/nope').catch(() => undefined);
+
+    expect(client.takeViolations()).toHaveLength(1);
+    expect(client.takeViolations()).toEqual([]);
+  });
+
+  it.fails('fails the test when a plugin swallows an unregistered call', async () => {
+    const client = createContractHttpClient('radarr');
+    await client.get('/api/v3/nope').catch(() => undefined);
+  });
+
+  it.fails('fails the test when a plugin swallows a contract violation', async () => {
+    const client = createContractHttpClient('radarr');
+    client.override('/api/v3/movie', () => [{ raw_timestamp: 1 }]);
+    await client.get('/api/v3/movie').catch(() => undefined);
   });
 
   it('accepts valid overrides, including function form', async () => {
@@ -77,5 +104,17 @@ describe('createContractHttpClient', () => {
     await client.get('/api/v3/movie', { params: { a: 1 } });
 
     expect(client.get).toHaveBeenCalledWith('/api/v3/movie', { params: { a: 1 } });
+  });
+});
+
+describe('createContractHttpClient created in beforeEach', () => {
+  let client: ReturnType<typeof createContractHttpClient>;
+
+  beforeEach(() => {
+    client = createContractHttpClient('radarr');
+  });
+
+  it.fails('still fails the test when a plugin swallows a violation', async () => {
+    await client.get('/api/v3/nope').catch(() => undefined);
   });
 });

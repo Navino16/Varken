@@ -545,7 +545,7 @@ Tests skip themselves automatically when a service isn't reachable, so the comma
 
 ### Contract tests
 
-Input plugin tests never hand-write API responses. Each endpoint a plugin calls is registered in `tests/contracts/registry.ts` with a JSON fixture (`tests/fixtures/api/<service>/`), and `npm test` checks that:
+Input plugins migrated to contract tests (currently Radarr, the others follow) never hand-write API responses in their tests. Each endpoint such a plugin calls is registered in `tests/contracts/registry.ts` with a JSON fixture (`tests/fixtures/api/<service>/`), and `npm test` checks that:
 
 - the path exists in the service's pinned API spec (`tests/contracts/specs/`, see `manifest.json` for sources and versions);
 - every fixture, and every variant a test builds from it, validates against the spec's response schema, with unknown properties rejected;
