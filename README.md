@@ -601,7 +601,7 @@ Tests skip themselves automatically when a service isn't reachable, so the comma
 
 ### Contract tests
 
-Input plugins migrated to contract tests (currently Radarr, Bazarr, Sonarr, Lidarr, Readarr and Prowlarr; the others follow) never hand-write API responses in their tests. Each endpoint such a plugin calls is registered in `tests/contracts/registry.ts` with a JSON fixture (`tests/fixtures/api/<service>/`), and `npm test` checks that:
+Input plugins migrated to contract tests (currently Radarr, Bazarr, Sonarr, Lidarr, Readarr, Prowlarr, Ombi and Overseerr; the others follow) never hand-write API responses in their tests. Each endpoint such a plugin calls is registered in `tests/contracts/registry.ts` with a JSON fixture (`tests/fixtures/api/<service>/`), and `npm test` checks that:
 
 - the path exists in the service's pinned API spec (`tests/contracts/specs/`, see `manifest.json` for sources and versions);
 - every fixture, and every variant a test builds from it, validates against the spec's response schema, with unknown properties rejected;
@@ -610,7 +610,7 @@ Input plugins migrated to contract tests (currently Radarr, Bazarr, Sonarr, Lida
 
 Migrated plugins call their API through `this.api<paths>()` (or `this.api<paths>('/api')` when the spec's paths are relative to a base path, as Bazarr's are), typed from the same generated `paths`: an unknown endpoint, an unknown or mistyped parameter, a missing path parameter or an undeclared response field fails `tsc`. `npm run typecheck` (run in CI) also checks `tests/types/`, which pins those compile-time guarantees.
 
-Specs the upstream gets wrong or leaves incomplete are corrected with justified patches in `tests/contracts/overlays/<service>.json`, each linking its evidence. Bazarr publishes no static spec: its Swagger 2.0 document is captured from a running instance (served at `/api/swagger.json`), upgraded to OpenAPI 3.0 when loaded, and its response schemas, which the runtime spec omits, live in the overlay with links to the Bazarr models they come from. Readarr is archived upstream: its spec is pinned on its last release and is not refreshed. After changing a spec or an overlay, regenerate the types:
+Specs the upstream gets wrong or leaves incomplete are corrected with justified patches in `tests/contracts/overlays/<service>.json`, each linking its evidence. Bazarr publishes no static spec: its Swagger 2.0 document is captured from a running instance (served at `/api/swagger.json`), upgraded to OpenAPI 3.0 when loaded, and its response schemas, which the runtime spec omits, live in the overlay with links to the Bazarr models they come from. Readarr is archived upstream: its spec is pinned on its last release and is not refreshed. Ombi's spec is captured the same way from a running instance (`/swagger/v1/swagger.json`). The Overseerr plugin is checked against the spec of Seerr, Overseerr's successor, pinned as published (YAML, `seerr-api.yml`); its paths are relative to `/api/v1`. After changing a spec or an overlay, regenerate the types:
 
 ```bash
 npm run contracts:types radarr
