@@ -616,6 +616,12 @@ Specs the upstream gets wrong or leaves incomplete are corrected with justified 
 npm run contracts:types radarr
 ```
 
+#### Refreshing the pinned specs
+
+`npm run contracts:update` (optionally followed by service names) downloads each spec again from the source recorded in `manifest.json`: the published file at the latest GitHub release (Radarr, Sonarr, Lidarr, Prowlarr, Seerr), the published URL (Jellyfin), the developer page (Plex), or a container of the latest image started for the capture (Bazarr, Ombi, Emby; needs Docker). Specs not downloaded as files are stored as sorted JSON, so an unchanged upstream produces no diff. Tautulli's contract is hand-written: the script refreshes the snapshot of the documented commands (`tautulli.docstrings.json`) and asks for a manual review when it changes. Readarr is archived and skipped. The report also lists overlay patches the upstream spec now covers, and types are regenerated when a contract changes.
+
+The `Contracts refresh` workflow runs it every Monday on `develop`. When something changed, it runs `tsc`, the type tests and the test suite, and opens (or updates) a pull request from `contracts/refresh` labelled `dependencies`, with the report and the verification result in its body, since pull requests opened by GitHub Actions do not trigger CI. A run with failures and nothing to commit fails, so the failure is notified. The schedule only runs once the workflow is on the default branch (`main`).
+
 ### Pull Request Guidelines
 
 - Fork the repository and create a feature branch
