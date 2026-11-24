@@ -8,6 +8,7 @@
     "develop"
   ],
   "schedule": ["before 6am on monday"],
+  "minimumReleaseAge": "1 day",
   "platformAutomerge": false,
   "automergeSchedule": ["at any time"],
   "packageRules": [
