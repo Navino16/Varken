@@ -39,11 +39,11 @@ export function createContractHttpClient(service: ServiceId): ContractHttpClient
     return route;
   };
 
-  const resolve = (path: string, params: Params): unknown => {
+  const resolve = (path: string, params: Params, headers?: Record<string, unknown>): unknown => {
     let route: ContractRoute;
     try {
       route = routeFor(path);
-      assertRequestMatchesContract(service, 'get', path, params);
+      assertRequestMatchesContract(service, 'get', path, params, headers);
     } catch (error) {
       violations.push((error as Error).message);
       throw error;
@@ -71,8 +71,8 @@ export function createContractHttpClient(service: ServiceId): ContractHttpClient
   const base = createMockHttpClient();
   return {
     ...base,
-    get: vi.fn(async (path: string, config?: { params?: Record<string, unknown> }) => ({
-      data: resolve(path, config?.params),
+    get: vi.fn(async (path: string, config?: { params?: Record<string, unknown>; headers?: Record<string, unknown> }) => ({
+      data: resolve(path, config?.params, config?.headers),
     })),
     override: (path, body) => {
       const route = routeFor(path);

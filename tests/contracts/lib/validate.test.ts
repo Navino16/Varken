@@ -273,6 +273,18 @@ describe('validateResponse', () => {
   });
 });
 
+describe('format overrides', () => {
+  it('validates a format with the contract override instead of the standard one', () => {
+    const c = contract({ '/a': jsonGet({ type: 'string', format: 'uuid' }) });
+    c.formats = [{ name: 'uuid', pattern: '^[0-9a-f]{32}$', why: 'N-format GUIDs' }];
+
+    expect(validateAgainstContract(c, 'get', '/a', '4f2c8e1a9b3d4c7e8f0a1b2c3d4e5f60')).toEqual([]);
+    expect(validateAgainstContract(c, 'get', '/a', '4f2c8e1a-9b3d-4c7e-8f0a-1b2c3d4e5f60')).toEqual([
+      '/ must match format "uuid"',
+    ]);
+  });
+});
+
 describe('validateRequestParams', () => {
   const c = contract(
     {
@@ -323,5 +335,21 @@ describe('validateRequestParams', () => {
 
   it('reports a missing operation', () => {
     expect(validateRequestParams(c, 'get', '/nope', {})).toEqual(['no GET operation for /nope']);
+  });
+
+  it('accepts declared header parameters, whatever their case', () => {
+    expect(validateRequestParams(c, 'get', '/a', { 'x-trace': 'abc' }, 'header')).toEqual([]);
+  });
+
+  it('rejects undeclared header parameters', () => {
+    expect(validateRequestParams(c, 'get', '/a', { 'X-Other': '1' }, 'header')).toEqual([
+      'unknown header parameter "X-Other" for GET /a',
+    ]);
+  });
+
+  it('rejects header values of the wrong type', () => {
+    expect(validateRequestParams(c, 'get', '/a', { 'X-Trace': 3 }, 'header')).toEqual([
+      'header parameter "X-Trace" must be string',
+    ]);
   });
 });

@@ -42,6 +42,18 @@ export const contractRoutes: ContractRoute[] = [
   { service: 'ombi', method: 'get', path: '/api/v1/Request/tv', fixture: 'ombi/request-tv' },
   { service: 'ombi', method: 'get', path: '/api/v1/Request/movie', fixture: 'ombi/request-movie' },
   { service: 'ombi', method: 'get', path: '/api/v1/Status', fixture: 'ombi/status' },
+  { service: 'plex', method: 'get', path: '/identity', fixture: 'plex/identity' },
+  { service: 'plex', method: 'get', path: '/status/sessions', fixture: 'plex/status-sessions' },
+  { service: 'plex', method: 'get', path: '/library/sections/all', fixture: 'plex/library-sections' },
+  { service: 'plex', method: 'get', path: '/library/sections/{sectionId}/all', fixture: 'plex/library-section-all' },
+  { service: 'jellyfin', method: 'get', path: '/System/Info', fixture: 'jellyfin/system-info' },
+  { service: 'jellyfin', method: 'get', path: '/Sessions', fixture: 'jellyfin/sessions' },
+  { service: 'jellyfin', method: 'get', path: '/Library/VirtualFolders', fixture: 'jellyfin/virtual-folders' },
+  { service: 'jellyfin', method: 'get', path: '/Items/Counts', fixture: 'jellyfin/items-counts' },
+  { service: 'emby', method: 'get', path: '/emby/System/Info', fixture: 'emby/system-info' },
+  { service: 'emby', method: 'get', path: '/emby/Sessions', fixture: 'emby/sessions' },
+  { service: 'emby', method: 'get', path: '/emby/Library/VirtualFolders', fixture: 'emby/virtual-folders' },
+  { service: 'emby', method: 'get', path: '/emby/Items/Counts', fixture: 'emby/items-counts' },
 ];
 
 const fixturesDir = path.resolve(__dirname, '../fixtures/api');

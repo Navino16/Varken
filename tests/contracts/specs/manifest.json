@@ -62,5 +62,29 @@
     "version": "v4.53.10-ls278",
     "pathPrefix": "",
     "refresh": true
+  },
+  "plex": {
+    "file": "plex.json",
+    "format": "openapi3.1",
+    "source": "https://developer.plex.tv/pms/ (__redoc_state)",
+    "version": "2026-11-24",
+    "pathPrefix": "",
+    "refresh": true
+  },
+  "jellyfin": {
+    "file": "jellyfin.json",
+    "format": "openapi3.0",
+    "source": "https://api.jellyfin.org/openapi/jellyfin-openapi-stable.json",
+    "version": "12.4.0",
+    "pathPrefix": "",
+    "refresh": true
+  },
+  "emby": {
+    "file": "emby.json",
+    "format": "openapi3.0",
+    "source": "runtime:/emby/openapi.json (emby/embyserver:{tag})",
+    "version": "4.10.2.0",
+    "pathPrefix": "/emby",
+    "refresh": true
   }
 }

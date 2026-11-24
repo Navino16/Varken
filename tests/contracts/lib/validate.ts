@@ -144,7 +144,12 @@ function getCompiled(contract: Contract): CompiledContract {
   for (const format of ['int32', 'int64', 'float', 'double']) {
     ajv.addFormat(format, { type: 'number', validate: () => true });
   }
-  ajv.addFormat('date-span', { type: 'string', validate: () => true });
+  for (const format of ['date-span', 'guid']) {
+    ajv.addFormat(format, { type: 'string', validate: () => true });
+  }
+  for (const { name, pattern } of contract.formats ?? []) {
+    ajv.addFormat(name, new RegExp(pattern));
+  }
 
   const rawSchemas = Object.entries(contract.spec.components?.schemas ?? {});
   const variant = (open: boolean): Record<string, Schema> =>
@@ -234,13 +239,13 @@ export function validateAgainstContract(
   return validate(body) ? [] : (validate.errors ?? []).map(formatError);
 }
 
-interface QueryParameter {
+interface RequestParameter {
   name: string;
   required: boolean;
   schema: unknown;
 }
 
-function declaredQueryParameters(contract: Contract, match: OperationMatch): QueryParameter[] {
+function declaredParameters(contract: Contract, match: OperationMatch, location: 'query' | 'header'): RequestParameter[] {
   const resolve = (parameter: unknown): Schema | undefined => {
     if (!isSchema(parameter)) {
       return undefined;
@@ -255,7 +260,7 @@ function declaredQueryParameters(contract: Contract, match: OperationMatch): Que
   const all = [pathItem.parameters, match.operation.parameters].flatMap((list) => (Array.isArray(list) ? list : []));
   return all
     .map(resolve)
-    .filter((p): p is Schema => p?.in === 'query' && typeof p.name === 'string')
+    .filter((p): p is Schema => p?.in === location && typeof p.name === 'string')
     .map((p) => ({ name: p.name as string, required: p.required === true, schema: p.schema ?? {} }));
 }
 
@@ -268,29 +273,32 @@ export function validateRequestParams(
   contract: Contract,
   method: 'get',
   calledPath: string,
-  params: Record<string, unknown> | undefined
+  params: Record<string, unknown> | undefined,
+  location: 'query' | 'header' = 'query'
 ): string[] {
   const match = findOperation(contract, method, calledPath);
   if (!match) {
     return [`no ${method.toUpperCase()} operation for ${stripQuery(calledPath)}`];
   }
   const where = `${method.toUpperCase()} ${match.specPath}`;
-  const declared = new Map(declaredQueryParameters(contract, match).map((p) => [p.name, p]));
-  const embedded = embeddedQuery(calledPath);
+  // Header names are case-insensitive; required headers are not checked since auth headers come from client defaults.
+  const normalize = (name: string): string => (location === 'header' ? name.toLowerCase() : name);
+  const declared = new Map(declaredParameters(contract, match, location).map((p) => [normalize(p.name), p]));
+  const embedded = location === 'query' ? embeddedQuery(calledPath) : {};
   const sent = Object.entries({ ...embedded, ...params });
   const errors: string[] = [];
 
   for (const [name, value] of sent) {
-    const parameter = declared.get(name);
+    const parameter = declared.get(normalize(name));
     if (!parameter) {
-      errors.push(`unknown query parameter "${name}" for ${where}`);
+      errors.push(`unknown ${location} parameter "${name}" for ${where}`);
       continue;
     }
     if (value === undefined) {
       continue;
     }
     const { ajv, validators } = getCompiled(contract);
-    const key = `${match.specPath}?${name}`;
+    const key = `${match.specPath}?${location}:${parameter.name}`;
     let validate = validators.get(key);
     if (!validate) {
       const converted = toJsonSchema(contract, parameter.schema);
@@ -300,10 +308,10 @@ export function validateRequestParams(
       validators.set(key, validate);
     }
     if (!validate(value)) {
-      errors.push(...(validate.errors ?? []).map((e) => `query parameter "${name}" ${formatError(e).replace(/^\/ /, '')}`));
+      errors.push(...(validate.errors ?? []).map((e) => `${location} parameter "${name}" ${formatError(e).replace(/^\/ /, '')}`));
     }
   }
-  for (const parameter of declared.values()) {
+  for (const parameter of location === 'query' ? declared.values() : []) {
     const value = (params ?? {})[parameter.name];
     if (parameter.required && value === undefined && !(parameter.name in embedded)) {
       errors.push(`missing required query parameter "${parameter.name}" for ${where}`);
@@ -316,9 +324,14 @@ export function assertRequestMatchesContract(
   service: ServiceId,
   method: 'get',
   calledPath: string,
-  params: Record<string, unknown> | undefined
+  params: Record<string, unknown> | undefined,
+  headers?: Record<string, unknown>
 ): void {
-  const errors = validateRequestParams(loadContract(service), method, calledPath, params);
+  const contract = loadContract(service);
+  const errors = [
+    ...validateRequestParams(contract, method, calledPath, params),
+    ...(headers ? validateRequestParams(contract, method, calledPath, headers, 'header') : []),
+  ];
   if (errors.length > 0) {
     throw new Error(`Request GET ${calledPath} breaks the ${service} contract:\n  ${errors.join('\n  ')}`);
   }

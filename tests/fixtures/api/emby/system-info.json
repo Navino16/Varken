@@ -1,0 +1,20 @@
+{
+  "ServerName": "media-box",
+  "Version": "4.10.2.0",
+  "Id": "9b1c2d3e4f5a46b7c8d9e0f1a2b3c4d5",
+  "SystemUpdateLevel": "Release",
+  "OperatingSystemDisplayName": "Linux",
+  "HasPendingRestart": false,
+  "IsShuttingDown": false,
+  "OperatingSystem": "Linux",
+  "SupportsLibraryMonitor": true,
+  "WebSocketPortNumber": 8096,
+  "CanSelfRestart": true,
+  "CanSelfUpdate": false,
+  "CanLaunchWebBrowser": false,
+  "HttpServerPortNumber": 8096,
+  "SupportsHttps": false,
+  "HttpsPortNumber": 8920,
+  "HasUpdateAvailable": false,
+  "LocalAddress": "http://192.168.1.11:8096"
+}

@@ -15,7 +15,7 @@ type GetOperation<Paths, P extends keyof Paths> = Paths[P] extends { get: infer 
 type Parameters<Operation> = Operation extends { parameters: infer P } ? P : never;
 
 /** Builds `{ key: T }`, `{ key?: T }` or `{ key?: never }` from a generated `parameters` entry. */
-type ParameterOption<Operation, Key extends 'query' | 'path'> =
+type ParameterOption<Operation, Key extends 'query' | 'path' | 'header'> =
   Parameters<Operation> extends Record<Key, infer Required>
     ? [Required] extends [never]
       ? { [K in Key]?: never }
@@ -28,7 +28,9 @@ type ParameterOption<Operation, Key extends 'query' | 'path'> =
 
 type RequiredKeys<T> = { [K in keyof T]-?: object extends Pick<T, K> ? never : K }[keyof T];
 
-export type ApiOptions<Operation> = ParameterOption<Operation, 'query'> & ParameterOption<Operation, 'path'>;
+export type ApiOptions<Operation> = ParameterOption<Operation, 'query'> &
+  ParameterOption<Operation, 'path'> &
+  ParameterOption<Operation, 'header'>;
 
 type ApiArgs<Operation> = [RequiredKeys<ApiOptions<Operation>>] extends [never]
   ? [options?: ApiOptions<Operation>]
@@ -66,4 +68,5 @@ export interface ApiClient<Paths> {
 export interface ApiCallOptions {
   query?: Record<string, unknown>;
   path?: Record<string, unknown>;
+  header?: Record<string, unknown>;
 }

@@ -1,0 +1,198 @@
+{
+  "patches": [
+    {
+      "op": "add",
+      "path": "/paths/~1library~1sections~1{sectionId}~1all/get/parameters/-",
+      "value": {
+        "name": "X-Plex-Container-Start",
+        "in": "header",
+        "required": false,
+        "description": "The desired starting offset",
+        "schema": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "why": "https://developer.plex.tv/pms/#section/API-Info/Pagination — the spec's own info.description: pagination is requested with the X-Plex-Container-Start and X-Plex-Container-Size headers, and a size of 0 returns only the total size"
+    },
+    {
+      "op": "add",
+      "path": "/paths/~1library~1sections~1{sectionId}~1all/get/parameters/-",
+      "value": {
+        "name": "X-Plex-Container-Size",
+        "in": "header",
+        "required": false,
+        "description": "The desired number of items",
+        "schema": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "why": "https://developer.plex.tv/pms/#section/API-Info/Pagination — the spec's own info.description: pagination is requested with the X-Plex-Container-Start and X-Plex-Container-Size headers, and a size of 0 returns only the total size"
+    },
+    {
+      "op": "add",
+      "path": "/paths/~1status~1sessions/get/responses/200/content/application~1json/schema/properties/MediaContainer/allOf/1/properties/Metadata/items/allOf/0/properties/sessionKey",
+      "value": {
+        "type": [
+          "string",
+          "integer"
+        ],
+        "description": "Key of the playback session"
+      },
+      "why": "https://github.com/pkkid/python-plexapi/blob/4.18.3/plexapi/base.py#L1039-L1047 — PlexSession reads the sessionKey attribute of every /status/sessions item; the official spec omits it. Typed string or integer: python-plexapi parses it from XML, the JSON type is not documented"
+    },
+    {
+      "op": "add",
+      "path": "/paths/~1status~1sessions/get/responses/200/content/application~1json/schema/properties/MediaContainer/allOf/1/properties/Metadata/items/allOf/0/properties/TranscodeSession",
+      "value": {
+        "type": "object",
+        "description": "The transcode session when the item is being transcoded",
+        "properties": {
+          "audioChannels": {
+            "type": "integer"
+          },
+          "audioCodec": {
+            "type": "string"
+          },
+          "audioDecision": {
+            "type": "string"
+          },
+          "complete": {
+            "type": "boolean"
+          },
+          "container": {
+            "type": "string"
+          },
+          "context": {
+            "type": "string"
+          },
+          "duration": {
+            "type": "integer"
+          },
+          "error": {
+            "type": "boolean"
+          },
+          "height": {
+            "type": "integer"
+          },
+          "key": {
+            "type": "string"
+          },
+          "maxOffsetAvailable": {
+            "type": "number"
+          },
+          "minOffsetAvailable": {
+            "type": "number"
+          },
+          "progress": {
+            "type": "number"
+          },
+          "protocol": {
+            "type": "string"
+          },
+          "remaining": {
+            "type": "integer"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "sourceAudioCodec": {
+            "type": "string"
+          },
+          "sourceVideoCodec": {
+            "type": "string"
+          },
+          "speed": {
+            "type": "number"
+          },
+          "subtitleDecision": {
+            "type": "string"
+          },
+          "throttled": {
+            "type": "boolean"
+          },
+          "timeStamp": {
+            "type": "number"
+          },
+          "transcodeHwDecoding": {
+            "type": "string"
+          },
+          "transcodeHwDecodingTitle": {
+            "type": "string"
+          },
+          "transcodeHwEncoding": {
+            "type": "string"
+          },
+          "transcodeHwEncodingTitle": {
+            "type": "string"
+          },
+          "transcodeHwFullPipeline": {
+            "type": "boolean"
+          },
+          "transcodeHwRequested": {
+            "type": "boolean"
+          },
+          "videoCodec": {
+            "type": "string"
+          },
+          "videoDecision": {
+            "type": "string"
+          },
+          "width": {
+            "type": "integer"
+          }
+        }
+      },
+      "why": "https://github.com/pkkid/python-plexapi/blob/4.18.3/plexapi/media.py#L528-L600 — TranscodeSession attributes (videoDecision, audioDecision, timeStamp…) of transcoded /status/sessions items; the official spec declares this object (with error) only for the download queue (#/paths/~1downloadQueue~1{queueId}~1items)"
+    },
+    {
+      "op": "replace",
+      "path": "/paths/~1library~1sections~1all/get/responses/200/content/application~1json/schema/properties/MediaContainer/allOf/0",
+      "value": {
+        "type": "object",
+        "properties": {
+          "identifier": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "totalSize": {
+            "type": "integer",
+            "description": "The total size of objects available.  Also provided in the X-Plex-Container-Total-Size header"
+          },
+          "offset": {
+            "type": "integer",
+            "description": "The offset of where this container page starts among the total objects available.  Also provided in the X-Plex-Container-Start header"
+          }
+        }
+      },
+      "why": "Upstream bug: this allOf references #/components/schemas/mediaContainer, which is the {MediaContainer: {...}} envelope, so identifier/size/totalSize/offset end up undeclared on the container itself; replaced by the envelope's inner MediaContainer schema"
+    },
+    {
+      "op": "replace",
+      "path": "/paths/~1status~1sessions/get/responses/200/content/application~1json/schema/properties/MediaContainer/allOf/0",
+      "value": {
+        "type": "object",
+        "properties": {
+          "identifier": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "totalSize": {
+            "type": "integer",
+            "description": "The total size of objects available.  Also provided in the X-Plex-Container-Total-Size header"
+          },
+          "offset": {
+            "type": "integer",
+            "description": "The offset of where this container page starts among the total objects available.  Also provided in the X-Plex-Container-Start header"
+          }
+        }
+      },
+      "why": "properties-MediaContainer also declares Metadata items as $ref metadata; with unknown properties rejected (spec §Contract check) that branch would reject the session fields (User, Player, Session…) the sibling allOf member adds to the same items. Keeps the container fields only"
+    }
+  ]
+}

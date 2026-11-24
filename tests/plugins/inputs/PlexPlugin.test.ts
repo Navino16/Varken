@@ -1,21 +1,33 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+import axios from 'axios';
 import { PlexPlugin } from '../../../src/plugins/inputs/PlexPlugin';
 import type { PlexConfig } from '../../../src/types/inputs/plex.types';
-import axios from 'axios';
-import { createMockHttpClient, type MockHttpClient } from '../../fixtures/http';
+import type { paths } from '../../../src/types/generated/plex';
+import { createContractHttpClient, type ContractHttpClient } from '../../fixtures/contract-http';
+import { loadFixture } from '../../contracts/registry';
+import type { DataPoint } from '../../../src/types/plugin.types';
 
 vi.mock('../../../src/core/Logger', async () => {
   const { loggerMock } = await import('../../fixtures/logger');
   return loggerMock();
 });
 
-vi.mock('axios', () => ({
-  default: { create: vi.fn() },
-}));
+vi.mock('axios', () => ({ default: { create: vi.fn() } }));
+
+type Sessions = paths['/status/sessions']['get']['responses'][200]['content']['application/json'];
+type Session = NonNullable<NonNullable<Sessions['MediaContainer']>['Metadata']>[number];
+
+function sessions(): Session[] {
+  return loadFixture<Sessions>('plex/status-sessions').MediaContainer?.Metadata ?? [];
+}
+
+function sessionPoints(points: DataPoint[]): DataPoint[] {
+  return points.filter((p) => p.tags.type === 'Session');
+}
 
 describe('PlexPlugin', () => {
   let plugin: PlexPlugin;
-  let mockHttpClient: MockHttpClient;
+  let client: ContractHttpClient;
 
   const testConfig: PlexConfig = {
     id: 1,
@@ -29,8 +41,8 @@ describe('PlexPlugin', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     plugin = new PlexPlugin();
-    mockHttpClient = createMockHttpClient();
-    (axios.create as Mock).mockReturnValue(mockHttpClient);
+    client = createContractHttpClient('plex');
+    (axios.create as Mock).mockReturnValue(client);
   });
 
   describe('metadata', () => {
@@ -40,27 +52,38 @@ describe('PlexPlugin', () => {
     });
   });
 
+  describe('health', () => {
+    it('should pass the health check against the contract route', async () => {
+      await plugin.initialize(testConfig);
+
+      await expect(plugin.healthCheck()).resolves.toBe(true);
+      expect(client.get).toHaveBeenCalledWith('/identity', expect.anything());
+    });
+  });
+
   describe('initialize', () => {
     it('sets X-Plex-Token header and switches Accept to JSON', async () => {
       await plugin.initialize(testConfig);
-      expect(mockHttpClient.defaults.headers.common['X-Plex-Token']).toBe('test-token');
-      expect(mockHttpClient.defaults.headers.common['Accept']).toBe('application/json');
+
+      expect(client.defaults.headers.common['X-Plex-Token']).toBe('test-token');
+      expect(client.defaults.headers.common.Accept).toBe('application/json');
     });
   });
 
   describe('getSchedules', () => {
     it('returns schedules for every enabled collector', async () => {
       await plugin.initialize(testConfig);
-      const schedules = plugin.getSchedules();
-      expect(schedules).toHaveLength(2);
-      expect(schedules.map((s) => s.name)).toEqual(['Plex_1_sessions', 'Plex_1_libraries']);
+
+      expect(plugin.getSchedules().map((s) => [s.name, s.intervalSeconds])).toEqual([
+        ['Plex_1_sessions', 30],
+        ['Plex_1_libraries', 3600],
+      ]);
     });
 
     it('omits disabled schedules', async () => {
       await plugin.initialize({ ...testConfig, libraries: { enabled: false, intervalSeconds: 3600 } });
-      const schedules = plugin.getSchedules();
-      expect(schedules).toHaveLength(1);
-      expect(schedules[0].name).toBe('Plex_1_sessions');
+
+      expect(plugin.getSchedules().map((s) => s.name)).toEqual(['Plex_1_sessions']);
     });
   });
 
@@ -70,154 +93,102 @@ describe('PlexPlugin', () => {
     });
 
     it('produces a session DataPoint per active stream', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          MediaContainer: {
-            size: 1,
-            Metadata: [
-              {
-                sessionKey: 's1',
-                ratingKey: 'r1',
-                guid: 'g',
-                key: 'k',
-                type: 'episode',
-                title: 'Pilot',
-                grandparentTitle: 'Some Show',
-                duration: 1000,
-                viewOffset: 250,
-                addedAt: 0,
-                updatedAt: 0,
-                Media: [
-                  {
-                    id: 1,
-                    duration: 1000,
-                    bitrate: 5000,
-                    width: 1920,
-                    height: 1080,
-                    aspectRatio: 1.78,
-                    audioChannels: 2,
-                    audioCodec: 'aac',
-                    videoCodec: 'h264',
-                    videoResolution: '1080',
-                    container: 'mkv',
-                    videoFrameRate: '24p',
-                    videoProfile: 'high',
-                    Part: [],
-                  },
-                ],
-                User: { id: 'u1', thumb: '', title: 'alice' },
-                Player: {
-                  address: '10.0.0.2',
-                  device: 'Chrome',
-                  machineIdentifier: 'mid',
-                  model: '',
-                  platform: 'Web',
-                  platformVersion: '1.0',
-                  product: 'Plex Web',
-                  profile: '',
-                  state: 'playing',
-                  title: 'Web',
-                  version: '4.0',
-                  local: true,
-                  relayed: false,
-                  secure: true,
-                  userID: 1,
-                },
-                Session: { id: 's1', bandwidth: 5000, location: 'lan' },
-              },
-            ],
-          },
-        },
+      const [episode, movie] = sessionPoints(await plugin.collect());
+
+      expect(episode.tags).toMatchObject({
+        session_id: '231',
+        ip_address: '192.168.1.42',
+        username: 'alice',
+        title: 'Severance - Good News About Hell',
+        product: 'Plex for Apple TV',
+        platform: 'tvOS',
+        product_version: '8.45',
+        quality: '1080',
+        video_decision: 'direct play',
+        media_type: 'episode',
+        audio_codec: 'EAC3',
+        player_state: 0,
+        device_type: 'tvOS',
+        secure: '1',
+        server: 1,
       });
-
-      const points = await plugin.collect();
-
-      const sessionPoints = points.filter((p) => p.tags.type === 'Session');
-      expect(sessionPoints).toHaveLength(1);
-      expect(sessionPoints[0].tags.username).toBe('alice');
-      expect(sessionPoints[0].tags.title).toBe('Some Show - Pilot');
-      expect(sessionPoints[0].tags.quality).toBe('1080');
-      expect(sessionPoints[0].fields.progress_percent).toBe(25);
+      expect(episode.fields.progress_percent).toBe(50);
+      expect(movie.tags).toMatchObject({
+        title: 'Dune: Part Two',
+        quality: '4K',
+        video_decision: 'transcode',
+        player_state: 1,
+        secure: '0',
+        audio_codec: 'TRUEHD',
+      });
+      expect(movie.fields.progress_percent).toBe(25);
     });
 
     it('emits a summary stream_count point', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { MediaContainer: { size: 0, Metadata: [] } },
-      });
+      const summary = (await plugin.collect()).find((p) => p.tags.type === 'current_stream_stats');
 
-      const points = await plugin.collect();
-      const summary = points.find((p) => p.tags.type === 'current_stream_stats');
-      expect(summary).toBeDefined();
-      expect(summary?.fields.stream_count).toBe(0);
+      expect(summary?.fields).toEqual({ stream_count: 2, transcode_streams: 1 });
     });
 
-    it('counts transcode_streams correctly', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          MediaContainer: {
-            size: 1,
-            Metadata: [
-              {
-                sessionKey: 's',
-                ratingKey: 'r',
-                guid: 'g',
-                key: 'k',
-                type: 'movie',
-                title: 'M',
-                duration: 1,
-                viewOffset: 0,
-                addedAt: 0,
-                updatedAt: 0,
-                Media: [],
-                User: { id: '', thumb: '', title: 'u' },
-                Player: {
-                  address: '',
-                  device: '',
-                  machineIdentifier: '',
-                  model: '',
-                  platform: '',
-                  platformVersion: '',
-                  product: '',
-                  profile: '',
-                  state: 'playing',
-                  title: '',
-                  version: '',
-                  local: false,
-                  relayed: false,
-                  secure: false,
-                  userID: 0,
-                },
-                Session: { id: '', bandwidth: 0, location: '' },
-                TranscodeSession: {
-                  key: 'tk',
-                  throttled: false,
-                  complete: false,
-                  progress: 0,
-                  size: 0,
-                  speed: 0,
-                  duration: 0,
-                  remaining: 0,
-                  context: '',
-                  sourceVideoCodec: '',
-                  sourceAudioCodec: '',
-                  videoDecision: 'transcode',
-                  audioDecision: '',
-                  protocol: '',
-                  container: '',
-                  videoCodec: '',
-                  audioCodec: '',
-                  audioChannels: 0,
-                  transcodeHwRequested: false,
-                },
-              },
-            ],
-          },
+    it('emits a zero summary when nothing is playing', async () => {
+      client.override('/status/sessions', { MediaContainer: { size: 0 } });
+
+      const points = await plugin.collect();
+
+      expect(points.map((p) => p.fields)).toEqual([{ stream_count: 0, transcode_streams: 0 }]);
+    });
+
+    it('maps buffering and unknown player states', async () => {
+      const [episode, movie] = sessions();
+      client.override('/status/sessions', {
+        MediaContainer: {
+          size: 2,
+          Metadata: [
+            { ...episode, Player: { ...episode.Player, state: 'buffering' } },
+            { ...movie, Player: { ...movie.Player, state: 'stopped' } },
+          ],
         },
       });
 
-      const points = await plugin.collect();
-      const summary = points.find((p) => p.tags.type === 'current_stream_stats');
-      expect(summary?.fields.transcode_streams).toBe(1);
+      expect(sessionPoints(await plugin.collect()).map((p) => p.tags.player_state)).toEqual([3, 0]);
+    });
+
+    it('handles sessions without Player, Media or User', async () => {
+      const [episode] = sessions();
+      const { Player: _p, Media: _m, User: _u, duration: _d, viewOffset: _v, ...bare } = episode;
+      client.override('/status/sessions', { MediaContainer: { size: 1, Metadata: [bare] } });
+
+      const [point] = sessionPoints(await plugin.collect());
+
+      expect(point.tags).toMatchObject({
+        ip_address: 'unknown',
+        username: 'unknown',
+        product: 'unknown',
+        platform: 'unknown',
+        product_version: 'unknown',
+        quality: 'unknown',
+        audio_codec: 'unknown',
+        player_state: 0,
+        secure: '0',
+      });
+      expect(point.fields.progress_percent).toBe(0);
+    });
+
+    it('falls back to the container when the resolution is unknown', async () => {
+      const [episode] = sessions();
+      const media = episode.Media?.map(({ videoResolution: _r, ...m }) => m);
+      client.override('/status/sessions', { MediaContainer: { size: 1, Metadata: [{ ...episode, Media: media }] } });
+
+      expect(sessionPoints(await plugin.collect())[0].tags.quality).toBe('MKV');
+    });
+
+    it('generates deterministic hash ids', async () => {
+      const hashes = async (): Promise<unknown[]> => sessionPoints(await plugin.collect()).map((p) => p.fields.hash);
+
+      const first = await hashes();
+
+      expect(new Set(first).size).toBe(2);
+      expect(await hashes()).toEqual(first);
     });
   });
 
@@ -226,112 +197,60 @@ describe('PlexPlugin', () => {
       await plugin.initialize({ ...testConfig, sessions: { enabled: false, intervalSeconds: 30 } });
     });
 
-    it('queries /library/sections and fetches item count per library', async () => {
-      mockHttpClient.get
-        .mockResolvedValueOnce({
-          data: {
-            MediaContainer: {
-              size: 2,
-              Directory: [
-                {
-                  key: '1',
-                  type: 'show',
-                  title: 'Shows',
-                  agent: '',
-                  scanner: '',
-                  language: '',
-                  uuid: '',
-                  updatedAt: 0,
-                  createdAt: 0,
-                  scannedAt: 0,
-                  content: true,
-                  directory: true,
-                  contentChangedAt: 0,
-                  hidden: 0,
-                  Location: [],
-                },
-                {
-                  key: '2',
-                  type: 'movie',
-                  title: 'Movies',
-                  agent: '',
-                  scanner: '',
-                  language: '',
-                  uuid: '',
-                  updatedAt: 0,
-                  createdAt: 0,
-                  scannedAt: 0,
-                  content: true,
-                  directory: true,
-                  contentChangedAt: 0,
-                  hidden: 0,
-                  Location: [],
-                },
-              ],
-            },
-          },
-        })
-        .mockResolvedValueOnce({ data: { MediaContainer: { totalSize: 100 } } })
-        .mockResolvedValueOnce({ data: { MediaContainer: { totalSize: 200 } } });
-
+    it('queries /library/sections/all and fetches item count per library', async () => {
       const points = await plugin.collect();
 
-      const libPoints = points.filter((p) => p.tags.type === 'library_stats');
-      expect(libPoints).toHaveLength(2);
-      expect(libPoints[0].fields.total).toBe(100);
-      expect(libPoints[1].fields.total).toBe(200);
+      expect(points.map((p) => [p.tags.section_name, p.tags.section_type, p.tags.name, p.fields.total, p.fields.libraries])).toEqual([
+        ['Movies', 'movie', 'Movies', 1342, 'Movies'],
+        ['TV Shows', 'show', 'TV Shows', 1342, 'TV Shows'],
+      ]);
+      expect(client.get).toHaveBeenCalledWith('/library/sections/all', { params: undefined });
+    });
+
+    it('requests item counts with pagination headers', async () => {
+      await plugin.collect();
+
+      expect(client.get).toHaveBeenCalledWith('/library/sections/1/all', {
+        params: undefined,
+        headers: { 'X-Plex-Container-Start': 0, 'X-Plex-Container-Size': 0 },
+      });
+    });
+
+    it('falls back to size then 0 for the item count', async () => {
+      client.override('/library/sections/{sectionId}/all', (_params, path) =>
+        path.startsWith('/library/sections/1/') ? { MediaContainer: { size: 7 } } : { MediaContainer: {} }
+      );
+
+      expect((await plugin.collect()).map((p) => p.fields.total)).toEqual([7, 0]);
     });
 
     it('returns 0 count when the per-library endpoint fails', async () => {
-      mockHttpClient.get
-        .mockResolvedValueOnce({
-          data: {
-            MediaContainer: {
-              size: 1,
-              Directory: [
-                {
-                  key: '1',
-                  type: 'show',
-                  title: 'Shows',
-                  agent: '',
-                  scanner: '',
-                  language: '',
-                  uuid: '',
-                  updatedAt: 0,
-                  createdAt: 0,
-                  scannedAt: 0,
-                  content: true,
-                  directory: true,
-                  contentChangedAt: 0,
-                  hidden: 0,
-                  Location: [],
-                },
-              ],
-            },
-          },
-        })
-        .mockRejectedValueOnce(new Error('boom'));
+      client.fail('/library/sections/{sectionId}/all', new Error('boom'));
 
-      const points = await plugin.collect();
-      const libPoint = points.find((p) => p.tags.type === 'library_stats');
-      expect(libPoint?.fields.total).toBe(0);
+      expect((await plugin.collect()).map((p) => p.fields.total)).toEqual([0, 0]);
+    });
+
+    it('handles a server without libraries', async () => {
+      client.override('/library/sections/all', { MediaContainer: { size: 0 } });
+
+      expect(await plugin.collect()).toEqual([]);
     });
   });
 
   describe('collect() branches', () => {
     it('skips sessions when disabled', async () => {
       await plugin.initialize({ ...testConfig, sessions: { enabled: false, intervalSeconds: 30 } });
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { MediaContainer: { size: 0, Directory: [] } },
-      });
 
       const points = await plugin.collect();
+
       expect(points.every((p) => p.tags.type !== 'Session')).toBe(true);
+      expect(client.get).not.toHaveBeenCalledWith('/status/sessions', expect.anything());
     });
 
     it('propagates errors from sessions fetch (safeFetch re-throws)', async () => {
       await plugin.initialize(testConfig);
-      mockHttpClient.get.mockRejectedValueOnce(new Error('plex offline'));
+      client.fail('/status/sessions', new Error('plex offline'));
+
       await expect(plugin.collect()).rejects.toThrow('plex offline');
     });
   });

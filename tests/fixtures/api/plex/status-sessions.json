@@ -1,0 +1,132 @@
+{
+  "MediaContainer": {
+    "size": 2,
+    "Metadata": [
+      {
+        "sessionKey": "231",
+        "ratingKey": "48211",
+        "key": "/library/metadata/48211",
+        "type": "episode",
+        "title": "Good News About Hell",
+        "grandparentTitle": "Severance",
+        "parentTitle": "Season 1",
+        "index": 1,
+        "parentIndex": 1,
+        "year": 2022,
+        "duration": 3420000,
+        "viewOffset": 1710000,
+        "addedAt": 1732017600,
+        "User": {
+          "id": "1",
+          "title": "alice",
+          "thumb": "https://plex.tv/users/a1b2c3d4e5f6a7b8/avatar?c=1732017600"
+        },
+        "Player": {
+          "address": "192.168.1.42",
+          "machineIdentifier": "7a1f3c9e-2b4d-4e6f-8a0c-1d2e3f4a5b6c",
+          "platform": "tvOS",
+          "platformVersion": "18.1",
+          "product": "Plex for Apple TV",
+          "state": "playing",
+          "title": "Living Room",
+          "version": "8.45",
+          "local": true,
+          "relayed": false,
+          "secure": true,
+          "userID": 1
+        },
+        "Session": {
+          "id": "k3j4h5g6f7d8s9a0",
+          "bandwidth": 12000,
+          "location": "lan"
+        },
+        "Media": [
+          {
+            "id": 91234,
+            "container": "mkv",
+            "videoResolution": "1080",
+            "videoCodec": "h264",
+            "audioCodec": "eac3",
+            "audioChannels": 6,
+            "bitrate": 10230,
+            "width": 1920,
+            "height": 1080,
+            "duration": 3420000
+          }
+        ]
+      },
+      {
+        "sessionKey": "232",
+        "ratingKey": "31877",
+        "key": "/library/metadata/31877",
+        "type": "movie",
+        "title": "Dune: Part Two",
+        "year": 2024,
+        "duration": 9960000,
+        "viewOffset": 2490000,
+        "addedAt": 1731412800,
+        "User": {
+          "id": "2",
+          "title": "bob",
+          "thumb": "https://plex.tv/users/b2c3d4e5f6a7b8c9/avatar?c=1731412800"
+        },
+        "Player": {
+          "address": "203.0.113.27",
+          "machineIdentifier": "c4d5e6f7-8a9b-4c0d-9e1f-2a3b4c5d6e7f",
+          "platform": "Android",
+          "platformVersion": "15",
+          "product": "Plex for Android (Mobile)",
+          "state": "paused",
+          "title": "Pixel 9",
+          "version": "10.24.1.1270",
+          "local": false,
+          "relayed": false,
+          "secure": false,
+          "userID": 2
+        },
+        "Session": {
+          "id": "p0o9i8u7y6t5r4e3",
+          "bandwidth": 4000,
+          "location": "wan"
+        },
+        "Media": [
+          {
+            "id": 88412,
+            "container": "mkv",
+            "videoResolution": "4k",
+            "videoCodec": "hevc",
+            "audioCodec": "truehd",
+            "audioChannels": 8,
+            "bitrate": 38500,
+            "width": 3840,
+            "height": 1608,
+            "duration": 9960000
+          }
+        ],
+        "TranscodeSession": {
+          "key": "/transcode/sessions/q1w2e3r4t5y6u7i8",
+          "throttled": false,
+          "complete": false,
+          "progress": 27.4,
+          "speed": 2.1,
+          "duration": 9960000,
+          "context": "streaming",
+          "videoDecision": "transcode",
+          "audioDecision": "transcode",
+          "subtitleDecision": "burn",
+          "protocol": "dash",
+          "container": "mp4",
+          "videoCodec": "h264",
+          "audioCodec": "aac",
+          "audioChannels": 2,
+          "width": 1280,
+          "height": 536,
+          "transcodeHwRequested": true,
+          "transcodeHwFullPipeline": false,
+          "sourceVideoCodec": "hevc",
+          "sourceAudioCodec": "truehd"
+        }
+      }
+    ]
+  }
+}
