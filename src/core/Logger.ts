@@ -1,8 +1,8 @@
 import winston from 'winston';
-import path from 'path';
-import fs from 'fs';
+import path from 'node:path';
+import fs from 'node:fs';
 
-const LOG_FOLDER = process.env.LOG_FOLDER || './logs';
+const LOG_FOLDER: string = process.env.LOG_FOLDER || './logs';
 
 // Ensure log directory exists
 try {
@@ -78,7 +78,7 @@ const jsonFormat = winston.format.combine(
 );
 
 // File output stays JSON regardless of LOG_FORMAT (always structured on disk)
-const fileFormat = jsonFormat;
+const fileFormat: winston.Logform.Format = jsonFormat;
 
 /**
  * Select console output format based on LOG_FORMAT env var.

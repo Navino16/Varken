@@ -1,6 +1,6 @@
 import type { IPoint, ISingleHostConfig } from 'influx';
 import { InfluxDB } from 'influx';
-import * as https from 'https';
+import * as https from 'node:https';
 import { BaseOutputPlugin } from './BaseOutputPlugin';
 import type { DataPoint, PluginMetadata } from '../../types/plugin.types';
 import type { z } from 'zod';

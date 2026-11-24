@@ -9,8 +9,8 @@
     "start": "node dist/index.js",
     "build": "tsc",
     "clean": "rm -rf dist .reports node_modules logs data",
-    "lint": "eslint src/",
-    "lint:fix": "eslint src/ --fix",
+    "lint": "biome lint src/",
+    "lint:fix": "biome lint --write src/",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:integration": "RUN_INTEGRATION=1 vitest run --config vitest.integration.config.ts",
@@ -55,20 +55,18 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.6.8",
     "@types/node": "^26.6.6",
-    "@typescript-eslint/eslint-plugin": "^8.73.0",
-    "@typescript-eslint/parser": "^8.73.0",
     "@vitest/coverage-v8": "^5.1.1",
-    "eslint": "^10.15.0",
     "husky": "^9.1.7",
     "lint-staged": "^17.6.2",
     "tsx": "^4.23.15",
-    "typescript": "^6.0.3",
+    "typescript": "^7.0.2",
     "vitest": "^5.1.1"
   },
   "lint-staged": {
     "src/**/*.ts": [
-      "eslint --fix"
+      "biome lint --write --no-errors-on-unmatched"
     ]
   }
 }
