@@ -26,6 +26,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: develop
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
@@ -64,10 +65,13 @@ jobs:
           printf '\n## Verification\n\n' >> "$report"
           check() {
             name="$1"; shift
-            if "$@" > "$RUNNER_TEMP/check.log" 2>&1; then
+            log="$RUNNER_TEMP/check.log"
+            if "$@" > "$log" 2>&1; then
               printf -- '- %s: pass\n' "$name" >> "$report"
             else
-              printf -- '- %s: **fail**\n\n```\n%s\n```\n\n' "$name" "$(tail -n 40 "$RUNNER_TEMP/check.log")" >> "$report"
+              # Failing tests and type errors first, then the summary lines.
+              details="$( { grep -E '(FAIL|×| error TS)' "$log" | sort -u | head -n 40; tail -n 8 "$log"; } )"
+              printf -- '- %s: **fail**\n\n```\n%s\n```\n\n' "$name" "$details" >> "$report"
             fi
           }
           check 'tsc' npx tsc --noEmit
@@ -80,14 +84,22 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          bot='41898282+github-actions[bot]@users.noreply.github.com'
           git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git config user.email "$bot"
+          open_pr="$(gh pr list --head "$BRANCH" --state open --json number --jq '.[].number')"
+          if [ -n "$open_pr" ] && git fetch origin "$BRANCH" \
+            && git log --format='%ae' "origin/develop..origin/$BRANCH" | grep -qvxF "$bot"; then
+            # A maintainer pushed to the PR (e.g. a hand-written contract update): never force-push over it.
+            gh pr comment "$open_pr" --body-file "$RUNNER_TEMP/report.md"
+            exit 0
+          fi
           git switch -c "$BRANCH"
           git add -A
           git commit -m 'chore(contracts): refresh pinned API specs'
           git push --force origin "$BRANCH"
-          if [ -n "$(gh pr list --head "$BRANCH" --state open --json number --jq '.[].number')" ]; then
-            gh pr edit "$BRANCH" --body-file "$RUNNER_TEMP/report.md"
+          if [ -n "$open_pr" ]; then
+            gh pr edit "$open_pr" --body-file "$RUNNER_TEMP/report.md"
           else
             gh pr create --base develop --head "$BRANCH" \
               --title 'chore(contracts): refresh pinned API specs' \

@@ -1,5 +1,12 @@
 import { describe, it, expect, vi } from 'vitest';
-import { parseArgs, refreshService, renderReport, type RefreshDeps } from '../../../scripts/contracts/refresh/refresh';
+import {
+  finalizeRefresh,
+  parseArgs,
+  refreshService,
+  renderReport,
+  type FinalizeIo,
+  type RefreshDeps,
+} from '../../../scripts/contracts/refresh/refresh';
 import type { ManifestEntry } from '../lib/spec';
 import { canonicalJson } from '../../../scripts/contracts/refresh/sources';
 
@@ -40,10 +47,10 @@ describe('refreshService', () => {
     expect(result).toEqual({ status: 'updated', version: 'v2', content: '{"openapi":"3.0.4"}' });
   });
 
-  it('github-raw: same tag and same bytes is unchanged', async () => {
-    const result = await refreshService({ ...raw, version: 'v2' }, { spec: 'same' }, deps({ [rawUrl]: 'same' }));
+  it('github-raw: a new tag with the same bytes is unchanged and keeps the pinned version', async () => {
+    const result = await refreshService(raw, { spec: 'same' }, deps({ [rawUrl]: 'same' }));
 
-    expect(result.status).toBe('unchanged');
+    expect(result).toEqual({ status: 'unchanged', version: 'v1' });
   });
 
   it('url: writes canonical JSON versioned by info.version', async () => {
@@ -79,21 +86,30 @@ describe('refreshService', () => {
       port: 6767,
       path: '/api/swagger.json',
     });
-    const d = deps({ 'http://localhost:6767/api/swagger.json': '{"swagger":"2.0"}' });
+    const d = deps({ 'http://localhost:6767/api/swagger.json': '{"swagger":"2.0","paths":{}}' });
 
     const result = await refreshService(bazarr, { spec: '{}\n' }, d);
 
     expect(d.docker.run).toHaveBeenCalledWith('lscr.io/linuxserver/bazarr:v2', 6767);
-    expect(result).toEqual({ status: 'updated', version: 'v2', content: '{\n  "swagger": "2.0"\n}\n' });
+    expect(result).toEqual({ status: 'updated', version: 'v2', content: '{\n  "paths": {},\n  "swagger": "2.0"\n}\n' });
+  });
+
+  it('runtime: a rebuilt image tag with the same spec is unchanged', async () => {
+    const bazarr = entry({ kind: 'runtime', repo: 'linuxserver/docker-bazarr', image: 'lscr.io/linuxserver/bazarr:{tag}', port: 6767, path: '/api/swagger.json' });
+    const body = '{"swagger":"2.0","paths":{}}';
+
+    const result = await refreshService(bazarr, { spec: '{\n  "paths": {},\n  "swagger": "2.0"\n}\n' }, deps({ 'http://localhost:6767/api/swagger.json': body }));
+
+    expect(result).toEqual({ status: 'unchanged', version: 'v1' });
   });
 
   it('runtime: drops servers, which describe the capture container', async () => {
     const emby = entry({ kind: 'runtime', repo: 'MediaBrowser/Emby.Releases', image: 'emby/embyserver:{tag}', port: 8096, path: '/emby/openapi.json' });
-    const body = '{"openapi":"3.0.1","servers":[{"url":"http://localhost:8096/emby","description":"f31a67910e59"}]}';
+    const body = '{"openapi":"3.0.1","paths":{},"servers":[{"url":"http://localhost:8096/emby","description":"f31a67910e59"}]}';
 
     const result = await refreshService(emby, { spec: '{}\n' }, deps({ 'http://localhost:8096/emby/openapi.json': body }));
 
-    expect(result.content).toBe('{\n  "openapi": "3.0.1"\n}\n');
+    expect(result.content).toBe('{\n  "openapi": "3.0.1",\n  "paths": {}\n}\n');
   });
 
   describe('docstrings', () => {
@@ -114,10 +130,10 @@ describe('refreshService', () => {
       expect(result).toEqual({ status: 'review', version: 'v2', snapshot: '{\n  "get_activity": "new"\n}\n' });
     });
 
-    it('only bumps the version when the docstrings are the same', async () => {
+    it('keeps the pinned version when the docstrings are the same', async () => {
       const result = await refreshService(tautulli, { spec, snapshot: '{\n  "get_activity": "same"\n}\n' }, deps(webserve('same')));
 
-      expect(result).toMatchObject({ status: 'updated', version: 'v2' });
+      expect(result).toEqual({ status: 'unchanged', version: 'v1' });
     });
   });
 
@@ -159,5 +175,86 @@ describe('parseArgs', () => {
 
   it('reads the report file wherever it appears', () => {
     expect(parseArgs(['radarr', '--report', 'out.md', 'plex'])).toEqual({ services: ['radarr', 'plex'], reportFile: 'out.md' });
+  });
+});
+
+describe('finalizeRefresh', () => {
+  const patch = { op: 'remove' as const, path: '/paths/~1gone', why: 'upstream bug' };
+
+  function io(overrides: Partial<FinalizeIo> = {}): FinalizeIo & Record<keyof FinalizeIo, ReturnType<typeof vi.fn>> {
+    return {
+      write: vi.fn(),
+      restore: vi.fn(),
+      check: vi.fn(),
+      redundant: vi.fn(() => []),
+      regenerate: vi.fn(),
+      ...overrides,
+    } as never;
+  }
+
+  it('writes an update, checks it, reports redundant patches and regenerates the types', () => {
+    const files = io({ redundant: vi.fn(() => [patch]) });
+
+    const row = finalizeRefresh('plex', '1', { status: 'updated', version: '2', content: 'new' }, files);
+
+    expect(files.write).toHaveBeenCalledWith({ spec: 'new', snapshot: undefined });
+    expect(files.check).toHaveBeenCalled();
+    expect(files.regenerate).toHaveBeenCalled();
+    expect(files.restore).not.toHaveBeenCalled();
+    expect(row).toEqual({ service: 'plex', status: 'updated', from: '1', to: '2', redundant: [patch] });
+  });
+
+  it('writes nothing for an unchanged spec', () => {
+    const files = io();
+
+    const row = finalizeRefresh('plex', '1', { status: 'unchanged', version: '1' }, files);
+
+    expect(files.write).not.toHaveBeenCalled();
+    expect(row.status).toBe('unchanged');
+  });
+
+  it('restores the pinned files, keeps the version and names the redundant patch when the refreshed spec breaks the contract', () => {
+    const files = io({
+      check: vi.fn(() => {
+        throw new Error('Overlay pointer not found: /paths/~1gone');
+      }),
+      redundant: vi.fn(() => [patch]),
+    });
+
+    const row = finalizeRefresh('plex', '1', { status: 'updated', version: '2', content: 'new' }, files);
+
+    expect(files.restore).toHaveBeenCalled();
+    expect(files.regenerate).not.toHaveBeenCalled();
+    expect(row).toEqual({
+      service: 'plex',
+      status: 'failed',
+      from: '1',
+      to: '1',
+      error: 'refresh not applied: Overlay pointer not found: /paths/~1gone',
+      redundant: [patch],
+    });
+  });
+
+  it('restores the pinned files when type generation fails', () => {
+    const files = io({
+      regenerate: vi.fn(() => {
+        throw new Error('openapi-typescript failed');
+      }),
+    });
+
+    const row = finalizeRefresh('ombi', 'v1', { status: 'updated', version: 'v2', content: 'new' }, files);
+
+    expect(files.restore).toHaveBeenCalled();
+    expect(row).toMatchObject({ status: 'failed', to: 'v1', error: 'refresh not applied: openapi-typescript failed' });
+  });
+
+  it('passes a failed fetch through untouched', () => {
+    const files = io();
+
+    const row = finalizeRefresh('emby', 'v1', { status: 'failed', version: 'v1', error: 'not ready' }, files);
+
+    expect(files.write).not.toHaveBeenCalled();
+    expect(files.check).not.toHaveBeenCalled();
+    expect(row).toEqual({ service: 'emby', status: 'failed', from: 'v1', to: 'v1', error: 'not ready' });
   });
 });

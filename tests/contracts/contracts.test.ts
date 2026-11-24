@@ -43,8 +43,14 @@ describe('pinned spec files', () => {
     ([, entry]) => entry.refresh !== false && ['url', 'redoc-page', 'runtime'].includes(entry.refresh.kind)
   );
 
-  it.each(canonical)('%s is written canonically so a refresh without upstream change is a no-op', (_service, entry) => {
-    const content = fs.readFileSync(path.join(__dirname, 'specs', entry.file), 'utf8');
+  const files = [
+    ...canonical.map(([, entry]) => entry.file),
+    'manifest.json',
+    ...Object.values(loadManifest()).flatMap((entry) => (entry.refresh && entry.refresh.kind === 'docstrings' ? [entry.refresh.snapshot] : [])),
+  ];
+
+  it.each(files)('%s is written canonically so a refresh without upstream change is a no-op', (file) => {
+    const content = fs.readFileSync(path.join(__dirname, 'specs', file), 'utf8');
 
     expect(content === canonicalJson(JSON.parse(content))).toBe(true);
   });

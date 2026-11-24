@@ -45,11 +45,9 @@ export interface ReportRow {
   redundant?: OverlayPatch[];
 }
 
+/** The version only moves with the content: image rebuilds and releases without API change keep the pin as is. */
 function result(entry: ManifestEntry, pinned: PinnedFiles, content: string, version: string): RefreshResult {
-  const changed = content !== pinned.spec;
-  return changed || version !== entry.version
-    ? { status: 'updated', version, ...(changed ? { content } : {}) }
-    : { status: 'unchanged', version };
+  return content === pinned.spec ? { status: 'unchanged', version: entry.version } : { status: 'updated', version, content };
 }
 
 async function refreshSource(source: RefreshSource, entry: ManifestEntry, pinned: PinnedFiles, deps: RefreshDeps): Promise<RefreshResult> {
@@ -63,8 +61,7 @@ async function refreshSource(source: RefreshSource, entry: ManifestEntry, pinned
       return result(entry, pinned, canonicalJson(spec), spec.info?.version ?? entry.version);
     }
     case 'redoc-page': {
-      const content = canonicalJson(extractRedocSpec(await deps.fetchText(source.url)));
-      return result(entry, pinned, content, content === pinned.spec ? entry.version : deps.today());
+      return result(entry, pinned, canonicalJson(extractRedocSpec(await deps.fetchText(source.url))), deps.today());
     }
     case 'runtime': {
       const tag = await latestRelease(source.repo, deps.fetchJson);
@@ -77,10 +74,9 @@ async function refreshSource(source: RefreshSource, entry: ManifestEntry, pinned
       const paths = Object.keys((JSON.parse(pinned.spec) as { paths: Record<string, unknown> }).paths);
       const commands = paths.map((p) => new URLSearchParams(p.slice(p.indexOf('?') + 1)).get('cmd') ?? p);
       const snapshot = canonicalJson(extractDocstrings(await deps.fetchText(source.url.replace('{tag}', tag)), commands));
-      if (snapshot !== pinned.snapshot) {
-        return { status: 'review', version: tag, snapshot };
-      }
-      return tag === entry.version ? { status: 'unchanged', version: tag } : { status: 'updated', version: tag };
+      return snapshot === pinned.snapshot
+        ? { status: 'unchanged', version: entry.version }
+        : { status: 'review', version: tag, snapshot };
     }
   }
 }
@@ -94,6 +90,44 @@ export async function refreshService(entry: ManifestEntry, pinned: PinnedFiles, 
     return await refreshSource(entry.refresh, entry, pinned, deps);
   } catch (error) {
     return { status: 'failed', version: entry.version, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+/** File operations of one service's refresh, injected so the transaction is testable. */
+export interface FinalizeIo {
+  write(files: { spec?: string; snapshot?: string }): void;
+  restore(): void;
+  check(): void;
+  redundant(): OverlayPatch[];
+  regenerate(): void;
+}
+
+/**
+ * Applies a fetched result: writes it, checks the contract still loads, lists redundant overlay patches and
+ * regenerates the types. Any failure restores the pinned files so one bad upstream spec never blocks the others.
+ */
+export function finalizeRefresh(service: string, from: string, result: RefreshResult, io: FinalizeIo): ReportRow {
+  if (result.status === 'failed') {
+    return { service, status: 'failed', from, to: from, error: result.error };
+  }
+  try {
+    if (result.content !== undefined || result.snapshot !== undefined) {
+      io.write({ spec: result.content, snapshot: result.snapshot });
+    }
+    io.check();
+    const redundant = io.redundant();
+    io.regenerate();
+    return { service, status: result.status, from, to: result.version, redundant };
+  } catch (error) {
+    let redundant: OverlayPatch[] = [];
+    try {
+      redundant = io.redundant();
+    } catch {
+      // The refreshed spec may not even parse; the error below already says why.
+    }
+    io.restore();
+    const message = error instanceof Error ? error.message : String(error);
+    return { service, status: 'failed', from, to: from, error: `refresh not applied: ${message}`, redundant };
   }
 }
 

@@ -108,6 +108,11 @@ export async function latestRelease(repo: string, fetchJson: FetchJson): Promise
   return release.tag_name;
 }
 
+function isSpec(value: unknown): boolean {
+  const document = value as { openapi?: unknown; swagger?: unknown; paths?: unknown };
+  return (typeof document.openapi === 'string' || typeof document.swagger === 'string') && typeof document.paths === 'object';
+}
+
 /** Starts the service's image, polls its spec URL until it serves JSON, and always stops the container. */
 export async function captureRuntimeSpec(source: RuntimeSource, tag: string, deps: CaptureDeps): Promise<string> {
   const image = source.image.replace('{tag}', tag);
@@ -118,14 +123,17 @@ export async function captureRuntimeSpec(source: RuntimeSource, tag: string, dep
     while (Date.now() < deadline) {
       try {
         const body = await deps.fetchText(url);
-        JSON.parse(body);
-        return body;
+        if (isSpec(JSON.parse(body))) {
+          return body;
+        }
       } catch {
-        await deps.sleep(POLL_INTERVAL_MS);
+        // Not up yet: connection refused, HTML splash page or partial body.
       }
+      await deps.sleep(POLL_INTERVAL_MS);
     }
     throw new Error(`${image} not ready after ${Math.round(deps.timeoutMs / 1000)} s`);
   } finally {
-    await deps.docker.stop(id);
+    // `--rm` may already have removed a crashed container; the capture outcome matters more.
+    await deps.docker.stop(id).catch(() => undefined);
   }
 }

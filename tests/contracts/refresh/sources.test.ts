@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { describe, it, expect, vi } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import {
   canonicalJson,
   captureRuntimeSpec,
@@ -49,6 +49,10 @@ describe('latestRelease', () => {
 });
 
 describe('captureRuntimeSpec', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   const source = { kind: 'runtime', repo: 'linuxserver/docker-bazarr', image: 'lscr.io/linuxserver/bazarr:{tag}', port: 6767, path: '/api/swagger.json' } as const;
   const docker = (): { run: ReturnType<typeof vi.fn>; stop: ReturnType<typeof vi.fn> } => ({
     run: vi.fn(async () => 'container-1'),
@@ -61,7 +65,8 @@ describe('captureRuntimeSpec', () => {
       .fn()
       .mockRejectedValueOnce(new Error('ECONNREFUSED'))
       .mockResolvedValueOnce('<html>starting</html>')
-      .mockResolvedValueOnce('{"swagger":"2.0"}');
+      .mockResolvedValueOnce('{"error":"database migration in progress"}')
+      .mockResolvedValueOnce('{"swagger":"2.0","paths":{}}');
 
     const spec = await captureRuntimeSpec(source, 'v1.6.2-ls373', {
       docker: runner,
@@ -70,10 +75,24 @@ describe('captureRuntimeSpec', () => {
       timeoutMs: 10_000,
     });
 
-    expect(spec).toBe('{"swagger":"2.0"}');
+    expect(spec).toBe('{"swagger":"2.0","paths":{}}');
     expect(runner.run).toHaveBeenCalledWith('lscr.io/linuxserver/bazarr:v1.6.2-ls373', 6767);
     expect(fetchText).toHaveBeenLastCalledWith('http://localhost:6767/api/swagger.json');
     expect(runner.stop).toHaveBeenCalledWith('container-1');
+  });
+
+  it('keeps a good capture when stopping the container fails', async () => {
+    const runner = docker();
+    runner.stop.mockRejectedValue(new Error('No such container: container-1'));
+
+    await expect(
+      captureRuntimeSpec(source, 'v1', {
+        docker: runner,
+        fetchText: async () => '{"openapi":"3.0.1","paths":{}}',
+        sleep: async () => undefined,
+        timeoutMs: 1000,
+      })
+    ).resolves.toBe('{"openapi":"3.0.1","paths":{}}');
   });
 
   it('stops the container and throws when the server never answers', async () => {
@@ -94,7 +113,6 @@ describe('captureRuntimeSpec', () => {
       })
     ).rejects.toThrow('lscr.io/linuxserver/bazarr:v1 not ready after 6 s');
     expect(runner.stop).toHaveBeenCalledWith('container-1');
-    vi.restoreAllMocks();
   });
 });
 

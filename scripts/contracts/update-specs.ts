@@ -13,7 +13,16 @@ import {
   type ServiceId,
 } from '../../tests/contracts/lib/spec';
 import { generateTypes } from './generate-types';
-import { parseArgs, refreshService, renderReport, type PinnedFiles, type RefreshDeps, type ReportRow } from './refresh/refresh';
+import {
+  finalizeRefresh,
+  parseArgs,
+  refreshService,
+  renderReport,
+  type FinalizeIo,
+  type PinnedFiles,
+  type RefreshDeps,
+  type ReportRow,
+} from './refresh/refresh';
 import { canonicalJson } from './refresh/sources';
 
 const run = promisify(execFile);
@@ -36,7 +45,7 @@ const deps: RefreshDeps = {
   fetchText,
   fetchJson: async (url) => JSON.parse(await fetchText(url)),
   docker: {
-    run: async (image, port) => (await run('docker', ['run', '-d', '--rm', '-p', `${port}:${port}`, image])).stdout.trim(),
+    run: async (image, port) => (await run('docker', ['run', '-d', '--rm', '-p', `127.0.0.1:${port}:${port}`, image])).stdout.trim(),
     stop: async (id) => {
       await run('docker', ['stop', id]);
     },
@@ -46,32 +55,61 @@ const deps: RefreshDeps = {
   timeoutMs: 300_000,
 };
 
-function readPinned(entry: ManifestEntry): PinnedFiles {
-  const snapshot = entry.refresh && entry.refresh.kind === 'docstrings' ? path.join(specsDir, entry.refresh.snapshot) : undefined;
+function snapshotPath(entry: ManifestEntry): string | undefined {
+  return entry.refresh && entry.refresh.kind === 'docstrings' ? path.join(specsDir, entry.refresh.snapshot) : undefined;
+}
+
+function readIfExists(file: string | undefined): string | undefined {
+  return file && fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : undefined;
+}
+
+function restoreFile(file: string | undefined, content: string | undefined): void {
+  if (!file) {
+    return;
+  }
+  if (content === undefined) {
+    fs.rmSync(file, { force: true });
+  } else {
+    fs.writeFileSync(file, content);
+  }
+}
+
+/** Real file operations for `finalizeRefresh`, restoring the spec, snapshot and generated types on failure. */
+function fileIo(service: ServiceId, entry: ManifestEntry, pinned: PinnedFiles): FinalizeIo {
+  const specFile = path.join(specsDir, entry.file);
+  const snapshotFile = snapshotPath(entry);
+  const generatedFile = path.join(generatedDir, `${service}.ts`);
+  const generated = readIfExists(generatedFile);
+  const overlayFile = path.join(overlaysDir, `${service}.json`);
   return {
-    spec: fs.readFileSync(path.join(specsDir, entry.file), 'utf8'),
-    ...(snapshot && fs.existsSync(snapshot) ? { snapshot: fs.readFileSync(snapshot, 'utf8') } : {}),
+    write: (files) => {
+      if (files.spec !== undefined) {
+        fs.writeFileSync(specFile, files.spec);
+      }
+      if (files.snapshot !== undefined && snapshotFile) {
+        fs.writeFileSync(snapshotFile, files.snapshot);
+      }
+    },
+    restore: () => {
+      fs.writeFileSync(specFile, pinned.spec);
+      restoreFile(snapshotFile, pinned.snapshot);
+      restoreFile(generatedFile, generated);
+      resetContractCache();
+    },
+    check: () => {
+      resetContractCache();
+      loadContract(service);
+    },
+    redundant: () =>
+      fs.existsSync(overlayFile)
+        ? findRedundantPatches(loadPinnedSpec(entry), JSON.parse(fs.readFileSync(overlayFile, 'utf8')) as Overlay)
+        : [],
+    regenerate: () => {
+      if (generated?.split('\n')[1] !== `// contract-hash: ${contractHash(service)}`) {
+        generateTypes(service);
+      }
+    },
   };
-}
-
-function writePinned(entry: ManifestEntry, files: PinnedFiles): void {
-  fs.writeFileSync(path.join(specsDir, entry.file), files.spec);
-  if (files.snapshot !== undefined && entry.refresh && entry.refresh.kind === 'docstrings') {
-    fs.writeFileSync(path.join(specsDir, entry.refresh.snapshot), files.snapshot);
-  }
-}
-
-function redundantPatches(entry: ManifestEntry, service: ServiceId): ReportRow['redundant'] {
-  const file = path.join(overlaysDir, `${service}.json`);
-  if (!fs.existsSync(file)) {
-    return [];
-  }
-  return findRedundantPatches(loadPinnedSpec(entry), JSON.parse(fs.readFileSync(file, 'utf8')) as Overlay);
-}
-
-function generatedHash(service: ServiceId): string | undefined {
-  const file = path.join(generatedDir, `${service}.ts`);
-  return fs.existsSync(file) ? fs.readFileSync(file, 'utf8').split('\n')[1] : undefined;
 }
 
 async function main(): Promise<void> {
@@ -81,35 +119,24 @@ async function main(): Promise<void> {
     if (!manifest[service]) {
       throw new Error(`Unknown contract service: ${service}`);
     }
-    return manifest[service].refresh !== false;
+    if (manifest[service].refresh === false) {
+      console.warn(`${service} is not refreshed (refresh: false in the manifest)`);
+      return false;
+    }
+    return true;
   });
 
   const rows: ReportRow[] = [];
   for (const service of services) {
     const entry = manifest[service];
-    const pinned = readPinned(entry);
+    const pinned: PinnedFiles = {
+      spec: fs.readFileSync(path.join(specsDir, entry.file), 'utf8'),
+      snapshot: readIfExists(snapshotPath(entry)),
+    };
     console.warn(`Refreshing ${service}…`);
     const result = await refreshService(entry, pinned, deps);
-    const row: ReportRow = { service, status: result.status, from: entry.version, to: result.version, error: result.error };
-
-    if (result.status !== 'failed' && result.status !== 'unchanged') {
-      writePinned(entry, { spec: result.content ?? pinned.spec, snapshot: result.snapshot });
-      resetContractCache();
-      try {
-        loadContract(service);
-        entry.version = result.version;
-      } catch (error) {
-        writePinned(entry, pinned);
-        Object.assign(row, { status: 'failed', to: entry.version, error: `overlay no longer applies: ${(error as Error).message}` });
-      }
-      resetContractCache();
-    }
-    if (row.status !== 'failed') {
-      row.redundant = redundantPatches(entry, service);
-      if (generatedHash(service) !== `// contract-hash: ${contractHash(service)}`) {
-        generateTypes(service);
-      }
-    }
+    const row = finalizeRefresh(service, entry.version, result, fileIo(service, entry, pinned));
+    entry.version = row.to;
     rows.push(row);
   }
 
