@@ -165,7 +165,10 @@ function getCompiled(contract: Contract): CompiledContract {
 export function findOperation(contract: Contract, method: 'get', calledPath: string): OperationMatch | undefined {
   let path = stripQuery(calledPath);
   const prefix = contract.entry.pathPrefix;
-  if (prefix && (path === prefix || path.startsWith(`${prefix}/`))) {
+  if (prefix) {
+    if (path !== prefix && !path.startsWith(`${prefix}/`)) {
+      return undefined;
+    }
     path = path.slice(prefix.length);
   }
 

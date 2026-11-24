@@ -76,8 +76,8 @@ class TestInputPlugin extends BaseInputPlugin<TestConfig> {
     return this.globalConfig;
   }
 
-  public testApi(): ApiClient<ToyPaths> {
-    return this.api<ToyPaths>();
+  public testApi(basePath?: string): ApiClient<ToyPaths> {
+    return this.api<ToyPaths>(basePath);
   }
 
   public testFetchAllPages<T>(endpoint: string, params?: Record<string, unknown>): Promise<T[]> {
@@ -314,6 +314,22 @@ describe('BaseInputPlugin', () => {
       expect(records).toEqual([{ id: 1 }, { id: 2 }]);
       expect(get).toHaveBeenNthCalledWith(1, '/api/pages', { params: expect.objectContaining({ tag: 'x', page: 1 }) });
       expect(get).toHaveBeenNthCalledWith(2, '/api/pages', { params: expect.objectContaining({ tag: 'x', page: 2 }) });
+    });
+
+    it('prefixes calls with the base path', async () => {
+      await plugin.initialize(testConfig);
+      const get = vi
+        .fn()
+        .mockResolvedValueOnce({ data: { id: 42 } })
+        .mockResolvedValueOnce({ data: { totalRecords: 1, records: [{ id: 1 }] } });
+      plugin.getHttpClient().get = get;
+      const client = plugin.testApi('/v2');
+
+      await client.get('/api/items/{id}', { path: { id: 42 } });
+      await client.getAllPages('/api/pages');
+
+      expect(get).toHaveBeenNthCalledWith(1, '/v2/api/items/42', { params: undefined });
+      expect(get).toHaveBeenNthCalledWith(2, '/v2/api/pages', { params: expect.objectContaining({ page: 1 }) });
     });
   });
 

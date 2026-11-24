@@ -242,13 +242,14 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
   /**
    * Typed client bound to a service's generated `paths` (src/types/generated): the compiler rejects
    * unknown endpoints, unknown or mistyped parameters and undeclared response fields.
+   * `basePath` is prepended when the spec's paths are relative to one (Swagger `basePath`).
    */
-  protected api<Paths>(): ApiClient<Paths> {
+  protected api<Paths>(basePath = ''): ApiClient<Paths> {
     return {
       get: (path: string, options?: ApiCallOptions) =>
-        this.httpGet(expandPathTemplate(path, options?.path), options?.query),
+        this.httpGet(basePath + expandPathTemplate(path, options?.path), options?.query),
       getAllPages: (path: string, options?: ApiCallOptions) =>
-        this.fetchAllPages(expandPathTemplate(path, options?.path), options?.query),
+        this.fetchAllPages(basePath + expandPathTemplate(path, options?.path), options?.query),
     } as unknown as ApiClient<Paths>;
   }
 

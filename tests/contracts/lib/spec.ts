@@ -1,9 +1,10 @@
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { upgradeFromTwoToThree } from '@scalar/openapi-upgrader/2.0-to-3.0';
 import { applyOverlay, type Overlay } from './overlay';
 
-export type ServiceId = 'radarr';
+export type ServiceId = 'radarr' | 'bazarr';
 
 export type SpecFormat = 'openapi3.0' | 'openapi3.1' | 'swagger2';
 
@@ -41,6 +42,15 @@ export function loadManifest(): Record<ServiceId, ManifestEntry> {
   return readJson(path.join(contractsDir, 'specs', 'manifest.json'));
 }
 
+/** Upgrades a Swagger 2.0 document to OpenAPI 3.0; its basePath must be the manifest's pathPrefix. */
+export function upgradeSwagger2(document: unknown, pathPrefix: string): OpenApiDocument {
+  const basePath = (document as { basePath?: string }).basePath ?? '';
+  if (basePath !== pathPrefix) {
+    throw new Error(`swagger2 basePath "${basePath}" differs from manifest pathPrefix "${pathPrefix}"`);
+  }
+  return upgradeFromTwoToThree(structuredClone(document) as Record<string, unknown>) as unknown as OpenApiDocument;
+}
+
 export function loadContract(service: ServiceId): Contract {
   const cached = cache.get(service);
   if (cached) {
@@ -51,11 +61,8 @@ export function loadContract(service: ServiceId): Contract {
   if (!entry) {
     throw new Error(`No contract manifest entry for ${service}`);
   }
-  if (entry.format === 'swagger2') {
-    throw new Error('swagger2 specs are not supported yet (plan 02)');
-  }
-
-  let spec = readJson<OpenApiDocument>(path.join(contractsDir, 'specs', entry.file));
+  const pinned = readJson<unknown>(path.join(contractsDir, 'specs', entry.file));
+  let spec = entry.format === 'swagger2' ? upgradeSwagger2(pinned, entry.pathPrefix) : (pinned as OpenApiDocument);
   const overlayFile = path.join(contractsDir, 'overlays', `${service}.json`);
   if (fs.existsSync(overlayFile)) {
     spec = applyOverlay(spec, readJson<Overlay>(overlayFile));

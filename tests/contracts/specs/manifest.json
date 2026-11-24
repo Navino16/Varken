@@ -6,5 +6,13 @@
     "version": "v7.0.3.10918",
     "pathPrefix": "",
     "refresh": true
+  },
+  "bazarr": {
+    "file": "bazarr.json",
+    "format": "swagger2",
+    "source": "runtime:/api/swagger.json (lscr.io/linuxserver/bazarr:{tag})",
+    "version": "v1.6.2-ls373",
+    "pathPrefix": "/api",
+    "refresh": true
   }
 }

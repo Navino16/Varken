@@ -1,12 +1,7 @@
 import { BaseInputPlugin } from './BaseInputPlugin';
 import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
-import type {
-  BazarrConfig,
-  BazarrWantedMoviesResponse,
-  BazarrWantedEpisodesResponse,
-  BazarrMovieHistoryResponse,
-  BazarrSeriesHistoryResponse,
-} from '../../types/inputs/bazarr.types';
+import type { BazarrConfig } from '../../types/inputs/bazarr.types';
+import type { components, paths } from '../../types/generated/bazarr';
 
 /**
  * Bazarr input plugin
@@ -18,6 +13,8 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
     version: '1.0.0',
     description: 'Collects wanted subtitles and history data from Bazarr',
   };
+
+  private readonly bazarr = this.api<paths>('/api');
 
   /**
    * Initialize the plugin and configure the HTTP client with API key header
@@ -81,17 +78,13 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
     return this.safeFetch('collect Bazarr wanted subtitles', async () => {
       const points: DataPoint[] = [];
       // Collect wanted movies
-      const moviesResponse = await this.httpGet<BazarrWantedMoviesResponse>(
-        '/api/movies/wanted',
-        { length: 1000 }
-      );
-
-      const wantedMovies = moviesResponse.data || [];
+      const { data: wantedMovies } = await this.bazarr.get('/movies/wanted', { query: { length: 1000 } });
 
       for (const movie of wantedMovies) {
         for (const subtitle of movie.missing_subtitles) {
-          const name = `${movie.title} - ${subtitle.name}`;
-          const hashId = this.hashit(`${this.config.id}${movie.radarrId}${subtitle.code3}`);
+          const { language, languageCode } = this.languageTags(subtitle);
+          const name = `${movie.title} - ${language}`;
+          const hashId = this.hashit(`${this.config.id}${movie.radarrId}${languageCode}`);
 
           points.push(
             this.createDataPoint(
@@ -103,8 +96,8 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
                 server: this.config.id,
                 name,
                 title: movie.title,
-                language: subtitle.name,
-                languageCode: subtitle.code3,
+                language,
+                languageCode,
                 forced: subtitle.forced ? 1 : 0,
                 hi: subtitle.hi ? 1 : 0,
               },
@@ -117,18 +110,14 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
       }
 
       // Collect wanted episodes
-      const episodesResponse = await this.httpGet<BazarrWantedEpisodesResponse>(
-        '/api/episodes/wanted',
-        { length: 1000 }
-      );
-
-      const wantedEpisodes = episodesResponse.data || [];
+      const { data: wantedEpisodes } = await this.bazarr.get('/episodes/wanted', { query: { length: 1000 } });
 
       for (const episode of wantedEpisodes) {
         for (const subtitle of episode.missing_subtitles) {
-          const name = `${episode.seriesTitle} - ${episode.episode_number} - ${subtitle.name}`;
+          const { language, languageCode } = this.languageTags(subtitle);
+          const name = `${episode.seriesTitle} - ${episode.episode_number} - ${language}`;
           const hashId = this.hashit(
-            `${this.config.id}${episode.sonarrEpisodeId}${subtitle.code3}`
+            `${this.config.id}${episode.sonarrEpisodeId}${languageCode}`
           );
 
           points.push(
@@ -143,8 +132,8 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
                 name,
                 seriesTitle: episode.seriesTitle,
                 episodeNumber: episode.episode_number,
-                language: subtitle.name,
-                languageCode: subtitle.code3,
+                language,
+                languageCode,
                 forced: subtitle.forced ? 1 : 0,
                 hi: subtitle.hi ? 1 : 0,
               },
@@ -168,17 +157,13 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
     return this.safeFetch('collect Bazarr history', async () => {
       const points: DataPoint[] = [];
       // Collect movie history
-      const moviesResponse = await this.httpGet<BazarrMovieHistoryResponse>(
-        '/api/movies/history',
-        { length: 100 }
-      );
-
-      const movieHistory = moviesResponse.data || [];
+      const { data: movieHistory } = await this.bazarr.get('/movies/history', { query: { length: 100 } });
 
       for (const item of movieHistory) {
-        const name = `${item.title} - ${item.language.name}`;
+        const { language, languageCode } = this.languageTags(item.language);
+        const name = `${item.title} - ${language}`;
         const hashId = this.hashit(
-          `${this.config.id}${item.radarrId}${item.language.code3}${item.action}${item.parsed_timestamp}`
+          `${this.config.id}${item.radarrId}${languageCode}${item.action}${item.parsed_timestamp}`
         );
 
         points.push(
@@ -191,9 +176,9 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
               server: this.config.id,
               name,
               title: item.title,
-              language: item.language.name,
-              languageCode: item.language.code3,
-              provider: item.provider,
+              language,
+              languageCode,
+              provider: item.provider ?? 'unknown',
               action: item.action,
             },
             {
@@ -206,17 +191,13 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
       }
 
       // Collect series history
-      const seriesResponse = await this.httpGet<BazarrSeriesHistoryResponse>(
-        '/api/episodes/history',
-        { length: 100 }
-      );
-
-      const seriesHistory = seriesResponse.data || [];
+      const { data: seriesHistory } = await this.bazarr.get('/episodes/history', { query: { length: 100 } });
 
       for (const item of seriesHistory) {
-        const name = `${item.seriesTitle} - ${item.episode_number} - ${item.language.name}`;
+        const { language, languageCode } = this.languageTags(item.language);
+        const name = `${item.seriesTitle} - ${item.episode_number} - ${language}`;
         const hashId = this.hashit(
-          `${this.config.id}${item.sonarrEpisodeId}${item.language.code3}${item.action}${item.parsed_timestamp}`
+          `${this.config.id}${item.sonarrEpisodeId}${languageCode}${item.action}${item.parsed_timestamp}`
         );
 
         points.push(
@@ -231,9 +212,9 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
               name,
               seriesTitle: item.seriesTitle,
               episodeNumber: item.episode_number,
-              language: item.language.name,
-              languageCode: item.language.code3,
-              provider: item.provider,
+              language,
+              languageCode,
+              provider: item.provider ?? 'unknown',
               action: item.action,
             },
             {
@@ -250,12 +231,17 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
     });
   }
 
+  /** Bazarr marshals a missing language as an object whose fields are all null. */
+  private languageTags(language: components['schemas']['SubtitleLanguage']): { language: string; languageCode: string } {
+    return { language: language.name ?? 'unknown', languageCode: language.code3 ?? 'unknown' };
+  }
+
   /**
    * Bazarr formats history dates with strftime('%x %X') in its own local time.
    * Only the default C locale layout (MM/DD/YY HH:MM:SS) is parsed; anything else falls back to now.
    */
-  private parseHistoryTimestamp(parsed: string | undefined): Date {
-    const match = parsed?.match(/^(\d{2})\/(\d{2})\/(\d{2}|\d{4}) (\d{2}):(\d{2}):(\d{2})$/);
+  private parseHistoryTimestamp(parsed: string): Date {
+    const match = parsed.match(/^(\d{2})\/(\d{2})\/(\d{2}|\d{4}) (\d{2}):(\d{2}):(\d{2})$/);
     if (!match) {
       return new Date();
     }

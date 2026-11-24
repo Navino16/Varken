@@ -1,0 +1,77 @@
+{
+  "data": [
+    {
+      "action": 1,
+      "timestamp": "2 hours ago",
+      "description": "English subtitles downloaded from opensubtitlescom with a score of 92.5%.",
+      "monitored": true,
+      "language": {
+        "name": "English",
+        "code2": "en",
+        "code3": "eng",
+        "forced": false,
+        "hi": false
+      },
+      "tags": [
+        "apple"
+      ],
+      "score": "92.5%",
+      "subs_id": "opensubtitlescom:1955012",
+      "provider": "opensubtitlescom",
+      "subtitles_path": "/tv/Severance/Season 01/Severance - S01E01.en.srt",
+      "upgradable": false,
+      "parsed_timestamp": "11/20/26 14:05:09",
+      "blacklisted": false,
+      "matches": [
+        "hash",
+        "title",
+        "year"
+      ],
+      "dont_matches": [
+        "release_group"
+      ],
+      "seriesTitle": "Severance",
+      "episode_number": "1x1",
+      "episodeTitle": "Good News About Hell",
+      "sonarrSeriesId": 10,
+      "sonarrEpisodeId": 101
+    },
+    {
+      "action": 3,
+      "timestamp": "5 hours ago",
+      "description": "French subtitles upgraded from addic7ed with a score of 71.25%.",
+      "monitored": true,
+      "language": {
+        "name": "French",
+        "code2": "fr",
+        "code3": "fra",
+        "forced": false,
+        "hi": true
+      },
+      "tags": [
+        "apple"
+      ],
+      "score": "71.25%",
+      "subs_id": "addic7ed:4521",
+      "provider": "addic7ed",
+      "subtitles_path": "/tv/Severance/Season 02/Severance - S02E03.fr.hi.srt",
+      "upgradable": false,
+      "parsed_timestamp": "11/20/26 11:00:00",
+      "blacklisted": false,
+      "matches": [
+        "hash",
+        "title",
+        "year"
+      ],
+      "dont_matches": [
+        "release_group"
+      ],
+      "seriesTitle": "Severance",
+      "episode_number": "2x3",
+      "episodeTitle": "Who Is Alive?",
+      "sonarrSeriesId": 10,
+      "sonarrEpisodeId": 203
+    }
+  ],
+  "total": 2
+}

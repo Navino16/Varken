@@ -1,0 +1,505 @@
+{
+  "patches": [
+    {
+      "op": "add",
+      "path": "/components/schemas/SubtitleLanguage",
+      "value": {
+        "type": "object",
+        "required": [
+          "name",
+          "code2",
+          "code3",
+          "forced",
+          "hi"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "code2": {
+            "type": "string",
+            "nullable": true
+          },
+          "code3": {
+            "type": "string",
+            "nullable": true
+          },
+          "forced": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "hi": {
+            "type": "boolean",
+            "nullable": true
+          }
+        }
+      },
+      "why": "https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/api/swaggerui.py — subtitles_language_model; a missing language is marshalled as an object of nulls (Nested, allow_null=False)"
+    },
+    {
+      "op": "add",
+      "path": "/components/schemas/WantedMovie",
+      "value": {
+        "type": "object",
+        "required": [
+          "title",
+          "missing_subtitles",
+          "radarrId",
+          "sceneName",
+          "tags"
+        ],
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "missing_subtitles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubtitleLanguage"
+            }
+          },
+          "radarrId": {
+            "type": "integer"
+          },
+          "sceneName": {
+            "type": "string",
+            "nullable": true
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "why": "https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/api/movies/wanted.py — wanted_movies_data_model; sceneName is a nullable column, tags always a list (api/utils.py postprocess)"
+    },
+    {
+      "op": "add",
+      "path": "/components/schemas/WantedEpisode",
+      "value": {
+        "type": "object",
+        "required": [
+          "seriesTitle",
+          "episode_number",
+          "episodeTitle",
+          "missing_subtitles",
+          "sonarrSeriesId",
+          "sonarrEpisodeId",
+          "sceneName",
+          "tags",
+          "seriesType"
+        ],
+        "properties": {
+          "seriesTitle": {
+            "type": "string"
+          },
+          "episode_number": {
+            "type": "string"
+          },
+          "episodeTitle": {
+            "type": "string"
+          },
+          "missing_subtitles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubtitleLanguage"
+            }
+          },
+          "sonarrSeriesId": {
+            "type": "integer"
+          },
+          "sonarrEpisodeId": {
+            "type": "integer"
+          },
+          "sceneName": {
+            "type": "string",
+            "nullable": true
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "seriesType": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "why": "https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/api/episodes/wanted.py — wanted_episodes_data_model; inner join on table_shows, sceneName and seriesType nullable columns"
+    },
+    {
+      "op": "add",
+      "path": "/components/schemas/MovieHistoryItem",
+      "value": {
+        "type": "object",
+        "required": [
+          "title",
+          "radarrId",
+          "path",
+          "action",
+          "timestamp",
+          "description",
+          "monitored",
+          "language",
+          "tags",
+          "score",
+          "subs_id",
+          "provider",
+          "subtitles_path",
+          "upgradable",
+          "parsed_timestamp",
+          "blacklisted",
+          "matches",
+          "dont_matches"
+        ],
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "radarrId": {
+            "type": "integer"
+          },
+          "path": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          "action": {
+            "type": "integer"
+          },
+          "timestamp": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "monitored": {
+            "type": "boolean"
+          },
+          "language": {
+            "$ref": "#/components/schemas/SubtitleLanguage"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "score": {
+            "type": "string",
+            "nullable": true
+          },
+          "subs_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "provider": {
+            "type": "string",
+            "nullable": true
+          },
+          "subtitles_path": {
+            "type": "string",
+            "nullable": true
+          },
+          "upgradable": {
+            "type": "boolean"
+          },
+          "parsed_timestamp": {
+            "type": "string"
+          },
+          "blacklisted": {
+            "type": "boolean"
+          },
+          "matches": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "dont_matches": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "why": "https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/api/movies/history.py — history_movies_data_model; path is deleted before marshal, timestamp is NOT NULL so parsed_timestamp is always set; monitored coerced to a boolean by api/utils.py postprocess"
+    },
+    {
+      "op": "add",
+      "path": "/components/schemas/EpisodeHistoryItem",
+      "value": {
+        "type": "object",
+        "required": [
+          "seriesTitle",
+          "episode_number",
+          "episodeTitle",
+          "sonarrSeriesId",
+          "sonarrEpisodeId",
+          "action",
+          "timestamp",
+          "description",
+          "monitored",
+          "language",
+          "tags",
+          "score",
+          "subs_id",
+          "provider",
+          "subtitles_path",
+          "upgradable",
+          "parsed_timestamp",
+          "blacklisted",
+          "matches",
+          "dont_matches"
+        ],
+        "properties": {
+          "seriesTitle": {
+            "type": "string"
+          },
+          "episode_number": {
+            "type": "string"
+          },
+          "episodeTitle": {
+            "type": "string"
+          },
+          "sonarrSeriesId": {
+            "type": "integer"
+          },
+          "sonarrEpisodeId": {
+            "type": "integer"
+          },
+          "action": {
+            "type": "integer"
+          },
+          "timestamp": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "monitored": {
+            "type": "boolean"
+          },
+          "language": {
+            "$ref": "#/components/schemas/SubtitleLanguage"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "score": {
+            "type": "string",
+            "nullable": true
+          },
+          "subs_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "provider": {
+            "type": "string",
+            "nullable": true
+          },
+          "subtitles_path": {
+            "type": "string",
+            "nullable": true
+          },
+          "upgradable": {
+            "type": "boolean"
+          },
+          "parsed_timestamp": {
+            "type": "string"
+          },
+          "blacklisted": {
+            "type": "boolean"
+          },
+          "matches": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "dont_matches": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "why": "https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/api/episodes/history.py — history_episodes_data_model; inner joins on shows and episodes, timestamp NOT NULL, monitored coerced to a boolean by api/utils.py postprocess"
+    },
+    {
+      "op": "add",
+      "path": "/components/schemas/HealthIssue",
+      "value": {
+        "type": "object",
+        "required": [
+          "object",
+          "issue"
+        ],
+        "properties": {
+          "object": {
+            "type": "string"
+          },
+          "issue": {
+            "type": "string"
+          }
+        }
+      },
+      "why": "https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/utilities/health.py — get_health_issues returns dicts with object and issue, not marshalled"
+    },
+    {
+      "op": "add",
+      "path": "/paths/~1movies~1wanted/get/responses/200",
+      "value": {
+        "description": "Success",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": [
+                "data",
+                "total"
+              ],
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WantedMovie"
+                  }
+                },
+                "total": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      },
+      "why": "https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/api/movies/wanted.py — only 401 is declared; the 200 body is marshal(MovieWantedGetResponse) with data as a list"
+    },
+    {
+      "op": "add",
+      "path": "/paths/~1episodes~1wanted/get/responses/200",
+      "value": {
+        "description": "Success",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": [
+                "data",
+                "total"
+              ],
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WantedEpisode"
+                  }
+                },
+                "total": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      },
+      "why": "https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/api/episodes/wanted.py — only 401 is declared; the 200 body is marshal(EpisodeWantedGetResponse) with data as a list"
+    },
+    {
+      "op": "add",
+      "path": "/paths/~1movies~1history/get/responses/200",
+      "value": {
+        "description": "Success",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": [
+                "data",
+                "total"
+              ],
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MovieHistoryItem"
+                  }
+                },
+                "total": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      },
+      "why": "https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/api/movies/history.py — only 401 is declared; the 200 body is marshal(MovieHistoryGetResponse) with data as a list"
+    },
+    {
+      "op": "add",
+      "path": "/paths/~1episodes~1history/get/responses/200",
+      "value": {
+        "description": "Success",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": [
+                "data",
+                "total"
+              ],
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EpisodeHistoryItem"
+                  }
+                },
+                "total": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      },
+      "why": "https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/api/episodes/history.py — only 401 is declared; the 200 body is marshal(EpisodeHistoryGetResponse) with data as a list"
+    },
+    {
+      "op": "add",
+      "path": "/paths/~1system~1health/get/responses/200/content",
+      "value": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/HealthIssue"
+                }
+              }
+            }
+          }
+        }
+      },
+      "why": "https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/api/system/health.py — 200 declared without schema; the handler returns data: get_health_issues()"
+    }
+  ]
+}

@@ -59,6 +59,7 @@
   "devDependencies": {
     "@biomejs/biome": "2.6.8",
     "@openapi-contrib/openapi-schema-to-json-schema": "^5.1.1",
+    "@scalar/openapi-upgrader": "^0.5.1",
     "@types/node": "^26.6.6",
     "@vitest/coverage-v8": "^5.1.1",
     "ajv": "^8.20.0",

@@ -42,9 +42,16 @@ describe('findOperation', () => {
   });
 
   it('only strips the path prefix on a segment boundary', () => {
-    const c = contract({ '/apikey/x': jsonGet(objectWithId) }, {}, { pathPrefix: '/api' });
+    const c = contract({ '/apikey/x': jsonGet(objectWithId), '/key/x': jsonGet(objectWithId) }, {}, { pathPrefix: '/api' });
 
-    expect(findOperation(c, 'get', '/apikey/x')?.specPath).toBe('/apikey/x');
+    expect(findOperation(c, 'get', '/apikey/x')).toBeUndefined();
+    expect(findOperation(c, 'get', '/api/key/x')?.specPath).toBe('/key/x');
+  });
+
+  it('rejects a path missing the service path prefix', () => {
+    const c = contract({ '/movies/history': jsonGet(objectWithId) }, {}, { pathPrefix: '/api' });
+
+    expect(findOperation(c, 'get', '/movies/history')).toBeUndefined();
   });
 
   it('strips the service path prefix', () => {
