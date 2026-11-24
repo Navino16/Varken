@@ -85,6 +85,13 @@ describe('createContractHttpClient', () => {
     });
   });
 
+  it('rejects undeclared request headers at call time', async () => {
+    const client = createContractHttpClient('radarr');
+
+    await expect(client.get('/api/v3/movie', { headers: { 'X-Nope': '1' } })).rejects.toThrow(/unknown header parameter "X-Nope"/);
+    client.takeViolations();
+  });
+
   it('overrideUnchecked bypasses validation', async () => {
     const client = createContractHttpClient('radarr');
     client.overrideUnchecked('/api/v3/movie', null);

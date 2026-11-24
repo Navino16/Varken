@@ -1,4 +1,4 @@
-import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import type { AxiosInstance, AxiosRequestConfig, AxiosResponse, RawAxiosRequestHeaders } from 'axios';
 import axios from 'axios';
 import * as https from 'node:https';
 import { createHash } from 'node:crypto';
@@ -191,11 +191,11 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
   /**
    * Make an HTTP GET request
    */
-  protected async httpGet<T>(path: string, params?: Record<string, unknown>): Promise<T> {
-    const key = this.cacheKey(path, params);
+  protected async httpGet<T>(path: string, params?: Record<string, unknown>, headers?: Record<string, unknown>): Promise<T> {
+    const key = headers ? `${this.cacheKey(path, params)}#${this.cacheKey('', headers)}` : this.cacheKey(path, params);
     return this.httpCache.getOrFetch(key, async () => {
       try {
-        const response = await this.httpClient.get<T>(path, { params });
+        const response = await this.httpClient.get<T>(path, headers ? { params, headers: headers as RawAxiosRequestHeaders } : { params });
         return response.data;
       } catch (error) {
         this.logger.error(
@@ -247,7 +247,7 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
   protected api<Paths>(basePath = ''): ApiClient<Paths> {
     return {
       get: (path: string, options?: ApiCallOptions) =>
-        this.httpGet(basePath + expandPathTemplate(path, options?.path), options?.query),
+        this.httpGet(basePath + expandPathTemplate(path, options?.path), options?.query, options?.header),
       getAllPages: (path: string, options?: ApiCallOptions) =>
         this.fetchAllPages(basePath + expandPathTemplate(path, options?.path), options?.query),
     } as unknown as ApiClient<Paths>;

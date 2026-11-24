@@ -21,6 +21,9 @@ interface ToyPaths {
   '/api/items/{id}': {
     get: { parameters: { query?: { lang?: string }; path: { id: number } }; responses: Responses<{ id: number }> };
   };
+  '/api/count': {
+    get: { parameters: { header?: { 'X-Page-Size'?: number } }; responses: Responses<{ total: number }> };
+  };
   '/api/pages': {
     get: {
       parameters: { query?: { page?: number; pageSize?: number; tag?: string } };
@@ -330,6 +333,31 @@ describe('BaseInputPlugin', () => {
 
       expect(get).toHaveBeenNthCalledWith(1, '/v2/api/items/42', { params: undefined });
       expect(get).toHaveBeenNthCalledWith(2, '/v2/api/pages', { params: expect.objectContaining({ page: 1 }) });
+    });
+  });
+
+  describe('api() headers', () => {
+    it('passes declared headers to the request', async () => {
+      await plugin.initialize(testConfig);
+      const get = vi.fn().mockResolvedValue({ data: { total: 3 } });
+      plugin.getHttpClient().get = get;
+
+      await plugin.testApi().get('/api/count', { header: { 'X-Page-Size': 0 } });
+
+      expect(get).toHaveBeenCalledWith('/api/count', { params: undefined, headers: { 'X-Page-Size': 0 } });
+    });
+
+    it('caches calls with different headers separately', async () => {
+      await plugin.initialize(testConfig, { cacheTtlSeconds: 60 } as unknown as GlobalConfig);
+      const get = vi.fn().mockResolvedValueOnce({ data: { total: 3 } }).mockResolvedValueOnce({ data: { total: 0 } });
+      plugin.getHttpClient().get = get;
+      const client = plugin.testApi();
+
+      const first = await client.get('/api/count', { header: { 'X-Page-Size': 0 } });
+      const second = await client.get('/api/count', { header: { 'X-Page-Size': 5 } });
+
+      expect([first, second]).toEqual([{ total: 3 }, { total: 0 }]);
+      expect(get).toHaveBeenCalledTimes(2);
     });
   });
 

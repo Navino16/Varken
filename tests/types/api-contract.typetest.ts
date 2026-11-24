@@ -12,6 +12,14 @@ interface ToyPaths {
     };
     post?: never;
   };
+  '/count': {
+    parameters: { query?: never; header?: never; path?: never; cookie?: never };
+    get: {
+      parameters: { query?: never; header?: { 'X-Page-Size'?: number }; path?: never; cookie?: never };
+      requestBody?: never;
+      responses: { 200: { headers: Record<string, unknown>; content: { 'application/json': { total: number } } } };
+    };
+  };
   '/write-only': {
     parameters: { query?: never; header?: never; path?: never; cookie?: never };
     get?: never;
@@ -31,6 +39,7 @@ export async function contractChecks(): Promise<void> {
   const recordIds: (number | undefined)[] = records.map((r) => r.id);
   const item = await toy.get('/items/{id}', { path: { id: 42 }, query: { lang: 'en' } });
   const itemTitle: string = item.title;
+  const count = await toy.get('/count', { header: { 'X-Page-Size': 0 } });
 
   // @ts-expect-error unknown endpoint
   await radarr.get('/api/v3/nope');
@@ -50,8 +59,12 @@ export async function contractChecks(): Promise<void> {
   await toy.get('/items/{id}');
   // @ts-expect-error response field not declared by the spec
   void item.raw_timestamp;
+  // @ts-expect-error header parameter not declared by the spec
+  await radarr.get('/api/v3/movie', { header: { 'X-Nope': 1 } });
+  // @ts-expect-error wrong header parameter type
+  await toy.get('/count', { header: { 'X-Page-Size': 'zero' } });
   // @ts-expect-error paginated helper on a non-paginated endpoint
   await radarr.getAllPages('/api/v3/movie');
 
-  void [firstTitle, tmdbIds, recordIds, itemTitle];
+  void [firstTitle, tmdbIds, recordIds, itemTitle, count];
 }

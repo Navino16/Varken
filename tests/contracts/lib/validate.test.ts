@@ -324,4 +324,20 @@ describe('validateRequestParams', () => {
   it('reports a missing operation', () => {
     expect(validateRequestParams(c, 'get', '/nope', {})).toEqual(['no GET operation for /nope']);
   });
+
+  it('accepts declared header parameters, whatever their case', () => {
+    expect(validateRequestParams(c, 'get', '/a', { 'x-trace': 'abc' }, 'header')).toEqual([]);
+  });
+
+  it('rejects undeclared header parameters', () => {
+    expect(validateRequestParams(c, 'get', '/a', { 'X-Other': '1' }, 'header')).toEqual([
+      'unknown header parameter "X-Other" for GET /a',
+    ]);
+  });
+
+  it('rejects header values of the wrong type', () => {
+    expect(validateRequestParams(c, 'get', '/a', { 'X-Trace': 3 }, 'header')).toEqual([
+      'header parameter "X-Trace" must be string',
+    ]);
+  });
 });
