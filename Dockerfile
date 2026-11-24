@@ -1,5 +1,8 @@
+# Base image: the only place the Node version is set besides .nvmrc
+FROM node:26-alpine AS base
+
 # Build stage
-FROM node:24-alpine AS builder
+FROM base AS builder
 
 WORKDIR /app
 
@@ -17,7 +20,7 @@ COPY src/ ./src/
 RUN npm run build
 
 # Production stage
-FROM node:24-alpine AS production
+FROM base AS production
 
 # Build arguments for versioning
 ARG VERSION="2.0.0"
