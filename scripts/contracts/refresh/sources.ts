@@ -18,9 +18,26 @@ export interface CaptureDeps {
 
 const POLL_INTERVAL_MS = 3000;
 
-/** The format every non-raw pinned spec is written in, so an unchanged upstream yields no diff. */
+function sortKeys(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(sortKeys);
+  }
+  if (typeof value === 'object' && value !== null) {
+    return Object.fromEntries(
+      Object.keys(value)
+        .sort()
+        .map((key) => [key, sortKeys((value as Record<string, unknown>)[key])])
+    );
+  }
+  return value;
+}
+
+/**
+ * The format every non-raw pinned spec is written in, so an unchanged upstream yields no diff.
+ * Keys are sorted: runtime specs (Bazarr) serialize methods in a different order on each start.
+ */
 export function canonicalJson(value: unknown): string {
-  return `${JSON.stringify(value, null, 2)}\n`;
+  return `${JSON.stringify(sortKeys(value), null, 2)}\n`;
 }
 
 /** End index (exclusive) of the JSON object starting at `start`, skipping braces inside strings. */

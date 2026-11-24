@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { parseArgs, refreshService, renderReport, type RefreshDeps } from '../../../scripts/contracts/refresh/refresh';
 import type { ManifestEntry } from '../lib/spec';
+import { canonicalJson } from '../../../scripts/contracts/refresh/sources';
 
 const entry = (refresh: ManifestEntry['refresh'], overrides: Partial<ManifestEntry> = {}): ManifestEntry => ({
   file: 'x.json',
@@ -54,7 +55,7 @@ describe('refreshService', () => {
     expect(result).toEqual({
       status: 'updated',
       version: '12.5.0',
-      content: `${JSON.stringify(JSON.parse(upstream), null, 2)}\n`,
+      content: canonicalJson(JSON.parse(upstream)),
     });
   });
 

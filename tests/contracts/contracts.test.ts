@@ -3,6 +3,7 @@ import { contractRoutes, loadFixture } from './registry';
 import fs from 'node:fs';
 import path from 'node:path';
 import { loadContract, loadManifest } from './lib/spec';
+import { canonicalJson } from '../../scripts/contracts/refresh/sources';
 import { findOperation, validateResponse } from './lib/validate';
 
 function findEmptyArrays(value: unknown, at = ''): string[] {
@@ -39,12 +40,12 @@ describe.each(contractRoutes)('$service GET $path', (route) => {
 
 describe('pinned spec files', () => {
   const canonical = Object.entries(loadManifest()).filter(
-    ([, entry]) => entry.file.endsWith('.json') && entry.refresh !== false && entry.refresh.kind !== 'github-raw'
+    ([, entry]) => entry.refresh !== false && ['url', 'redoc-page', 'runtime'].includes(entry.refresh.kind)
   );
 
   it.each(canonical)('%s is written canonically so a refresh without upstream change is a no-op', (_service, entry) => {
     const content = fs.readFileSync(path.join(__dirname, 'specs', entry.file), 'utf8');
 
-    expect(content === `${JSON.stringify(JSON.parse(content), null, 2)}\n`).toBe(true);
+    expect(content === canonicalJson(JSON.parse(content))).toBe(true);
   });
 });

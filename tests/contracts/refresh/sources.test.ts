@@ -102,4 +102,12 @@ describe('canonicalJson', () => {
   it('pretty-prints with two spaces, keeps non-ASCII characters and ends with a newline', () => {
     expect(canonicalJson({ region: 'Île-de-France' })).toBe('{\n  "region": "Île-de-France"\n}\n');
   });
+
+  it('sorts object keys recursively so runtime specs serialized in random order stay stable', () => {
+    const a = canonicalJson({ paths: { '/x': { post: {}, get: { b: 1, a: [{ z: 1, y: 2 }, 3] } } } });
+    const b = canonicalJson({ paths: { '/x': { get: { a: [{ y: 2, z: 1 }, 3], b: 1 }, post: {} } } });
+
+    expect(a).toBe(b);
+    expect(a.indexOf('"get"')).toBeLessThan(a.indexOf('"post"'));
+  });
 });
