@@ -79,7 +79,7 @@ describe('contract loading', () => {
     const response = { description: 'OK', content: { 'application/json': { schema: { type: 'object' } } } };
     fakeFiles({
       [manifestPath]: {
-        bazarr: { file: 'bazarr.json', format: 'swagger2', source: 'runtime', version: 'v1', pathPrefix: '/api', refresh: true },
+        bazarr: { file: 'bazarr.json', format: 'swagger2', source: 'runtime', version: 'v1', pathPrefix: '/api', refresh: false },
       },
       [path.join(contractsDir, 'specs', 'bazarr.json')]: swaggerDocument,
       [path.join(contractsDir, 'overlays', 'bazarr.json')]: {
@@ -95,7 +95,7 @@ describe('contract loading', () => {
   it('loads YAML specs', () => {
     fakeFiles({
       [manifestPath]: {
-        radarr: { file: 'toy.yml', format: 'openapi3.0', source: 'test', version: 'v1', pathPrefix: '/api/v1', refresh: true },
+        radarr: { file: 'toy.yml', format: 'openapi3.0', source: 'test', version: 'v1', pathPrefix: '/api/v1', refresh: false },
       },
       [path.join(contractsDir, 'specs', 'toy.yml')]:
         "openapi: '3.0.2'\npaths:\n  /status:\n    get:\n      responses:\n        '200':\n          description: ok\n",

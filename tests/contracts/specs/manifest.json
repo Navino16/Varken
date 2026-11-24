@@ -1,98 +1,142 @@
 {
-  "radarr": {
-    "file": "radarr.json",
-    "format": "openapi3.0",
-    "source": "https://raw.githubusercontent.com/Radarr/Radarr/{tag}/src/Radarr.Api.V3/openapi.json",
-    "version": "v7.0.3.10918",
-    "pathPrefix": "",
-    "refresh": true
-  },
   "bazarr": {
     "file": "bazarr.json",
     "format": "swagger2",
-    "source": "runtime:/api/swagger.json (lscr.io/linuxserver/bazarr:{tag})",
-    "version": "v1.6.2-ls373",
     "pathPrefix": "/api",
-    "refresh": true
-  },
-  "sonarr": {
-    "file": "sonarr.json",
-    "format": "openapi3.0",
-    "source": "https://raw.githubusercontent.com/Sonarr/Sonarr/{tag}/src/Sonarr.Api.V3/openapi.json",
-    "version": "v4.0.20.3014",
-    "pathPrefix": "",
-    "refresh": true
-  },
-  "lidarr": {
-    "file": "lidarr.json",
-    "format": "openapi3.0",
-    "source": "https://raw.githubusercontent.com/Lidarr/Lidarr/{tag}/src/Lidarr.Api.V1/openapi.json",
-    "version": "v3.1.6.5079",
-    "pathPrefix": "",
-    "refresh": true
-  },
-  "readarr": {
-    "file": "readarr.json",
-    "format": "openapi3.0",
-    "source": "https://raw.githubusercontent.com/Readarr/Readarr/{tag}/src/Readarr.Api.V1/openapi.json",
-    "version": "v0.4.18.2805",
-    "pathPrefix": "",
-    "refresh": false
-  },
-  "prowlarr": {
-    "file": "prowlarr.json",
-    "format": "openapi3.0",
-    "source": "https://raw.githubusercontent.com/Prowlarr/Prowlarr/{tag}/src/Prowlarr.Api.V1/openapi.json",
-    "version": "v3.1.0.5799",
-    "pathPrefix": "",
-    "refresh": true
-  },
-  "seerr": {
-    "file": "seerr.yml",
-    "format": "openapi3.0",
-    "source": "https://raw.githubusercontent.com/seerr-team/seerr/{tag}/seerr-api.yml",
-    "version": "v3.5.2",
-    "pathPrefix": "/api/v1",
-    "refresh": true
-  },
-  "ombi": {
-    "file": "ombi.json",
-    "format": "openapi3.0",
-    "source": "runtime:/swagger/v1/swagger.json (lscr.io/linuxserver/ombi:{tag})",
-    "version": "v4.53.10-ls278",
-    "pathPrefix": "",
-    "refresh": true
-  },
-  "plex": {
-    "file": "plex.json",
-    "format": "openapi3.1",
-    "source": "https://developer.plex.tv/pms/ (__redoc_state)",
-    "version": "2026-11-24",
-    "pathPrefix": "",
-    "refresh": true
-  },
-  "jellyfin": {
-    "file": "jellyfin.json",
-    "format": "openapi3.0",
-    "source": "https://api.jellyfin.org/openapi/jellyfin-openapi-stable.json",
-    "version": "12.4.0",
-    "pathPrefix": "",
-    "refresh": true
+    "refresh": {
+      "image": "lscr.io/linuxserver/bazarr:{tag}",
+      "kind": "runtime",
+      "path": "/api/swagger.json",
+      "port": 6767,
+      "repo": "linuxserver/docker-bazarr"
+    },
+    "source": "runtime:/api/swagger.json (lscr.io/linuxserver/bazarr:{tag})",
+    "version": "v1.6.2-ls373"
   },
   "emby": {
     "file": "emby.json",
     "format": "openapi3.0",
-    "source": "runtime:/emby/openapi.json (emby/embyserver:{tag})",
-    "version": "4.10.2.0",
     "pathPrefix": "/emby",
-    "refresh": true
+    "refresh": {
+      "image": "emby/embyserver:{tag}",
+      "kind": "runtime",
+      "path": "/emby/openapi.json",
+      "port": 8096,
+      "repo": "MediaBrowser/Emby.Releases"
+    },
+    "source": "runtime:/emby/openapi.json (emby/embyserver:{tag})",
+    "version": "4.10.2.0"
+  },
+  "jellyfin": {
+    "file": "jellyfin.json",
+    "format": "openapi3.0",
+    "pathPrefix": "",
+    "refresh": {
+      "kind": "url",
+      "url": "https://api.jellyfin.org/openapi/jellyfin-openapi-stable.json"
+    },
+    "source": "https://api.jellyfin.org/openapi/jellyfin-openapi-stable.json",
+    "version": "12.4.0"
+  },
+  "lidarr": {
+    "file": "lidarr.json",
+    "format": "openapi3.0",
+    "pathPrefix": "",
+    "refresh": {
+      "kind": "github-raw",
+      "repo": "Lidarr/Lidarr"
+    },
+    "source": "https://raw.githubusercontent.com/Lidarr/Lidarr/{tag}/src/Lidarr.Api.V1/openapi.json",
+    "version": "v3.1.6.5079"
+  },
+  "ombi": {
+    "file": "ombi.json",
+    "format": "openapi3.0",
+    "pathPrefix": "",
+    "refresh": {
+      "image": "lscr.io/linuxserver/ombi:{tag}",
+      "kind": "runtime",
+      "path": "/swagger/v1/swagger.json",
+      "port": 3579,
+      "repo": "linuxserver/docker-ombi"
+    },
+    "source": "runtime:/swagger/v1/swagger.json (lscr.io/linuxserver/ombi:{tag})",
+    "version": "v4.53.10-ls278"
+  },
+  "plex": {
+    "file": "plex.json",
+    "format": "openapi3.1",
+    "pathPrefix": "",
+    "refresh": {
+      "kind": "redoc-page",
+      "url": "https://developer.plex.tv/pms/"
+    },
+    "source": "https://developer.plex.tv/pms/ (__redoc_state)",
+    "version": "2026-11-24"
+  },
+  "prowlarr": {
+    "file": "prowlarr.json",
+    "format": "openapi3.0",
+    "pathPrefix": "",
+    "refresh": {
+      "kind": "github-raw",
+      "repo": "Prowlarr/Prowlarr"
+    },
+    "source": "https://raw.githubusercontent.com/Prowlarr/Prowlarr/{tag}/src/Prowlarr.Api.V1/openapi.json",
+    "version": "v3.1.0.5799"
+  },
+  "radarr": {
+    "file": "radarr.json",
+    "format": "openapi3.0",
+    "pathPrefix": "",
+    "refresh": {
+      "kind": "github-raw",
+      "repo": "Radarr/Radarr"
+    },
+    "source": "https://raw.githubusercontent.com/Radarr/Radarr/{tag}/src/Radarr.Api.V3/openapi.json",
+    "version": "v7.0.3.10918"
+  },
+  "readarr": {
+    "file": "readarr.json",
+    "format": "openapi3.0",
+    "pathPrefix": "",
+    "refresh": false,
+    "source": "https://raw.githubusercontent.com/Readarr/Readarr/{tag}/src/Readarr.Api.V1/openapi.json",
+    "version": "v0.4.18.2805"
+  },
+  "seerr": {
+    "file": "seerr.yml",
+    "format": "openapi3.0",
+    "pathPrefix": "/api/v1",
+    "refresh": {
+      "kind": "github-raw",
+      "repo": "seerr-team/seerr"
+    },
+    "source": "https://raw.githubusercontent.com/seerr-team/seerr/{tag}/seerr-api.yml",
+    "version": "v3.5.2"
+  },
+  "sonarr": {
+    "file": "sonarr.json",
+    "format": "openapi3.0",
+    "pathPrefix": "",
+    "refresh": {
+      "kind": "github-raw",
+      "repo": "Sonarr/Sonarr"
+    },
+    "source": "https://raw.githubusercontent.com/Sonarr/Sonarr/{tag}/src/Sonarr.Api.V3/openapi.json",
+    "version": "v4.0.20.3014"
   },
   "tautulli": {
     "file": "tautulli.json",
     "format": "openapi3.1",
-    "source": "handwritten:plexpy/webserve.py @addtoapi docstrings (https://github.com/Tautulli/Tautulli/blob/{tag}/plexpy/webserve.py)",
-    "version": "v2.19.1",
     "pathPrefix": "",
-    "refresh": true
+    "refresh": {
+      "kind": "docstrings",
+      "repo": "Tautulli/Tautulli",
+      "snapshot": "tautulli.docstrings.json",
+      "url": "https://raw.githubusercontent.com/Tautulli/Tautulli/{tag}/plexpy/webserve.py"
+    },
+    "source": "handwritten:plexpy/webserve.py @addtoapi docstrings (https://github.com/Tautulli/Tautulli/blob/{tag}/plexpy/webserve.py)",
+    "version": "v2.19.1"
   }
 }

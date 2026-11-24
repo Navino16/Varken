@@ -13,7 +13,7 @@ import {
 
 const outputDir = path.resolve(__dirname, '../../src/types/generated');
 
-function generate(service: ServiceId): void {
+export function generateTypes(service: ServiceId): void {
   const { entry, spec } = loadContract(service);
   const workDir = fs.mkdtempSync(path.join(os.tmpdir(), `varken-contract-${service}-`));
   const input = path.join(workDir, 'spec.json');
@@ -38,13 +38,15 @@ function generate(service: ServiceId): void {
   }
 }
 
-const requested = process.argv.slice(2) as ServiceId[];
-const manifest = loadManifest();
-const services = requested.length > 0 ? requested : (Object.keys(manifest) as ServiceId[]);
+if (require.main === module) {
+  const requested = process.argv.slice(2) as ServiceId[];
+  const manifest = loadManifest();
+  const services = requested.length > 0 ? requested : (Object.keys(manifest) as ServiceId[]);
 
-for (const service of services) {
-  if (!manifest[service]) {
-    throw new Error(`Unknown contract service: ${service}`);
+  for (const service of services) {
+    if (!manifest[service]) {
+      throw new Error(`Unknown contract service: ${service}`);
+    }
+    generateTypes(service);
   }
-  generate(service);
 }

@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { contractRoutes, loadFixture } from './registry';
-import { loadContract } from './lib/spec';
+import fs from 'node:fs';
+import path from 'node:path';
+import { loadContract, loadManifest } from './lib/spec';
+import { canonicalJson } from '../../scripts/contracts/refresh/sources';
 import { findOperation, validateResponse } from './lib/validate';
 
 function findEmptyArrays(value: unknown, at = ''): string[] {
@@ -32,5 +35,23 @@ describe.each(contractRoutes)('$service GET $path', (route) => {
 
   it(`fixture ${route.fixture} has no empty arrays`, () => {
     expect(findEmptyArrays(loadFixture(route.fixture))).toEqual([]);
+  });
+});
+
+describe('pinned spec files', () => {
+  const canonical = Object.entries(loadManifest()).filter(
+    ([, entry]) => entry.refresh !== false && ['url', 'redoc-page', 'runtime'].includes(entry.refresh.kind)
+  );
+
+  const files = [
+    ...canonical.map(([, entry]) => entry.file),
+    'manifest.json',
+    ...Object.values(loadManifest()).flatMap((entry) => (entry.refresh && entry.refresh.kind === 'docstrings' ? [entry.refresh.snapshot] : [])),
+  ];
+
+  it.each(files)('%s is written canonically so a refresh without upstream change is a no-op', (file) => {
+    const content = fs.readFileSync(path.join(__dirname, 'specs', file), 'utf8');
+
+    expect(content === canonicalJson(JSON.parse(content))).toBe(true);
   });
 });
