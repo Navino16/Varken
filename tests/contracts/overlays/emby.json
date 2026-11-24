@@ -1,0 +1,31 @@
+{
+  "patches": [
+    {
+      "op": "add",
+      "path": "/paths/~1Library~1VirtualFolders/get",
+      "value": {
+        "summary": "Gets all virtual folders",
+        "operationId": "getLibraryVirtualfolders",
+        "tags": [
+          "LibraryStructureService"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VirtualFolderInfo"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "why": "Undocumented since Emby 4.10 (replaced by /Library/VirtualFolders/Query) but still served: emby/embyserver:4.10.2.0 answers GET /emby/Library/VirtualFolders with 200 while unknown routes answer 404 (checked 2026-11-24). Declared as in the 4.1.1.0 spec (https://swagger.emby.media/openapi.json): an array of VirtualFolderInfo. Kept for servers older than /Query"
+    }
+  ]
+}

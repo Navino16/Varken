@@ -1,0 +1,106 @@
+[
+  {
+    "Id": "6c1d2e3f4a5b46c7d8e9f0a1b2c3d4e5",
+    "ServerId": "9b1c2d3e4f5a46b7c8d9e0f1a2b3c4d5",
+    "UserId": "2",
+    "UserName": "alice",
+    "Client": "Emby for Android TV",
+    "DeviceName": "Living Room TV",
+    "DeviceType": "Tv",
+    "DeviceId": "dev-6c1d2e3f",
+    "ApplicationVersion": "2.1.07",
+    "RemoteEndPoint": "192.168.1.42",
+    "LastActivityDate": "2026-11-24T20:41:12.0000000Z",
+    "SupportsRemoteControl": true,
+    "PlayableMediaTypes": [
+      "Audio",
+      "Video"
+    ],
+    "NowPlayingItem": {
+      "Name": "Good News About Hell",
+      "SeriesName": "Severance",
+      "Id": "48211",
+      "Type": "Episode",
+      "MediaType": "Video",
+      "Container": "mkv",
+      "Height": 1080,
+      "Width": 1920,
+      "RunTimeTicks": 34200000000,
+      "IndexNumber": 1,
+      "ParentIndexNumber": 1,
+      "ProductionYear": 2022
+    },
+    "PlayState": {
+      "PositionTicks": 17100000000,
+      "CanSeek": true,
+      "IsPaused": false,
+      "IsMuted": false,
+      "PlayMethod": "Transcode"
+    },
+    "TranscodingInfo": {
+      "AudioCodec": "aac",
+      "VideoCodec": "h264",
+      "Container": "ts",
+      "IsVideoDirect": false,
+      "IsAudioDirect": false,
+      "Bitrate": 8000000,
+      "Width": 1920,
+      "Height": 1080,
+      "AudioChannels": 2
+    }
+  },
+  {
+    "Id": "7d2e3f4a5b6c47d8e9f0a1b2c3d4e5f6",
+    "ServerId": "9b1c2d3e4f5a46b7c8d9e0f1a2b3c4d5",
+    "UserId": "3",
+    "UserName": "bob",
+    "Client": "Emby Web",
+    "DeviceName": "Firefox",
+    "DeviceType": "Desktop",
+    "DeviceId": "dev-7d2e3f4a",
+    "ApplicationVersion": "4.10.2.0",
+    "RemoteEndPoint": "203.0.113.27",
+    "LastActivityDate": "2026-11-24T20:41:12.0000000Z",
+    "SupportsRemoteControl": true,
+    "PlayableMediaTypes": [
+      "Audio",
+      "Video"
+    ],
+    "NowPlayingItem": {
+      "Name": "Dune: Part Two",
+      "Id": "31877",
+      "Type": "Movie",
+      "MediaType": "Video",
+      "Container": "mkv",
+      "Height": 1608,
+      "Width": 3840,
+      "RunTimeTicks": 99600000000,
+      "ProductionYear": 2024
+    },
+    "PlayState": {
+      "PositionTicks": 24900000000,
+      "CanSeek": true,
+      "IsPaused": true,
+      "IsMuted": false,
+      "PlayMethod": "DirectPlay"
+    }
+  },
+  {
+    "Id": "8e3f4a5b6c7d48e9f0a1b2c3d4e5f6a7",
+    "ServerId": "9b1c2d3e4f5a46b7c8d9e0f1a2b3c4d5",
+    "UserId": "4",
+    "UserName": "carol",
+    "Client": "Emby for iOS",
+    "DeviceName": "iPhone",
+    "DeviceType": "Phone",
+    "DeviceId": "dev-8e3f4a5b",
+    "ApplicationVersion": "2.2.30",
+    "RemoteEndPoint": "198.51.100.8",
+    "LastActivityDate": "2026-11-24T20:41:12.0000000Z",
+    "SupportsRemoteControl": true,
+    "PlayableMediaTypes": [
+      "Audio",
+      "Video"
+    ]
+  }
+]

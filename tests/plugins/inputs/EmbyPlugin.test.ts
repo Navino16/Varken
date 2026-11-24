@@ -1,8 +1,11 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
-import { EmbyPlugin } from '../../../src/plugins/inputs/EmbyPlugin';
-import type { EmbyConfig, EmbySession } from '../../../src/types/inputs/emby.types';
 import axios from 'axios';
-import { createMockHttpClient, type MockHttpClient } from '../../fixtures/http';
+import { EmbyPlugin } from '../../../src/plugins/inputs/EmbyPlugin';
+import type { EmbyConfig } from '../../../src/types/inputs/emby.types';
+import type { components } from '../../../src/types/generated/emby';
+import { createContractHttpClient, type ContractHttpClient } from '../../fixtures/contract-http';
+import { loadFixture } from '../../contracts/registry';
+import type { DataPoint } from '../../../src/types/plugin.types';
 
 vi.mock('../../../src/core/Logger', async () => {
   const { loggerMock } = await import('../../fixtures/logger');
@@ -11,46 +14,19 @@ vi.mock('../../../src/core/Logger', async () => {
 
 vi.mock('axios', () => ({ default: { create: vi.fn() } }));
 
-const baseSession: EmbySession = {
-  Id: 'sess1',
-  ServerId: 'srv',
-  UserId: 'u1',
-  UserName: 'bob',
-  Client: 'Emby Web',
-  DeviceId: 'dev1',
-  DeviceName: 'Chrome',
-  DeviceType: 'Web',
-  RemoteEndPoint: '10.0.0.5',
-  ApplicationVersion: '4.8.0',
-  IsActive: true,
-  SupportsRemoteControl: false,
-  SupportsMediaControl: true,
-  LastActivityDate: '2026-04-24T00:00:00Z',
-  LastPlaybackCheckIn: '2026-04-24T00:00:00Z',
-  PlayState: {
-    PositionTicks: 2_500_000_000,
-    CanSeek: true,
-    IsPaused: false,
-    IsMuted: false,
-    PlayMethod: 'DirectPlay',
-    RepeatMode: 'RepeatNone',
-  },
-  NowPlayingItem: {
-    Id: 'item1',
-    ServerId: 'srv',
-    Name: 'Ep 1',
-    Type: 'Episode',
-    MediaType: 'Video',
-    RunTimeTicks: 10_000_000_000,
-    SeriesName: 'Some Show',
-    Height: 720,
-    Container: 'mkv',
-  },
-};
+type Session = components['schemas']['Session.SessionInfo'];
+
+function sessions(): Session[] {
+  return loadFixture<Session[]>('emby/sessions');
+}
+
+function sessionPoints(points: DataPoint[]): DataPoint[] {
+  return points.filter((p) => p.tags.type === 'Session');
+}
 
 describe('EmbyPlugin', () => {
   let plugin: EmbyPlugin;
-  let mockHttpClient: MockHttpClient;
+  let client: ContractHttpClient;
 
   const testConfig: EmbyConfig = {
     id: 1,
@@ -60,12 +36,14 @@ describe('EmbyPlugin', () => {
     sessions: { enabled: true, intervalSeconds: 30 },
     libraries: { enabled: true, intervalSeconds: 3600 },
   };
+  const sessionsOnly: EmbyConfig = { ...testConfig, libraries: { enabled: false, intervalSeconds: 3600 } };
+  const librariesOnly: EmbyConfig = { ...testConfig, sessions: { enabled: false, intervalSeconds: 30 } };
 
   beforeEach(() => {
     vi.clearAllMocks();
     plugin = new EmbyPlugin();
-    mockHttpClient = createMockHttpClient();
-    (axios.create as Mock).mockReturnValue(mockHttpClient);
+    client = createContractHttpClient('emby');
+    (axios.create as Mock).mockReturnValue(client);
   });
 
   describe('metadata', () => {
@@ -75,87 +53,98 @@ describe('EmbyPlugin', () => {
     });
   });
 
+  describe('health', () => {
+    it('should pass the health check against the contract route', async () => {
+      await plugin.initialize(testConfig);
+
+      await expect(plugin.healthCheck()).resolves.toBe(true);
+      expect(client.get).toHaveBeenCalledWith('/emby/System/Info', expect.anything());
+    });
+  });
+
   describe('initialize', () => {
     it('sets X-Emby-Token header', async () => {
       await plugin.initialize(testConfig);
-      expect(mockHttpClient.defaults.headers.common['X-Emby-Token']).toBe('test-api-key');
+
+      expect(client.defaults.headers.common['X-Emby-Token']).toBe('test-api-key');
     });
   });
 
   describe('getSchedules', () => {
-    it('returns enabled schedules', async () => {
+    it('returns enabled schedules only', async () => {
       await plugin.initialize(testConfig);
-      const schedules = plugin.getSchedules();
-      expect(schedules.map((s) => s.name)).toEqual(['Emby_1_sessions', 'Emby_1_libraries']);
+
+      expect(plugin.getSchedules().map((s) => s.name)).toEqual(['Emby_1_sessions', 'Emby_1_libraries']);
     });
 
     it('omits disabled schedules', async () => {
-      await plugin.initialize({ ...testConfig, sessions: { enabled: false, intervalSeconds: 30 } });
-      expect(plugin.getSchedules()).toHaveLength(1);
+      await plugin.initialize(librariesOnly);
+
+      expect(plugin.getSchedules().map((s) => s.name)).toEqual(['Emby_1_libraries']);
     });
   });
 
   describe('collect sessions', () => {
     beforeEach(async () => {
-      await plugin.initialize({ ...testConfig, libraries: { enabled: false, intervalSeconds: 3600 } });
+      await plugin.initialize(sessionsOnly);
+    });
+
+    it('emits one Session DataPoint per active stream with progress and quality', async () => {
+      const [episode, movie] = sessionPoints(await plugin.collect());
+
+      expect(episode.tags).toMatchObject({
+        session_id: '6c1d2e3f4a5b46c7d8e9f0a1b2c3d4e5',
+        ip_address: '192.168.1.42',
+        username: 'alice',
+        title: 'Severance - Good News About Hell',
+        product: 'Emby for Android TV',
+        platform: 'Tv',
+        product_version: '2.1.07',
+        quality: '1080p',
+        video_decision: 'transcode',
+        media_type: 'Video',
+        audio_codec: 'AAC',
+        player_state: 0,
+        device_type: 'Tv',
+        play_method: 'Transcode',
+        server: 1,
+      });
+      expect(episode.fields.progress_percent).toBe(50);
+      expect(movie.tags).toMatchObject({ title: 'Dune: Part Two', quality: '1608p', video_decision: 'direct play' });
+      expect(movie.fields.progress_percent).toBe(25);
     });
 
     it('uses the /emby/Sessions path', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({ data: [] });
       await plugin.collect();
-      expect(mockHttpClient.get).toHaveBeenCalledWith('/emby/Sessions', expect.anything());
-    });
 
-    it('emits a Session DataPoint with progress %', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({ data: [baseSession] });
-      const points = await plugin.collect();
-      const session = points.find((p) => p.tags.type === 'Session');
-      expect(session?.tags.username).toBe('bob');
-      expect(session?.tags.title).toBe('Some Show - Ep 1');
-      expect(session?.tags.quality).toBe('720p');
-      expect(session?.fields.progress_percent).toBe(25);
+      expect(client.get).toHaveBeenCalledWith('/emby/Sessions', { params: undefined });
     });
 
     it('ignores sessions without NowPlayingItem', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: [{ ...baseSession, NowPlayingItem: undefined, Id: 'idle' }, baseSession],
-      });
-      const points = await plugin.collect();
-      expect(points.filter((p) => p.tags.type === 'Session')).toHaveLength(1);
+      const usernames = sessionPoints(await plugin.collect()).map((p) => p.tags.username);
+
+      expect(usernames).toEqual(['alice', 'bob']);
     });
 
-    it('counts transcode_streams in the summary', async () => {
-      const transcoding = {
-        ...baseSession,
-        Id: 'sess2',
-        TranscodingInfo: {
-          AudioCodec: 'aac',
-          VideoCodec: 'h264',
-          Container: 'ts',
-          IsVideoDirect: false,
-          IsAudioDirect: true,
-          Bitrate: 5000000,
-          Width: 1280,
-          Height: 720,
-          AudioChannels: 2,
-          TranscodeReasons: [],
-        },
-      };
-      mockHttpClient.get.mockResolvedValueOnce({ data: [baseSession, transcoding] });
-      const points = await plugin.collect();
-      const summary = points.find((p) => p.tags.type === 'current_stream_stats');
-      expect(summary?.fields.stream_count).toBe(2);
-      expect(summary?.fields.transcode_streams).toBe(1);
+    it('emits a summary point with stream_count and transcode_streams', async () => {
+      const summary = (await plugin.collect()).find((p) => p.tags.type === 'current_stream_stats');
+
+      expect(summary?.fields).toEqual({ stream_count: 2, transcode_streams: 1 });
+    });
+
+    it('marks paused sessions correctly', async () => {
+      const [episode, movie] = sessionPoints(await plugin.collect());
+
+      expect([episode.tags.player_state, movie.tags.player_state]).toEqual([0, 1]);
     });
 
     it('defaults missing session metadata to unknown', async () => {
-      const bare = { Id: 'bare', NowPlayingItem: { Id: 'i', ServerId: 'srv' } } as unknown as EmbySession;
-      mockHttpClient.get.mockResolvedValueOnce({ data: [bare] });
+      const [, , idle] = sessions();
+      client.override('/emby/Sessions', [{ Id: idle.Id, NowPlayingItem: { Id: '31877' } }]);
 
-      const points = await plugin.collect();
-      const session = points.find((p) => p.tags.type === 'Session');
+      const [point] = sessionPoints(await plugin.collect());
 
-      expect(session?.tags).toMatchObject({
+      expect(point.tags).toMatchObject({
         ip_address: 'unknown',
         username: 'unknown',
         title: 'unknown',
@@ -166,118 +155,117 @@ describe('EmbyPlugin', () => {
         video_decision: 'direct play',
         media_type: 'unknown',
         audio_codec: 'unknown',
-        player_state: 0,
+        device_type: 'unknown',
         play_method: 'unknown',
       });
-      expect(session?.fields.progress_percent).toBe(0);
+      expect(point.fields.progress_percent).toBe(0);
     });
 
     it('falls back to container quality, item name and item type for movies', async () => {
-      const movie = {
-        ...baseSession,
-        NowPlayingItem: { Id: 'm', ServerId: 'srv', Name: 'Heat', Type: 'Movie', Container: 'mkv' },
-      } as unknown as EmbySession;
-      mockHttpClient.get.mockResolvedValueOnce({ data: [movie] });
+      const [, bob] = sessions();
+      const { Height: _h, MediaType: _m, ...item } = bob.NowPlayingItem ?? {};
+      client.override('/emby/Sessions', [{ ...bob, NowPlayingItem: item }]);
 
-      const points = await plugin.collect();
-      const session = points.find((p) => p.tags.type === 'Session');
+      const [point] = sessionPoints(await plugin.collect());
 
-      expect(session?.tags.title).toBe('Heat');
-      expect(session?.tags.quality).toBe('MKV');
-      expect(session?.tags.media_type).toBe('Movie');
+      expect(point.tags).toMatchObject({ title: 'Dune: Part Two', quality: 'MKV', media_type: 'Movie' });
     });
 
     it('reports direct stream and transcode decisions with the audio codec', async () => {
-      const transcodingInfo = { AudioCodec: 'aac', IsVideoDirect: true };
-      const directStream = { ...baseSession, Id: 'ds', TranscodingInfo: transcodingInfo } as unknown as EmbySession;
-      const transcode = {
-        ...baseSession,
-        Id: 'tc',
-        TranscodingInfo: { ...transcodingInfo, IsVideoDirect: false },
-      } as unknown as EmbySession;
-      mockHttpClient.get.mockResolvedValueOnce({ data: [directStream, transcode] });
+      const [alice] = sessions();
+      client.override('/emby/Sessions', [{ ...alice, TranscodingInfo: { ...alice.TranscodingInfo, IsVideoDirect: true } }, alice]);
 
-      const points = await plugin.collect();
-      const sessions = points.filter((p) => p.tags.type === 'Session');
+      const points = sessionPoints(await plugin.collect());
 
-      expect(sessions.map((p) => p.tags.video_decision)).toEqual(['direct stream', 'transcode']);
-      expect(sessions[0].tags.audio_codec).toBe('AAC');
+      expect(points.map((p) => p.tags.video_decision)).toEqual(['direct stream', 'transcode']);
+      expect(points[0].tags.audio_codec).toBe('AAC');
     });
 
     it('emits only an empty summary when the sessions payload is null', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({ data: null });
+      client.overrideUnchecked('/emby/Sessions', null);
 
       const points = await plugin.collect();
 
-      expect(points).toHaveLength(1);
-      expect(points[0].fields.stream_count).toBe(0);
+      expect(points.map((p) => p.fields)).toEqual([{ stream_count: 0, transcode_streams: 0 }]);
+    });
+
+    it('generates deterministic hash ids', async () => {
+      const hashes = async (): Promise<unknown[]> => sessionPoints(await plugin.collect()).map((p) => p.fields.hash);
+
+      const first = await hashes();
+
+      expect(new Set(first).size).toBe(2);
+      expect(await hashes()).toEqual(first);
     });
   });
 
   describe('collect libraries', () => {
     beforeEach(async () => {
-      await plugin.initialize({ ...testConfig, sessions: { enabled: false, intervalSeconds: 30 } });
+      await plugin.initialize(librariesOnly);
+    });
+
+    it('emits a DataPoint per library plus a global item_counts summary', async () => {
+      const points = await plugin.collect();
+      const libraries = points.filter((p) => p.tags.type === 'library_stats');
+
+      expect(libraries.map((p) => [p.tags.section_name, p.tags.section_type, p.fields.locations, p.fields.libraries])).toEqual([
+        ['Movies', 'movies', 1, 'Movies'],
+        ['Shows', 'tvshows', 2, 'Shows'],
+      ]);
+      expect(points.find((p) => p.tags.type === 'item_counts')?.fields).toEqual({
+        movies: 812,
+        series: 96,
+        episodes: 4370,
+        artists: 214,
+        albums: 487,
+        songs: 6021,
+        books: 15,
+        box_sets: 38,
+        total: 12093,
+      });
     });
 
     it('queries /emby/Library/VirtualFolders and /emby/Items/Counts', async () => {
-      mockHttpClient.get
-        .mockResolvedValueOnce({
-          data: [{ Name: 'Films', CollectionType: 'movies', LibraryOptions: {}, ItemId: 'a', Locations: [] }],
-        })
-        .mockResolvedValueOnce({
-          data: {
-            MovieCount: 10,
-            SeriesCount: 0,
-            EpisodeCount: 0,
-            ArtistCount: 0,
-            ProgramCount: 0,
-            TrailerCount: 0,
-            SongCount: 0,
-            AlbumCount: 0,
-            MusicVideoCount: 0,
-            BoxSetCount: 0,
-            BookCount: 0,
-            ItemCount: 10,
-          },
-        });
+      await plugin.collect();
 
-      const points = await plugin.collect();
-      expect(mockHttpClient.get).toHaveBeenNthCalledWith(1, '/emby/Library/VirtualFolders', expect.anything());
-      expect(mockHttpClient.get).toHaveBeenNthCalledWith(2, '/emby/Items/Counts', expect.anything());
-
-      expect(points.some((p) => p.tags.type === 'library_stats')).toBe(true);
-      expect(points.find((p) => p.tags.type === 'item_counts')?.fields.movies).toBe(10);
+      expect(client.get).toHaveBeenCalledWith('/emby/Library/VirtualFolders', { params: undefined });
+      expect(client.get).toHaveBeenCalledWith('/emby/Items/Counts', { params: undefined });
     });
 
-    it('still emits per-library points when /Items/Counts fails', async () => {
-      mockHttpClient.get
-        .mockResolvedValueOnce({
-          data: [{ Name: 'Films', CollectionType: 'movies', LibraryOptions: {}, ItemId: 'a', Locations: [] }],
-        })
-        .mockRejectedValueOnce(new Error('counts 500'));
+    it('falls back gracefully when /Items/Counts fails', async () => {
+      client.fail('/emby/Items/Counts', new Error('counts endpoint 500'));
 
       const points = await plugin.collect();
-      expect(points.filter((p) => p.tags.type === 'library_stats')).toHaveLength(1);
+
+      expect(points.filter((p) => p.tags.type === 'library_stats')).toHaveLength(2);
       expect(points.find((p) => p.tags.type === 'item_counts')).toBeUndefined();
     });
-    it('defaults missing collection type and locations', async () => {
-      mockHttpClient.get
-        .mockResolvedValueOnce({ data: [{ Name: 'Mixed', LibraryOptions: {}, ItemId: 'x' }] })
-        .mockRejectedValueOnce(new Error('no counts'));
+
+    it('defaults missing collection type, locations and counters', async () => {
+      client.override('/emby/Library/VirtualFolders', [{ Name: 'Mixed', ItemId: '9' }]);
+      client.override('/emby/Items/Counts', { MovieCount: 3 });
 
       const points = await plugin.collect();
-      const lib = points.find((p) => p.tags.type === 'library_stats');
 
-      expect(lib?.tags.section_type).toBe('unknown');
-      expect(lib?.fields.locations).toBe(0);
+      expect(points[0].tags.section_type).toBe('unknown');
+      expect(points[0].fields.locations).toBe(0);
+      expect(points[1].fields).toMatchObject({ movies: 3, series: 0, total: 0 });
     });
 
     it('emits no library points when the libraries payload is null', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({ data: null }).mockRejectedValueOnce(new Error('no counts'));
+      client.overrideUnchecked('/emby/Library/VirtualFolders', null);
+      client.fail('/emby/Items/Counts', new Error('no counts'));
 
-      const points = await plugin.collect();
+      expect(await plugin.collect()).toEqual([]);
+    });
+  });
 
-      expect(points.filter((p) => p.tags.type === 'library_stats')).toHaveLength(0);
+  describe('collect() branches', () => {
+    it('propagates sessions errors via safeFetch', async () => {
+      await plugin.initialize(testConfig);
+      client.fail('/emby/Sessions', new Error('emby offline'));
+
+      await expect(plugin.collect()).rejects.toThrow('emby offline');
     });
   });
 });

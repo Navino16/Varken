@@ -5,7 +5,7 @@ import { upgradeFromTwoToThree } from '@scalar/openapi-upgrader/2.0-to-3.0';
 import { parse as parseYaml } from 'yaml';
 import { applyOverlay, type FormatOverride, type Overlay } from './overlay';
 
-export type ServiceId = 'radarr' | 'bazarr' | 'sonarr' | 'lidarr' | 'readarr' | 'prowlarr' | 'seerr' | 'ombi' | 'plex' | 'jellyfin';
+export type ServiceId = 'radarr' | 'bazarr' | 'sonarr' | 'lidarr' | 'readarr' | 'prowlarr' | 'seerr' | 'ombi' | 'plex' | 'jellyfin' | 'emby';
 
 export type SpecFormat = 'openapi3.0' | 'openapi3.1' | 'swagger2';
 

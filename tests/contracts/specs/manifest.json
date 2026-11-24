@@ -78,5 +78,13 @@
     "version": "12.4.0",
     "pathPrefix": "",
     "refresh": true
+  },
+  "emby": {
+    "file": "emby.json",
+    "format": "openapi3.0",
+    "source": "runtime:/emby/openapi.json (emby/embyserver:{tag})",
+    "version": "4.10.2.0",
+    "pathPrefix": "/emby",
+    "refresh": true
   }
 }

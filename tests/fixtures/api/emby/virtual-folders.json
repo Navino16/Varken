@@ -1,0 +1,25 @@
+[
+  {
+    "Name": "Movies",
+    "Locations": [
+      "/data/movies"
+    ],
+    "CollectionType": "movies",
+    "ItemId": "3",
+    "Id": "3",
+    "Guid": "5d9c1a2b3c4d4e5f8a6b7c8d9e0f1a2b",
+    "RefreshStatus": "Idle"
+  },
+  {
+    "Name": "Shows",
+    "Locations": [
+      "/data/tv",
+      "/data/tv-kids"
+    ],
+    "CollectionType": "tvshows",
+    "ItemId": "4",
+    "Id": "4",
+    "Guid": "6e0d2b3c4d5e4f6a9b7c8d9e0f1a2b3c",
+    "RefreshStatus": "Idle"
+  }
+]

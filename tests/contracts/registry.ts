@@ -50,6 +50,10 @@ export const contractRoutes: ContractRoute[] = [
   { service: 'jellyfin', method: 'get', path: '/Sessions', fixture: 'jellyfin/sessions' },
   { service: 'jellyfin', method: 'get', path: '/Library/VirtualFolders', fixture: 'jellyfin/virtual-folders' },
   { service: 'jellyfin', method: 'get', path: '/Items/Counts', fixture: 'jellyfin/items-counts' },
+  { service: 'emby', method: 'get', path: '/emby/System/Info', fixture: 'emby/system-info' },
+  { service: 'emby', method: 'get', path: '/emby/Sessions', fixture: 'emby/sessions' },
+  { service: 'emby', method: 'get', path: '/emby/Library/VirtualFolders', fixture: 'emby/virtual-folders' },
+  { service: 'emby', method: 'get', path: '/emby/Items/Counts', fixture: 'emby/items-counts' },
 ];
 
 const fixturesDir = path.resolve(__dirname, '../fixtures/api');
