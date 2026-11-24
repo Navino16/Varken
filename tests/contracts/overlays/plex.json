@@ -34,10 +34,13 @@
       "op": "add",
       "path": "/paths/~1status~1sessions/get/responses/200/content/application~1json/schema/properties/MediaContainer/allOf/1/properties/Metadata/items/allOf/0/properties/sessionKey",
       "value": {
-        "type": "string",
+        "type": [
+          "string",
+          "integer"
+        ],
         "description": "Key of the playback session"
       },
-      "why": "https://github.com/pkkid/python-plexapi/blob/4.18.3/plexapi/base.py#L1039-L1047 — PlexSession reads the sessionKey attribute of every /status/sessions item; the official spec omits it (Plex is closed source, python-plexapi is built from real responses)"
+      "why": "https://github.com/pkkid/python-plexapi/blob/4.18.3/plexapi/base.py#L1039-L1047 — PlexSession reads the sessionKey attribute of every /status/sessions item; the official spec omits it. Typed string or integer: python-plexapi parses it from XML, the JSON type is not documented"
     },
     {
       "op": "add",
@@ -66,6 +69,9 @@
           },
           "duration": {
             "type": "integer"
+          },
+          "error": {
+            "type": "boolean"
           },
           "height": {
             "type": "integer"
@@ -106,7 +112,7 @@
           "throttled": {
             "type": "boolean"
           },
-          "timestamp": {
+          "timeStamp": {
             "type": "number"
           },
           "transcodeHwDecoding": {
@@ -138,7 +144,7 @@
           }
         }
       },
-      "why": "https://github.com/pkkid/python-plexapi/blob/4.18.3/plexapi/media.py#L528-L600 — TranscodeSession attributes (videoDecision, audioDecision, …) of transcoded /status/sessions items; the official spec only declares this object for the download queue"
+      "why": "https://github.com/pkkid/python-plexapi/blob/4.18.3/plexapi/media.py#L528-L600 — TranscodeSession attributes (videoDecision, audioDecision, timeStamp…) of transcoded /status/sessions items; the official spec declares this object (with error) only for the download queue (#/paths/~1downloadQueue~1{queueId}~1items)"
     },
     {
       "op": "replace",

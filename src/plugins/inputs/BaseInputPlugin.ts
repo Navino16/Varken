@@ -249,7 +249,7 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
       get: (path: string, options?: ApiCallOptions) =>
         this.httpGet(basePath + expandPathTemplate(path, options?.path), options?.query, options?.header),
       getAllPages: (path: string, options?: ApiCallOptions) =>
-        this.fetchAllPages(basePath + expandPathTemplate(path, options?.path), options?.query),
+        this.fetchAllPages(basePath + expandPathTemplate(path, options?.path), options?.query, options?.header),
     } as unknown as ApiClient<Paths>;
   }
 
@@ -259,7 +259,8 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
    */
   protected async fetchAllPages<T>(
     endpoint: string,
-    params: Record<string, unknown> = {}
+    params: Record<string, unknown> = {},
+    headers?: Record<string, unknown>
   ): Promise<T[]> {
     const allRecords: T[] = [];
     let page = 1;
@@ -268,11 +269,11 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
     const maxRecords = this.globalConfig.maxPaginationRecords;
 
     do {
-      const response = await this.httpGet<PaginatedResponse<T>>(endpoint, {
-        ...params,
-        pageSize,
-        page,
-      });
+      const response = await this.httpGet<PaginatedResponse<T>>(
+        endpoint,
+        { ...params, pageSize, page },
+        headers
+      );
 
       totalRecords = response.totalRecords ?? 0;
       allRecords.push(...(response.records ?? []));

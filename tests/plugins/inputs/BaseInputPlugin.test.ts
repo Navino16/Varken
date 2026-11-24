@@ -347,6 +347,22 @@ describe('BaseInputPlugin', () => {
       expect(get).toHaveBeenCalledWith('/api/count', { params: undefined, headers: { 'X-Page-Size': 0 } });
     });
 
+    it('forwards headers on every page of a paged endpoint', async () => {
+      await plugin.initialize(testConfig);
+      const get = vi
+        .fn()
+        .mockResolvedValueOnce({ data: { totalRecords: 2, records: [{ id: 1 }] } })
+        .mockResolvedValueOnce({ data: { totalRecords: 2, records: [{ id: 2 }] } });
+      plugin.getHttpClient().get = get;
+
+      await plugin.testApi().getAllPages('/api/pages', { header: { 'X-Page-Size': 1 } } as never);
+
+      expect(get).toHaveBeenNthCalledWith(2, '/api/pages', {
+        params: expect.objectContaining({ page: 2 }),
+        headers: { 'X-Page-Size': 1 },
+      });
+    });
+
     it('caches calls with different headers separately', async () => {
       await plugin.initialize(testConfig, { cacheTtlSeconds: 60 } as unknown as GlobalConfig);
       const get = vi.fn().mockResolvedValueOnce({ data: { total: 3 } }).mockResolvedValueOnce({ data: { total: 0 } });

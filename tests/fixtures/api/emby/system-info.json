@@ -1,4 +1,7 @@
 {
+  "ServerName": "media-box",
+  "Version": "4.10.2.0",
+  "Id": "9b1c2d3e4f5a46b7c8d9e0f1a2b3c4d5",
   "SystemUpdateLevel": "Release",
   "OperatingSystemDisplayName": "Linux",
   "HasPendingRestart": false,
