@@ -145,6 +145,9 @@ function getCompiled(contract: Contract): CompiledContract {
     ajv.addFormat(format, { type: 'number', validate: () => true });
   }
   ajv.addFormat('date-span', { type: 'string', validate: () => true });
+  for (const { name, pattern } of contract.formats ?? []) {
+    ajv.addFormat(name, new RegExp(pattern));
+  }
 
   const rawSchemas = Object.entries(contract.spec.components?.schemas ?? {});
   const variant = (open: boolean): Record<string, Schema> =>

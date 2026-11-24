@@ -46,6 +46,10 @@ export const contractRoutes: ContractRoute[] = [
   { service: 'plex', method: 'get', path: '/status/sessions', fixture: 'plex/status-sessions' },
   { service: 'plex', method: 'get', path: '/library/sections/all', fixture: 'plex/library-sections' },
   { service: 'plex', method: 'get', path: '/library/sections/{sectionId}/all', fixture: 'plex/library-section-all' },
+  { service: 'jellyfin', method: 'get', path: '/System/Info', fixture: 'jellyfin/system-info' },
+  { service: 'jellyfin', method: 'get', path: '/Sessions', fixture: 'jellyfin/sessions' },
+  { service: 'jellyfin', method: 'get', path: '/Library/VirtualFolders', fixture: 'jellyfin/virtual-folders' },
+  { service: 'jellyfin', method: 'get', path: '/Items/Counts', fixture: 'jellyfin/items-counts' },
 ];
 
 const fixturesDir = path.resolve(__dirname, '../fixtures/api');

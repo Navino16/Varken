@@ -70,5 +70,13 @@
     "version": "2026-11-24",
     "pathPrefix": "",
     "refresh": true
+  },
+  "jellyfin": {
+    "file": "jellyfin.json",
+    "format": "openapi3.0",
+    "source": "https://api.jellyfin.org/openapi/jellyfin-openapi-stable.json",
+    "version": "12.4.0",
+    "pathPrefix": "",
+    "refresh": true
   }
 }

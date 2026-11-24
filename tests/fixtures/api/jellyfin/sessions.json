@@ -1,0 +1,103 @@
+[
+  {
+    "Id": "6c1d2e3f4a5b46c7d8e9f0a1b2c3d4e5",
+    "UserId": "11111111222233334444555555555555",
+    "UserName": "alice",
+    "Client": "Jellyfin Android TV",
+    "DeviceName": "Living Room TV",
+    "DeviceType": "Tv",
+    "DeviceId": "dev-6c1d2e3f",
+    "ApplicationVersion": "0.18.11",
+    "RemoteEndPoint": "192.168.1.42",
+    "LastActivityDate": "2026-11-24T20:41:12.0000000Z",
+    "IsActive": true,
+    "SupportsMediaControl": true,
+    "SupportsRemoteControl": true,
+    "HasCustomDeviceName": false,
+    "ServerId": "4f2c8e1a9b3d4c7e8f0a1b2c3d4e5f60",
+    "NowPlayingItem": {
+      "Name": "Good News About Hell",
+      "SeriesName": "Severance",
+      "Id": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+      "Type": "Episode",
+      "MediaType": "Video",
+      "Container": "mkv",
+      "Height": 1080,
+      "Width": 1920,
+      "RunTimeTicks": 34200000000,
+      "IndexNumber": 1,
+      "ParentIndexNumber": 1,
+      "ProductionYear": 2022
+    },
+    "PlayState": {
+      "PositionTicks": 17100000000,
+      "CanSeek": true,
+      "IsPaused": false,
+      "IsMuted": false,
+      "PlayMethod": "Transcode"
+    },
+    "TranscodingInfo": {
+      "AudioCodec": "aac",
+      "VideoCodec": "h264",
+      "Container": "ts",
+      "IsVideoDirect": false,
+      "IsAudioDirect": false,
+      "Bitrate": 8000000,
+      "Width": 1920,
+      "Height": 1080,
+      "AudioChannels": 2
+    }
+  },
+  {
+    "Id": "7d2e3f4a5b6c47d8e9f0a1b2c3d4e5f6",
+    "UserId": "66666666777788889999000000000000",
+    "UserName": "bob",
+    "Client": "Jellyfin Web",
+    "DeviceName": "Firefox",
+    "DeviceType": "Desktop",
+    "DeviceId": "dev-7d2e3f4a",
+    "ApplicationVersion": "12.4.0",
+    "RemoteEndPoint": "203.0.113.27",
+    "LastActivityDate": "2026-11-24T20:41:12.0000000Z",
+    "IsActive": true,
+    "SupportsMediaControl": true,
+    "SupportsRemoteControl": true,
+    "HasCustomDeviceName": false,
+    "ServerId": "4f2c8e1a9b3d4c7e8f0a1b2c3d4e5f60",
+    "NowPlayingItem": {
+      "Name": "Dune: Part Two",
+      "Id": "0f9e8d7c6b5a49382716a5b4c3d2e1f0",
+      "Type": "Movie",
+      "MediaType": "Video",
+      "Container": "mkv",
+      "Height": 1608,
+      "Width": 3840,
+      "RunTimeTicks": 99600000000,
+      "ProductionYear": 2024
+    },
+    "PlayState": {
+      "PositionTicks": 24900000000,
+      "CanSeek": true,
+      "IsPaused": true,
+      "IsMuted": false,
+      "PlayMethod": "DirectPlay"
+    }
+  },
+  {
+    "Id": "8e3f4a5b6c7d48e9f0a1b2c3d4e5f6a7",
+    "UserId": "aaaaaaaabbbbccccddddeeeeeeeeeeee",
+    "UserName": "carol",
+    "Client": "Jellyfin iOS",
+    "DeviceName": "iPhone",
+    "DeviceType": "Phone",
+    "DeviceId": "dev-8e3f4a5b",
+    "ApplicationVersion": "1.6.2",
+    "RemoteEndPoint": "198.51.100.8",
+    "LastActivityDate": "2026-11-24T20:41:12.0000000Z",
+    "IsActive": true,
+    "SupportsMediaControl": true,
+    "SupportsRemoteControl": true,
+    "HasCustomDeviceName": false,
+    "ServerId": "4f2c8e1a9b3d4c7e8f0a1b2c3d4e5f60"
+  }
+]

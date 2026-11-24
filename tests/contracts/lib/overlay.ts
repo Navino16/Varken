@@ -5,8 +5,16 @@ export interface OverlayPatch {
   why: string;
 }
 
+/** Replaces a string format's validation for one service (e.g. GUIDs serialized without dashes). */
+export interface FormatOverride {
+  name: string;
+  pattern: string;
+  why: string;
+}
+
 export interface Overlay {
   patches: OverlayPatch[];
+  formats?: FormatOverride[];
 }
 
 type Container = Record<string, unknown> | unknown[];

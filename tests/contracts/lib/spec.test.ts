@@ -107,6 +107,18 @@ describe('contract loading', () => {
     expect(spec.paths['/status']).toBeDefined();
   });
 
+  it('exposes overlay format overrides', () => {
+    fakeFile(overlayPath, { patches: [], formats: [{ name: 'uuid', pattern: '^[0-9a-f]{32}$', why: 'N-format GUIDs' }] });
+
+    expect(loadContract('radarr').formats).toEqual([{ name: 'uuid', pattern: '^[0-9a-f]{32}$', why: 'N-format GUIDs' }]);
+  });
+
+  it('rejects a format override without a why', () => {
+    fakeFile(overlayPath, { patches: [], formats: [{ name: 'uuid', pattern: '^x$', why: ' ' }] });
+
+    expect(() => loadContract('radarr')).toThrow(/format override uuid needs a why/);
+  });
+
   it('hash is stable and changes with the spec', () => {
     const first = contractHash('radarr');
     expect(contractHash('radarr')).toBe(first);

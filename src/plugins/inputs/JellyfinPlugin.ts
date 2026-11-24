@@ -1,11 +1,10 @@
 import { BaseInputPlugin } from './BaseInputPlugin';
 import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
-import type {
-  JellyfinConfig,
-  JellyfinSession,
-  JellyfinLibrary,
-  JellyfinItemCounts,
-} from '../../types/inputs/jellyfin.types';
+import type { JellyfinConfig } from '../../types/inputs/jellyfin.types';
+import type { components, paths } from '../../types/generated/jellyfin';
+
+type JellyfinSession = components['schemas']['SessionInfoDto'];
+type JellyfinItemCounts = components['schemas']['ItemCounts'];
 
 const PLAYER_STATE = { PLAYING: 0, PAUSED: 1, BUFFERING: 3 } as const;
 
@@ -26,6 +25,8 @@ export class JellyfinPlugin extends BaseInputPlugin<JellyfinConfig> {
     version: '1.0.0',
     description: 'Collects sessions and library stats from Jellyfin',
   };
+
+  private readonly jellyfin = this.api<paths>();
 
   async initialize(
     ...args: Parameters<BaseInputPlugin<JellyfinConfig>['initialize']>
@@ -73,8 +74,8 @@ export class JellyfinPlugin extends BaseInputPlugin<JellyfinConfig> {
   private async collectSessions(): Promise<DataPoint[]> {
     return this.safeFetch('collect Jellyfin sessions', async () => {
       const points: DataPoint[] = [];
-      const sessions = await this.httpGet<JellyfinSession[]>('/Sessions');
-      const active = (sessions ?? []).filter((s) => s.NowPlayingItem !== undefined);
+      const sessions = await this.jellyfin.get('/Sessions');
+      const active = (sessions ?? []).filter((s) => s.NowPlayingItem);
 
       for (const session of active) {
         points.push(this.processSession(session));
@@ -89,7 +90,7 @@ export class JellyfinPlugin extends BaseInputPlugin<JellyfinConfig> {
           },
           {
             stream_count: active.length,
-            transcode_streams: active.filter((s) => s.TranscodingInfo !== undefined).length,
+            transcode_streams: active.filter((s) => s.TranscodingInfo).length,
           }
         )
       );
@@ -104,7 +105,7 @@ export class JellyfinPlugin extends BaseInputPlugin<JellyfinConfig> {
       const points: DataPoint[] = [];
 
       const [libraries, counts] = await Promise.all([
-        this.httpGet<JellyfinLibrary[]>('/Library/VirtualFolders'),
+        this.jellyfin.get('/Library/VirtualFolders'),
         this.fetchItemCounts(),
       ]);
 
@@ -115,13 +116,13 @@ export class JellyfinPlugin extends BaseInputPlugin<JellyfinConfig> {
             {
               type: 'library_stats',
               server: this.config.id,
-              section_name: library.Name,
+              section_name: library.Name ?? 'unknown',
               section_type: library.CollectionType || 'unknown',
-              name: library.Name,
+              name: library.Name ?? 'unknown',
             },
             {
               locations: library.Locations?.length ?? 0,
-              libraries: library.Name,
+              libraries: library.Name ?? 'unknown',
             }
           )
         );
@@ -136,15 +137,15 @@ export class JellyfinPlugin extends BaseInputPlugin<JellyfinConfig> {
               server: this.config.id,
             },
             {
-              movies: counts.MovieCount,
-              series: counts.SeriesCount,
-              episodes: counts.EpisodeCount,
-              artists: counts.ArtistCount,
-              albums: counts.AlbumCount,
-              songs: counts.SongCount,
-              books: counts.BookCount,
-              box_sets: counts.BoxSetCount,
-              total: counts.ItemCount,
+              movies: counts.MovieCount ?? 0,
+              series: counts.SeriesCount ?? 0,
+              episodes: counts.EpisodeCount ?? 0,
+              artists: counts.ArtistCount ?? 0,
+              albums: counts.AlbumCount ?? 0,
+              songs: counts.SongCount ?? 0,
+              books: counts.BookCount ?? 0,
+              box_sets: counts.BoxSetCount ?? 0,
+              total: counts.ItemCount ?? 0,
             }
           )
         );
@@ -161,7 +162,7 @@ export class JellyfinPlugin extends BaseInputPlugin<JellyfinConfig> {
    */
   private async fetchItemCounts(): Promise<JellyfinItemCounts | null> {
     try {
-      return await this.httpGet<JellyfinItemCounts>('/Items/Counts');
+      return await this.jellyfin.get('/Items/Counts');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       this.logger.debug(`Could not fetch Jellyfin item counts: ${message}`);
@@ -190,7 +191,7 @@ export class JellyfinPlugin extends BaseInputPlugin<JellyfinConfig> {
       'Jellyfin',
       {
         type: 'Session',
-        session_id: session.Id,
+        session_id: session.Id ?? 'unknown',
         ip_address: session.RemoteEndPoint || 'unknown',
         username: session.UserName || 'unknown',
         title: fullTitle,

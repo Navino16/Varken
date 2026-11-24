@@ -3,9 +3,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { upgradeFromTwoToThree } from '@scalar/openapi-upgrader/2.0-to-3.0';
 import { parse as parseYaml } from 'yaml';
-import { applyOverlay, type Overlay } from './overlay';
+import { applyOverlay, type FormatOverride, type Overlay } from './overlay';
 
-export type ServiceId = 'radarr' | 'bazarr' | 'sonarr' | 'lidarr' | 'readarr' | 'prowlarr' | 'seerr' | 'ombi' | 'plex';
+export type ServiceId = 'radarr' | 'bazarr' | 'sonarr' | 'lidarr' | 'readarr' | 'prowlarr' | 'seerr' | 'ombi' | 'plex' | 'jellyfin';
 
 export type SpecFormat = 'openapi3.0' | 'openapi3.1' | 'swagger2';
 
@@ -28,6 +28,7 @@ export interface Contract {
   service: ServiceId;
   entry: ManifestEntry;
   spec: OpenApiDocument;
+  formats?: FormatOverride[];
 }
 
 export const OPENAPI_TYPESCRIPT_VERSION = '7.13.0';
@@ -69,11 +70,18 @@ export function loadContract(service: ServiceId): Contract {
   const pinned = readSpec(path.join(contractsDir, 'specs', entry.file));
   let spec = entry.format === 'swagger2' ? upgradeSwagger2(pinned, entry.pathPrefix) : (pinned as OpenApiDocument);
   const overlayFile = path.join(contractsDir, 'overlays', `${service}.json`);
+  let formats: FormatOverride[] = [];
   if (fs.existsSync(overlayFile)) {
-    spec = applyOverlay(spec, readJson<Overlay>(overlayFile));
+    const overlay = readJson<Overlay>(overlayFile);
+    spec = applyOverlay(spec, overlay);
+    formats = overlay.formats ?? [];
+    const unjustified = formats.find((format) => !format.why?.trim());
+    if (unjustified) {
+      throw new Error(`Overlay format override ${unjustified.name} needs a why`);
+    }
   }
 
-  const contract: Contract = { service, entry, spec };
+  const contract: Contract = { service, entry, spec, formats };
   cache.set(service, contract);
   return contract;
 }
