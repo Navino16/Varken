@@ -1,65 +1,34 @@
-import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
-import { ProwlarrPlugin } from '../../../src/plugins/inputs/ProwlarrPlugin';
-import { ProwlarrConfig } from '../../../src/types/inputs/prowlarr.types';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import axios from 'axios';
+import { ProwlarrPlugin } from '../../../src/plugins/inputs/ProwlarrPlugin';
+import type { ProwlarrConfig } from '../../../src/types/inputs/prowlarr.types';
+import { createContractHttpClient, type ContractHttpClient } from '../../fixtures/contract-http';
 
-// Mock the logger
-vi.mock('../../../src/core/Logger', () => ({
-  createLogger: () => ({
-    info: vi.fn(),
-    debug: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  }),
-  withContext: (logger: unknown) => logger,
-}));
+vi.mock('../../../src/core/Logger', async () => {
+  const { loggerMock } = await import('../../fixtures/logger');
+  return loggerMock();
+});
 
-// Mock axios
-vi.mock('axios', () => ({
-  default: {
-    create: vi.fn(() => ({
-      get: vi.fn(),
-      defaults: {
-        headers: {
-          common: {},
-        },
-      },
-    })),
-  },
-}));
+vi.mock('axios', () => ({ default: { create: vi.fn() } }));
 
 describe('ProwlarrPlugin', () => {
   let plugin: ProwlarrPlugin;
-  let mockHttpClient: { get: Mock; defaults: { headers: { common: Record<string, string> } } };
+  let client: ContractHttpClient;
 
   const testConfig: ProwlarrConfig = {
     id: 1,
     url: 'http://localhost:9696',
     apiKey: 'prowlarr-api-key',
     verifySsl: false,
-    indexerStats: {
-      enabled: true,
-      intervalSeconds: 300,
-    },
+    indexerStats: { enabled: true, intervalSeconds: 300 },
   };
+  const disabled: ProwlarrConfig = { ...testConfig, indexerStats: { ...testConfig.indexerStats, enabled: false } };
 
   beforeEach(() => {
     vi.clearAllMocks();
     plugin = new ProwlarrPlugin();
-
-    mockHttpClient = {
-      get: vi.fn(),
-      defaults: {
-        headers: {
-          common: {},
-        },
-      },
-      interceptors: {
-        response: { use: vi.fn() },
-        request: { use: vi.fn() },
-      },
-    };
-    (axios.create as Mock).mockReturnValue(mockHttpClient);
+    client = createContractHttpClient('prowlarr');
+    (axios.create as Mock).mockReturnValue(client);
   });
 
   describe('metadata', () => {
@@ -70,39 +39,37 @@ describe('ProwlarrPlugin', () => {
     });
   });
 
-  describe('getHealthEndpoint', () => {
+  describe('health', () => {
     it('should return the correct health endpoint', () => {
       const endpoint = (plugin as unknown as { getHealthEndpoint: () => string }).getHealthEndpoint();
       expect(endpoint).toBe('/api/v1/system/status');
+    });
+
+    it('should pass the health check against the contract route', async () => {
+      await plugin.initialize(testConfig);
+
+      await expect(plugin.healthCheck()).resolves.toBe(true);
     });
   });
 
   describe('initialize', () => {
     it('should initialize with API key header', async () => {
       await plugin.initialize(testConfig);
-      expect(mockHttpClient.defaults.headers.common['X-Api-Key']).toBe('prowlarr-api-key');
+      expect(client.defaults.headers.common['X-Api-Key']).toBe('prowlarr-api-key');
     });
   });
 
   describe('getSchedules', () => {
     it('should return schedules for enabled collectors', async () => {
       await plugin.initialize(testConfig);
-      const schedules = plugin.getSchedules();
 
-      expect(schedules.length).toBe(1);
-      expect(schedules[0].name).toBe('Prowlarr_1_indexerStats');
-      expect(schedules[0].intervalSeconds).toBe(300);
+      expect(plugin.getSchedules().map((s) => [s.name, s.intervalSeconds])).toEqual([['Prowlarr_1_indexerStats', 300]]);
     });
 
     it('should return empty schedules when indexerStats is disabled', async () => {
-      const configDisabled = {
-        ...testConfig,
-        indexerStats: { ...testConfig.indexerStats, enabled: false },
-      };
-      await plugin.initialize(configDisabled);
-      const schedules = plugin.getSchedules();
+      await plugin.initialize(disabled);
 
-      expect(schedules.length).toBe(0);
+      expect(plugin.getSchedules()).toEqual([]);
     });
   });
 
@@ -111,150 +78,69 @@ describe('ProwlarrPlugin', () => {
       await plugin.initialize(testConfig);
     });
 
-    it('should collect indexer stats', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          indexers: [
-            {
-              indexerId: 1,
-              indexerName: 'NZBgeek',
-              averageResponseTime: 150,
-              numberOfQueries: 100,
-              numberOfGrabs: 50,
-              numberOfRssQueries: 20,
-              numberOfAuthQueries: 5,
-              numberOfFailedQueries: 2,
-              numberOfFailedGrabs: 1,
-              numberOfFailedRssQueries: 0,
-              numberOfFailedAuthQueries: 0,
-            },
-            {
-              indexerId: 2,
-              indexerName: '1337x',
-              averageResponseTime: 200,
-              numberOfQueries: 80,
-              numberOfGrabs: 30,
-              numberOfRssQueries: 10,
-              numberOfAuthQueries: 0,
-              numberOfFailedQueries: 5,
-              numberOfFailedGrabs: 2,
-              numberOfFailedRssQueries: 1,
-              numberOfFailedAuthQueries: 0,
-            },
-          ],
-        },
+    it('collects one point per indexer', async () => {
+      const points = await plugin.collect();
+
+      expect(points.map((p) => [p.tags.indexerId, p.tags.indexerName])).toEqual([
+        [1, 'NZBgeek'],
+        [2, 'Nyaa.si'],
+        [5, 'DrunkenSlug'],
+      ]);
+    });
+
+    it('includes all stats fields', async () => {
+      const [nzbgeek] = await plugin.collect();
+
+      expect(nzbgeek.fields).toMatchObject({
+        averageResponseTime: 412,
+        numberOfQueries: 1520,
+        numberOfGrabs: 96,
+        numberOfRssQueries: 288,
+        numberOfAuthQueries: 4,
+        numberOfFailedQueries: 12,
+        numberOfFailedGrabs: 1,
+        numberOfFailedRssQueries: 3,
+        numberOfFailedAuthQueries: 0,
       });
-
-      const points = await plugin.collect();
-
-      expect(points.length).toBe(2);
-
-      const nzbgeek = points.find((p) => p.tags.indexerName === 'NZBgeek');
-      expect(nzbgeek).toBeDefined();
-      expect(nzbgeek?.tags.type).toBe('IndexerStats');
-      expect(nzbgeek?.tags.indexerId).toBe(1);
-      expect(nzbgeek?.fields.averageResponseTime).toBe(150);
-      expect(nzbgeek?.fields.numberOfQueries).toBe(100);
-      expect(nzbgeek?.fields.numberOfGrabs).toBe(50);
-
-      const torrent = points.find((p) => p.tags.indexerName === '1337x');
-      expect(torrent).toBeDefined();
-      expect(torrent?.fields.numberOfFailedQueries).toBe(5);
     });
 
-    it('should include all stats fields', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          indexers: [
-            {
-              indexerId: 1,
-              indexerName: 'TestIndexer',
-              averageResponseTime: 100,
-              numberOfQueries: 50,
-              numberOfGrabs: 25,
-              numberOfRssQueries: 10,
-              numberOfAuthQueries: 5,
-              numberOfFailedQueries: 3,
-              numberOfFailedGrabs: 2,
-              numberOfFailedRssQueries: 1,
-              numberOfFailedAuthQueries: 0,
-            },
-          ],
-        },
-      });
+    it('handles empty indexer stats', async () => {
+      client.override('/api/v1/indexerstats', { indexers: [] });
 
-      const points = await plugin.collect();
-
-      expect(points[0].fields.averageResponseTime).toBe(100);
-      expect(points[0].fields.numberOfQueries).toBe(50);
-      expect(points[0].fields.numberOfGrabs).toBe(25);
-      expect(points[0].fields.numberOfRssQueries).toBe(10);
-      expect(points[0].fields.numberOfAuthQueries).toBe(5);
-      expect(points[0].fields.numberOfFailedQueries).toBe(3);
-      expect(points[0].fields.numberOfFailedGrabs).toBe(2);
-      expect(points[0].fields.numberOfFailedRssQueries).toBe(1);
-      expect(points[0].fields.numberOfFailedAuthQueries).toBe(0);
+      expect(await plugin.collect()).toEqual([]);
     });
 
-    it('should handle empty indexer stats', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({ data: { indexers: [] } });
+    it('handles null indexers', async () => {
+      client.override('/api/v1/indexerstats', { indexers: null });
 
-      const points = await plugin.collect();
-      expect(points).toEqual([]);
+      expect(await plugin.collect()).toEqual([]);
     });
 
-    it('should handle null response', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({ data: null });
+    it('handles a null response body', async () => {
+      client.overrideUnchecked('/api/v1/indexerstats', null);
 
-      const points = await plugin.collect();
-      expect(points).toEqual([]);
+      expect(await plugin.collect()).toEqual([]);
     });
 
-    it('should propagate API errors for circuit breaker', async () => {
-      mockHttpClient.get.mockRejectedValueOnce(new Error('API Error'));
+    it('propagates API errors for the circuit breaker', async () => {
+      client.fail('/api/v1/indexerstats', new Error('API Error'));
 
       await expect(plugin.collect()).rejects.toThrow('API Error');
     });
 
-    it('should generate deterministic hash IDs', async () => {
-      const indexerData = {
-        indexerId: 1,
-        indexerName: 'TestIndexer',
-        averageResponseTime: 100,
-        numberOfQueries: 50,
-        numberOfGrabs: 25,
-        numberOfRssQueries: 10,
-        numberOfAuthQueries: 5,
-        numberOfFailedQueries: 3,
-        numberOfFailedGrabs: 2,
-        numberOfFailedRssQueries: 1,
-        numberOfFailedAuthQueries: 0,
-      };
+    it('generates deterministic hash ids', async () => {
+      const first = (await plugin.collect()).map((p) => p.fields.hash);
+      const second = (await plugin.collect()).map((p) => p.fields.hash);
 
-      mockHttpClient.get.mockResolvedValueOnce({ data: { indexers: [indexerData] } });
-      const points1 = await plugin.collect();
-
-      mockHttpClient.get.mockResolvedValueOnce({ data: { indexers: [indexerData] } });
-      const points2 = await plugin.collect();
-
-      expect(points1[0].fields.hash).toBe(points2[0].fields.hash);
+      expect(second).toEqual(first);
     });
+  });
 
-    it('should not collect when indexerStats is disabled', async () => {
-      const configDisabled = {
-        ...testConfig,
-        indexerStats: { ...testConfig.indexerStats, enabled: false },
-      };
+  it('does not collect when indexerStats is disabled', async () => {
+    await plugin.initialize(disabled);
 
-      // Re-initialize with disabled config
-      plugin = new ProwlarrPlugin();
-      (axios.create as Mock).mockReturnValue(mockHttpClient);
-      await plugin.initialize(configDisabled);
-
-      const points = await plugin.collect();
-      expect(points).toEqual([]);
-      expect(mockHttpClient.get).not.toHaveBeenCalled();
-    });
+    expect(await plugin.collect()).toEqual([]);
+    expect(client.get).not.toHaveBeenCalled();
   });
 
   describe('shutdown', () => {

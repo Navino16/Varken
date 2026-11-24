@@ -28,6 +28,8 @@ export const contractRoutes: ContractRoute[] = [
   { service: 'readarr', method: 'get', path: '/api/v1/queue', fixture: 'readarr/queue' },
   { service: 'readarr', method: 'get', path: '/api/v1/wanted/missing', fixture: 'readarr/wanted-missing' },
   { service: 'readarr', method: 'get', path: '/api/v1/system/status', fixture: 'readarr/system-status' },
+  { service: 'prowlarr', method: 'get', path: '/api/v1/indexerstats', fixture: 'prowlarr/indexerstats' },
+  { service: 'prowlarr', method: 'get', path: '/api/v1/system/status', fixture: 'prowlarr/system-status' },
 ];
 
 const fixturesDir = path.resolve(__dirname, '../fixtures/api');
