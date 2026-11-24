@@ -109,7 +109,7 @@ export class RadarrPlugin extends BaseInputPlugin<RadarrConfig> {
             'Radarr',
             {
               type: 'Queue',
-              tmdbId: queueItem.id ?? 0,
+              tmdbId: movie.tmdbId ?? 0,
               server: this.config.id,
               name,
               quality,

@@ -101,6 +101,12 @@ describe('RadarrPlugin', () => {
       expect(points[0].tags.titleSlug).toBe('heat-949');
     });
 
+    it('tags queue items with the movie tmdbId', async () => {
+      const points = await queuePoints();
+
+      expect(points.map((p) => p.tags.tmdbId)).toEqual([949, 693134]);
+    });
+
     it('maps protocol ids', async () => {
       const points = await queuePoints();
 
