@@ -6,6 +6,8 @@ import { createLogger, withContext } from '../../core/Logger';
 import { formatHelpfulError } from '../../utils/errors';
 import { RequestCache } from '../../utils/RequestCache';
 import type { GlobalConfig } from '../../config/schemas/config.schema';
+import type { ApiCallOptions, ApiClient } from '../../types/api-contract';
+import { expandPathTemplate } from '../../utils/pathTemplate';
 import type {
   InputPlugin,
   PluginMetadata,
@@ -39,10 +41,10 @@ const DEFAULT_GLOBAL_CONFIG: GlobalConfig = {
  * Interface for paginated API responses
  */
 export interface PaginatedResponse<T> {
-  page: number;
-  pageSize: number;
-  totalRecords: number;
-  records: T[];
+  page?: number;
+  pageSize?: number;
+  totalRecords?: number;
+  records?: T[] | null;
 }
 
 /**
@@ -238,6 +240,19 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
   }
 
   /**
+   * Typed client bound to a service's generated `paths` (src/types/generated): the compiler rejects
+   * unknown endpoints, unknown or mistyped parameters and undeclared response fields.
+   */
+  protected api<Paths>(): ApiClient<Paths> {
+    return {
+      get: (path: string, options?: ApiCallOptions) =>
+        this.httpGet(expandPathTemplate(path, options?.path), options?.query),
+      getAllPages: (path: string, options?: ApiCallOptions) =>
+        this.fetchAllPages(expandPathTemplate(path, options?.path), options?.query),
+    } as unknown as ApiClient<Paths>;
+  }
+
+  /**
    * Fetch all pages from a paginated API endpoint.
    * Includes safety limit to prevent memory issues with large datasets.
    */
@@ -258,8 +273,8 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
         page,
       });
 
-      totalRecords = response.totalRecords;
-      allRecords.push(...response.records);
+      totalRecords = response.totalRecords ?? 0;
+      allRecords.push(...(response.records ?? []));
       page++;
 
       if (allRecords.length >= maxRecords) {

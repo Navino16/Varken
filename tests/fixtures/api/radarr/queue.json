@@ -1,0 +1,166 @@
+{
+  "page": 1,
+  "pageSize": 10,
+  "sortKey": "timeleft",
+  "sortDirection": "ascending",
+  "totalRecords": 2,
+  "records": [
+    {
+      "id": 1,
+      "movieId": 1,
+      "movie": {
+        "id": 1,
+        "title": "Heat",
+        "originalTitle": "Heat",
+        "originalLanguage": {
+          "id": 1,
+          "name": "English"
+        },
+        "sortTitle": "heat",
+        "sizeOnDisk": 0,
+        "status": "released",
+        "overview": "Heat overview.",
+        "year": 1995,
+        "studio": "Studio",
+        "path": "/movies/Heat (1995)",
+        "qualityProfileId": 1,
+        "hasFile": false,
+        "movieFileId": 0,
+        "monitored": true,
+        "minimumAvailability": "released",
+        "isAvailable": true,
+        "folderName": "/movies/Heat (1995)",
+        "runtime": 120,
+        "cleanTitle": "heat",
+        "imdbId": "tt0113277",
+        "tmdbId": 949,
+        "titleSlug": "heat-949",
+        "rootFolderPath": "/movies",
+        "certification": "R",
+        "genres": [
+          "Crime",
+          "Thriller"
+        ],
+        "tags": [
+          1
+        ],
+        "added": "2024-03-01T12:00:00Z",
+        "popularity": 42.5
+      },
+      "languages": [
+        {
+          "id": 1,
+          "name": "English"
+        }
+      ],
+      "quality": {
+        "quality": {
+          "id": 7,
+          "name": "Bluray-1080p",
+          "source": "bluray",
+          "resolution": 1080,
+          "modifier": "none"
+        },
+        "revision": {
+          "version": 1,
+          "real": 0,
+          "isRepack": false
+        }
+      },
+      "customFormatScore": 0,
+      "size": 15000000000,
+      "title": "Heat.1995.release",
+      "estimatedCompletionTime": "2026-11-24T18:00:00Z",
+      "added": "2026-11-24T16:00:00Z",
+      "status": "downloading",
+      "trackedDownloadStatus": "ok",
+      "trackedDownloadState": "downloading",
+      "downloadId": "dl-1",
+      "protocol": "usenet",
+      "downloadClient": "SABnzbd",
+      "downloadClientHasPostImportCategory": false,
+      "indexer": "Indexer",
+      "outputPath": "/downloads/heat-949",
+      "sizeleft": 5000000000,
+      "timeleft": "01:30:00"
+    },
+    {
+      "id": 2,
+      "movieId": 5,
+      "movie": {
+        "id": 5,
+        "title": "Dune: Part Two",
+        "originalTitle": "Dune: Part Two",
+        "originalLanguage": {
+          "id": 1,
+          "name": "English"
+        },
+        "sortTitle": "dune: part two",
+        "sizeOnDisk": 0,
+        "status": "released",
+        "overview": "Dune: Part Two overview.",
+        "year": 2024,
+        "studio": "Studio",
+        "path": "/movies/Dune: Part Two (2024)",
+        "qualityProfileId": 1,
+        "hasFile": false,
+        "movieFileId": 0,
+        "monitored": true,
+        "minimumAvailability": "released",
+        "isAvailable": true,
+        "folderName": "/movies/Dune: Part Two (2024)",
+        "runtime": 120,
+        "cleanTitle": "dune",
+        "imdbId": "tt15239678",
+        "tmdbId": 693134,
+        "titleSlug": "dune-part-two-693134",
+        "rootFolderPath": "/movies",
+        "certification": "R",
+        "genres": [
+          "Science Fiction"
+        ],
+        "tags": [
+          1
+        ],
+        "added": "2024-03-01T12:00:00Z",
+        "popularity": 42.5
+      },
+      "languages": [
+        {
+          "id": 1,
+          "name": "English"
+        }
+      ],
+      "quality": {
+        "quality": {
+          "id": 18,
+          "name": "WEBDL-2160p",
+          "source": "webdl",
+          "resolution": 2160,
+          "modifier": "none"
+        },
+        "revision": {
+          "version": 1,
+          "real": 0,
+          "isRepack": false
+        }
+      },
+      "customFormatScore": 0,
+      "size": 15000000000,
+      "title": "Dune: Part Two.2024.release",
+      "estimatedCompletionTime": "2026-11-24T18:00:00Z",
+      "added": "2026-11-24T16:00:00Z",
+      "status": "downloading",
+      "trackedDownloadStatus": "ok",
+      "trackedDownloadState": "downloading",
+      "downloadId": "dl-2",
+      "protocol": "torrent",
+      "downloadClient": "qBittorrent",
+      "downloadClientHasPostImportCategory": false,
+      "indexer": "Indexer",
+      "outputPath": "/downloads/dune-part-two-693134",
+      "sizeleft": 5000000000,
+      "timeleft": "01:30:00"
+    }
+  ]
+}

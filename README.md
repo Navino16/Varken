@@ -543,6 +543,23 @@ npm run test:integration
 
 Tests skip themselves automatically when a service isn't reachable, so the command is safe to run with or without containers up. Unit tests (`npm test`) are hermetic and never touch the integration folder.
 
+### Contract tests
+
+Input plugins migrated to contract tests (currently Radarr, the others follow) never hand-write API responses in their tests. Each endpoint such a plugin calls is registered in `tests/contracts/registry.ts` with a JSON fixture (`tests/fixtures/api/<service>/`), and `npm test` checks that:
+
+- the path exists in the service's pinned API spec (`tests/contracts/specs/`, see `manifest.json` for sources and versions);
+- every fixture, and every variant a test builds from it, validates against the spec's response schema, with unknown properties rejected;
+- the response types in `src/types/generated/` match the pinned spec, so plugins can only read fields the API declares;
+- the query parameters actually sent (including pagination) are declared by the spec, with the right types.
+
+Migrated plugins call their API through `this.api<paths>()`, typed from the same generated `paths`: an unknown endpoint, an unknown or mistyped parameter, a missing path parameter or an undeclared response field fails `tsc`. `npm run typecheck` (run in CI) also checks `tests/types/`, which pins those compile-time guarantees.
+
+Specs the upstream gets wrong are corrected with justified patches in `tests/contracts/overlays/<service>.json`. After changing a spec or an overlay, regenerate the types:
+
+```bash
+npm run contracts:types radarr
+```
+
 **GeoIP not working:**
 - Ensure `geoip.enabled: true` is set in your Tautulli configuration
 - Verify Tautulli is accessible and the API key is correct

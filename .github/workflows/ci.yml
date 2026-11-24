@@ -50,6 +50,9 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Type-check API contracts
+        run: npm run typecheck
+
   test:
     name: Test
     runs-on: ubuntu-latest

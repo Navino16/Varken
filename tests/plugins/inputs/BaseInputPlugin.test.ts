@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BaseInputPlugin, BaseInputConfig, PaginatedResponse } from '../../../src/plugins/inputs/BaseInputPlugin';
 import { DataPoint, PluginMetadata, ScheduleConfig } from '../../../src/types/plugin.types';
 import type { GlobalConfig } from '../../../src/config/schemas/config.schema';
+import type { ApiClient } from '../../../src/types/api-contract';
 
 // Mock the logger
 vi.mock('../../../src/core/Logger', () => ({
@@ -15,6 +16,19 @@ vi.mock('../../../src/core/Logger', () => ({
 }));
 
 // Concrete implementation for testing
+type Responses<Body> = { 200: { headers: Record<string, unknown>; content: { 'application/json': Body } } };
+interface ToyPaths {
+  '/api/items/{id}': {
+    get: { parameters: { query?: { lang?: string }; path: { id: number } }; responses: Responses<{ id: number }> };
+  };
+  '/api/pages': {
+    get: {
+      parameters: { query?: { page?: number; pageSize?: number; tag?: string } };
+      responses: Responses<{ page?: number; pageSize?: number; totalRecords?: number; records?: { id: number }[] | null }>;
+    };
+  };
+}
+
 interface TestConfig extends BaseInputConfig {
   customField: string;
 }
@@ -60,6 +74,10 @@ class TestInputPlugin extends BaseInputPlugin<TestConfig> {
 
   public getGlobalConfig() {
     return this.globalConfig;
+  }
+
+  public testApi(): ApiClient<ToyPaths> {
+    return this.api<ToyPaths>();
   }
 
   public testFetchAllPages<T>(endpoint: string, params?: Record<string, unknown>): Promise<T[]> {
@@ -268,6 +286,34 @@ describe('BaseInputPlugin', () => {
       };
       await plugin.initialize(testConfig, customGlobal);
       expect(plugin.getHttpClient().defaults.timeout).toBe(15000);
+    });
+  });
+
+  describe('api()', () => {
+    it('expands path parameters and passes query parameters', async () => {
+      await plugin.initialize(testConfig);
+      const get = vi.fn().mockResolvedValue({ data: { id: 42 } });
+      plugin.getHttpClient().get = get;
+
+      const item = await plugin.testApi().get('/api/items/{id}', { path: { id: 42 }, query: { lang: 'en' } });
+
+      expect(item).toEqual({ id: 42 });
+      expect(get).toHaveBeenCalledWith('/api/items/42', { params: { lang: 'en' } });
+    });
+
+    it('collects every page of a paged endpoint with its query parameters', async () => {
+      await plugin.initialize(testConfig);
+      const get = vi
+        .fn()
+        .mockResolvedValueOnce({ data: { totalRecords: 2, records: [{ id: 1 }] } })
+        .mockResolvedValueOnce({ data: { totalRecords: 2, records: [{ id: 2 }] } });
+      plugin.getHttpClient().get = get;
+
+      const records = await plugin.testApi().getAllPages('/api/pages', { query: { tag: 'x' } });
+
+      expect(records).toEqual([{ id: 1 }, { id: 2 }]);
+      expect(get).toHaveBeenNthCalledWith(1, '/api/pages', { params: expect.objectContaining({ tag: 'x', page: 1 }) });
+      expect(get).toHaveBeenNthCalledWith(2, '/api/pages', { params: expect.objectContaining({ tag: 'x', page: 2 }) });
     });
   });
 
