@@ -54,6 +54,10 @@ export const contractRoutes: ContractRoute[] = [
   { service: 'emby', method: 'get', path: '/emby/Sessions', fixture: 'emby/sessions' },
   { service: 'emby', method: 'get', path: '/emby/Library/VirtualFolders', fixture: 'emby/virtual-folders' },
   { service: 'emby', method: 'get', path: '/emby/Items/Counts', fixture: 'emby/items-counts' },
+  { service: 'tautulli', method: 'get', path: '/api/v2?cmd=get_activity', fixture: 'tautulli/get-activity' },
+  { service: 'tautulli', method: 'get', path: '/api/v2?cmd=get_libraries', fixture: 'tautulli/get-libraries' },
+  { service: 'tautulli', method: 'get', path: '/api/v2?cmd=get_geoip_lookup', fixture: 'tautulli/get-geoip-lookup' },
+  { service: 'tautulli', method: 'get', path: '/api/v2?cmd=get_server_info', fixture: 'tautulli/get-server-info' },
 ];
 
 const fixturesDir = path.resolve(__dirname, '../fixtures/api');
@@ -61,7 +65,11 @@ const fixturesDir = path.resolve(__dirname, '../fixtures/api');
 export function findRoute(service: ServiceId, method: 'get', calledPath: string): ContractRoute | undefined {
   const path = stripQuery(calledPath);
   const candidates = contractRoutes.filter((r) => r.service === service && r.method === method);
-  return candidates.find((r) => r.path === path) ?? candidates.find((r) => matchPathTemplate(r.path, path));
+  return (
+    candidates.find((r) => r.path === calledPath) ??
+    candidates.find((r) => r.path === path) ??
+    candidates.find((r) => matchPathTemplate(r.path, path))
+  );
 }
 
 export function loadFixture<T = unknown>(fixture: string): T {

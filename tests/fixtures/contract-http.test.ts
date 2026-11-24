@@ -27,6 +27,18 @@ describe('createContractHttpClient', () => {
     await expect(client.get('/api/v3/movie?tmdbId=949')).resolves.toEqual({ data: loadFixture('radarr/movie') });
   });
 
+  it('routes by the cmd discriminator', async () => {
+    const client = createContractHttpClient('tautulli');
+
+    await expect(client.get('/api/v2?cmd=get_libraries', { params: { apikey: 'k' } })).resolves.toEqual({
+      data: loadFixture('tautulli/get-libraries'),
+    });
+    await expect(client.get('/api/v2?cmd=get_users', { params: { apikey: 'k' } })).rejects.toThrow(
+      /No contract route for GET \/api\/v2\?cmd=get_users \(tautulli\)/
+    );
+    expect(client.takeViolations()).toHaveLength(1);
+  });
+
   it('throws on unregistered paths', async () => {
     const client = createContractHttpClient('radarr');
 
