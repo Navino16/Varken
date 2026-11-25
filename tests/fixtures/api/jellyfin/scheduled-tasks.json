@@ -1,0 +1,65 @@
+[
+  {
+    "Name": "Scan Media Library",
+    "State": "Running",
+    "CurrentProgressPercentage": 42.5,
+    "Id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "LastExecutionResult": {
+      "StartTimeUtc": "2026-11-25T09:00:00.0000000Z",
+      "EndTimeUtc": "2026-11-25T09:01:30.5000000Z",
+      "Status": "Completed",
+      "Name": "Scan Media Library",
+      "Key": "RefreshLibrary",
+      "Id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "Triggers": [
+      {
+        "Type": "IntervalTrigger",
+        "IntervalTicks": 432000000000
+      }
+    ],
+    "Description": "Scans your media library for new files and refreshes metadata.",
+    "Category": "Library",
+    "IsHidden": false,
+    "Key": "RefreshLibrary"
+  },
+  {
+    "Name": "Clean Cache Directory",
+    "State": "Idle",
+    "Id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "LastExecutionResult": {
+      "StartTimeUtc": "2026-11-24T10:00:00.0000000Z",
+      "EndTimeUtc": "2026-11-24T10:00:10.0000000Z",
+      "Status": "Failed",
+      "Name": "Clean Cache Directory",
+      "Key": "DeleteCacheFiles",
+      "Id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "ErrorMessage": "Access to the path is denied."
+    },
+    "Triggers": [
+      {
+        "Type": "IntervalTrigger",
+        "IntervalTicks": 864000000000
+      }
+    ],
+    "Description": "Deletes cache files no longer needed by the system.",
+    "Category": "Maintenance",
+    "IsHidden": false,
+    "Key": "DeleteCacheFiles"
+  },
+  {
+    "Name": "Generate Trickplay Images",
+    "State": "Idle",
+    "Id": "cccccccccccccccccccccccccccccccc",
+    "Triggers": [
+      {
+        "Type": "DailyTrigger",
+        "TimeOfDayTicks": 108000000000
+      }
+    ],
+    "Description": "Creates trickplay images for videos in enabled libraries.",
+    "Category": "Library",
+    "IsHidden": false,
+    "Key": "RefreshTrickplayImages"
+  }
+]

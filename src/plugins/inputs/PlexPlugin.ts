@@ -84,6 +84,7 @@ function streamKind(session: PlexSession): 'direct play' | 'direct stream' | 'tr
  * Collects:
  *   - Current streaming sessions (`/status/sessions`)
  *   - Library metadata and item counts (`/library/sections/all` + `/library/sections/{id}/all`)
+ *   - Optional status, play history, inventory and Live TV collectors (see docs/data-reference.md)
  *
  * Authentication uses the `X-Plex-Token` header (see Plex docs for how to obtain one).
  * Responses are requested in JSON via the `Accept: application/json` header — Plex

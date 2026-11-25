@@ -1,0 +1,73 @@
+{
+  "ProgramDataFolder": {
+    "Path": "/config",
+    "FreeSpace": 750000000000,
+    "UsedSpace": 250000000000,
+    "StorageType": "ext4",
+    "DeviceId": "/dev/sda1"
+  },
+  "WebFolder": {
+    "Path": "/usr/share/jellyfin/web",
+    "FreeSpace": 30000000000,
+    "UsedSpace": 10000000000,
+    "StorageType": "ext4",
+    "DeviceId": "/dev/sda1"
+  },
+  "ImageCacheFolder": {
+    "Path": "/cache/images",
+    "FreeSpace": 750000000000,
+    "UsedSpace": 250000000000,
+    "StorageType": "ext4",
+    "DeviceId": "/dev/sda1"
+  },
+  "CacheFolder": {
+    "Path": "/cache",
+    "FreeSpace": 750000000000,
+    "UsedSpace": 250000000000,
+    "StorageType": "ext4",
+    "DeviceId": "/dev/sda1"
+  },
+  "LogFolder": {
+    "Path": "/config/log",
+    "FreeSpace": 750000000000,
+    "UsedSpace": 250000000000,
+    "StorageType": "ext4",
+    "DeviceId": "/dev/sda1"
+  },
+  "InternalMetadataFolder": {
+    "Path": "/config/metadata",
+    "FreeSpace": 750000000000,
+    "UsedSpace": 250000000000,
+    "StorageType": "ext4",
+    "DeviceId": "/dev/sda1"
+  },
+  "TranscodingTempFolder": {
+    "Path": "/transcodes",
+    "FreeSpace": -1,
+    "UsedSpace": -1,
+    "StorageType": "ext4",
+    "DeviceId": "/dev/sda1"
+  },
+  "Libraries": [
+    {
+      "Id": "44444444444444444444444444444444",
+      "Name": "Movies",
+      "Folders": [
+        {
+          "Path": "/data/movies",
+          "FreeSpace": 1000000000000,
+          "UsedSpace": 3000000000000,
+          "StorageType": "ext4",
+          "DeviceId": "/dev/sda1"
+        },
+        {
+          "Path": "/data/movies-4k",
+          "FreeSpace": 500000000000,
+          "UsedSpace": 1500000000000,
+          "StorageType": "ext4",
+          "DeviceId": "/dev/sda1"
+        }
+      ]
+    }
+  ]
+}
