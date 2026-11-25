@@ -40,7 +40,8 @@ Built with TypeScript, Node.js, and a plugin-based architecture with scheduled d
 
 ### Data Collection
 
-- **Multiple data sources** — Sonarr, Radarr, Readarr, Lidarr, Tautulli, Ombi, Overseerr, Prowlarr, Bazarr
+- **Multiple data sources** — Sonarr, Radarr, Readarr, Lidarr, Prowlarr, Bazarr, Tautulli, Plex, Jellyfin, Emby, Ombi, Overseerr
+- **Server info** — version, available updates, pending restarts, uptime and health issues of every connected service
 - **Multiple outputs** — InfluxDB 1.x, InfluxDB 2.x, VictoriaMetrics, QuestDB, TimescaleDB
 - **Multi-instance support** — connect multiple instances of each service
 - **GeoIP mapping** — automatic geolocation of streaming sessions via Tautulli API (no external license required)

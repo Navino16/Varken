@@ -50,6 +50,20 @@ Config: `inputs.sonarr[].calendar` (`enabled`, `futureDays`, `intervalSeconds`) 
 | `downloaded` | tag | number | `1` if the episode already has a file, else `0` |
 | `hash` | field | string | MD5 of server id + series title + `sxe` |
 
+### type = ServerInfo
+
+Config: `inputs.sonarr[].serverInfo` (`enabled`, `intervalSeconds`, default disabled, 300) · Source: `/api/v3/system/status`, `/api/v3/update`, `/api/v3/health`
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `version` | tag | string | Service version (`unknown` when absent) |
+| `branch` | tag | string | Update branch (`unknown` when absent) |
+| `update_available` | field | number | `1` when a release is installable and not installed, else `0` |
+| `health_errors` | field | number | Health checks of type `error` |
+| `health_warnings` | field | number | Health checks of type `warning` |
+| `health_notices` | field | number | Health checks of type `notice` |
+| `uptime_seconds` | field | number | Seconds since `startTime`; omitted when unknown |
+
 ## Radarr
 
 ### type = Queue
@@ -77,6 +91,20 @@ Config: `inputs.radarr[].missing` (`enabled`, `intervalSeconds`) · Source: `/ap
 | `name` | tag | string | `Title (year)` |
 | `titleSlug` | tag | string | Movie slug (`unknown` when absent) |
 | `hash` | field | string | MD5 of server id + `name` + TMDB id |
+
+### type = ServerInfo
+
+Config: `inputs.radarr[].serverInfo` (`enabled`, `intervalSeconds`, default disabled, 300) · Source: `/api/v3/system/status`, `/api/v3/update`, `/api/v3/health`
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `version` | tag | string | Service version (`unknown` when absent) |
+| `branch` | tag | string | Update branch (`unknown` when absent) |
+| `update_available` | field | number | `1` when a release is installable and not installed, else `0` |
+| `health_errors` | field | number | Health checks of type `error` |
+| `health_warnings` | field | number | Health checks of type `warning` |
+| `health_notices` | field | number | Health checks of type `notice` |
+| `uptime_seconds` | field | number | Seconds since `startTime`; omitted when unknown |
 
 ## Readarr
 
@@ -106,6 +134,20 @@ Config: `inputs.readarr[].missing` (`enabled`, `intervalSeconds`) · Source: `/a
 | `titleSlug` | tag | string | Book slug (`unknown` when absent) |
 | `hash` | field | string | MD5 of server id + `name` + `foreignBookId` |
 
+### type = ServerInfo
+
+Config: `inputs.readarr[].serverInfo` (`enabled`, `intervalSeconds`, default disabled, 300) · Source: `/api/v1/system/status`, `/api/v1/update`, `/api/v1/health`
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `version` | tag | string | Service version (`unknown` when absent) |
+| `branch` | tag | string | Update branch (`unknown` when absent) |
+| `update_available` | field | number | `1` when a release is installable and not installed, else `0` |
+| `health_errors` | field | number | Health checks of type `error` |
+| `health_warnings` | field | number | Health checks of type `warning` |
+| `health_notices` | field | number | Health checks of type `notice` |
+| `uptime_seconds` | field | number | Seconds since `startTime`; omitted when unknown |
+
 ## Lidarr
 
 ### type = Queue
@@ -132,6 +174,20 @@ Config: `inputs.lidarr[].missing` (`enabled`, `intervalSeconds`) · Source: `/ap
 | `name` | tag | string | `Album title - Artist` (`unknown` title, `Unknown Artist` when absent) |
 | `hash` | field | string | MD5 of server id + `name` + `foreignAlbumId` |
 
+### type = ServerInfo
+
+Config: `inputs.lidarr[].serverInfo` (`enabled`, `intervalSeconds`, default disabled, 300) · Source: `/api/v1/system/status`, `/api/v1/update`, `/api/v1/health`
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `version` | tag | string | Service version (`unknown` when absent) |
+| `branch` | tag | string | Update branch (`unknown` when absent) |
+| `update_available` | field | number | `1` when a release is installable and not installed, else `0` |
+| `health_errors` | field | number | Health checks of type `error` |
+| `health_warnings` | field | number | Health checks of type `warning` |
+| `health_notices` | field | number | Health checks of type `notice` |
+| `uptime_seconds` | field | number | Seconds since `startTime`; omitted when unknown |
+
 ## Prowlarr
 
 ### type = IndexerStats
@@ -154,6 +210,20 @@ Config: `inputs.prowlarr[].indexerStats` (`enabled`, `intervalSeconds`) · Sourc
 | `numberOfFailedAuthQueries` | field | number | Failed auth queries |
 
 All numeric fields default to `0` when absent.
+
+### type = ServerInfo
+
+Config: `inputs.prowlarr[].serverInfo` (`enabled`, `intervalSeconds`, default disabled, 300) · Source: `/api/v1/system/status`, `/api/v1/update`, `/api/v1/health`
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `version` | tag | string | Service version (`unknown` when absent) |
+| `branch` | tag | string | Update branch (`unknown` when absent) |
+| `update_available` | field | number | `1` when a release is installable and not installed, else `0` |
+| `health_errors` | field | number | Health checks of type `error` |
+| `health_warnings` | field | number | Health checks of type `warning` |
+| `health_notices` | field | number | Health checks of type `notice` |
+| `uptime_seconds` | field | number | Seconds since `startTime`; omitted when unknown |
 
 ## Tautulli
 
@@ -227,6 +297,19 @@ Config: `inputs.tautulli[].stats` (`enabled`, `intervalSeconds`) and `inputs.tau
 | `tracks` | field | number | Tracks; `artist` libraries only |
 | `libraries` | field | string | Library name (legacy); only written when `libraries.enabled` is true |
 
+### type = ServerInfo
+
+Config: `inputs.tautulli[].serverInfo` (`enabled`, `intervalSeconds`, default disabled, 300) · Source: `get_tautulli_info`, `get_server_info`, `get_pms_update`, `update_check` (a failing `update_check`, e.g. HTTP 400 for an unknown version, only omits `update_available`)
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `version` | tag | string | Tautulli version |
+| `branch` | tag | string | Tautulli branch |
+| `pms_version` | tag | string | Plex Media Server version |
+| `update_available` | field | number | Tautulli update available: `1` yes, `0` no; omitted when the service does not report it |
+| `pms_update_available` | field | number | Plex Media Server update available: `1` yes, `0` no; omitted when the service does not report it |
+| `pms_plexpass` | field | number | `1` when the server has Plex Pass |
+
 ## Plex
 
 ### type = Session
@@ -272,6 +355,18 @@ Config: `inputs.plex[].libraries` (`enabled`, `intervalSeconds`) · Source: `/li
 | `name` | tag | string | Duplicate of `section_name` (legacy) |
 | `total` | field | number | Item count (`0` if the count request fails) |
 | `libraries` | field | string | Library title (legacy) |
+
+### type = ServerInfo
+
+Config: `inputs.plex[].serverInfo` (`enabled`, `intervalSeconds`, default disabled, 300) · Source: `/`, `/updater/status`
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `version` | tag | string | Server version |
+| `platform` | tag | string | Host platform |
+| `remote_access` | tag | string | `myPlexMappingState` (e.g. `mapped`; `unknown` when absent) |
+| `update_available` | field | number | `1` when the updater lists a release, else `0` |
+| `active_transcodes` | field | number | `transcoderActiveVideoSessions` |
 
 ## Jellyfin
 
@@ -336,6 +431,17 @@ Config: `inputs.jellyfin[].libraries` · Source: `/Items/Counts`. Not written if
 | `total` | field | number | Total item count |
 
 All fields default to `0` when absent.
+
+### type = ServerInfo
+
+Config: `inputs.jellyfin[].serverInfo` (`enabled`, `intervalSeconds`, default disabled, 300) · Source: `/System/Info`
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `version` | tag | string | Server version |
+| `update_available` | field | number | Update available: `1` yes, `0` no; omitted when the service does not report it |
+| `restart_pending` | field | number | Restart pending: `1` yes, `0` no; omitted when the service does not report it |
+| `shutting_down` | field | number | Server shutting down: `1` yes, `0` no; omitted when the service does not report it |
 
 ## Emby
 
@@ -403,6 +509,18 @@ Config: `inputs.emby[].libraries` · Source: `/emby/Items/Counts`. Not written i
 
 All fields default to `0` when absent.
 
+### type = ServerInfo
+
+Config: `inputs.emby[].serverInfo` (`enabled`, `intervalSeconds`, default disabled, 300) · Source: `/emby/System/Info`
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `version` | tag | string | Server version |
+| `update_available` | field | number | Update available: `1` yes, `0` no; omitted when the service does not report it |
+| `restart_pending` | field | number | Restart pending: `1` yes, `0` no; omitted when the service does not report it |
+| `shutting_down` | field | number | Server shutting down: `1` yes, `0` no; omitted when the service does not report it |
+| `maintenance_mode` | field | number | Maintenance mode: `1` yes, `0` no; omitted when the service does not report it |
+
 ## Ombi
 
 ### type = Request_Counts
@@ -451,6 +569,16 @@ Config: `inputs.ombi[].issueCounts` (`enabled`, `intervalSeconds`) · Source: `/
 | `resolved` | field | number | Resolved issues |
 
 All fields default to `0` when absent.
+
+### type = ServerInfo
+
+Config: `inputs.ombi[].serverInfo` (`enabled`, `intervalSeconds`, default disabled, 300) · Source: `/api/v1/Settings/about`, `/api/v1/Update`
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `version` | tag | string | Ombi version |
+| `branch` | tag | string | Ombi branch |
+| `update_available` | field | number | Update available: `1` yes, `0` no; omitted when the service does not report it |
 
 ## Overseerr
 
@@ -501,6 +629,17 @@ Config: `inputs.overseerr[].latestRequests` (`enabled`, `count`, `intervalSecond
 | `requested_date` | tag | string | Request creation date, empty string when absent |
 | `hash` | field | string | MD5 of media details id + title |
 
+### type = ServerInfo
+
+Config: `inputs.overseerr[].serverInfo` (`enabled`, `intervalSeconds`, default disabled, 300) · Source: `/api/v1/status?checkUpdateAvailable=true`
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `version` | tag | string | Seerr version |
+| `update_available` | field | number | Update available: `1` yes, `0` no; omitted when the service does not report it |
+| `commits_behind` | field | number | Commits behind the latest version; omitted when Seerr skips the version check |
+| `restart_pending` | field | number | Restart required: `1` yes, `0` no; omitted when the service does not report it |
+
 ## Bazarr
 
 ### type = Wanted
@@ -543,3 +682,15 @@ Config: `inputs.bazarr[].history` (`enabled`, `intervalSeconds`) · Source: `/ap
 | `action` | tag | number | Bazarr history action code, as sent |
 | `hash` | field | string | MD5 of server id + movie/episode id + language code + action + `parsed_timestamp` |
 | `score_percent` | field | number | Match score parsed from `"92.5%"`; omitted when missing or unparsable |
+
+### type = ServerInfo
+
+Config: `inputs.bazarr[].serverInfo` (`enabled`, `intervalSeconds`, default disabled, 300) · Source: `/api/system/status`, `/api/system/health`
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `version` | tag | string | Bazarr version |
+| `sonarr_version` | tag | string | Version of the connected Sonarr |
+| `radarr_version` | tag | string | Version of the connected Radarr |
+| `uptime_seconds` | field | number | Seconds since `start_time`; omitted when unknown |
+| `health_issues` | field | number | Number of health issues |
