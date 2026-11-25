@@ -215,8 +215,8 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
           city: data.city || '',
           region: data.region || '',
           country: data.country || '',
-          latitude: data.latitude || 0,
-          longitude: data.longitude || 0,
+          latitude: data.latitude ?? null,
+          longitude: data.longitude ?? null,
         };
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown error';
@@ -285,8 +285,8 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
       }
     } else if (geoData) {
       // Remote stream with GeoIP data
-      latitude = geoData.latitude;
-      longitude = geoData.longitude;
+      latitude = geoData.latitude ?? undefined;
+      longitude = geoData.longitude ?? undefined;
       location = geoData.city || 'unknown';
       regionCode = geoData.region || 'unknown';
       const regionPart = geoData.region || '';
@@ -355,7 +355,6 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
       `${session.session_id}${session.session_key}${session.username}${session.full_title}`
     );
 
-    // Build tags object with optional latitude/longitude
     const tags: Record<string, string | number> = {
       type: 'Session',
       session_id: session.session_id || 'unknown',
@@ -375,7 +374,6 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
       audio_codec: (session.audio_codec || '').toUpperCase() || 'unknown',
       stream_audio_codec: (session.stream_audio_codec || '').toUpperCase() || 'unknown',
       quality_profile: session.quality_profile || 'unknown',
-      progress_percent: session.progress_percent || '0',
       region_code: regionCode,
       location,
       full_location: fullLocation,
@@ -386,15 +384,14 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
       server: this.config.id,
     };
 
-    // Only add coordinates if they are defined
-    if (latitude !== undefined) {
-      tags.latitude = latitude;
-    }
-    if (longitude !== undefined) {
-      tags.longitude = longitude;
+    const progress = Number(session.progress_percent);
+    const fields: Record<string, string | number> = { hash: hashId, progress: Number.isFinite(progress) ? progress : 0 };
+    if (latitude !== undefined && longitude !== undefined) {
+      fields.lat = latitude;
+      fields.lon = longitude;
     }
 
-    return this.createDataPoint('Tautulli', tags, { hash: hashId });
+    return this.createDataPoint('Tautulli', tags, fields);
   }
 
   /**

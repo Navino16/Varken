@@ -198,9 +198,10 @@ describe('TautulliPlugin', () => {
         stream_audio_codec: 'AAC',
         quality: '1080p',
         quality_profile: '8 Mbps 1080p',
-        progress_percent: '37',
         secure: 1,
       });
+      expect(remote?.tags.progress_percent).toBeUndefined();
+      expect(remote?.fields.progress).toBe(37);
 
       const statsPoint = points.find((p) => p.tags.type === 'current_stream_stats');
       expect(statsPoint?.fields).toEqual({
@@ -231,6 +232,12 @@ describe('TautulliPlugin', () => {
       });
     });
 
+    it('writes progress 0 for a non-numeric progress_percent', async () => {
+      const point = await onlySession({ ...sessions().remote, progress_percent: '' });
+
+      expect(point?.fields.progress).toBe(0);
+    });
+
     it('keeps the secure fallback for sessions without a secure attribute', async () => {
       const point = await onlySession(sessions().local);
 
@@ -243,8 +250,8 @@ describe('TautulliPlugin', () => {
       expect(point?.tags.location).toBe('Local');
       expect(point?.tags.full_location).toBe('Local Network');
       expect(point?.tags.region_code).toBe('LAN');
-      expect(point?.tags.latitude).toBeUndefined();
-      expect(point?.tags.longitude).toBeUndefined();
+      expect(point?.fields.lat).toBeUndefined();
+      expect(point?.fields.lon).toBeUndefined();
     });
 
     it('should use localCoordinates for local streams when configured', async () => {
@@ -257,15 +264,17 @@ describe('TautulliPlugin', () => {
 
       expect(point?.tags.location).toBe('Local');
       expect(point?.tags.full_location).toBe('Local Network');
-      expect(point?.tags.latitude).toBe(48.8566);
-      expect(point?.tags.longitude).toBe(2.3522);
+      expect(point?.fields.lat).toBe(48.8566);
+      expect(point?.fields.lon).toBe(2.3522);
     });
 
     it('should call Tautulli GeoIP API for remote streams', async () => {
       const point = await onlySession(sessions().remote);
 
-      expect(point?.tags.latitude).toBe(45.7485);
-      expect(point?.tags.longitude).toBe(4.8467);
+      expect(point?.fields.lat).toBe(45.7485);
+      expect(point?.fields.lon).toBe(4.8467);
+      expect(point?.tags.latitude).toBeUndefined();
+      expect(point?.tags.longitude).toBeUndefined();
       expect(point?.tags.location).toBe('Lyon');
       expect(point?.tags.region_code).toBe('Auvergne-Rhône-Alpes');
       expect(point?.tags.full_location).toBe('Auvergne-Rhône-Alpes - Lyon');
@@ -279,8 +288,8 @@ describe('TautulliPlugin', () => {
 
       expect(point?.tags.location).toBe('unknown');
       expect(point?.tags.full_location).toBe('unknown');
-      expect(point?.tags.latitude).toBeUndefined();
-      expect(point?.tags.longitude).toBeUndefined();
+      expect(point?.fields.lat).toBeUndefined();
+      expect(point?.fields.lon).toBeUndefined();
     });
 
     it('should handle GeoIP API returning error result', async () => {
@@ -304,9 +313,9 @@ describe('TautulliPlugin', () => {
         location: 'unknown',
         region_code: 'unknown',
         full_location: 'unknown',
-        latitude: 0,
-        longitude: 0,
       });
+      expect(point?.fields.lat).toBeUndefined();
+      expect(point?.fields.lon).toBeUndefined();
     });
 
     it('should not call GeoIP API for local streams', async () => {
