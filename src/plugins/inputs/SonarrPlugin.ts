@@ -3,6 +3,7 @@ import { PROTOCOL_ID } from './constants';
 import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
 import type { SonarrConfig } from '../../types/inputs/sonarr.types';
 import type { paths } from '../../types/generated/sonarr';
+import { servarrServerInfo } from './utils/servarrServerInfo';
 
 /**
  * Sonarr input plugin
@@ -50,6 +51,10 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
       points.push(...missingPoints, ...futurePoints);
     }
 
+    if (this.config.serverInfo.enabled) {
+      points.push(...(await this.collectServerInfo()));
+    }
+
     return points;
   }
 
@@ -82,6 +87,10 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
           () => this.collectCalendar('Future')
         )
       );
+    }
+
+    if (this.config.serverInfo.enabled) {
+      schedules.push(this.createSchedule('serverInfo', this.config.serverInfo.intervalSeconds, true, this.collectServerInfo));
     }
 
     return schedules;
@@ -229,5 +238,17 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
    */
   private formatSXE(season = 0, episode = 0): string {
     return `S${season.toString().padStart(2, '0')}E${episode.toString().padStart(2, '0')}`;
+  }
+
+  private async collectServerInfo(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Sonarr server info', async () => {
+      const [status, updates, health] = await Promise.all([
+        this.sonarr.get('/api/v3/system/status'),
+        this.sonarr.get('/api/v3/update'),
+        this.sonarr.get('/api/v3/health'),
+      ]);
+      const { tags, fields } = servarrServerInfo(status, updates, health, new Date());
+      return [this.createServerInfoPoint(tags, fields)];
+    });
   }
 }

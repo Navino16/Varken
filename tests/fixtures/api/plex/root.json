@@ -1,0 +1,38 @@
+{
+  "MediaContainer": {
+    "size": 3,
+    "allowSync": true,
+    "countryCode": "fra",
+    "friendlyName": "Living Room PMS",
+    "machineIdentifier": "4f7c1ad0e2b94c3a8d5e6f708192a3b4",
+    "multiuser": true,
+    "myPlex": true,
+    "myPlexMappingState": "mapped",
+    "myPlexSigninState": "ok",
+    "myPlexSubscription": true,
+    "myPlexUsername": "alice@example.com",
+    "platform": "Linux",
+    "platformVersion": "6.8.0",
+    "transcoderActiveVideoSessions": 1,
+    "updatedAt": 1764000000,
+    "updater": true,
+    "version": "1.42.2.10156-f737b826c",
+    "Directory": [
+      {
+        "count": 1,
+        "key": "activities",
+        "title": "activities"
+      },
+      {
+        "count": 1,
+        "key": "library",
+        "title": "library"
+      },
+      {
+        "count": 1,
+        "key": "status",
+        "title": "status"
+      }
+    ]
+  }
+}

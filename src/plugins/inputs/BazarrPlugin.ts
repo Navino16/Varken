@@ -2,6 +2,7 @@ import { BaseInputPlugin } from './BaseInputPlugin';
 import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
 import type { BazarrConfig } from '../../types/inputs/bazarr.types';
 import type { components, paths } from '../../types/generated/bazarr';
+import { uptimeSeconds } from './utils/uptime';
 
 const SCORE_FLOAT_FIELDS = ['score_percent'];
 
@@ -49,6 +50,10 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
       points.push(...historyPoints);
     }
 
+    if (this.config.serverInfo.enabled) {
+      points.push(...(await this.collectServerInfo()));
+    }
+
     return points;
   }
 
@@ -68,6 +73,10 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
       schedules.push(
         this.createSchedule('history', this.config.history.intervalSeconds, true, this.collectHistory)
       );
+    }
+
+    if (this.config.serverInfo.enabled) {
+      schedules.push(this.createSchedule('serverInfo', this.config.serverInfo.intervalSeconds, true, this.collectServerInfo));
     }
 
     return schedules;
@@ -258,5 +267,27 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
     const [, month, day, year, hours, minutes, seconds] = match.map(Number);
     const fullYear = year < 100 ? 2000 + year : year;
     return new Date(fullYear, month - 1, day, hours, minutes, seconds);
+  }
+
+  private async collectServerInfo(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Bazarr server info', async () => {
+      const [status, health] = await Promise.all([this.bazarr.get('/system/status'), this.bazarr.get('/system/health')]);
+      const info = status.data;
+      const fields: Record<string, number> = { health_issues: health.data.length };
+      const uptime = uptimeSeconds(info.start_time, new Date());
+      if (uptime !== undefined) {
+        fields.uptime_seconds = uptime;
+      }
+      return [
+        this.createServerInfoPoint(
+          {
+            version: info.bazarr_version || 'unknown',
+            sonarr_version: info.sonarr_version || 'unknown',
+            radarr_version: info.radarr_version || 'unknown',
+          },
+          fields
+        ),
+      ];
+    });
   }
 }

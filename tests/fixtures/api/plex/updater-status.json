@@ -1,0 +1,17 @@
+{
+  "MediaContainer": {
+    "canInstall": true,
+    "checkedAt": 1764050000,
+    "status": 0,
+    "Release": [
+      {
+        "key": "https://plex.tv/updater/releases/6113",
+        "version": "1.42.3.10201-a8f1c2d3e",
+        "added": "Live TV guide refresh",
+        "fixed": "Transcoder crash on HEVC",
+        "downloadURL": "https://plex.tv/downloads/latest/5",
+        "state": "available"
+      }
+    ]
+  }
+}

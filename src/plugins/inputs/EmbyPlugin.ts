@@ -3,6 +3,7 @@ import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plug
 import type { EmbyConfig } from '../../types/inputs/emby.types';
 import type { components, paths } from '../../types/generated/emby';
 import { isTranscoding, sourceAudioCodec } from './utils/mediaStreams';
+import { booleanFlags } from './utils/flags';
 
 type EmbySession = components['schemas']['Session.SessionInfo'];
 type EmbyItemCounts = components['schemas']['ItemCounts'];
@@ -50,6 +51,10 @@ export class EmbyPlugin extends BaseInputPlugin<EmbyConfig> {
       points.push(...(await this.collectLibraries()));
     }
 
+    if (this.config.serverInfo.enabled) {
+      points.push(...(await this.collectServerInfo()));
+    }
+
     return points;
   }
 
@@ -66,6 +71,10 @@ export class EmbyPlugin extends BaseInputPlugin<EmbyConfig> {
       schedules.push(
         this.createSchedule('libraries', this.config.libraries.intervalSeconds, true, this.collectLibraries)
       );
+    }
+
+    if (this.config.serverInfo.enabled) {
+      schedules.push(this.createSchedule('serverInfo', this.config.serverInfo.intervalSeconds, true, this.collectServerInfo));
     }
 
     return schedules;
@@ -208,5 +217,22 @@ export class EmbyPlugin extends BaseInputPlugin<EmbyConfig> {
         progress_percent: progressPercent,
       }
     );
+  }
+
+  private async collectServerInfo(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Emby server info', async () => {
+      const info = await this.emby.get('/System/Info');
+      return [
+        this.createServerInfoPoint(
+          { version: info?.Version || 'unknown' },
+          booleanFlags({
+            update_available: info?.HasUpdateAvailable,
+            restart_pending: info?.HasPendingRestart,
+            shutting_down: info?.IsShuttingDown,
+            maintenance_mode: info?.IsInMaintenanceMode,
+          })
+        ),
+      ];
+    });
   }
 }

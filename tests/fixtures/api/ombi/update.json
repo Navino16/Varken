@@ -1,0 +1,7 @@
+{
+  "updateAvailable": true,
+  "updateVersionString": "4.53.11",
+  "updateVersion": 45311,
+  "updateDate": "2026-11-18T00:00:00Z",
+  "changeLogs": "Fixed request approval notifications"
+}

@@ -1,0 +1,34 @@
+[
+  {
+    "id": 2,
+    "version": "3.1.7.5120",
+    "branch": "main",
+    "releaseDate": "2026-11-20T00:00:00Z",
+    "installed": false,
+    "installable": true,
+    "latest": true,
+    "changes": {
+      "new": [
+        "Faster queue refresh"
+      ],
+      "fixed": [
+        "Calendar timezone"
+      ]
+    }
+  },
+  {
+    "id": 1,
+    "version": "3.1.6.5079",
+    "branch": "main",
+    "releaseDate": "2026-10-01T00:00:00Z",
+    "installed": true,
+    "installedOn": "2026-10-02T09:00:00Z",
+    "installable": false,
+    "latest": false,
+    "changes": {
+      "fixed": [
+        "Queue paging"
+      ]
+    }
+  }
+]

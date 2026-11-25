@@ -106,6 +106,42 @@ inputs:
       expect(config.outputs.influxdb1?.port).toBe(9999);
     });
 
+    it('should enable serverInfo through env overrides', () => {
+      const yamlContent = `
+outputs:
+  influxdb1:
+    url: localhost
+    port: 8086
+    username: root
+    password: root
+    database: varken
+    ssl: false
+    verifySsl: false
+
+inputs:
+  sonarr:
+    - id: 1
+      url: http://localhost:8989
+      apiKey: test-key
+`;
+      fs.writeFileSync(path.join(testConfigFolder, 'varken.yaml'), yamlContent);
+      process.env.VARKEN_INPUTS_SONARR_0_SERVERINFO_ENABLED = 'true';
+
+      const config = new ConfigLoader(testConfigFolder).load();
+
+      expect(config.inputs.sonarr?.[0].serverInfo.enabled).toBe(true);
+    });
+
+    it('maps every camelCase config key for env overrides', () => {
+      const schemaSource = fs.readFileSync(path.join(__dirname, '../../src/config/schemas/config.schema.ts'), 'utf8');
+      const camelKeys = new Set([...schemaSource.matchAll(/^\s+([a-z]+[A-Z][A-Za-z]*):/gm)].map((m) => m[1]));
+      const mappings = (ConfigLoader as unknown as { KEY_MAPPINGS: Record<string, string> }).KEY_MAPPINGS;
+
+      const unmapped = [...camelKeys].filter((key) => mappings[key.toLowerCase()] !== key);
+
+      expect(unmapped).toEqual([]);
+    });
+
     it('should parse boolean env overrides', () => {
       const yamlContent = `
 outputs:

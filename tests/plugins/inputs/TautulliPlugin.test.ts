@@ -57,6 +57,7 @@ describe('TautulliPlugin', () => {
     libraries: { enabled: true, intervalDays: 1 },
     stats: { enabled: true, intervalSeconds: 300 },
     geoip: { enabled: true },
+    serverInfo: { enabled: false, intervalSeconds: 300 },
   };
 
   const withSessions = (...list: Session[]): void => {
@@ -542,6 +543,61 @@ describe('TautulliPlugin', () => {
     it('should shutdown without error', async () => {
       await plugin.initialize(testConfig);
       await expect(plugin.shutdown()).resolves.toBeUndefined();
+    });
+  });
+  describe('server info', () => {
+    const UPDATE_CHECK = '/api/v2?cmd=update_check';
+
+    beforeEach(async () => {
+      await plugin.initialize({
+        ...testConfig,
+        activity: { ...testConfig.activity, enabled: false },
+        libraries: { ...testConfig.libraries, enabled: false },
+        stats: { ...testConfig.stats, enabled: false },
+        serverInfo: { enabled: true, intervalSeconds: 300 },
+      });
+    });
+
+    it('collects server info', async () => {
+      const points = await plugin.collect();
+
+      expect(points).toHaveLength(1);
+      expect(points[0]).toMatchObject({
+        measurement: 'Tautulli',
+        tags: { type: 'ServerInfo', server: 1, version: 'v2.19.1', branch: 'master', pms_version: '1.42.2.10156-f737b826c' },
+        fields: { update_available: 1, pms_update_available: 0, pms_plexpass: 1 },
+      });
+    });
+
+    it('omits update_available when Tautulli cannot tell', async () => {
+      // Tautulli answers an unknown version with result error and HTTP 400.
+      client.fail(UPDATE_CHECK, new Error('Request failed with status code 400'));
+
+      const [point] = await plugin.collect();
+
+      expect(point.fields).not.toHaveProperty('update_available');
+      expect(point.fields.pms_plexpass).toBe(1);
+    });
+
+    it('checks for Tautulli updates at most every 6 hours', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-11-25T10:00:00Z'));
+      const updateChecks = (): number => client.get.mock.calls.filter((call) => call[0] === UPDATE_CHECK).length;
+
+      await plugin.collect();
+      vi.setSystemTime(new Date('2026-11-25T15:59:00Z'));
+      const [cached] = await plugin.collect();
+      expect(updateChecks()).toBe(1);
+      expect(cached.fields.update_available).toBe(1);
+
+      vi.setSystemTime(new Date('2026-11-25T16:00:00Z'));
+      await plugin.collect();
+      expect(updateChecks()).toBe(2);
+      vi.useRealTimers();
+    });
+
+    it('schedules serverInfo when enabled', () => {
+      expect(plugin.getSchedules().map((s) => s.name)).toEqual(['Tautulli_1_serverInfo']);
     });
   });
 });

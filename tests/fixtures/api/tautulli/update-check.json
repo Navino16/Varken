@@ -1,0 +1,14 @@
+{
+  "response": {
+    "result": "success",
+    "message": "A new release (v2.19.2) of Tautulli is available.",
+    "data": {
+      "update": true,
+      "release": true,
+      "current_release": "v2.19.1",
+      "latest_release": "v2.19.2",
+      "release_url": "https://github.com/Tautulli/Tautulli/releases/tag/v2.19.2",
+      "install_type": "docker"
+    }
+  }
+}

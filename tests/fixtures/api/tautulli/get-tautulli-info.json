@@ -1,0 +1,18 @@
+{
+  "response": {
+    "result": "success",
+    "message": null,
+    "data": {
+      "tautulli_install_type": "docker",
+      "tautulli_version": "v2.19.1",
+      "tautulli_branch": "master",
+      "tautulli_commit": "8c1f4a2b7d9e3f5a6b0c1d2e3f4a5b6c7d8e9f0a",
+      "tautulli_platform": "Linux",
+      "tautulli_platform_release": "6.8.0",
+      "tautulli_platform_version": "#1 SMP",
+      "tautulli_platform_linux_distro": "Alpine Linux 3.22",
+      "tautulli_platform_device_name": "media-box",
+      "tautulli_python_version": "3.12.8"
+    }
+  }
+}

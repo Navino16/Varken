@@ -360,6 +360,56 @@
     },
     {
       "op": "add",
+      "path": "/components/schemas/BazarrSystemStatus",
+      "value": {
+        "type": "object",
+        "properties": {
+          "bazarr_version": {
+            "type": "string"
+          },
+          "package_version": {
+            "type": "string"
+          },
+          "sonarr_version": {
+            "type": "string"
+          },
+          "radarr_version": {
+            "type": "string"
+          },
+          "operating_system": {
+            "type": "string"
+          },
+          "python_version": {
+            "type": "string"
+          },
+          "database_engine": {
+            "type": "string"
+          },
+          "database_migration": {
+            "type": "string"
+          },
+          "bazarr_directory": {
+            "type": "string"
+          },
+          "bazarr_config_directory": {
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "start_time": {
+            "type": "number"
+          },
+          "cpu_cores": {
+            "type": "integer",
+            "nullable": true
+          }
+        }
+      },
+      "why": "https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/api/system/status.py — system_status dict built by the handler; start_time is init.startTime = time.time() (https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/init.py#L28), cpu_cores is os.cpu_count()"
+    },
+    {
+      "op": "add",
       "path": "/paths/~1movies~1wanted/get/responses/200",
       "value": {
         "description": "Success",
@@ -500,6 +550,26 @@
         }
       },
       "why": "https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/api/system/health.py — 200 declared without schema; the handler returns data: get_health_issues()"
+    },
+    {
+      "op": "add",
+      "path": "/paths/~1system~1status/get/responses/200/content",
+      "value": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/BazarrSystemStatus"
+              }
+            }
+          }
+        }
+      },
+      "why": "https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/api/system/status.py — 200 declared without schema; the handler returns data: system_status"
     }
   ]
 }

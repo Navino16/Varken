@@ -2,6 +2,7 @@ import { BaseInputPlugin } from './BaseInputPlugin';
 import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
 import type { ProwlarrConfig } from '../../types/inputs/prowlarr.types';
 import type { paths } from '../../types/generated/prowlarr';
+import { servarrServerInfo } from './utils/servarrServerInfo';
 
 /**
  * Prowlarr input plugin
@@ -42,6 +43,10 @@ export class ProwlarrPlugin extends BaseInputPlugin<ProwlarrConfig> {
       points.push(...statsPoints);
     }
 
+    if (this.config.serverInfo.enabled) {
+      points.push(...(await this.collectServerInfo()));
+    }
+
     return points;
   }
 
@@ -60,6 +65,10 @@ export class ProwlarrPlugin extends BaseInputPlugin<ProwlarrConfig> {
           this.collectIndexerStats
         )
       );
+    }
+
+    if (this.config.serverInfo.enabled) {
+      schedules.push(this.createSchedule('serverInfo', this.config.serverInfo.intervalSeconds, true, this.collectServerInfo));
     }
 
     return schedules;
@@ -109,6 +118,18 @@ export class ProwlarrPlugin extends BaseInputPlugin<ProwlarrConfig> {
 
       this.logger.info(`Collected stats for ${points.length} indexers from Prowlarr`);
       return points;
+    });
+  }
+
+  private async collectServerInfo(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Prowlarr server info', async () => {
+      const [status, updates, health] = await Promise.all([
+        this.prowlarr.get('/api/v1/system/status'),
+        this.prowlarr.get('/api/v1/update'),
+        this.prowlarr.get('/api/v1/health'),
+      ]);
+      const { tags, fields } = servarrServerInfo(status, updates, health, new Date());
+      return [this.createServerInfoPoint(tags, fields)];
     });
   }
 }

@@ -14,6 +14,7 @@ vi.mock('../../../src/core/Logger', async () => {
 
 vi.mock('axios', () => ({ default: { create: vi.fn() } }));
 
+type SystemInfo = components['schemas']['SystemInfo'];
 type Session = components['schemas']['Session.SessionInfo'];
 
 function sessions(): Session[] {
@@ -35,6 +36,7 @@ describe('EmbyPlugin', () => {
     verifySsl: false,
     sessions: { enabled: true, intervalSeconds: 30 },
     libraries: { enabled: true, intervalSeconds: 3600 },
+    serverInfo: { enabled: false, intervalSeconds: 300 },
   };
   const sessionsOnly: EmbyConfig = { ...testConfig, libraries: { enabled: false, intervalSeconds: 3600 } };
   const librariesOnly: EmbyConfig = { ...testConfig, sessions: { enabled: false, intervalSeconds: 30 } };
@@ -310,6 +312,40 @@ describe('EmbyPlugin', () => {
       client.fail('/emby/Sessions', new Error('emby offline'));
 
       await expect(plugin.collect()).rejects.toThrow('emby offline');
+    });
+  });
+  describe('server info', () => {
+    beforeEach(async () => {
+      await plugin.initialize({
+        ...testConfig,
+        sessions: { enabled: false, intervalSeconds: 30 },
+        libraries: { enabled: false, intervalSeconds: 3600 },
+        serverInfo: { enabled: true, intervalSeconds: 300 },
+      });
+    });
+
+    it('collects server info', async () => {
+      const points = await plugin.collect();
+
+      expect(points).toHaveLength(1);
+      expect(points[0]).toMatchObject({
+        measurement: 'Emby',
+        tags: { type: 'ServerInfo', server: 1, version: '4.10.2.0' },
+        fields: { update_available: 0, restart_pending: 0, shutting_down: 0, maintenance_mode: 0, },
+      });
+    });
+
+    it('omits flags the server does not report', async () => {
+      const { HasUpdateAvailable: _update, ...info } = loadFixture<SystemInfo>('emby/system-info');
+      client.override('/emby/System/Info', info);
+
+      const [point] = await plugin.collect();
+
+      expect(point.fields).not.toHaveProperty('update_available');
+    });
+
+    it('schedules serverInfo when enabled', () => {
+      expect(plugin.getSchedules().map((s) => s.name)).toEqual(['Emby_1_serverInfo']);
     });
   });
 });

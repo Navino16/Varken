@@ -34,6 +34,10 @@ export interface TautulliConfig {
     licenseKey?: string;
     localCoordinates?: LocalCoordinates;
   };
+  serverInfo: {
+    enabled: boolean;
+    intervalSeconds: number;
+  };
 }
 
 // GeoIP information (used internally by Varken)

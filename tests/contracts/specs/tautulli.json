@@ -125,6 +125,90 @@
           }
         }
       }
+    },
+    "/api/v2?cmd=get_tautulli_info": {
+      "get": {
+        "summary": "Get the Tautulli server information.",
+        "parameters": [
+          {
+            "name": "apikey",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "API key; the X-Api-Key header alternative only exists since v2.18.0 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L106)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TautulliInfoResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2?cmd=update_check": {
+      "get": {
+        "summary": "Check for Tautulli updates.",
+        "parameters": [
+          {
+            "name": "apikey",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "API key; the X-Api-Key header alternative only exists since v2.18.0 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L106)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateCheckResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2?cmd=get_pms_update": {
+      "get": {
+        "summary": "Check for updates to the Plex Media Server.",
+        "parameters": [
+          {
+            "name": "apikey",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "API key; the X-Api-Key header alternative only exists since v2.18.0 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L106)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PmsUpdateResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1206,6 +1290,216 @@
             }
           }
         }
+      },
+      "TautulliInfoResponse": {
+        "type": "object",
+        "required": [
+          "response"
+        ],
+        "properties": {
+          "response": {
+            "type": "object",
+            "required": [
+              "result",
+              "message",
+              "data"
+            ],
+            "description": "https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L632-L638",
+            "properties": {
+              "result": {
+                "const": "success",
+                "description": "An error result is always sent with HTTP 400 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L777-L783)"
+              },
+              "message": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "data": {
+                "$ref": "#/components/schemas/TautulliInfo"
+              }
+            }
+          }
+        }
+      },
+      "TautulliInfo": {
+        "type": "object",
+        "properties": {
+          "tautulli_install_type": {
+            "type": "string"
+          },
+          "tautulli_version": {
+            "type": "string"
+          },
+          "tautulli_branch": {
+            "type": "string"
+          },
+          "tautulli_commit": {
+            "type": "string"
+          },
+          "tautulli_platform": {
+            "type": "string"
+          },
+          "tautulli_platform_release": {
+            "type": "string"
+          },
+          "tautulli_platform_version": {
+            "type": "string"
+          },
+          "tautulli_platform_linux_distro": {
+            "type": "string"
+          },
+          "tautulli_platform_device_name": {
+            "type": "string"
+          },
+          "tautulli_python_version": {
+            "type": "string"
+          }
+        },
+        "description": "https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/webserve.py#L6778-L6805 (docstring)"
+      },
+      "UpdateCheckResponse": {
+        "type": "object",
+        "required": [
+          "response"
+        ],
+        "properties": {
+          "response": {
+            "type": "object",
+            "required": [
+              "result",
+              "message",
+              "data"
+            ],
+            "description": "https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L632-L638",
+            "properties": {
+              "result": {
+                "const": "success",
+                "description": "An error result is always sent with HTTP 400 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L777-L783)"
+              },
+              "message": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "data": {
+                "$ref": "#/components/schemas/UpdateCheck"
+              }
+            }
+          }
+        }
+      },
+      "UpdateCheck": {
+        "type": "object",
+        "properties": {
+          "update": {
+            "type": "boolean"
+          },
+          "release": {
+            "type": "boolean"
+          },
+          "current_release": {
+            "type": "string"
+          },
+          "latest_release": {
+            "type": "string"
+          },
+          "release_url": {
+            "type": "string"
+          },
+          "current_version": {
+            "type": "string"
+          },
+          "latest_version": {
+            "type": "string"
+          },
+          "commits_behind": {
+            "type": "integer"
+          },
+          "compare_url": {
+            "type": "string"
+          },
+          "install_type": {
+            "type": "string"
+          }
+        },
+        "description": "https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/webserve.py#L4407-L4473; api2 moves result and message to the envelope (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L771-L778). An unknown version answers result error, sent with HTTP 400."
+      },
+      "PmsUpdateResponse": {
+        "type": "object",
+        "required": [
+          "response"
+        ],
+        "properties": {
+          "response": {
+            "type": "object",
+            "required": [
+              "result",
+              "message",
+              "data"
+            ],
+            "description": "https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L632-L638",
+            "properties": {
+              "result": {
+                "const": "success",
+                "description": "An error result is always sent with HTTP 400 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L777-L783)"
+              },
+              "message": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "data": {
+                "$ref": "#/components/schemas/PmsUpdate"
+              }
+            }
+          }
+        }
+      },
+      "PmsUpdate": {
+        "type": "object",
+        "properties": {
+          "update_available": {
+            "type": "boolean"
+          },
+          "platform": {
+            "type": "string"
+          },
+          "release_date": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "requirements": {
+            "type": "string"
+          },
+          "extra_info": {
+            "type": "string"
+          },
+          "changelog_added": {
+            "type": "string"
+          },
+          "changelog_fixed": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "distro": {
+            "type": "string"
+          },
+          "distro_build": {
+            "type": "string"
+          },
+          "download_url": {
+            "type": "string"
+          }
+        },
+        "description": "https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/webserve.py#L6809-L6838; plextv.PlexTV.get_plex_update"
       }
     }
   }

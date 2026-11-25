@@ -311,6 +311,14 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
   }
 
   /**
+   * Point of the `serverInfo` collector: version and state of the monitored service.
+   * `reachable` keeps the point (and its version tags) when the service reports no other field.
+   */
+  protected createServerInfoPoint(tags: Record<string, string | number>, fields: Record<string, number>): DataPoint {
+    return this.createDataPoint(this.metadata.name, { type: 'ServerInfo', server: this.config.id, ...tags }, { reachable: 1, ...fields });
+  }
+
+  /**
    * Wrap a collector operation with standardized error logging.
    * Logs the error with operation context, then re-throws so the PluginManager's
    * circuit breaker can track the failure.

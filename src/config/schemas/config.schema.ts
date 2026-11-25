@@ -64,6 +64,7 @@ const ScheduleConfigDaysSchema = z.object({
 // Default values for reuse
 const scheduleDefault = { enabled: false, intervalSeconds: 30 };
 const scheduleDaysDefault = { enabled: false, intervalDays: 1 };
+const serverInfoDefault = { enabled: false, intervalSeconds: 300 };
 
 // =============================================================================
 // Input Schemas - Arr Stack
@@ -81,6 +82,7 @@ export const SonarrConfigSchema = z.object({
     missingDays: z.number().default(30),
     intervalSeconds: z.number().default(300),
   }).default({ enabled: false, futureDays: 7, missingDays: 30, intervalSeconds: 300 }),
+  serverInfo: ScheduleConfigSchema.default(serverInfoDefault),
 });
 
 export const RadarrConfigSchema = z.object({
@@ -90,6 +92,7 @@ export const RadarrConfigSchema = z.object({
   verifySsl: z.boolean().default(false),
   queue: ScheduleConfigSchema.default(scheduleDefault),
   missing: ScheduleConfigSchema.default(scheduleDefault),
+  serverInfo: ScheduleConfigSchema.default(serverInfoDefault),
 });
 
 export const ReadarrConfigSchema = z.object({
@@ -99,6 +102,7 @@ export const ReadarrConfigSchema = z.object({
   verifySsl: z.boolean().default(false),
   queue: ScheduleConfigSchema.default(scheduleDefault),
   missing: ScheduleConfigSchema.default(scheduleDefault),
+  serverInfo: ScheduleConfigSchema.default(serverInfoDefault),
 });
 
 export const LidarrConfigSchema = z.object({
@@ -108,6 +112,7 @@ export const LidarrConfigSchema = z.object({
   verifySsl: z.boolean().default(false),
   queue: ScheduleConfigSchema.default(scheduleDefault),
   missing: ScheduleConfigSchema.default(scheduleDefault),
+  serverInfo: ScheduleConfigSchema.default(serverInfoDefault),
 });
 
 export const ProwlarrConfigSchema = z.object({
@@ -116,6 +121,7 @@ export const ProwlarrConfigSchema = z.object({
   apiKey: z.string(),
   verifySsl: z.boolean().default(false),
   indexerStats: ScheduleConfigSchema.default(scheduleDefault),
+  serverInfo: ScheduleConfigSchema.default(serverInfoDefault),
 });
 
 export const BazarrConfigSchema = z.object({
@@ -125,6 +131,7 @@ export const BazarrConfigSchema = z.object({
   verifySsl: z.boolean().default(false),
   wanted: ScheduleConfigSchema.default(scheduleDefault),
   history: ScheduleConfigSchema.default(scheduleDefault),
+  serverInfo: ScheduleConfigSchema.default(serverInfoDefault),
 });
 
 // =============================================================================
@@ -150,6 +157,7 @@ export const TautulliConfigSchema = z.object({
       longitude: z.number(),
     }).optional(),
   }).default({ enabled: false }),
+  serverInfo: ScheduleConfigSchema.default(serverInfoDefault),
 });
 
 export const PlexConfigSchema = z.object({
@@ -159,6 +167,7 @@ export const PlexConfigSchema = z.object({
   verifySsl: z.boolean().default(false),
   sessions: ScheduleConfigSchema.default(scheduleDefault),
   libraries: ScheduleConfigSchema.default(scheduleDefault),
+  serverInfo: ScheduleConfigSchema.default(serverInfoDefault),
 });
 
 export const JellyfinConfigSchema = z.object({
@@ -168,6 +177,7 @@ export const JellyfinConfigSchema = z.object({
   verifySsl: z.boolean().default(false),
   sessions: ScheduleConfigSchema.default(scheduleDefault),
   libraries: ScheduleConfigSchema.default(scheduleDefault),
+  serverInfo: ScheduleConfigSchema.default(serverInfoDefault),
 });
 
 export const EmbyConfigSchema = z.object({
@@ -177,6 +187,7 @@ export const EmbyConfigSchema = z.object({
   verifySsl: z.boolean().default(false),
   sessions: ScheduleConfigSchema.default(scheduleDefault),
   libraries: ScheduleConfigSchema.default(scheduleDefault),
+  serverInfo: ScheduleConfigSchema.default(serverInfoDefault),
 });
 
 // =============================================================================
@@ -190,6 +201,7 @@ export const OmbiConfigSchema = z.object({
   verifySsl: z.boolean().default(false),
   requestCounts: ScheduleConfigSchema.default(scheduleDefault),
   issueCounts: ScheduleConfigSchema.default(scheduleDefault),
+  serverInfo: ScheduleConfigSchema.default(serverInfoDefault),
 });
 
 export const OverseerrConfigSchema = z.object({
@@ -203,6 +215,7 @@ export const OverseerrConfigSchema = z.object({
     count: z.number().default(10),
     intervalSeconds: z.number().default(300),
   }).default({ enabled: false, count: 10, intervalSeconds: 300 }),
+  serverInfo: ScheduleConfigSchema.default(serverInfoDefault),
 });
 
 // =============================================================================

@@ -50,6 +50,7 @@ describe('OverseerrPlugin', () => {
     verifySsl: false,
     requestCounts: { enabled: true, intervalSeconds: 300 },
     latestRequests: { enabled: true, intervalSeconds: 60, count: 10 },
+    serverInfo: { enabled: false, intervalSeconds: 300 },
   };
 
   beforeEach(() => {
@@ -306,6 +307,45 @@ describe('OverseerrPlugin', () => {
     it('should shutdown without error', async () => {
       await plugin.initialize(testConfig);
       await expect(plugin.shutdown()).resolves.toBeUndefined();
+    });
+  });
+  describe('server info', () => {
+    beforeEach(async () => {
+      await plugin.initialize({
+        ...testConfig,
+        requestCounts: { enabled: false, intervalSeconds: 300 },
+        latestRequests: { ...testConfig.latestRequests, enabled: false },
+        serverInfo: { enabled: true, intervalSeconds: 300 },
+      });
+    });
+
+    it('collects server info', async () => {
+      const points = await plugin.collect();
+
+      expect(points).toHaveLength(1);
+      expect(points[0]).toMatchObject({
+        measurement: 'Overseerr',
+        tags: { type: 'ServerInfo', server: 1, version: '3.5.2' },
+        fields: { update_available: 0, commits_behind: 0, restart_pending: 0 },
+      });
+    });
+
+    it('asks Seerr to check for updates', async () => {
+      await plugin.collect();
+
+      expect(client.get).toHaveBeenCalledWith('/api/v1/status', { params: { checkUpdateAvailable: true } });
+    });
+
+    it('omits update fields when Seerr skips the version check', async () => {
+      client.override('/api/v1/status', { version: '3.5.2', commitTag: 'v3.5.2', restartRequired: false });
+
+      const [point] = await plugin.collect();
+
+      expect(point.fields).toEqual({ reachable: 1, restart_pending: 0 });
+    });
+
+    it('schedules serverInfo when enabled', () => {
+      expect(plugin.getSchedules().map((s) => s.name)).toEqual(['Overseerr_1_serverInfo']);
     });
   });
 });

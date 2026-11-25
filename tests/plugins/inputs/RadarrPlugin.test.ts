@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
 import axios from 'axios';
 import { RadarrPlugin } from '../../../src/plugins/inputs/RadarrPlugin';
 import { PROTOCOL_ID } from '../../../src/plugins/inputs/constants';
@@ -37,6 +37,7 @@ describe('RadarrPlugin', () => {
     verifySsl: false,
     queue: { enabled: true, intervalSeconds: 30 },
     missing: { enabled: true, intervalSeconds: 300 },
+    serverInfo: { enabled: false, intervalSeconds: 300 },
   };
 
   beforeEach(() => {
@@ -176,6 +177,46 @@ describe('RadarrPlugin', () => {
       const second = await queuePoints();
 
       expect(first[0].fields.hash).toBe(second[0].fields.hash);
+    });
+  });
+
+  describe('server info', () => {
+    const serverInfoOnly = (): RadarrConfig => ({
+      ...testConfig,
+      queue: { enabled: false, intervalSeconds: 30 },
+      missing: { enabled: false, intervalSeconds: 30 },
+      serverInfo: { enabled: true, intervalSeconds: 300 },
+    });
+
+    beforeEach(async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-11-24T10:00:00Z'));
+      await plugin.initialize(serverInfoOnly());
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('collects server info', async () => {
+      const points = await plugin.collect();
+
+      expect(points).toHaveLength(1);
+      expect(points[0]).toMatchObject({
+        measurement: 'Radarr',
+        tags: { type: 'ServerInfo', server: 1, version: '7.0.3.10918', branch: 'master' },
+        fields: { update_available: 1, health_errors: 1, health_warnings: 1, health_notices: 0, uptime_seconds: 7200 },
+      });
+    });
+
+    it('schedules serverInfo when enabled', () => {
+      expect(plugin.getSchedules().map((s) => s.name)).toEqual(['Radarr_1_serverInfo']);
+    });
+
+    it('fails the server info collector when update fails', async () => {
+      client.fail('/api/v3/update', new Error('Forbidden'));
+
+      await expect(plugin.collect()).rejects.toThrow('Forbidden');
     });
   });
 

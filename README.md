@@ -40,7 +40,8 @@ Built with TypeScript, Node.js, and a plugin-based architecture with scheduled d
 
 ### Data Collection
 
-- **Multiple data sources** — Sonarr, Radarr, Readarr, Lidarr, Tautulli, Ombi, Overseerr, Prowlarr, Bazarr
+- **Multiple data sources** — Sonarr, Radarr, Readarr, Lidarr, Prowlarr, Bazarr, Tautulli, Plex, Jellyfin, Emby, Ombi, Overseerr
+- **Server info** — version of every connected service, plus available updates, pending restarts, uptime and health issues where the service exposes them
 - **Multiple outputs** — InfluxDB 1.x, InfluxDB 2.x, VictoriaMetrics, QuestDB, TimescaleDB
 - **Multi-instance support** — connect multiple instances of each service
 - **GeoIP mapping** — automatic geolocation of streaming sessions via Tautulli API (no external license required)
@@ -192,6 +193,14 @@ inputs:
       activity:
         enabled: true
         intervalSeconds: 30
+```
+
+Every input also accepts a `serverInfo` collector (disabled by default, every 300s), which writes the service version, update availability, pending restart, uptime and health-issue counts where the service exposes them. See [docs/data-reference.md](docs/data-reference.md) for each service.
+
+```yaml
+      serverInfo:
+        enabled: true
+        intervalSeconds: 300
 ```
 
 ### Output Configuration
