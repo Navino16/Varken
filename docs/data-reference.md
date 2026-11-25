@@ -2,8 +2,122 @@
 
 Every input plugin writes DataPoints whose measurement is the service name (`Sonarr`, `Tautulli`, ...). Every point carries a `server` tag (the instance `id` from the config) and a `type` tag that distinguishes the kinds of points a plugin writes; both are omitted from the tables below.
 Numbers meant for graphing are fields; tags hold labels and identifiers. The `hash` field is a deduplication key (MD5) and is not meant to be graphed.
-Decimal fields (`score_percent`, `lat`, `lon`) are always written as floats, even for whole values, so their column type stays stable.
+Decimal fields (`score_percent`, `lat`, `lon`, and the Servarr `progress`, `used_percent`, `last_duration_seconds`, `percent_of_*`) are always written as floats, even for whole values, so their column type stays stable.
 Points are timestamped with the collection time (`createDataPoint` default) unless stated otherwise in a section.
+Event points (`type = History`) are timestamped with the event time. Each event collector keeps a high-water mark in `DATA_FOLDER/event-state/` and only writes events newer than it, so an event is written once even across restarts. Without a mark (first run, deleted or unreadable file) it starts from the plugin start time: earlier events are not backfilled.
+
+## Sonarr, Radarr, Lidarr, Readarr: shared points
+
+These four services write the same points for the collectors below; only the API prefix (`/api/v3` for Sonarr and Radarr, `/api/v1` for Lidarr and Readarr) and the history id tags differ. Booleans are `0`/`1` fields, omitted when the service does not report them. A time the service reports as `0001-01-01T00:00:00Z` (never happened) is treated as absent.
+
+### Queue: download state
+
+Added to every `type = Queue` point (see each service below).
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `status` | tag | string | Queue item status (`downloading`, `paused`, `completed`, ...) |
+| `tracked_download_state` | tag | string | `downloading`, `importPending`, `importing`, `imported`, `failed`, ... |
+| `tracked_download_status` | tag | string | `ok`, `warning`, `error` |
+| `download_client` | tag | string | Download client name |
+| `indexer` | tag | string | Indexer the release came from |
+| `size` | field | number | Release size in bytes |
+| `sizeleft` | field | number | Bytes left to download |
+| `progress` | field | float | Downloaded percentage; omitted when `size` is `0` |
+| `eta_seconds` | field | number | Seconds until the estimated completion (`0` when past); omitted when unknown |
+
+All tags are `unknown` when absent.
+
+### type = Health / HealthIssue
+
+Config: `inputs.<service>[].status` (`enabled`, `intervalSeconds`, default disabled, 300) · Source: `<prefix>/health`. The `status` collector also writes `DiskSpace`, `RootFolder`, `QueueStatus` and `Task`; any of its endpoints failing fails the whole collection.
+
+`Health` (one point): fields `errors`, `warnings`, `notices` (count of health checks by level).
+
+`HealthIssue` (one point per check that is not `ok`):
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `source` | tag | string | Health check name (`IndexerStatusCheck`, ...) |
+| `level` | tag | string | `notice`, `warning` or `error` |
+| `message` | field | string | Check message |
+| `hash` | field | string | MD5 of source + message |
+
+### type = DiskSpace
+
+Config: `status` · Source: `<prefix>/diskspace`. One point per disk.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `path` | tag | string | Mount path |
+| `label` | tag | string | Disk label (`unknown` when empty) |
+| `free_bytes` | field | number | Free space |
+| `total_bytes` | field | number | Total space |
+| `used_percent` | field | float | Used percentage; omitted when the total is `0` |
+
+### type = RootFolder
+
+Config: `status` · Source: `<prefix>/rootfolder`. One point per root folder. Readarr's Calibre connection settings (host, port, credentials) are never written.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `path` | tag | string | Root folder path |
+| `name` | tag | string | Root folder name (Lidarr, Readarr) |
+| `accessible` | field | number | `1` when the service can reach the folder |
+| `free_bytes` | field | number | Free space; omitted when unknown (inaccessible folder) |
+| `total_bytes` | field | number | Total space (Lidarr, Readarr); omitted when unknown |
+| `unmapped_folders` | field | number | Folders on disk not matched to a library item (Sonarr, Radarr) |
+
+### type = QueueStatus
+
+Config: `status` · Source: `<prefix>/queue/status`.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `total_count` | field | number | Queue items, including unknown ones |
+| `count` | field | number | Queue items matched to a library item |
+| `unknown_count` | field | number | Queue items not matched |
+| `errors`, `warnings` | field | number | `1` when a matched item is in error / warning |
+| `unknown_errors`, `unknown_warnings` | field | number | Same for unmatched items |
+
+### type = Task
+
+Config: `status` · Source: `<prefix>/system/task`. One point per scheduled task.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `task` | tag | string | Task id (`RssSync`, `Backup`, ...) |
+| `name` | tag | string | Task display name |
+| `interval_minutes` | field | number | Task interval |
+| `last_execution_age_seconds` | field | number | Seconds since the last run; omitted when it never ran |
+| `last_duration_seconds` | field | float | Duration of the last run |
+| `next_execution_in_seconds` | field | number | Seconds until the next run (negative when overdue); omitted when unknown |
+
+### type = Totals
+
+Config: `inputs.<service>[].totals` (`enabled`, `intervalSeconds`, default disabled, 900) · Source: `<prefix>/wanted/missing`, `<prefix>/wanted/cutoff` (monitored only), `<prefix>/blocklist`, each asked for a single record.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `missing` | field | number | Wanted items without a file |
+| `cutoff_unmet` | field | number | Items below their quality cutoff |
+| `blocklist` | field | number | Blocklisted releases |
+
+A total is omitted when the response does not carry `totalRecords`.
+
+### type = History
+
+Config: `inputs.<service>[].history` (`enabled`, `intervalSeconds`, default disabled, 300) · Source: `<prefix>/history/since?date=<mark>`. One point per event (grab, import, failure, deletion, rename, ...), timestamped with the event time.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `event_type` | tag | string | `grabbed`, `downloadFolderImported`, `downloadFailed`, ... (service-specific values) |
+| `quality` | tag | string | Release quality |
+| `download_client` | tag | string | Download client (`unknown` for events without one) |
+| `indexer` | tag | string | Indexer (`unknown` for events without one) |
+| id tags | tag | number | Sonarr `seriesId`, `episodeId` · Radarr `movieId` · Lidarr `artistId`, `albumId` · Readarr `authorId`, `bookId` |
+| `hash` | field | string | MD5 of server id + history record id |
+| `size` | field | number | Release size in bytes, when the event carries it |
 
 ## Sonarr
 
@@ -21,6 +135,8 @@ Config: `inputs.sonarr[].queue` (`enabled`, `intervalSeconds`) · Source: `/api/
 | `protocol_id` | tag | number | `0` torrent, `1` usenet (anything other than `USENET` maps to `0`) |
 | `quality` | tag | string | Quality name (`Unknown` when absent) |
 | `hash` | field | string | MD5 of server id + series title + `sxe` |
+
+Download-state tags and fields: see [Queue: download state](#queue-download-state).
 
 ### type = Missing
 
@@ -49,6 +165,30 @@ Config: `inputs.sonarr[].calendar` (`enabled`, `futureDays`, `intervalSeconds`) 
 | `airsUTC` | tag | string | Air date (UTC), empty string when absent |
 | `downloaded` | tag | number | `1` if the episode already has a file, else `0` |
 | `hash` | field | string | MD5 of server id + series title + `sxe` |
+
+### type = Library / Series
+
+Config: `inputs.sonarr[].library` (`enabled`, `intervalDays`, default disabled, 1) · Source: `/api/v3/series`.
+
+`Library` (one point): fields `series`, `series_monitored`, `series_ended`, `episodes`, `episode_files`, `total_episodes`, `size_on_disk`.
+
+`Series` (one point per series):
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `seriesId` | tag | number | Series id |
+| `name` | tag | string | Series title |
+| `status` | tag | string | `continuing`, `ended`, `upcoming`, `deleted` |
+| `ended` | tag | number | `1` when the series has ended |
+| `network` | tag | string | Network (`unknown` when absent) |
+| `series_type` | tag | string | `standard`, `daily`, `anime` |
+| `monitored` | field | number | `1` when monitored |
+| `season_count` | field | number | Seasons |
+| `episode_count` | field | number | Monitored aired episodes |
+| `episode_file_count` | field | number | Episodes with a file |
+| `total_episode_count` | field | number | All episodes |
+| `size_on_disk` | field | number | Bytes on disk |
+| `percent_of_episodes` | field | float | Downloaded share of `episode_count` |
 
 ### type = ServerInfo
 
@@ -81,6 +221,8 @@ Config: `inputs.radarr[].queue` (`enabled`, `intervalSeconds`) · Source: `/api/
 | `titleSlug` | tag | string | Movie slug (`unknown` when absent) |
 | `hash` | field | string | MD5 of server id + `name` + `quality` |
 
+Download-state tags and fields: see [Queue: download state](#queue-download-state).
+
 ### type = Missing
 
 Config: `inputs.radarr[].missing` (`enabled`, `intervalSeconds`) · Source: `/api/v3/movie`. Only monitored movies without a file are written.
@@ -92,6 +234,23 @@ Config: `inputs.radarr[].missing` (`enabled`, `intervalSeconds`) · Source: `/ap
 | `name` | tag | string | `Title (year)` |
 | `titleSlug` | tag | string | Movie slug (`unknown` when absent) |
 | `hash` | field | string | MD5 of server id + `name` + TMDB id |
+
+### type = Library / Collection
+
+Config: `inputs.radarr[].library` (`enabled`, `intervalDays`, default disabled, 1) · Source: `/api/v3/movie`, `/api/v3/collection`.
+
+`Library` (one point): fields `movies`, `movies_monitored`, `movies_with_file`, `size_on_disk`, `collections`.
+
+`Collection` (one point per collection):
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `collectionId` | tag | number | Collection TMDb id |
+| `name` | tag | string | Collection title |
+| `monitored` | field | number | `1` when monitored |
+| `movies` | field | number | Movies in the collection |
+| `movies_in_library` | field | number | Of which already in Radarr |
+| `missing` | field | number | Radarr's missing-movie count for the collection |
 
 ### type = ServerInfo
 
@@ -124,6 +283,8 @@ Config: `inputs.readarr[].queue` (`enabled`, `intervalSeconds`) · Source: `/api
 | `titleSlug` | tag | string | Book slug (`unknown` when absent) |
 | `hash` | field | string | MD5 of server id + `name` + `quality` |
 
+Download-state tags and fields: see [Queue: download state](#queue-download-state).
+
 ### type = Missing
 
 Config: `inputs.readarr[].missing` (`enabled`, `intervalSeconds`) · Source: `/api/v1/wanted/missing` (paginated, monitored only).
@@ -135,6 +296,17 @@ Config: `inputs.readarr[].missing` (`enabled`, `intervalSeconds`) · Source: `/a
 | `name` | tag | string | `Book title - Author` (`unknown` title, `Unknown Author` when absent) |
 | `titleSlug` | tag | string | Book slug (`unknown` when absent) |
 | `hash` | field | string | MD5 of server id + `name` + `foreignBookId` |
+| `release_age_days` | field | number | Whole days since the release date; omitted when undated or in the future |
+| `book_file_count`, `book_count`, `total_book_count`, `size_on_disk` | field | number | Book statistics, when the service returns them |
+| `percent_of_books` | field | float | Downloaded share of the book's editions |
+
+### type = Library / Author
+
+Config: `inputs.readarr[].library` (`enabled`, `intervalDays`, default disabled, 1) · Source: `/api/v1/author`.
+
+`Library` (one point): fields `authors`, `authors_monitored`, `books`, `book_files`, `total_books`, `size_on_disk`.
+
+`Author` (one point per author): tags `authorId`, `name`, `status`, `ended` (`0`/`1`); fields `monitored`, `book_file_count`, `book_count`, `available_book_count`, `total_book_count`, `size_on_disk`, `percent_of_books` (float).
 
 ### type = ServerInfo
 
@@ -166,6 +338,8 @@ Config: `inputs.lidarr[].queue` (`enabled`, `intervalSeconds`) · Source: `/api/
 | `protocol_id` | tag | number | `0` torrent, `1` usenet |
 | `hash` | field | string | MD5 of server id + `name` + `quality` |
 
+Download-state tags and fields: see [Queue: download state](#queue-download-state).
+
 ### type = Missing
 
 Config: `inputs.lidarr[].missing` (`enabled`, `intervalSeconds`) · Source: `/api/v1/wanted/missing` (paginated, monitored only).
@@ -176,6 +350,18 @@ Config: `inputs.lidarr[].missing` (`enabled`, `intervalSeconds`) · Source: `/ap
 | `foreignAlbumId` | tag | string | Metadata-provider album id (`unknown` when absent) |
 | `name` | tag | string | `Album title - Artist` (`unknown` title, `Unknown Artist` when absent) |
 | `hash` | field | string | MD5 of server id + `name` + `foreignAlbumId` |
+| `album_type` | tag | string | `Album`, `EP`, `Single`, ... (`unknown` when absent) |
+| `release_age_days` | field | number | Whole days since the release date; omitted when undated or in the future |
+| `track_file_count`, `track_count`, `total_track_count`, `size_on_disk` | field | number | Album statistics, when the service returns them |
+| `percent_of_tracks` | field | float | Downloaded share of the tracks |
+
+### type = Library / Artist
+
+Config: `inputs.lidarr[].library` (`enabled`, `intervalDays`, default disabled, 1) · Source: `/api/v1/artist`.
+
+`Library` (one point): fields `artists`, `artists_monitored`, `albums`, `tracks`, `track_files`, `total_tracks`, `size_on_disk`.
+
+`Artist` (one point per artist): tags `artistId`, `name`, `status`, `ended` (`0`/`1`); fields `monitored`, `album_count`, `track_file_count`, `track_count`, `total_track_count`, `size_on_disk`, `percent_of_tracks` (float).
 
 ### type = ServerInfo
 
@@ -202,8 +388,13 @@ Config: `inputs.prowlarr[].indexerStats` (`enabled`, `intervalSeconds`) · Sourc
 |-----|------|------|---------|
 | `indexerId` | tag | number | Indexer id (`0` when absent) |
 | `indexerName` | tag | string | Indexer name (`unknown` when absent) |
+| `protocol` | tag | string | `usenet` or `torrent`, from `/api/v1/indexer` (`unknown` when the indexer is not listed) |
+| `privacy` | tag | string | `public`, `semiPrivate`, `private` (same source) |
+| `enabled` | tag | number | `1` when the indexer is enabled (same source) |
+| `priority` | tag | number | Indexer priority (same source) |
 | `hash` | field | string | MD5 of server id + indexer id + indexer name |
 | `averageResponseTime` | field | number | Average response time (`0` when absent) |
+| `averageGrabResponseTime` | field | number | Average grab response time |
 | `numberOfQueries` | field | number | Total queries |
 | `numberOfGrabs` | field | number | Total grabs |
 | `numberOfRssQueries` | field | number | RSS queries |
@@ -213,7 +404,38 @@ Config: `inputs.prowlarr[].indexerStats` (`enabled`, `intervalSeconds`) · Sourc
 | `numberOfFailedRssQueries` | field | number | Failed RSS queries |
 | `numberOfFailedAuthQueries` | field | number | Failed auth queries |
 
-All numeric fields default to `0` when absent.
+All numeric fields default to `0` when absent. The same collector also writes:
+
+- `IndexerStatsWindow`: the same tags and fields over the last 24 hours (`/api/v1/indexerstats?startDate=&endDate=`), plus tag `window` = `24h`.
+- `UserAgentStats` (tag `user_agent`) and `HostStats` (tag `host`): fields `numberOfQueries`, `numberOfGrabs` per calling application and per host.
+
+### type = Health / HealthIssue / Task / IndexerStatus
+
+Config: `inputs.prowlarr[].status` (`enabled`, `intervalSeconds`, default disabled, 300) · Source: `/api/v1/health`, `/api/v1/system/task`, `/api/v1/indexerstatus`. `Health`, `HealthIssue` and `Task` are the same as the [shared Servarr points](#type--health--healthissue).
+
+`IndexerStatus` (one point per indexer with recorded failures): tag `indexerId`; fields `disabled` (`1` while disabled), `disabled_for_seconds` (only while disabled), `most_recent_failure_age_seconds`, `initial_failure_age_seconds`. `IndexerStatusSummary` (one point): field `disabled_indexers`.
+
+### type = History
+
+Config: `inputs.prowlarr[].history` (`enabled`, `intervalSeconds`, default disabled, 300) · Source: `/api/v1/history/since?eventType=releaseGrabbed`. One point per release grab, timestamped with the grab time (queries and RSS syncs are already counted by `IndexerStats`).
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `indexerId` | tag | number | Indexer id |
+| `event_type` | tag | string | `releaseGrabbed` |
+| `successful` | tag | number | `1` when the grab succeeded |
+| `source` | tag | string | Application that asked for the grab (`Sonarr`, ...) |
+| `grab_method` | tag | string | `Proxy` or `Redirect` |
+| `hash` | field | string | MD5 of server id + history record id |
+| `elapsed_ms` | field | number | Grab duration, when reported |
+
+### type = Inventory / Application
+
+Config: `inputs.prowlarr[].inventory` (`enabled`, `intervalSeconds`, default disabled, 3600) · Source: `/api/v1/indexer`, `/api/v1/applications`. Indexer and application settings (URLs, API keys) are never written.
+
+`Inventory` (one point): fields `indexers`, `indexers_enabled`, `applications`, `applications_syncing` (sync level other than `disabled`).
+
+`Application` (one point per application): tags `application` (name), `implementation`, `sync_level`; field `hash`.
 
 ### type = ServerInfo
 

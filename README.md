@@ -42,6 +42,7 @@ Built with TypeScript, Node.js, and a plugin-based architecture with scheduled d
 
 - **Multiple data sources** — Sonarr, Radarr, Readarr, Lidarr, Prowlarr, Bazarr, Tautulli, Plex, Jellyfin, Emby, Ombi, Overseerr
 - **Server info** — version of every connected service, plus available updates, pending restarts, uptime and health issues where the service exposes them
+- **Servarr insights** — download progress and state, health, disk space, root folders, scheduled tasks, wanted / blocklist totals, history events and library statistics for Sonarr, Radarr, Lidarr and Readarr; indexer status, grabs, per-app stats and inventory for Prowlarr
 - **Multiple outputs** — InfluxDB 1.x, InfluxDB 2.x, VictoriaMetrics, QuestDB, TimescaleDB
 - **Multi-instance support** — connect multiple instances of each service
 - **GeoIP mapping** — automatic geolocation of streaming sessions via Tautulli API (no external license required)
@@ -287,7 +288,7 @@ global:
 | Variable         | Default   | Description                                         |
 |------------------|-----------|-----------------------------------------------------|
 | `CONFIG_FOLDER`  | `/config` | Path to configuration files                         |
-| `DATA_FOLDER`    | `/data`   | Path to data storage                                |
+| `DATA_FOLDER`    | `/data`   | Path to data storage (history collectors keep their position in `event-state/`; deleting it makes them restart from "now") |
 | `LOG_FOLDER`     | `/logs`   | Path to log files                                   |
 | `LOG_LEVEL`      | `info`    | Log level: `error`, `warn`, `info`, `debug`         |
 | `LOG_FORMAT`     | `text`    | Console log format: `text` (human) or `json` (structured) |
