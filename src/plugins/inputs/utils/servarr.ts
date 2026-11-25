@@ -2,6 +2,7 @@ import type { PointSpec } from '../../../types/plugin.types';
 import { booleanFlags } from './flags';
 import { eventTimestamp } from './events';
 import { isNumber, pickNumbers } from './numbers';
+import { dotnetTime } from './time';
 
 export interface ServarrQueueLike {
   size?: number;
@@ -71,15 +72,7 @@ export interface ServarrStatusInput {
   tasks: readonly ServarrTaskLike[];
 }
 
-const MIN_VALID_TIME = Date.UTC(2000, 0, 1);
-
 const label = (value: string | null | undefined): string => value || 'unknown';
-
-/** Epoch ms of a Servarr time; .NET `DateTime.MinValue` (never happened) and unparsable values are undefined. */
-export function servarrTime(value: string | null | undefined): number | undefined {
-  const time = Date.parse(value ?? '');
-  return Number.isFinite(time) && time >= MIN_VALID_TIME ? time : undefined;
-}
 
 /** .NET TimeSpan `[d.]hh:mm:ss[.fffffff]` → seconds. */
 export function parseTimeSpan(span: string | null | undefined): number | undefined {
@@ -105,7 +98,7 @@ export function queueEnrichment(
   if (isNumber(item.size) && isNumber(item.sizeleft) && item.size > 0 && item.sizeleft >= 0 && item.sizeleft <= item.size) {
     fields.progress = (100 * (item.size - item.sizeleft)) / item.size;
   }
-  const eta = servarrTime(item.estimatedCompletionTime);
+  const eta = dotnetTime(item.estimatedCompletionTime);
   if (eta !== undefined) {
     fields.eta_seconds = Math.max(0, Math.floor((eta - now.getTime()) / 1000));
   }
@@ -136,7 +129,7 @@ export function healthPoints(health: readonly ServarrHealthItemLike[], hash: (s:
 export function taskPoints(tasks: readonly ServarrTaskLike[], now: Date): PointSpec[] {
   return tasks.map((task) => {
     const fields: Record<string, number> = pickNumbers(task, { interval: 'interval_minutes' });
-    const last = servarrTime(task.lastExecution);
+    const last = dotnetTime(task.lastExecution);
     if (last !== undefined) {
       fields.last_execution_age_seconds = Math.floor((now.getTime() - last) / 1000);
     }
@@ -144,7 +137,7 @@ export function taskPoints(tasks: readonly ServarrTaskLike[], now: Date): PointS
     if (duration !== undefined) {
       fields.last_duration_seconds = duration;
     }
-    const next = servarrTime(task.nextExecution);
+    const next = dotnetTime(task.nextExecution);
     if (next !== undefined) {
       fields.next_execution_in_seconds = Math.round((next - now.getTime()) / 1000);
     }

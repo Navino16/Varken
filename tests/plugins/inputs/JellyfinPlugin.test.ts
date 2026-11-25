@@ -37,6 +37,10 @@ describe('JellyfinPlugin', () => {
     sessions: { enabled: true, intervalSeconds: 30 },
     libraries: { enabled: true, intervalSeconds: 3600 },
     serverInfo: { enabled: false, intervalSeconds: 300 },
+    status: { enabled: false, intervalSeconds: 300 },
+    history: { enabled: false, intervalSeconds: 300 },
+    inventory: { enabled: false, intervalSeconds: 3600 },
+    liveTv: { enabled: false, intervalSeconds: 300 },
   };
   const sessionsOnly: JellyfinConfig = { ...testConfig, libraries: { enabled: false, intervalSeconds: 3600 } };
   const librariesOnly: JellyfinConfig = { ...testConfig, sessions: { enabled: false, intervalSeconds: 30 } };

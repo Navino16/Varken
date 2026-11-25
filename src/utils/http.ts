@@ -19,6 +19,36 @@ const DEFAULT_RETRY_CONFIG: RetryConfig = {
 };
 
 /**
+ * Query string with OpenAPI's default query style (`form`, `explode: true`): arrays repeat their key and
+ * object parameters (Plex `mediaQuery`) contribute their own entries as top-level keys.
+ */
+export function serializeQuery(params: Record<string, unknown>): string {
+  const pairs: string[] = [];
+  const add = (key: string, value: unknown): void => {
+    if (value === undefined || value === null) {
+      return;
+    }
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        add(key, item);
+      }
+    } else if (value instanceof Date) {
+      add(key, value.toISOString());
+    } else if (typeof value === 'object') {
+      for (const [k, v] of Object.entries(value)) {
+        add(k, v);
+      }
+    } else {
+      pairs.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`);
+    }
+  };
+  for (const [key, value] of Object.entries(params)) {
+    add(key, value);
+  }
+  return pairs.join('&');
+}
+
+/**
  * Create an HTTP client with retry logic and error handling
  */
 export function createHttpClient(config: HttpClientConfig): AxiosInstance {
@@ -32,6 +62,7 @@ export function createHttpClient(config: HttpClientConfig): AxiosInstance {
     baseURL: config.baseURL,
     timeout: config.timeout ?? 30000,
     headers: config.headers ?? {},
+    paramsSerializer: { serialize: serializeQuery },
   };
 
   // Handle SSL verification

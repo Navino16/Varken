@@ -65,6 +65,12 @@ const ScheduleConfigDaysSchema = z.object({
 const scheduleDefault = { enabled: false, intervalSeconds: 30 };
 const scheduleDaysDefault = { enabled: false, intervalDays: 1 };
 const serverInfoDefault = { enabled: false, intervalSeconds: 300 };
+const mediaServerSchedules = {
+  status: ScheduleConfigSchema.default({ enabled: false, intervalSeconds: 300 }),
+  history: ScheduleConfigSchema.default({ enabled: false, intervalSeconds: 300 }),
+  inventory: ScheduleConfigSchema.default({ enabled: false, intervalSeconds: 3600 }),
+  liveTv: ScheduleConfigSchema.default({ enabled: false, intervalSeconds: 300 }),
+};
 const servarrSchedules = {
   status: ScheduleConfigSchema.default({ enabled: false, intervalSeconds: 300 }),
   totals: ScheduleConfigSchema.default({ enabled: false, intervalSeconds: 900 }),
@@ -181,6 +187,7 @@ export const PlexConfigSchema = z.object({
   sessions: ScheduleConfigSchema.default(scheduleDefault),
   libraries: ScheduleConfigSchema.default(scheduleDefault),
   serverInfo: ScheduleConfigSchema.default(serverInfoDefault),
+  ...mediaServerSchedules,
 });
 
 export const JellyfinConfigSchema = z.object({
@@ -191,6 +198,7 @@ export const JellyfinConfigSchema = z.object({
   sessions: ScheduleConfigSchema.default(scheduleDefault),
   libraries: ScheduleConfigSchema.default(scheduleDefault),
   serverInfo: ScheduleConfigSchema.default(serverInfoDefault),
+  ...mediaServerSchedules,
 });
 
 export const EmbyConfigSchema = z.object({
@@ -201,6 +209,7 @@ export const EmbyConfigSchema = z.object({
   sessions: ScheduleConfigSchema.default(scheduleDefault),
   libraries: ScheduleConfigSchema.default(scheduleDefault),
   serverInfo: ScheduleConfigSchema.default(serverInfoDefault),
+  ...mediaServerSchedules,
 });
 
 // =============================================================================

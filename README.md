@@ -216,6 +216,15 @@ Sonarr, Radarr, Lidarr and Readarr also accept these collectors, all disabled by
 
 Prowlarr accepts `status` (300s: health, indexer status, tasks), `history` (300s: one point per release grab) and `inventory` (3600s: indexers and applications).
 
+Plex, Jellyfin and Emby also accept these collectors, all disabled by default:
+
+| Key | Default interval | What it writes |
+|-----|------------------|----------------|
+| `status` | 300s | Scheduled / butler tasks, plugins, activities and background transcodes (Plex), CPU and memory use and hourly bandwidth (Plex), storage (Jellyfin) |
+| `history` | 300s | One point per play (Plex) or activity log entry (Jellyfin, Emby) |
+| `inventory` | 3600s | Users and devices |
+| `liveTv` | 300s | Live TV sessions (Plex), recordings and timers |
+
 ### Output Configuration
 
 Varken supports multiple output backends. You can configure one or several simultaneously — each data point is written to every configured output.

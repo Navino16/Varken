@@ -3,7 +3,8 @@ import type { PluginMetadata, DataPoint, PointSpec, ScheduleConfig } from '../..
 import type { ProwlarrConfig } from '../../types/inputs/prowlarr.types';
 import type { components, paths } from '../../types/generated/prowlarr';
 import { servarrServerInfo } from './utils/servarrServerInfo';
-import { healthPoints, servarrTime, taskPoints } from './utils/servarr';
+import { healthPoints, taskPoints } from './utils/servarr';
+import { dotnetTime } from './utils/time';
 import { pickNumbers } from './utils/numbers';
 import { eventTimestamp } from './utils/events';
 
@@ -194,11 +195,11 @@ export class ProwlarrPlugin extends BaseInputPlugin<ProwlarrConfig> {
       ]);
       const now = new Date();
       const ageOf = (time: string | null | undefined): number | undefined => {
-        const at = servarrTime(time);
+        const at = dotnetTime(time);
         return at === undefined ? undefined : Math.floor((now.getTime() - at) / 1000);
       };
       const indexerStatus: PointSpec[] = statuses.map((status) => {
-        const disabledTill = servarrTime(status.disabledTill);
+        const disabledTill = dotnetTime(status.disabledTill);
         const disabled = disabledTill !== undefined && disabledTill > now.getTime();
         return {
           tags: { type: 'IndexerStatus', indexerId: status.indexerId ?? 0 },
