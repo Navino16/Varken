@@ -14,6 +14,7 @@ vi.mock('../../../src/core/Logger', async () => {
 
 vi.mock('axios', () => ({ default: { create: vi.fn() } }));
 
+type Root = paths['/']['get']['responses'][200]['content']['application/json'];
 type Sessions = paths['/status/sessions']['get']['responses'][200]['content']['application/json'];
 type Session = NonNullable<NonNullable<Sessions['MediaContainer']>['Metadata']>[number];
 
@@ -308,6 +309,17 @@ describe('PlexPlugin', () => {
       const [point] = await plugin.collect();
 
       expect(point.fields.update_available).toBe(0);
+    });
+
+    it('omits active transcodes and remote access the server does not report', async () => {
+      const root = loadFixture<Root>('plex/root');
+      const { transcoderActiveVideoSessions: _t, myPlexMappingState: _m, ...server } = root.MediaContainer ?? {};
+      client.override('/', { MediaContainer: server });
+
+      const [point] = await plugin.collect();
+
+      expect(point.fields).not.toHaveProperty('active_transcodes');
+      expect(point.tags.remote_access).toBe('unknown');
     });
 
     it('schedules serverInfo when enabled', () => {

@@ -228,17 +228,20 @@ export class PlexPlugin extends BaseInputPlugin<PlexConfig> {
     return this.safeFetch('collect Plex server info', async () => {
       const [root, updater] = await Promise.all([this.plex.get('/'), this.plex.get('/updater/status')]);
       const server = root?.MediaContainer;
+      const fields: Record<string, number> = {
+        update_available: (updater?.MediaContainer?.Release?.length ?? 0) > 0 ? 1 : 0,
+      };
+      if (typeof server?.transcoderActiveVideoSessions === 'number') {
+        fields.active_transcodes = server.transcoderActiveVideoSessions;
+      }
       return [
         this.createServerInfoPoint(
           {
             version: server?.version || 'unknown',
             platform: server?.platform || 'unknown',
-            remote_access: server?.myPlexMappingState === undefined ? 'unknown' : String(server.myPlexMappingState),
+            remote_access: typeof server?.myPlexMappingState === 'string' ? server.myPlexMappingState : 'unknown',
           },
-          {
-            update_available: (updater?.MediaContainer?.Release?.length ?? 0) > 0 ? 1 : 0,
-            active_transcodes: server?.transcoderActiveVideoSessions ?? 0,
-          }
+          fields
         ),
       ];
     });
