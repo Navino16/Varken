@@ -223,6 +223,12 @@ export function formatHttpError(error: unknown): string {
 /**
  * Check if an error is a specific HTTP status code
  */
+/** HTTP status of a failed request's response, read structurally (no axios instance check). */
+export function responseStatus(error: unknown): number | undefined {
+  const status = (error as { response?: { status?: unknown } } | null)?.response?.status;
+  return typeof status === 'number' ? status : undefined;
+}
+
 export function isHttpStatus(error: unknown, status: number): boolean {
   if (!axios.isAxiosError(error)) {
     return false;

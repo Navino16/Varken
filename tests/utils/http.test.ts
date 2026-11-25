@@ -10,6 +10,7 @@ import {
   withTimeout,
   extractResponseData,
   serializeQuery,
+  responseStatus,
 } from '../../src/utils/http';
 
 // Mock the logger
@@ -556,6 +557,18 @@ describe('HTTP Utilities', () => {
       const client = createHttpClient({ baseURL: 'http://localhost:8080' });
 
       expect(client.getUri({ url: '/x', params: { mediaQuery: { type: 4 } } })).toBe('http://localhost:8080/x?type=4');
+    });
+  });
+
+  describe('responseStatus', () => {
+    it('reads the response status of a failed request', () => {
+      expect(responseStatus(Object.assign(new Error('x'), { response: { status: 403 } }))).toBe(403);
+    });
+
+    it('is undefined without a response status', () => {
+      expect(responseStatus(new Error('x'))).toBeUndefined();
+      expect(responseStatus(null)).toBeUndefined();
+      expect(responseStatus({ response: { status: '403' } })).toBeUndefined();
     });
   });
 });

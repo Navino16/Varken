@@ -7,6 +7,7 @@ import { isNumber, pickNumbers } from './utils/numbers';
 import { resolutionBucket, resolutionLabel } from './utils/mediaStreams';
 import { ageSeconds } from './utils/time';
 import { eventTimestamp } from './utils/events';
+import { responseStatus } from '../../utils/http';
 import {
   activityPoints,
   backgroundTranscodePoints,
@@ -26,6 +27,10 @@ type Bandwidth = NonNullable<
 >[number];
 type Play = NonNullable<
   NonNullable<paths['/status/sessions/history/all']['get']['responses'][200]['content']['application/json']['MediaContainer']>['Metadata']
+>[number];
+
+type Grab = NonNullable<
+  NonNullable<paths['/media/subscriptions/scheduled']['get']['responses'][200]['content']['application/json']['MediaContainer']>['MediaGrabOperation']
 >[number];
 
 interface PlexDirectory {
@@ -127,6 +132,14 @@ export class PlexPlugin extends BaseInputPlugin<PlexConfig> {
       points.push(...(await this.collectHistory()));
     }
 
+    if (this.config.inventory.enabled) {
+      points.push(...(await this.collectInventory()));
+    }
+
+    if (this.config.liveTv.enabled) {
+      points.push(...(await this.collectLiveTv()));
+    }
+
     return points;
   }
 
@@ -155,6 +168,14 @@ export class PlexPlugin extends BaseInputPlugin<PlexConfig> {
 
     if (this.config.history.enabled) {
       schedules.push(this.createSchedule('history', this.config.history.intervalSeconds, true, this.collectHistory));
+    }
+
+    if (this.config.inventory.enabled) {
+      schedules.push(this.createSchedule('inventory', this.config.inventory.intervalSeconds, true, this.collectInventory));
+    }
+
+    if (this.config.liveTv.enabled) {
+      schedules.push(this.createSchedule('liveTv', this.config.liveTv.intervalSeconds, true, this.collectLiveTv));
     }
 
     return schedules;
@@ -510,6 +531,57 @@ export class PlexPlugin extends BaseInputPlugin<PlexConfig> {
         }))
       );
     });
+  }
+
+  private async collectInventory(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Plex inventory', async () => {
+      const [accounts, devices] = await Promise.all([this.plex.get('/accounts'), this.plex.get('/devices')]);
+      const deviceList = devices?.MediaContainer?.Device ?? [];
+      const now = Date.now();
+      return this.createPoints([
+        { tags: { type: 'Inventory' }, fields: { accounts: accounts?.MediaContainer?.Account?.length ?? 0, devices: deviceList.length } },
+        ...deviceList.map((device): PointSpec => ({
+          tags: { type: 'Device', device_id: device.id ?? 'unknown', device_name: device.name || 'unknown', platform: device.platform || 'unknown' },
+          fields: isNumber(device.createdAt) ? { created_age_days: Math.floor((now - device.createdAt * 1000) / 86_400_000) } : {},
+        })),
+      ]);
+    });
+  }
+
+  private async collectLiveTv(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Plex live TV', async () => {
+      const [sessions, grabs] = await Promise.all([this.plex.get('/livetv/sessions'), this.scheduledRecordings()]);
+      const container = sessions?.MediaContainer;
+      const fields: Record<string, number> = { sessions: container?.size ?? container?.Metadata?.length ?? 0 };
+      const specs: PointSpec[] = [];
+      if (grabs) {
+        const withStatus = (status: string): typeof grabs => grabs.filter((g) => g.status === status);
+        fields.recordings_scheduled = withStatus('scheduled').length;
+        fields.recordings_in_progress = withStatus('inprogress').length;
+        fields.recordings_failed = withStatus('error').length;
+        specs.push(
+          ...withStatus('inprogress').map((grab) => ({
+            tags: { type: 'Recording', grab_id: grab.id || 'unknown', provider: grab.provider || 'unknown' },
+            fields: pickNumbers(grab, { percent: 'percent' }),
+            floatFields: ['percent'],
+          }))
+        );
+      }
+      return this.createPoints([{ tags: { type: 'LiveTv' }, fields }, ...specs]);
+    });
+  }
+
+  /** Recording operations; undefined when the server answers 403 (no DVR or no Plex Pass). */
+  private async scheduledRecordings(): Promise<Grab[] | undefined> {
+    try {
+      return (await this.plex.get('/media/subscriptions/scheduled'))?.MediaContainer?.MediaGrabOperation ?? [];
+    } catch (error) {
+      if (responseStatus(error) === 403) {
+        this.logger.debug('Plex refused the scheduled recordings (no DVR or Plex Pass): recording fields skipped');
+        return undefined;
+      }
+      throw error;
+    }
   }
 
   /** Names of the accounts and devices that history and bandwidth rows reference by id. */

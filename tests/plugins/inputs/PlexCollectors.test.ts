@@ -214,4 +214,69 @@ describe('PlexPlugin collectors', () => {
       expect(plugin.getSchedules().map((s) => [s.name, s.intervalSeconds])).toEqual([['Plex_1_history', 300]]);
     });
   });
+
+  describe('inventory', () => {
+    beforeEach(async () => {
+      await plugin.initialize(config({ inventory: true }));
+    });
+
+    it('collects the inventory', async () => {
+      const points = await plugin.collect();
+
+      expect(ofType(points, 'Inventory')[0].fields).toEqual({ accounts: 2, devices: 2 });
+      expect(ofType(points, 'Device').map((p) => [p.tags.device_id, p.tags.device_name, p.tags.platform, p.fields])).toEqual([
+        [11, 'Living Room TV', 'Android', { created_age_days: 5 }],
+        [12, "Alice's iPhone", 'iOS', { created_age_days: 370 }],
+      ]);
+    });
+
+    it('never emits device client identifiers', async () => {
+      const values = (await plugin.collect()).flatMap((p) => [...Object.values(p.tags), ...Object.values(p.fields)]);
+
+      expect(values).not.toContain('a1b2c3d4e5f6-living-room');
+      expect(values).not.toContain('f6e5d4c3b2a1-alice-phone');
+    });
+
+    it('schedules inventory when enabled', () => {
+      expect(plugin.getSchedules().map((s) => [s.name, s.intervalSeconds])).toEqual([['Plex_1_inventory', 300]]);
+    });
+  });
+
+  describe('live TV', () => {
+    beforeEach(async () => {
+      await plugin.initialize(config({ liveTv: true }));
+    });
+
+    it('collects live TV sessions and recordings', async () => {
+      const points = await plugin.collect();
+
+      expect(ofType(points, 'LiveTv')[0].fields).toEqual({ sessions: 1, recordings_scheduled: 1, recordings_in_progress: 1, recordings_failed: 1 });
+      expect(ofType(points, 'Recording')).toEqual([
+        expect.objectContaining({
+          tags: { type: 'Recording', grab_id: 'grab-2', provider: 'tv.plex.providers.epg.cloud', server: 1 },
+          fields: { percent: 55.5 },
+          floatFields: ['percent'],
+        }),
+      ]);
+    });
+
+    it('keeps live TV sessions when the server has no DVR', async () => {
+      client.fail('/media/subscriptions/scheduled', Object.assign(new Error('Request failed with status code 403'), { response: { status: 403 } }));
+
+      const points = await plugin.collect();
+
+      expect(ofType(points, 'LiveTv')[0].fields).toEqual({ sessions: 1 });
+      expect(ofType(points, 'Recording')).toEqual([]);
+    });
+
+    it('fails on any other scheduled recordings error', async () => {
+      client.fail('/media/subscriptions/scheduled', Object.assign(new Error('Request failed with status code 500'), { response: { status: 500 } }));
+
+      await expect(plugin.collect()).rejects.toThrow('500');
+    });
+
+    it('schedules liveTv when enabled', () => {
+      expect(plugin.getSchedules().map((s) => [s.name, s.intervalSeconds])).toEqual([['Plex_1_liveTv', 300]]);
+    });
+  });
 });
