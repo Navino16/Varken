@@ -36,6 +36,7 @@ describe('PlexPlugin', () => {
     verifySsl: false,
     sessions: { enabled: true, intervalSeconds: 30 },
     libraries: { enabled: true, intervalSeconds: 3600 },
+    serverInfo: { enabled: false, intervalSeconds: 300 },
   };
 
   beforeEach(() => {
@@ -278,6 +279,39 @@ describe('PlexPlugin', () => {
       client.fail('/status/sessions', new Error('plex offline'));
 
       await expect(plugin.collect()).rejects.toThrow('plex offline');
+    });
+  });
+  describe('server info', () => {
+    beforeEach(async () => {
+      await plugin.initialize({
+        ...testConfig,
+        sessions: { enabled: false, intervalSeconds: 30 },
+        libraries: { enabled: false, intervalSeconds: 3600 },
+        serverInfo: { enabled: true, intervalSeconds: 300 },
+      });
+    });
+
+    it('collects server info', async () => {
+      const points = await plugin.collect();
+
+      expect(points).toHaveLength(1);
+      expect(points[0]).toMatchObject({
+        measurement: 'Plex',
+        tags: { type: 'ServerInfo', server: 1, version: '1.42.2.10156-f737b826c', platform: 'Linux', remote_access: 'mapped' },
+        fields: { update_available: 1, active_transcodes: 1 },
+      });
+    });
+
+    it('reports no update when the updater lists no release', async () => {
+      client.override('/updater/status', { MediaContainer: { canInstall: false, checkedAt: 1764050000, status: 0 } });
+
+      const [point] = await plugin.collect();
+
+      expect(point.fields.update_available).toBe(0);
+    });
+
+    it('schedules serverInfo when enabled', () => {
+      expect(plugin.getSchedules().map((s) => s.name)).toEqual(['Plex_1_serverInfo']);
     });
   });
 });

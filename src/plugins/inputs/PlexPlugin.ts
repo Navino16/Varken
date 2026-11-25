@@ -57,6 +57,10 @@ export class PlexPlugin extends BaseInputPlugin<PlexConfig> {
       points.push(...(await this.collectLibraries()));
     }
 
+    if (this.config.serverInfo.enabled) {
+      points.push(...(await this.collectServerInfo()));
+    }
+
     return points;
   }
 
@@ -73,6 +77,10 @@ export class PlexPlugin extends BaseInputPlugin<PlexConfig> {
       schedules.push(
         this.createSchedule('libraries', this.config.libraries.intervalSeconds, true, this.collectLibraries)
       );
+    }
+
+    if (this.config.serverInfo.enabled) {
+      schedules.push(this.createSchedule('serverInfo', this.config.serverInfo.intervalSeconds, true, this.collectServerInfo));
     }
 
     return schedules;
@@ -214,5 +222,25 @@ export class PlexPlugin extends BaseInputPlugin<PlexConfig> {
         progress_percent: duration > 0 ? Math.round(((session.viewOffset ?? 0) / duration) * 100) : 0,
       }
     );
+  }
+
+  private async collectServerInfo(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Plex server info', async () => {
+      const [root, updater] = await Promise.all([this.plex.get('/'), this.plex.get('/updater/status')]);
+      const server = root?.MediaContainer;
+      return [
+        this.createServerInfoPoint(
+          {
+            version: server?.version || 'unknown',
+            platform: server?.platform || 'unknown',
+            remote_access: server?.myPlexMappingState === undefined ? 'unknown' : String(server.myPlexMappingState),
+          },
+          {
+            update_available: (updater?.MediaContainer?.Release?.length ?? 0) > 0 ? 1 : 0,
+            active_transcodes: server?.transcoderActiveVideoSessions ?? 0,
+          }
+        ),
+      ];
+    });
   }
 }

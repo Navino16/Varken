@@ -53,6 +53,8 @@ export const contractRoutes: ContractRoute[] = [
   { service: 'ombi', method: 'get', path: '/api/v1/Request/movie', fixture: 'ombi/request-movie' },
   { service: 'ombi', method: 'get', path: '/api/v1/Status', fixture: 'ombi/status' },
   { service: 'plex', method: 'get', path: '/identity', fixture: 'plex/identity' },
+  { service: 'plex', method: 'get', path: '/', fixture: 'plex/root' },
+  { service: 'plex', method: 'get', path: '/updater/status', fixture: 'plex/updater-status' },
   { service: 'plex', method: 'get', path: '/status/sessions', fixture: 'plex/status-sessions' },
   { service: 'plex', method: 'get', path: '/library/sections/all', fixture: 'plex/library-sections' },
   { service: 'plex', method: 'get', path: '/library/sections/{sectionId}/all', fixture: 'plex/library-section-all' },
