@@ -7,6 +7,7 @@ import { getOutputPluginRegistry } from './plugins/outputs';
 import type { HealthServerConfig } from './core/HealthServer';
 import type { VarkenConfig } from './config/schemas/config.schema';
 import { validateEnvironment } from './utils/env';
+import { useEventStateFolder } from './utils/EventStateStore';
 import { version as VERSION } from '../package.json';
 
 export { VERSION };
@@ -59,6 +60,7 @@ export async function main(deps: MainDependencies = defaultDependencies): Promis
 
   logger.info(`Config folder: ${configFolder}`);
   logger.info(`Data folder: ${dataFolder}`);
+  useEventStateFolder(dryRun ? null : dataFolder);
   if (dryRun) {
     logger.info('Mode: dry-run (no data will be written)');
   } else if (healthEnabled) {

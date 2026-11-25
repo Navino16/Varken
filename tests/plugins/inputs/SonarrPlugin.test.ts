@@ -46,6 +46,10 @@ describe('SonarrPlugin', () => {
     queue: { enabled: true, intervalSeconds: 30 },
     calendar: { enabled: true, intervalSeconds: 60, missingDays: 7, futureDays: 7 },
     serverInfo: { enabled: false, intervalSeconds: 300 },
+    status: { enabled: false, intervalSeconds: 300 },
+    totals: { enabled: false, intervalSeconds: 900 },
+    history: { enabled: false, intervalSeconds: 300 },
+    library: { enabled: false, intervalDays: 1 },
   };
 
   beforeEach(() => {
@@ -117,6 +121,29 @@ describe('SonarrPlugin', () => {
 
     const ofType = async (type: string): Promise<DataPoint[]> =>
       (await plugin.collect()).filter((p) => p.tags.type === type);
+
+    it('enriches queue points with download state', async () => {
+      const [point] = await ofType('Queue');
+
+      expect(point.tags).toMatchObject({
+        status: 'downloading',
+        tracked_download_state: 'downloading',
+        tracked_download_status: 'ok',
+        download_client: 'SABnzbd',
+        indexer: 'NZBgeek',
+      });
+      expect(point.fields).toEqual({ hash: expect.any(String), size: 2147483648, sizeleft: 1073741824, progress: 50, eta_seconds: 28800 });
+      expect(point.floatFields).toEqual(['progress']);
+    });
+
+    it('omits progress for a queue item without size', async () => {
+      client.override('/api/v3/queue', page([{ ...queueRecords()[0], size: 0, sizeleft: 0 }]));
+
+      const [point] = await ofType('Queue');
+
+      expect(point.fields).not.toHaveProperty('progress');
+      expect(point.fields.size).toBe(0);
+    });
 
     it('collects queue items from the queue fixture', async () => {
       const points = await ofType('Queue');
@@ -243,6 +270,50 @@ describe('SonarrPlugin', () => {
       const second = (await plugin.collect()).map((p) => p.fields.hash);
 
       expect(second).toEqual(first);
+    });
+  });
+
+  describe('library', () => {
+    beforeEach(async () => {
+      await plugin.initialize({
+        ...testConfig,
+        queue: { enabled: false, intervalSeconds: 30 },
+        calendar: { ...testConfig.calendar, enabled: false },
+        library: { enabled: true, intervalDays: 2 },
+      });
+    });
+
+    it('collects library statistics', async () => {
+      const points = await plugin.collect();
+      const series = points.filter((p) => p.tags.type === 'Series');
+
+      expect(series.map((p) => p.tags)).toEqual([
+        { type: 'Series', server: 1, seriesId: 10, name: 'Severance', status: 'continuing', ended: 0, network: 'Apple TV+', series_type: 'standard' },
+        { type: 'Series', server: 1, seriesId: 20, name: 'The Wire', status: 'ended', ended: 1, network: 'unknown', series_type: 'standard' },
+      ]);
+      expect(series[0].fields).toEqual({
+        monitored: 1,
+        season_count: 2,
+        episode_count: 19,
+        episode_file_count: 15,
+        total_episode_count: 19,
+        size_on_disk: 64424509440,
+        percent_of_episodes: 78.94736842105263,
+      });
+      expect(series[1].floatFields).toEqual(['percent_of_episodes']);
+      expect(points.find((p) => p.tags.type === 'Library')?.fields).toEqual({
+        series: 2,
+        series_monitored: 1,
+        series_ended: 1,
+        episodes: 79,
+        episode_files: 75,
+        total_episodes: 79,
+        size_on_disk: 279172874240,
+      });
+    });
+
+    it('schedules library every intervalDays', () => {
+      expect(plugin.getSchedules().find((s) => s.name === 'Sonarr_1_library')?.intervalSeconds).toBe(172800);
     });
   });
 

@@ -1,0 +1,34 @@
+[
+  {
+    "id": 1,
+    "artistName": "Radiohead",
+    "status": "continuing",
+    "ended": false,
+    "monitored": true,
+    "foreignArtistId": "a74b1b7f-71a5-4011-9441-d0b5e4122711",
+    "statistics": {
+      "albumCount": 9,
+      "trackFileCount": 80,
+      "trackCount": 100,
+      "totalTrackCount": 120,
+      "sizeOnDisk": 3221225472,
+      "percentOfTracks": 80
+    }
+  },
+  {
+    "id": 2,
+    "artistName": "Daft Punk",
+    "status": "ended",
+    "ended": true,
+    "monitored": false,
+    "foreignArtistId": "056e4f3e-d505-4dad-8ec1-d04f521cbb56",
+    "statistics": {
+      "albumCount": 4,
+      "trackFileCount": 30,
+      "trackCount": 40,
+      "totalTrackCount": 45,
+      "sizeOnDisk": 1073741824,
+      "percentOfTracks": 75
+    }
+  }
+]

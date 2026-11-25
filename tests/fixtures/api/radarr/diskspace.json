@@ -1,0 +1,16 @@
+[
+  {
+    "id": 1,
+    "path": "/data/media",
+    "label": "media",
+    "freeSpace": 250000000000,
+    "totalSpace": 1000000000000
+  },
+  {
+    "id": 2,
+    "path": "/config",
+    "label": "config",
+    "freeSpace": 50000000000,
+    "totalSpace": 100000000000
+  }
+]

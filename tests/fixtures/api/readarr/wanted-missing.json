@@ -51,7 +51,14 @@
         ],
         "added": "2024-02-01T10:00:00Z"
       },
-      "added": "2024-02-01T10:00:00Z"
+      "added": "2024-02-01T10:00:00Z",
+      "statistics": {
+        "bookFileCount": 0,
+        "bookCount": 1,
+        "totalBookCount": 1,
+        "sizeOnDisk": 0,
+        "percentOfBooks": 0
+      }
     },
     {
       "id": 22,

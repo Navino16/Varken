@@ -1,0 +1,57 @@
+{
+  "page": 1,
+  "pageSize": 1,
+  "sortKey": "releaseDate",
+  "sortDirection": "descending",
+  "totalRecords": 4,
+  "records": [
+    {
+      "id": 31,
+      "title": "Exhalation",
+      "authorTitle": "chiang, ted Exhalation",
+      "seriesTitle": "",
+      "disambiguation": "",
+      "overview": "Exhalation overview.",
+      "authorId": 3,
+      "foreignBookId": "41160292",
+      "foreignEditionId": "41160292",
+      "titleSlug": "41160292-exhalation",
+      "monitored": true,
+      "anyEditionOk": true,
+      "releaseDate": "2019-05-07T00:00:00Z",
+      "pageCount": 352,
+      "genres": [
+        "Science Fiction"
+      ],
+      "author": {
+        "id": 3,
+        "authorMetadataId": 3,
+        "status": "continuing",
+        "ended": false,
+        "authorName": "Ted Chiang",
+        "authorNameLastFirst": "Chiang, Ted",
+        "foreignAuthorId": "130012",
+        "titleSlug": "130012-ted-chiang",
+        "overview": "Ted Chiang overview.",
+        "disambiguation": "",
+        "path": "/books/Ted Chiang",
+        "qualityProfileId": 1,
+        "metadataProfileId": 1,
+        "monitored": true,
+        "monitorNewItems": "all",
+        "rootFolderPath": "/books",
+        "genres": [
+          "Science Fiction"
+        ],
+        "cleanName": "tedchiang",
+        "sortName": "ted chiang",
+        "sortNameLastFirst": "chiang, ted",
+        "tags": [
+          1
+        ],
+        "added": "2024-02-01T10:00:00Z"
+      },
+      "added": "2024-02-01T10:00:00Z"
+    }
+  ]
+}

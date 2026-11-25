@@ -17,6 +17,14 @@ export interface DataPoint {
   timestamp: Date;
 }
 
+/** A point before the plugin adds its measurement and `server` tag (see BaseInputPlugin.createPoints). */
+export interface PointSpec {
+  tags: Record<string, string | number>;
+  fields: Record<string, string | number>;
+  timestamp?: Date;
+  floatFields?: readonly string[];
+}
+
 export interface ScheduleConfig {
   name: string;
   intervalSeconds: number;

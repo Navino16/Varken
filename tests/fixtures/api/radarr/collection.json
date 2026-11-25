@@ -1,0 +1,48 @@
+[
+  {
+    "id": 1,
+    "title": "Dune Collection",
+    "tmdbId": 726871,
+    "monitored": true,
+    "missingMovies": 1,
+    "movies": [
+      {
+        "tmdbId": 438631,
+        "title": "Dune",
+        "year": 2021,
+        "isExisting": true,
+        "isExcluded": false
+      },
+      {
+        "tmdbId": 693134,
+        "title": "Dune: Part Two",
+        "year": 2024,
+        "isExisting": true,
+        "isExcluded": false
+      },
+      {
+        "tmdbId": 1170608,
+        "title": "Dune: Part Three",
+        "year": 2026,
+        "isExisting": false,
+        "isExcluded": false
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "title": "Heat Collection",
+    "tmdbId": 1000001,
+    "monitored": false,
+    "missingMovies": 0,
+    "movies": [
+      {
+        "tmdbId": 949,
+        "title": "Heat",
+        "year": 1995,
+        "isExisting": true,
+        "isExcluded": false
+      }
+    ]
+  }
+]

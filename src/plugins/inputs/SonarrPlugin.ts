@@ -1,9 +1,11 @@
 import { BaseInputPlugin } from './BaseInputPlugin';
 import { PROTOCOL_ID } from './constants';
-import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
+import type { PluginMetadata, DataPoint, PointSpec, ScheduleConfig } from '../../types/plugin.types';
 import type { SonarrConfig } from '../../types/inputs/sonarr.types';
 import type { paths } from '../../types/generated/sonarr';
 import { servarrServerInfo } from './utils/servarrServerInfo';
+import { queueEnrichment, statusPoints, totalsPoint, historyPoint, pickNumbers, sumFields } from './utils/servarr';
+import { booleanFlags } from './utils/flags';
 
 /**
  * Sonarr input plugin
@@ -51,6 +53,22 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
       points.push(...missingPoints, ...futurePoints);
     }
 
+    if (this.config.status.enabled) {
+      points.push(...(await this.collectStatus()));
+    }
+
+    if (this.config.totals.enabled) {
+      points.push(...(await this.collectTotals()));
+    }
+
+    if (this.config.history.enabled) {
+      points.push(...(await this.collectHistory()));
+    }
+
+    if (this.config.library.enabled) {
+      points.push(...(await this.collectLibrary()));
+    }
+
     if (this.config.serverInfo.enabled) {
       points.push(...(await this.collectServerInfo()));
     }
@@ -89,6 +107,22 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
       );
     }
 
+    if (this.config.status.enabled) {
+      schedules.push(this.createSchedule('status', this.config.status.intervalSeconds, true, this.collectStatus));
+    }
+
+    if (this.config.totals.enabled) {
+      schedules.push(this.createSchedule('totals', this.config.totals.intervalSeconds, true, this.collectTotals));
+    }
+
+    if (this.config.history.enabled) {
+      schedules.push(this.createSchedule('history', this.config.history.intervalSeconds, true, this.collectHistory));
+    }
+
+    if (this.config.library.enabled) {
+      schedules.push(this.createSchedule('library', this.config.library.intervalDays * 24 * 60 * 60, true, this.collectLibrary));
+    }
+
     if (this.config.serverInfo.enabled) {
       schedules.push(this.createSchedule('serverInfo', this.config.serverInfo.intervalSeconds, true, this.collectServerInfo));
     }
@@ -111,6 +145,7 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
         return points;
       }
 
+      const now = new Date();
       for (const queueItem of allRecords) {
         if (!queueItem.series || !queueItem.episode) {
           this.logger.debug('Skipping queue item with missing series or episode data');
@@ -126,6 +161,7 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
 
         const hashId = this.hashit(`${this.config.id}${seriesTitle}${sxe}`);
 
+        const enrichment = queueEnrichment(queueItem, now);
         points.push(
           this.createDataPoint(
             'Sonarr',
@@ -139,10 +175,11 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
               protocol,
               protocol_id: protocolId,
               quality,
+              ...enrichment.tags,
             },
-            {
-              hash: hashId,
-            }
+            { hash: hashId, ...enrichment.fields },
+            undefined,
+            enrichment.floatFields
           )
         );
       }
@@ -249,6 +286,85 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
       ]);
       const { tags, fields } = servarrServerInfo(status, updates, health, new Date());
       return [this.createServerInfoPoint(tags, fields)];
+    });
+  }
+
+  private async collectStatus(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Sonarr status', async () => {
+      const [health, disks, roots, queue, tasks] = await Promise.all([
+        this.sonarr.get('/api/v3/health'),
+        this.sonarr.get('/api/v3/diskspace'),
+        this.sonarr.get('/api/v3/rootfolder'),
+        this.sonarr.get('/api/v3/queue/status'),
+        this.sonarr.get('/api/v3/system/task'),
+      ]);
+      return this.createPoints(statusPoints({ health, disks, roots, queue, tasks }, new Date(), (s) => this.hashit(s)));
+    });
+  }
+
+  private async collectTotals(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Sonarr totals', async () => {
+      const wanted = { page: 1, pageSize: 1, monitored: true };
+      const [missing, cutoff, blocklist] = await Promise.all([
+        this.sonarr.get('/api/v3/wanted/missing', { query: wanted }),
+        this.sonarr.get('/api/v3/wanted/cutoff', { query: wanted }),
+        this.sonarr.get('/api/v3/blocklist', { query: { page: 1, pageSize: 1 } }),
+      ]);
+      return this.createPoints([
+        totalsPoint({ missing: missing.totalRecords, cutoff_unmet: cutoff.totalRecords, blocklist: blocklist.totalRecords }),
+      ]);
+    });
+  }
+
+  private async collectHistory(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Sonarr history', async () => {
+      const date = (await this.eventCursor('history')).toISOString();
+      const records = await this.sonarr.get('/api/v3/history/since', { query: { date, includeSeries: false, includeEpisode: false } });
+      const fresh = await this.takeNewEvents('history', records, (r) => Date.parse(r.date ?? ''), (r) => String(r.id));
+      return this.createPoints(
+        fresh.flatMap((r) => historyPoint(r, { seriesId: r.seriesId ?? 0, episodeId: r.episodeId ?? 0 }, this.hashit(`${this.config.id}${r.id}`)) ?? [])
+      );
+    });
+  }
+
+  private async collectLibrary(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Sonarr library', async () => {
+      const series = await this.sonarr.get('/api/v3/series');
+      const items: PointSpec[] = series.map((s) => ({
+        tags: {
+          type: 'Series',
+          seriesId: s.id ?? 0,
+          name: s.title ?? 'unknown',
+          status: s.status ?? 'unknown',
+          ended: s.ended ? 1 : 0,
+          network: s.network || 'unknown',
+          series_type: s.seriesType ?? 'unknown',
+        },
+        fields: {
+          ...booleanFlags({ monitored: s.monitored }),
+          ...pickNumbers(s.statistics, {
+            seasonCount: 'season_count',
+            episodeCount: 'episode_count',
+            episodeFileCount: 'episode_file_count',
+            totalEpisodeCount: 'total_episode_count',
+            sizeOnDisk: 'size_on_disk',
+            percentOfEpisodes: 'percent_of_episodes',
+          }),
+        },
+        floatFields: ['percent_of_episodes'],
+      }));
+      const summary = {
+        series: items.length,
+        series_ended: series.filter((s) => s.ended).length,
+        ...sumFields(items, {
+          monitored: 'series_monitored',
+          episode_count: 'episodes',
+          episode_file_count: 'episode_files',
+          total_episode_count: 'total_episodes',
+          size_on_disk: 'size_on_disk',
+        }),
+      };
+      return this.createPoints([{ tags: { type: 'Library' }, fields: summary }, ...items]);
     });
   }
 }

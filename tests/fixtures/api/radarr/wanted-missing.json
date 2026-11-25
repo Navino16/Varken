@@ -1,0 +1,48 @@
+{
+  "page": 1,
+  "pageSize": 1,
+  "sortKey": "movieMetadata.sortTitle",
+  "sortDirection": "descending",
+  "totalRecords": 12,
+  "records": [
+    {
+      "id": 1,
+      "title": "Heat",
+      "originalTitle": "Heat",
+      "originalLanguage": {
+        "id": 1,
+        "name": "English"
+      },
+      "sortTitle": "heat",
+      "sizeOnDisk": 0,
+      "status": "released",
+      "overview": "Heat overview.",
+      "year": 1995,
+      "studio": "Studio",
+      "path": "/movies/Heat (1995)",
+      "qualityProfileId": 1,
+      "hasFile": false,
+      "movieFileId": 0,
+      "monitored": true,
+      "minimumAvailability": "released",
+      "isAvailable": true,
+      "folderName": "/movies/Heat (1995)",
+      "runtime": 120,
+      "cleanTitle": "heat",
+      "imdbId": "tt0113277",
+      "tmdbId": 949,
+      "titleSlug": "heat-949",
+      "rootFolderPath": "/movies",
+      "certification": "R",
+      "genres": [
+        "Crime",
+        "Thriller"
+      ],
+      "tags": [
+        1
+      ],
+      "added": "2024-03-01T12:00:00Z",
+      "popularity": 42.5
+    }
+  ]
+}

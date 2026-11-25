@@ -96,6 +96,18 @@ inputs:
   #     serverInfo:
   #       enabled: true
   #       intervalSeconds: 300
+  #     status:
+  #       enabled: true
+  #       intervalSeconds: 300
+  #     totals:
+  #       enabled: true
+  #       intervalSeconds: 900
+  #     history:
+  #       enabled: true
+  #       intervalSeconds: 300
+  #     library:
+  #       enabled: true
+  #       intervalDays: 1
 
   # Radarr - Movie management
   # radarr:
@@ -112,6 +124,18 @@ inputs:
   #     serverInfo:
   #       enabled: true
   #       intervalSeconds: 300
+  #     status:
+  #       enabled: true
+  #       intervalSeconds: 300
+  #     totals:
+  #       enabled: true
+  #       intervalSeconds: 900
+  #     history:
+  #       enabled: true
+  #       intervalSeconds: 300
+  #     library:
+  #       enabled: true
+  #       intervalDays: 1
 
   # Readarr - eBook management
   # readarr:
@@ -128,6 +152,18 @@ inputs:
   #     serverInfo:
   #       enabled: true
   #       intervalSeconds: 300
+  #     status:
+  #       enabled: true
+  #       intervalSeconds: 300
+  #     totals:
+  #       enabled: true
+  #       intervalSeconds: 900
+  #     history:
+  #       enabled: true
+  #       intervalSeconds: 300
+  #     library:
+  #       enabled: true
+  #       intervalDays: 1
 
   # Lidarr - Music management
   # lidarr:
@@ -144,6 +180,18 @@ inputs:
   #     serverInfo:
   #       enabled: true
   #       intervalSeconds: 300
+  #     status:
+  #       enabled: true
+  #       intervalSeconds: 300
+  #     totals:
+  #       enabled: true
+  #       intervalSeconds: 900
+  #     history:
+  #       enabled: true
+  #       intervalSeconds: 300
+  #     library:
+  #       enabled: true
+  #       intervalDays: 1
 
   # Prowlarr - Indexer management
   # prowlarr:
@@ -157,6 +205,15 @@ inputs:
   #     serverInfo:
   #       enabled: true
   #       intervalSeconds: 300
+  #     status:
+  #       enabled: true
+  #       intervalSeconds: 300
+  #     history:
+  #       enabled: true
+  #       intervalSeconds: 300
+  #     inventory:
+  #       enabled: true
+  #       intervalSeconds: 3600
 
   # Bazarr - Subtitle management
   # bazarr:

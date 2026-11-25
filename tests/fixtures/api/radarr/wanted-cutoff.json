@@ -1,0 +1,47 @@
+{
+  "page": 1,
+  "pageSize": 1,
+  "sortKey": "movieMetadata.sortTitle",
+  "sortDirection": "descending",
+  "totalRecords": 3,
+  "records": [
+    {
+      "id": 4,
+      "title": "Tenet",
+      "originalTitle": "Tenet",
+      "originalLanguage": {
+        "id": 1,
+        "name": "English"
+      },
+      "sortTitle": "tenet",
+      "sizeOnDisk": 0,
+      "status": "released",
+      "overview": "Tenet overview.",
+      "year": 2020,
+      "studio": "Studio",
+      "path": "/movies/Tenet (2020)",
+      "qualityProfileId": 1,
+      "hasFile": false,
+      "movieFileId": 0,
+      "monitored": false,
+      "minimumAvailability": "released",
+      "isAvailable": true,
+      "folderName": "/movies/Tenet (2020)",
+      "runtime": 120,
+      "cleanTitle": "tenet",
+      "imdbId": "tt6723592",
+      "tmdbId": 577922,
+      "titleSlug": "tenet-577922",
+      "rootFolderPath": "/movies",
+      "certification": "R",
+      "genres": [
+        "Action"
+      ],
+      "tags": [
+        1
+      ],
+      "added": "2024-03-01T12:00:00Z",
+      "popularity": 42.5
+    }
+  ]
+}

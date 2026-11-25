@@ -1,9 +1,11 @@
 import { BaseInputPlugin } from './BaseInputPlugin';
 import { PROTOCOL_ID } from './constants';
-import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
+import type { PluginMetadata, DataPoint, PointSpec, ScheduleConfig } from '../../types/plugin.types';
 import type { ReadarrConfig } from '../../types/inputs/readarr.types';
 import type { paths } from '../../types/generated/readarr';
 import { servarrServerInfo } from './utils/servarrServerInfo';
+import { queueEnrichment, statusPoints, totalsPoint, historyPoint, pickNumbers, releaseAgeDays, sumFields } from './utils/servarr';
+import { booleanFlags } from './utils/flags';
 
 /**
  * Readarr input plugin
@@ -50,6 +52,22 @@ export class ReadarrPlugin extends BaseInputPlugin<ReadarrConfig> {
       points.push(...missingPoints);
     }
 
+    if (this.config.status.enabled) {
+      points.push(...(await this.collectStatus()));
+    }
+
+    if (this.config.totals.enabled) {
+      points.push(...(await this.collectTotals()));
+    }
+
+    if (this.config.history.enabled) {
+      points.push(...(await this.collectHistory()));
+    }
+
+    if (this.config.library.enabled) {
+      points.push(...(await this.collectLibrary()));
+    }
+
     if (this.config.serverInfo.enabled) {
       points.push(...(await this.collectServerInfo()));
     }
@@ -75,6 +93,22 @@ export class ReadarrPlugin extends BaseInputPlugin<ReadarrConfig> {
       );
     }
 
+    if (this.config.status.enabled) {
+      schedules.push(this.createSchedule('status', this.config.status.intervalSeconds, true, this.collectStatus));
+    }
+
+    if (this.config.totals.enabled) {
+      schedules.push(this.createSchedule('totals', this.config.totals.intervalSeconds, true, this.collectTotals));
+    }
+
+    if (this.config.history.enabled) {
+      schedules.push(this.createSchedule('history', this.config.history.intervalSeconds, true, this.collectHistory));
+    }
+
+    if (this.config.library.enabled) {
+      schedules.push(this.createSchedule('library', this.config.library.intervalDays * 24 * 60 * 60, true, this.collectLibrary));
+    }
+
     if (this.config.serverInfo.enabled) {
       schedules.push(this.createSchedule('serverInfo', this.config.serverInfo.intervalSeconds, true, this.collectServerInfo));
     }
@@ -97,6 +131,7 @@ export class ReadarrPlugin extends BaseInputPlugin<ReadarrConfig> {
         return points;
       }
 
+      const now = new Date();
       for (const queueItem of allRecords) {
         if (!queueItem.book) {
           this.logger.debug('Skipping queue item with missing book data');
@@ -112,6 +147,7 @@ export class ReadarrPlugin extends BaseInputPlugin<ReadarrConfig> {
 
         const hashId = this.hashit(`${this.config.id}${name}${quality}`);
 
+        const enrichment = queueEnrichment(queueItem, now);
         points.push(
           this.createDataPoint(
             'Readarr',
@@ -124,10 +160,11 @@ export class ReadarrPlugin extends BaseInputPlugin<ReadarrConfig> {
               protocol,
               protocol_id: protocolId,
               titleSlug: book.titleSlug ?? 'unknown',
+              ...enrichment.tags,
             },
-            {
-              hash: hashId,
-            }
+            { hash: hashId, ...enrichment.fields },
+            undefined,
+            enrichment.floatFields
           )
         );
       }
@@ -152,6 +189,7 @@ export class ReadarrPlugin extends BaseInputPlugin<ReadarrConfig> {
         return points;
       }
 
+      const now = new Date();
       for (const book of books) {
         const authorName = book.author?.authorName || 'Unknown Author';
         const bookName = `${book.title ?? 'unknown'} - ${authorName}`;
@@ -159,6 +197,7 @@ export class ReadarrPlugin extends BaseInputPlugin<ReadarrConfig> {
 
         const hashId = this.hashit(`${this.config.id}${bookName}${foreignBookId}`);
 
+        const age = releaseAgeDays(book.releaseDate, now);
         points.push(
           this.createDataPoint(
             'Readarr',
@@ -172,7 +211,17 @@ export class ReadarrPlugin extends BaseInputPlugin<ReadarrConfig> {
             },
             {
               hash: hashId,
-            }
+              ...(age === undefined ? {} : { release_age_days: age }),
+              ...pickNumbers(book.statistics, {
+                bookFileCount: 'book_file_count',
+                bookCount: 'book_count',
+                totalBookCount: 'total_book_count',
+                sizeOnDisk: 'size_on_disk',
+                percentOfBooks: 'percent_of_books',
+              }),
+            },
+            undefined,
+            ['percent_of_books']
           )
         );
       }
@@ -191,6 +240,76 @@ export class ReadarrPlugin extends BaseInputPlugin<ReadarrConfig> {
       ]);
       const { tags, fields } = servarrServerInfo(status, updates, health, new Date());
       return [this.createServerInfoPoint(tags, fields)];
+    });
+  }
+
+  private async collectStatus(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Readarr status', async () => {
+      const [health, disks, roots, queue, tasks] = await Promise.all([
+        this.readarr.get('/api/v1/health'),
+        this.readarr.get('/api/v1/diskspace'),
+        this.readarr.get('/api/v1/rootfolder'),
+        this.readarr.get('/api/v1/queue/status'),
+        this.readarr.get('/api/v1/system/task'),
+      ]);
+      return this.createPoints(statusPoints({ health, disks, roots, queue, tasks }, new Date(), (s) => this.hashit(s)));
+    });
+  }
+
+  private async collectTotals(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Readarr totals', async () => {
+      const wanted = { page: 1, pageSize: 1, monitored: true };
+      const [missing, cutoff, blocklist] = await Promise.all([
+        this.readarr.get('/api/v1/wanted/missing', { query: wanted }),
+        this.readarr.get('/api/v1/wanted/cutoff', { query: wanted }),
+        this.readarr.get('/api/v1/blocklist', { query: { page: 1, pageSize: 1 } }),
+      ]);
+      return this.createPoints([
+        totalsPoint({ missing: missing.totalRecords, cutoff_unmet: cutoff.totalRecords, blocklist: blocklist.totalRecords }),
+      ]);
+    });
+  }
+
+  private async collectHistory(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Readarr history', async () => {
+      const date = (await this.eventCursor('history')).toISOString();
+      const records = await this.readarr.get('/api/v1/history/since', { query: { date, includeAuthor: false, includeBook: false } });
+      const fresh = await this.takeNewEvents('history', records, (r) => Date.parse(r.date ?? ''), (r) => String(r.id));
+      return this.createPoints(
+        fresh.flatMap((r) => historyPoint(r, { authorId: r.authorId ?? 0, bookId: r.bookId ?? 0 }, this.hashit(`${this.config.id}${r.id}`)) ?? [])
+      );
+    });
+  }
+
+  private async collectLibrary(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Readarr library', async () => {
+      const authors = await this.readarr.get('/api/v1/author');
+      const items: PointSpec[] = authors.map((a) => ({
+        tags: { type: 'Author', authorId: a.id ?? 0, name: a.authorName ?? 'unknown', status: a.status ?? 'unknown', ended: a.ended ? 1 : 0 },
+        fields: {
+          ...booleanFlags({ monitored: a.monitored }),
+          ...pickNumbers(a.statistics, {
+            bookFileCount: 'book_file_count',
+            bookCount: 'book_count',
+            availableBookCount: 'available_book_count',
+            totalBookCount: 'total_book_count',
+            sizeOnDisk: 'size_on_disk',
+            percentOfBooks: 'percent_of_books',
+          }),
+        },
+        floatFields: ['percent_of_books'],
+      }));
+      const summary = {
+        authors: items.length,
+        ...sumFields(items, {
+          monitored: 'authors_monitored',
+          book_count: 'books',
+          book_file_count: 'book_files',
+          total_book_count: 'total_books',
+          size_on_disk: 'size_on_disk',
+        }),
+      };
+      return this.createPoints([{ tags: { type: 'Library' }, fields: summary }, ...items]);
     });
   }
 }

@@ -1,0 +1,77 @@
+[
+  {
+    "id": 1,
+    "name": "NZBgeek",
+    "implementationName": "Newznab",
+    "implementation": "Newznab",
+    "configContract": "NewznabSettings",
+    "fields": [
+      {
+        "order": 0,
+        "name": "baseUrl",
+        "value": "https://api.nzbgeek.info"
+      },
+      {
+        "order": 1,
+        "name": "apiKey",
+        "value": "nzbgeek-secret-key"
+      }
+    ],
+    "enable": true,
+    "protocol": "usenet",
+    "privacy": "private",
+    "priority": 25,
+    "appProfileId": 1,
+    "added": "2026-01-01T00:00:00Z"
+  },
+  {
+    "id": 2,
+    "name": "Nyaa.si",
+    "implementationName": "Cardigann",
+    "implementation": "Cardigann",
+    "configContract": "CardigannSettings",
+    "fields": [
+      {
+        "order": 0,
+        "name": "baseUrl",
+        "value": "https://nyaa.si"
+      },
+      {
+        "order": 1,
+        "name": "apiKey",
+        "value": "nyaa.si-secret-key"
+      }
+    ],
+    "enable": true,
+    "protocol": "torrent",
+    "privacy": "public",
+    "priority": 25,
+    "appProfileId": 1,
+    "added": "2026-01-01T00:00:00Z"
+  },
+  {
+    "id": 5,
+    "name": "DrunkenSlug",
+    "implementationName": "Newznab",
+    "implementation": "Newznab",
+    "configContract": "NewznabSettings",
+    "fields": [
+      {
+        "order": 0,
+        "name": "baseUrl",
+        "value": "https://drunkenslug.com"
+      },
+      {
+        "order": 1,
+        "name": "apiKey",
+        "value": "drunkenslug-secret-key"
+      }
+    ],
+    "enable": false,
+    "protocol": "usenet",
+    "privacy": "private",
+    "priority": 10,
+    "appProfileId": 1,
+    "added": "2026-01-01T00:00:00Z"
+  }
+]

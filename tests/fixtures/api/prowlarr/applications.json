@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "name": "Sonarr",
+    "implementationName": "Sonarr",
+    "implementation": "Sonarr",
+    "configContract": "SonarrSettings",
+    "fields": [
+      {
+        "order": 0,
+        "name": "apiKey",
+        "value": "sonarr-app-secret"
+      }
+    ],
+    "syncLevel": "fullSync"
+  },
+  {
+    "id": 2,
+    "name": "Radarr 4K",
+    "implementationName": "Radarr",
+    "implementation": "Radarr",
+    "configContract": "RadarrSettings",
+    "fields": [
+      {
+        "order": 0,
+        "name": "apiKey",
+        "value": "radarr-app-secret"
+      }
+    ],
+    "syncLevel": "disabled"
+  }
+]

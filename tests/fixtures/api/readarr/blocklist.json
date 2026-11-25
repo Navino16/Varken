@@ -1,0 +1,32 @@
+{
+  "page": 1,
+  "pageSize": 1,
+  "sortKey": "date",
+  "sortDirection": "descending",
+  "totalRecords": 8,
+  "records": [
+    {
+      "id": 1,
+      "authorId": 1,
+      "bookIds": [
+        1
+      ],
+      "sourceTitle": "Frank Herbert - Dune (1965) EPUB",
+      "quality": {
+        "quality": {
+          "id": 3,
+          "name": "EPUB"
+        },
+        "revision": {
+          "version": 1,
+          "real": 0,
+          "isRepack": false
+        }
+      },
+      "date": "2026-11-20T10:00:00Z",
+      "protocol": "torrent",
+      "indexer": "MyAnonamouse",
+      "message": "Download failed"
+    }
+  ]
+}

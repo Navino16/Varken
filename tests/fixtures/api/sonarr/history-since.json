@@ -1,0 +1,81 @@
+[
+  {
+    "id": 501,
+    "episodeId": 101,
+    "seriesId": 10,
+    "sourceTitle": "Severance.S01E01.1080p.BluRay",
+    "quality": {
+      "quality": {
+        "id": 7,
+        "name": "Bluray-1080p"
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "qualityCutoffNotMet": false,
+    "date": "2026-11-24T12:01:00Z",
+    "downloadId": "SABnzbd_nzo_abc123",
+    "eventType": "grabbed",
+    "data": {
+      "indexer": "NZBgeek",
+      "downloadClient": "SABnzbd",
+      "size": "2147483648",
+      "protocol": "usenet",
+      "downloadClientName": "SABnzbd"
+    }
+  },
+  {
+    "id": 502,
+    "episodeId": 101,
+    "seriesId": 10,
+    "sourceTitle": "Severance.S01E01.1080p.BluRay",
+    "quality": {
+      "quality": {
+        "id": 7,
+        "name": "Bluray-1080p"
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "qualityCutoffNotMet": false,
+    "date": "2026-11-24T12:02:00Z",
+    "downloadId": "SABnzbd_nzo_abc123",
+    "eventType": "downloadFolderImported",
+    "data": {
+      "downloadClient": "SABnzbd",
+      "droppedPath": "/downloads/complete/x",
+      "importedPath": "/data/media/x"
+    }
+  },
+  {
+    "id": 503,
+    "episodeId": 101,
+    "seriesId": 10,
+    "sourceTitle": "Severance.S01E01.1080p.BluRay",
+    "quality": {
+      "quality": {
+        "id": 7,
+        "name": "Bluray-1080p"
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "qualityCutoffNotMet": false,
+    "date": "2026-11-24T12:02:00Z",
+    "downloadId": "SABnzbd_nzo_abc123",
+    "eventType": "downloadFailed",
+    "data": {
+      "downloadClient": "SABnzbd",
+      "message": "Unpacking failed"
+    }
+  }
+]

@@ -38,6 +38,10 @@ describe('RadarrPlugin', () => {
     queue: { enabled: true, intervalSeconds: 30 },
     missing: { enabled: true, intervalSeconds: 300 },
     serverInfo: { enabled: false, intervalSeconds: 300 },
+    status: { enabled: false, intervalSeconds: 300 },
+    totals: { enabled: false, intervalSeconds: 900 },
+    history: { enabled: false, intervalSeconds: 300 },
+    library: { enabled: false, intervalDays: 1 },
   };
 
   beforeEach(() => {
@@ -93,6 +97,23 @@ describe('RadarrPlugin', () => {
 
     const queuePoints = async (): Promise<Awaited<ReturnType<RadarrPlugin['collect']>>> =>
       (await plugin.collect()).filter((p) => p.tags.type === 'Queue');
+
+    it('enriches queue points with download state', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-11-24T10:00:00Z'));
+      const [point] = await queuePoints();
+      vi.useRealTimers();
+
+      expect(point.tags).toMatchObject({
+        status: 'downloading',
+        tracked_download_state: 'downloading',
+        tracked_download_status: 'ok',
+        download_client: 'SABnzbd',
+        indexer: 'Indexer',
+      });
+      expect(point.fields).toEqual({ hash: expect.any(String), size: 15000000000, sizeleft: 5000000000, progress: 66.66666666666667, eta_seconds: 28800 });
+      expect(point.floatFields).toEqual(['progress']);
+    });
 
     it('collects queue items from the queue fixture', async () => {
       const points = await queuePoints();
@@ -177,6 +198,45 @@ describe('RadarrPlugin', () => {
       const second = await queuePoints();
 
       expect(first[0].fields.hash).toBe(second[0].fields.hash);
+    });
+  });
+
+  describe('library', () => {
+    beforeEach(async () => {
+      await plugin.initialize({
+        ...testConfig,
+        queue: { enabled: false, intervalSeconds: 30 },
+        missing: { enabled: false, intervalSeconds: 30 },
+        library: { enabled: true, intervalDays: 2 },
+      });
+    });
+
+    it('collects library statistics', async () => {
+      const points = await plugin.collect();
+
+      expect(points.find((p) => p.tags.type === 'Library')?.fields).toEqual({
+        movies: 4,
+        movies_monitored: 3,
+        movies_with_file: 1,
+        size_on_disk: 8589934592,
+        collections: 2,
+      });
+      expect(points.filter((p) => p.tags.type === 'Collection').map((p) => [p.tags, p.fields])).toEqual([
+        [{ type: 'Collection', server: 1, collectionId: 726871, name: 'Dune Collection' }, { monitored: 1, movies: 3, movies_in_library: 2, missing: 1 }],
+        [{ type: 'Collection', server: 1, collectionId: 1000001, name: 'Heat Collection' }, { monitored: 0, movies: 1, movies_in_library: 1, missing: 0 }],
+      ]);
+    });
+
+    it('omits collection movie counts the response lacks', async () => {
+      client.override('/api/v3/collection', [{ id: 3, title: 'Bare Collection', tmdbId: 3, monitored: true, missingMovies: 0 }]);
+
+      const collection = (await plugin.collect()).find((p) => p.tags.type === 'Collection');
+
+      expect(collection?.fields).toEqual({ monitored: 1, missing: 0 });
+    });
+
+    it('schedules library every intervalDays', () => {
+      expect(plugin.getSchedules().find((s) => s.name === 'Radarr_1_library')?.intervalSeconds).toBe(172800);
     });
   });
 

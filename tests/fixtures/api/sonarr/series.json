@@ -1,0 +1,42 @@
+[
+  {
+    "id": 10,
+    "title": "Severance",
+    "status": "continuing",
+    "ended": false,
+    "network": "Apple TV+",
+    "year": 2022,
+    "monitored": true,
+    "tvdbId": 371980,
+    "seriesType": "standard",
+    "titleSlug": "severance",
+    "statistics": {
+      "seasonCount": 2,
+      "episodeFileCount": 15,
+      "episodeCount": 19,
+      "totalEpisodeCount": 19,
+      "sizeOnDisk": 64424509440,
+      "percentOfEpisodes": 78.94736842105263
+    }
+  },
+  {
+    "id": 20,
+    "title": "The Wire",
+    "status": "ended",
+    "ended": true,
+    "network": null,
+    "year": 2002,
+    "monitored": false,
+    "tvdbId": 79126,
+    "seriesType": "standard",
+    "titleSlug": "the-wire",
+    "statistics": {
+      "seasonCount": 5,
+      "episodeFileCount": 60,
+      "episodeCount": 60,
+      "totalEpisodeCount": 60,
+      "sizeOnDisk": 214748364800,
+      "percentOfEpisodes": 100
+    }
+  }
+]

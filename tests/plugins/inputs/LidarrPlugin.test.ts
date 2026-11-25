@@ -40,6 +40,10 @@ describe('LidarrPlugin', () => {
     queue: { enabled: true, intervalSeconds: 30 },
     missing: { enabled: true, intervalSeconds: 300 },
     serverInfo: { enabled: false, intervalSeconds: 300 },
+    status: { enabled: false, intervalSeconds: 300 },
+    totals: { enabled: false, intervalSeconds: 900 },
+    history: { enabled: false, intervalSeconds: 300 },
+    library: { enabled: false, intervalDays: 1 },
   };
 
   beforeEach(() => {
@@ -107,6 +111,23 @@ describe('LidarrPlugin', () => {
 
     const ofType = async (type: string): Promise<DataPoint[]> =>
       (await plugin.collect()).filter((p) => p.tags.type === type);
+
+    it('enriches queue points with download state', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-11-24T10:00:00Z'));
+      const [point] = await ofType('Queue');
+      vi.useRealTimers();
+
+      expect(point.tags).toMatchObject({
+        status: 'downloading',
+        tracked_download_state: 'downloading',
+        tracked_download_status: 'ok',
+        download_client: 'qBittorrent',
+        indexer: 'Redacted',
+      });
+      expect(point.fields).toEqual({ hash: expect.any(String), size: 524288000, sizeleft: 262144000, progress: 50, eta_seconds: 32400 });
+      expect(point.floatFields).toEqual(['progress']);
+    });
 
     it('collects queue items from the queue fixture', async () => {
       const points = await ofType('Queue');
@@ -231,6 +252,82 @@ describe('LidarrPlugin', () => {
       const second = (await plugin.collect()).map((p) => p.fields.hash);
 
       expect(second).toEqual(first);
+    });
+  });
+
+  describe('library', () => {
+    beforeEach(async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-11-24T10:00:00Z'));
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    const only = (keys: Partial<LidarrConfig>): LidarrConfig => ({
+      ...testConfig,
+      queue: { enabled: false, intervalSeconds: 30 },
+      missing: { enabled: false, intervalSeconds: 30 },
+      ...keys,
+    });
+
+    it('collects library statistics', async () => {
+      await plugin.initialize(only({ library: { enabled: true, intervalDays: 2 } }));
+
+      const points = await plugin.collect();
+      const artists = points.filter((p) => p.tags.type === 'Artist');
+
+      expect(artists.map((p) => p.tags)).toEqual([
+        { type: 'Artist', server: 1, artistId: 1, name: 'Radiohead', status: 'continuing', ended: 0 },
+        { type: 'Artist', server: 1, artistId: 2, name: 'Daft Punk', status: 'ended', ended: 1 },
+      ]);
+      expect(artists[0].fields).toEqual({
+        monitored: 1,
+        album_count: 9,
+        track_file_count: 80,
+        track_count: 100,
+        total_track_count: 120,
+        size_on_disk: 3221225472,
+        percent_of_tracks: 80,
+      });
+      expect(artists[0].floatFields).toEqual(['percent_of_tracks']);
+      expect(points.find((p) => p.tags.type === 'Library')?.fields).toEqual({
+        artists: 2,
+        artists_monitored: 1,
+        albums: 13,
+        tracks: 140,
+        track_files: 110,
+        total_tracks: 165,
+        size_on_disk: 4294967296,
+      });
+      expect(plugin.getSchedules().find((s) => s.name === 'Lidarr_1_library')?.intervalSeconds).toBe(172800);
+    });
+
+    it('enriches missing points with release age and statistics', async () => {
+      await plugin.initialize(only({ missing: { enabled: true, intervalSeconds: 300 } }));
+
+      const [point] = await plugin.collect();
+
+      expect(point.tags.album_type).toBe('Album');
+      expect(point.fields).toEqual({
+        hash: expect.any(String),
+        release_age_days: 837,
+        track_file_count: 3,
+        track_count: 10,
+        total_track_count: 12,
+        size_on_disk: 104857600,
+        percent_of_tracks: 30,
+      });
+      expect(point.floatFields).toEqual(['percent_of_tracks']);
+    });
+
+    it('omits release age for an undated release', async () => {
+      await plugin.initialize(only({ missing: { enabled: true, intervalSeconds: 300 } }));
+
+      const discovery = (await plugin.collect()).find((p) => p.tags.albumId === 22);
+
+      expect(discovery?.fields).toEqual({ hash: expect.any(String) });
     });
   });
 

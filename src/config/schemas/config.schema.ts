@@ -65,6 +65,12 @@ const ScheduleConfigDaysSchema = z.object({
 const scheduleDefault = { enabled: false, intervalSeconds: 30 };
 const scheduleDaysDefault = { enabled: false, intervalDays: 1 };
 const serverInfoDefault = { enabled: false, intervalSeconds: 300 };
+const servarrSchedules = {
+  status: ScheduleConfigSchema.default({ enabled: false, intervalSeconds: 300 }),
+  totals: ScheduleConfigSchema.default({ enabled: false, intervalSeconds: 900 }),
+  history: ScheduleConfigSchema.default({ enabled: false, intervalSeconds: 300 }),
+  library: ScheduleConfigDaysSchema.default(scheduleDaysDefault),
+};
 
 // =============================================================================
 // Input Schemas - Arr Stack
@@ -83,6 +89,7 @@ export const SonarrConfigSchema = z.object({
     intervalSeconds: z.number().default(300),
   }).default({ enabled: false, futureDays: 7, missingDays: 30, intervalSeconds: 300 }),
   serverInfo: ScheduleConfigSchema.default(serverInfoDefault),
+  ...servarrSchedules,
 });
 
 export const RadarrConfigSchema = z.object({
@@ -93,6 +100,7 @@ export const RadarrConfigSchema = z.object({
   queue: ScheduleConfigSchema.default(scheduleDefault),
   missing: ScheduleConfigSchema.default(scheduleDefault),
   serverInfo: ScheduleConfigSchema.default(serverInfoDefault),
+  ...servarrSchedules,
 });
 
 export const ReadarrConfigSchema = z.object({
@@ -103,6 +111,7 @@ export const ReadarrConfigSchema = z.object({
   queue: ScheduleConfigSchema.default(scheduleDefault),
   missing: ScheduleConfigSchema.default(scheduleDefault),
   serverInfo: ScheduleConfigSchema.default(serverInfoDefault),
+  ...servarrSchedules,
 });
 
 export const LidarrConfigSchema = z.object({
@@ -113,6 +122,7 @@ export const LidarrConfigSchema = z.object({
   queue: ScheduleConfigSchema.default(scheduleDefault),
   missing: ScheduleConfigSchema.default(scheduleDefault),
   serverInfo: ScheduleConfigSchema.default(serverInfoDefault),
+  ...servarrSchedules,
 });
 
 export const ProwlarrConfigSchema = z.object({
@@ -122,6 +132,9 @@ export const ProwlarrConfigSchema = z.object({
   verifySsl: z.boolean().default(false),
   indexerStats: ScheduleConfigSchema.default(scheduleDefault),
   serverInfo: ScheduleConfigSchema.default(serverInfoDefault),
+  status: ScheduleConfigSchema.default({ enabled: false, intervalSeconds: 300 }),
+  history: ScheduleConfigSchema.default({ enabled: false, intervalSeconds: 300 }),
+  inventory: ScheduleConfigSchema.default({ enabled: false, intervalSeconds: 3600 }),
 });
 
 export const BazarrConfigSchema = z.object({

@@ -1,9 +1,11 @@
 import { BaseInputPlugin } from './BaseInputPlugin';
 import { PROTOCOL_ID } from './constants';
-import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
+import type { PluginMetadata, DataPoint, PointSpec, ScheduleConfig } from '../../types/plugin.types';
 import type { LidarrConfig } from '../../types/inputs/lidarr.types';
 import type { paths } from '../../types/generated/lidarr';
 import { servarrServerInfo } from './utils/servarrServerInfo';
+import { queueEnrichment, statusPoints, totalsPoint, historyPoint, pickNumbers, releaseAgeDays, sumFields } from './utils/servarr';
+import { booleanFlags } from './utils/flags';
 
 /**
  * Lidarr input plugin
@@ -49,6 +51,22 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
       points.push(...missingPoints);
     }
 
+    if (this.config.status.enabled) {
+      points.push(...(await this.collectStatus()));
+    }
+
+    if (this.config.totals.enabled) {
+      points.push(...(await this.collectTotals()));
+    }
+
+    if (this.config.history.enabled) {
+      points.push(...(await this.collectHistory()));
+    }
+
+    if (this.config.library.enabled) {
+      points.push(...(await this.collectLibrary()));
+    }
+
     if (this.config.serverInfo.enabled) {
       points.push(...(await this.collectServerInfo()));
     }
@@ -74,6 +92,22 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
       );
     }
 
+    if (this.config.status.enabled) {
+      schedules.push(this.createSchedule('status', this.config.status.intervalSeconds, true, this.collectStatus));
+    }
+
+    if (this.config.totals.enabled) {
+      schedules.push(this.createSchedule('totals', this.config.totals.intervalSeconds, true, this.collectTotals));
+    }
+
+    if (this.config.history.enabled) {
+      schedules.push(this.createSchedule('history', this.config.history.intervalSeconds, true, this.collectHistory));
+    }
+
+    if (this.config.library.enabled) {
+      schedules.push(this.createSchedule('library', this.config.library.intervalDays * 24 * 60 * 60, true, this.collectLibrary));
+    }
+
     if (this.config.serverInfo.enabled) {
       schedules.push(this.createSchedule('serverInfo', this.config.serverInfo.intervalSeconds, true, this.collectServerInfo));
     }
@@ -96,6 +130,7 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
         return points;
       }
 
+      const now = new Date();
       for (const queueItem of allRecords) {
         if (!queueItem.album) {
           this.logger.debug('Skipping queue item with missing album data');
@@ -111,6 +146,7 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
 
         const hashId = this.hashit(`${this.config.id}${name}${quality}`);
 
+        const enrichment = queueEnrichment(queueItem, now);
         points.push(
           this.createDataPoint(
             'Lidarr',
@@ -122,10 +158,11 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
               quality,
               protocol,
               protocol_id: protocolId,
+              ...enrichment.tags,
             },
-            {
-              hash: hashId,
-            }
+            { hash: hashId, ...enrichment.fields },
+            undefined,
+            enrichment.floatFields
           )
         );
       }
@@ -150,6 +187,7 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
         return points;
       }
 
+      const now = new Date();
       for (const album of albums) {
         const artistName = album.artist?.artistName || 'Unknown Artist';
         const albumName = `${album.title ?? 'unknown'} - ${artistName}`;
@@ -157,6 +195,7 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
 
         const hashId = this.hashit(`${this.config.id}${albumName}${foreignAlbumId}`);
 
+        const age = releaseAgeDays(album.releaseDate, now);
         points.push(
           this.createDataPoint(
             'Lidarr',
@@ -166,10 +205,21 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
               foreignAlbumId,
               server: this.config.id,
               name: albumName,
+              album_type: album.albumType || 'unknown',
             },
             {
               hash: hashId,
-            }
+              ...(age === undefined ? {} : { release_age_days: age }),
+              ...pickNumbers(album.statistics, {
+                trackFileCount: 'track_file_count',
+                trackCount: 'track_count',
+                totalTrackCount: 'total_track_count',
+                sizeOnDisk: 'size_on_disk',
+                percentOfTracks: 'percent_of_tracks',
+              }),
+            },
+            undefined,
+            ['percent_of_tracks']
           )
         );
       }
@@ -188,6 +238,77 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
       ]);
       const { tags, fields } = servarrServerInfo(status, updates, health, new Date());
       return [this.createServerInfoPoint(tags, fields)];
+    });
+  }
+
+  private async collectStatus(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Lidarr status', async () => {
+      const [health, disks, roots, queue, tasks] = await Promise.all([
+        this.lidarr.get('/api/v1/health'),
+        this.lidarr.get('/api/v1/diskspace'),
+        this.lidarr.get('/api/v1/rootfolder'),
+        this.lidarr.get('/api/v1/queue/status'),
+        this.lidarr.get('/api/v1/system/task'),
+      ]);
+      return this.createPoints(statusPoints({ health, disks, roots, queue, tasks }, new Date(), (s) => this.hashit(s)));
+    });
+  }
+
+  private async collectTotals(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Lidarr totals', async () => {
+      const wanted = { page: 1, pageSize: 1, monitored: true };
+      const [missing, cutoff, blocklist] = await Promise.all([
+        this.lidarr.get('/api/v1/wanted/missing', { query: wanted }),
+        this.lidarr.get('/api/v1/wanted/cutoff', { query: wanted }),
+        this.lidarr.get('/api/v1/blocklist', { query: { page: 1, pageSize: 1 } }),
+      ]);
+      return this.createPoints([
+        totalsPoint({ missing: missing.totalRecords, cutoff_unmet: cutoff.totalRecords, blocklist: blocklist.totalRecords }),
+      ]);
+    });
+  }
+
+  private async collectHistory(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Lidarr history', async () => {
+      const date = (await this.eventCursor('history')).toISOString();
+      const records = await this.lidarr.get('/api/v1/history/since', { query: { date, includeArtist: false, includeAlbum: false, includeTrack: false } });
+      const fresh = await this.takeNewEvents('history', records, (r) => Date.parse(r.date ?? ''), (r) => String(r.id));
+      return this.createPoints(
+        fresh.flatMap((r) => historyPoint(r, { artistId: r.artistId ?? 0, albumId: r.albumId ?? 0 }, this.hashit(`${this.config.id}${r.id}`)) ?? [])
+      );
+    });
+  }
+
+  private async collectLibrary(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Lidarr library', async () => {
+      const artists = await this.lidarr.get('/api/v1/artist');
+      const items: PointSpec[] = artists.map((a) => ({
+        tags: { type: 'Artist', artistId: a.id ?? 0, name: a.artistName ?? 'unknown', status: a.status ?? 'unknown', ended: a.ended ? 1 : 0 },
+        fields: {
+          ...booleanFlags({ monitored: a.monitored }),
+          ...pickNumbers(a.statistics, {
+            albumCount: 'album_count',
+            trackFileCount: 'track_file_count',
+            trackCount: 'track_count',
+            totalTrackCount: 'total_track_count',
+            sizeOnDisk: 'size_on_disk',
+            percentOfTracks: 'percent_of_tracks',
+          }),
+        },
+        floatFields: ['percent_of_tracks'],
+      }));
+      const summary = {
+        artists: items.length,
+        ...sumFields(items, {
+          monitored: 'artists_monitored',
+          album_count: 'albums',
+          track_count: 'tracks',
+          track_file_count: 'track_files',
+          total_track_count: 'total_tracks',
+          size_on_disk: 'size_on_disk',
+        }),
+      };
+      return this.createPoints([{ tags: { type: 'Library' }, fields: summary }, ...items]);
     });
   }
 }

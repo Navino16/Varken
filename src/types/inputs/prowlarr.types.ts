@@ -16,4 +16,16 @@ export interface ProwlarrConfig {
     enabled: boolean;
     intervalSeconds: number;
   };
+  status: {
+    enabled: boolean;
+    intervalSeconds: number;
+  };
+  history: {
+    enabled: boolean;
+    intervalSeconds: number;
+  };
+  inventory: {
+    enabled: boolean;
+    intervalSeconds: number;
+  };
 }
