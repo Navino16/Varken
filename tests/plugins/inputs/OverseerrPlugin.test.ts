@@ -170,7 +170,8 @@ describe('OverseerrPlugin', () => {
         type: 'Requests',
         server: 1,
         request_type: 1,
-        status: 5,
+        status: 2,
+        media_status: 5,
         requested_user: 'alice',
         requested_date: '2026-11-22T18:03:51.000Z',
       });
@@ -180,8 +181,31 @@ describe('OverseerrPlugin', () => {
     it('should collect latest TV requests', async () => {
       const severance = (await plugin.collect()).find((p) => p.tags.title === 'Severance');
 
-      expect(severance?.tags).toMatchObject({ request_type: 0, status: 4, requested_user: 'bob' });
+      expect(severance?.tags).toMatchObject({ request_type: 0, status: 2, media_status: 4, requested_user: 'bob' });
       expect(client.get).toHaveBeenCalledWith('/api/v1/tv/95396', { params: undefined });
+    });
+
+    it("uses the request's requester, not the title's first request", async () => {
+      const page = loadFixture<RequestPage>('seerr/request');
+      const [dune] = page.results ?? [];
+      const requestedBy = { ...dune.requestedBy, displayName: 'carol' };
+      client.override('/api/v1/request', { ...page, results: [{ ...dune, requestedBy, createdAt: '2026-11-24T10:00:00.000Z' }] });
+
+      const [point] = (await plugin.collect()).filter((p) => p.tags.type === 'Requests');
+
+      expect(point.tags).toMatchObject({ requested_user: 'carol', requested_date: '2026-11-24T10:00:00.000Z' });
+    });
+
+    it('falls back when requester and media status are absent', async () => {
+      const page = loadFixture<RequestPage>('seerr/request');
+      const [dune] = page.results ?? [];
+      const { requestedBy: _requestedBy, ...request } = dune;
+      const { status: _status, ...media } = dune.media ?? {};
+      client.override('/api/v1/request', { ...page, results: [{ ...request, media }] });
+
+      const [point] = (await plugin.collect()).filter((p) => p.tags.type === 'Requests');
+
+      expect(point.tags).toMatchObject({ title: 'Dune: Part Two', requested_user: 'Unknown', media_status: 0 });
     });
 
     it('should skip requests without media tmdbId', async () => {
@@ -243,19 +267,7 @@ describe('OverseerrPlugin', () => {
       expect(await hashes()).toEqual(first);
     });
 
-    it('should handle missing requestedBy information', async () => {
-      client.override('/api/v1/movie/{movieId}', () => {
-        const dune = duneDetails();
-        const requests = dune.mediaInfo?.requests?.map(({ requestedBy: _r, ...request }) => request);
-        return { ...dune, mediaInfo: { ...dune.mediaInfo, requests } };
-      });
-
-      const dune = (await plugin.collect()).find((p) => p.tags.title === 'Dune: Part Two');
-
-      expect(dune?.tags.requested_user).toBe('Unknown');
-    });
-
-    it('falls back when details have no mediaInfo', async () => {
+    it('ignores the details mediaInfo when tagging a request', async () => {
       client.override('/api/v1/movie/{movieId}', () => {
         const { mediaInfo: _mediaInfo, ...dune } = duneDetails();
         return dune;
@@ -263,7 +275,7 @@ describe('OverseerrPlugin', () => {
 
       const dune = (await plugin.collect()).find((p) => p.tags.title === 'Dune: Part Two');
 
-      expect(dune?.tags).toMatchObject({ status: 0, requested_user: 'Unknown', requested_date: '' });
+      expect(dune?.tags).toMatchObject({ status: 2, media_status: 5, requested_user: 'alice' });
     });
 
     it('should skip requests whose details have no title', async () => {

@@ -9,7 +9,6 @@ interface MediaDetails {
   requestType: number;
   id?: number;
   title: string;
-  mediaInfo?: components['schemas']['MediaInfo'];
 }
 
 /**
@@ -190,17 +189,17 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
               return null;
             }
 
-            const firstRequest = details.mediaInfo?.requests?.[0];
             return this.createDataPoint(
               'Overseerr',
               {
                 type: 'Requests',
                 server: this.config.id,
                 request_type: details.requestType,
-                status: details.mediaInfo?.status || 0,
+                status: request.status ?? 0,
+                media_status: request.media?.status ?? 0,
                 title: details.title,
-                requested_user: firstRequest?.requestedBy?.displayName || 'Unknown',
-                requested_date: firstRequest?.createdAt || '',
+                requested_user: request.requestedBy?.displayName || 'Unknown',
+                requested_date: request.createdAt || '',
               },
               {
                 hash: this.hashit(`${details.id}${details.title}`),
@@ -223,9 +222,9 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
   private async fetchMediaDetails(type: components['schemas']['MediaRequest']['type'], tmdbId: number): Promise<MediaDetails> {
     if (type === 'tv') {
       const tv = await this.seerr.get('/tv/{tvId}', { path: { tvId: tmdbId } });
-      return { requestType: REQUEST_TYPE.TV, id: tv?.id, title: tv?.name ?? '', mediaInfo: tv?.mediaInfo };
+      return { requestType: REQUEST_TYPE.TV, id: tv?.id, title: tv?.name ?? '' };
     }
     const movie = await this.seerr.get('/movie/{movieId}', { path: { movieId: tmdbId } });
-    return { requestType: REQUEST_TYPE.MOVIE, id: movie?.id, title: movie?.title ?? '', mediaInfo: movie?.mediaInfo };
+    return { requestType: REQUEST_TYPE.MOVIE, id: movie?.id, title: movie?.title ?? '' };
   }
 }
