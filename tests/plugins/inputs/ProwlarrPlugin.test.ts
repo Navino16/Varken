@@ -3,6 +3,10 @@ import axios from 'axios';
 import { ProwlarrPlugin } from '../../../src/plugins/inputs/ProwlarrPlugin';
 import type { ProwlarrConfig } from '../../../src/types/inputs/prowlarr.types';
 import { createContractHttpClient, type ContractHttpClient } from '../../fixtures/contract-http';
+import type { DataPoint } from '../../../src/types/plugin.types';
+import { useEventStateFolder } from '../../../src/utils/EventStateStore';
+import type { components } from '../../../src/types/generated/prowlarr';
+import { loadFixture } from '../../contracts/registry';
 
 vi.mock('../../../src/core/Logger', async () => {
   const { loggerMock } = await import('../../fixtures/logger');
@@ -83,7 +87,7 @@ describe('ProwlarrPlugin', () => {
     });
 
     it('collects one point per indexer', async () => {
-      const points = await plugin.collect();
+      const points = (await plugin.collect()).filter((p) => p.tags.type === 'IndexerStats');
 
       expect(points.map((p) => [p.tags.indexerId, p.tags.indexerName])).toEqual([
         [1, 'NZBgeek'],
@@ -137,6 +141,143 @@ describe('ProwlarrPlugin', () => {
       const second = (await plugin.collect()).map((p) => p.fields.hash);
 
       expect(second).toEqual(first);
+    });
+  });
+
+  describe('richer indexer stats', () => {
+    const ofType = (points: DataPoint[], type: string): DataPoint[] => points.filter((p) => p.tags.type === type);
+
+    beforeEach(async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-11-24T12:00:00Z'));
+      await plugin.initialize(testConfig);
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('enriches indexer stats with indexer settings', async () => {
+      const stats = ofType(await plugin.collect(), 'IndexerStats');
+
+      expect(stats.map((p) => [p.tags.indexerId, p.tags.protocol, p.tags.privacy, p.tags.enabled, p.tags.priority])).toEqual([
+        [1, 'usenet', 'private', 1, 25],
+        [2, 'torrent', 'public', 1, 25],
+        [5, 'usenet', 'private', 0, 10],
+      ]);
+      expect(stats[0].fields.averageGrabResponseTime).toBe(830);
+    });
+
+    it('labels stats of an indexer missing from the indexer list unknown', async () => {
+      client.override('/api/v1/indexer', loadFixture<components['schemas']['IndexerResource'][]>('prowlarr/indexer').slice(0, 1));
+
+      const nyaa = ofType(await plugin.collect(), 'IndexerStats')[1];
+
+      expect(nyaa.tags).toMatchObject({ protocol: 'unknown', privacy: 'unknown', enabled: 'unknown', priority: 'unknown' });
+    });
+
+    it('collects 24h windowed stats', async () => {
+      const windowed = ofType(await plugin.collect(), 'IndexerStatsWindow');
+
+      expect(client.get).toHaveBeenCalledWith('/api/v1/indexerstats', {
+        params: { startDate: '2026-11-23T12:00:00.000Z', endDate: '2026-11-24T12:00:00.000Z' },
+      });
+      expect(windowed).toHaveLength(3);
+      expect(windowed[0].tags).toMatchObject({ window: '24h', indexerId: 1, indexerName: 'NZBgeek', protocol: 'usenet' });
+      expect(windowed[0].fields).toMatchObject({ numberOfQueries: 1520, averageGrabResponseTime: 830 });
+    });
+
+    it('collects user agent and host stats', async () => {
+      const points = await plugin.collect();
+
+      expect(ofType(points, 'UserAgentStats').map((p) => [p.tags.user_agent, p.fields])).toEqual([
+        ['Sonarr/4.0.20.3014', { numberOfQueries: 1820, numberOfGrabs: 130 }],
+      ]);
+      expect(ofType(points, 'HostStats').map((p) => [p.tags.host, p.fields])).toEqual([['sonarr', { numberOfQueries: 1820, numberOfGrabs: 130 }]]);
+    });
+  });
+
+  describe('status, history and inventory', () => {
+    const ofType = (points: DataPoint[], type: string): DataPoint[] => points.filter((p) => p.tags.type === type);
+    const only = (keys: Partial<ProwlarrConfig>): ProwlarrConfig => ({ ...disabled, ...keys });
+
+    beforeEach(() => {
+      useEventStateFolder(null);
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-11-24T12:00:00Z'));
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('collects status points', async () => {
+      await plugin.initialize(only({ status: { enabled: true, intervalSeconds: 300 } }));
+
+      const points = await plugin.collect();
+
+      expect(ofType(points, 'Health')[0].fields).toEqual({ errors: 1, warnings: 1, notices: 0 });
+      expect(ofType(points, 'HealthIssue')).toHaveLength(2);
+      expect(ofType(points, 'Task').map((p) => p.tags.task)).toEqual(['RefreshMonitoredDownloads', 'RssSync', 'Backup']);
+      expect(ofType(points, 'IndexerStatus').map((p) => [p.tags.indexerId, p.fields])).toEqual([
+        [2, { disabled: 1, disabled_for_seconds: 3600, most_recent_failure_age_seconds: 600, initial_failure_age_seconds: 7200 }],
+        [5, { disabled: 0, most_recent_failure_age_seconds: 3900, initial_failure_age_seconds: 5400 }],
+      ]);
+      expect(ofType(points, 'IndexerStatusSummary')[0].fields).toEqual({ disabled_indexers: 1 });
+      expect(plugin.getSchedules().map((s) => [s.name, s.intervalSeconds])).toEqual([['Prowlarr_1_status', 300]]);
+    });
+
+    it('collects grab history once', async () => {
+      await plugin.initialize(only({ history: { enabled: true, intervalSeconds: 300 } }));
+
+      const points = await plugin.collect();
+
+      expect(client.get).toHaveBeenCalledWith('/api/v1/history/since', {
+        params: { date: '2026-11-24T12:00:00.000Z', eventType: 'releaseGrabbed' },
+      });
+      expect(points.map((p) => [p.timestamp.toISOString(), p.tags, p.fields])).toEqual([
+        [
+          '2026-11-24T12:01:00.000Z',
+          { type: 'History', server: 1, indexerId: 1, event_type: 'releaseGrabbed', successful: 1, source: 'Sonarr', grab_method: 'Proxy' },
+          { hash: expect.stringMatching(/^[0-9a-f]{32}$/), elapsed_ms: 830 },
+        ],
+        [
+          '2026-11-24T12:01:00.000Z',
+          { type: 'History', server: 1, indexerId: 2, event_type: 'releaseGrabbed', successful: 0, source: 'Radarr', grab_method: 'Redirect' },
+          { hash: expect.stringMatching(/^[0-9a-f]{32}$/) },
+        ],
+      ]);
+      expect(await plugin.collect()).toEqual([]);
+      expect(plugin.getSchedules().map((s) => [s.name, s.intervalSeconds])).toEqual([['Prowlarr_1_history', 300]]);
+    });
+
+    it('collects the inventory', async () => {
+      await plugin.initialize(only({ inventory: { enabled: true, intervalSeconds: 3600 } }));
+
+      const points = await plugin.collect();
+
+      expect(ofType(points, 'Inventory')[0].fields).toEqual({ indexers: 3, indexers_enabled: 2, applications: 2, applications_syncing: 1 });
+      expect(ofType(points, 'Application').map((p) => p.tags)).toEqual([
+        { type: 'Application', server: 1, application: 'Sonarr', implementation: 'Sonarr', sync_level: 'fullSync' },
+        { type: 'Application', server: 1, application: 'Radarr 4K', implementation: 'Radarr', sync_level: 'disabled' },
+      ]);
+      expect(plugin.getSchedules().map((s) => [s.name, s.intervalSeconds])).toEqual([['Prowlarr_1_inventory', 3600]]);
+    });
+
+    it('never emits indexer or application fields', async () => {
+      await plugin.initialize(
+        only({
+          indexerStats: { enabled: true, intervalSeconds: 300 },
+          status: { enabled: true, intervalSeconds: 300 },
+          inventory: { enabled: true, intervalSeconds: 3600 },
+        })
+      );
+
+      const values = (await plugin.collect()).flatMap((p) => [...Object.values(p.tags), ...Object.values(p.fields)]);
+
+      for (const secret of ['nzbgeek-secret-key', 'nyaa.si-secret-key', 'https://api.nzbgeek.info', 'sonarr-app-secret', 'radarr-app-secret']) {
+        expect(values).not.toContain(secret);
+      }
     });
   });
 

@@ -110,6 +110,11 @@ export const contractRoutes: ContractRoute[] = [
   { service: 'radarr', method: 'get', path: '/api/v3/collection', fixture: 'radarr/collection' },
   { service: 'lidarr', method: 'get', path: '/api/v1/artist', fixture: 'lidarr/artist' },
   { service: 'readarr', method: 'get', path: '/api/v1/author', fixture: 'readarr/author' },
+  { service: 'prowlarr', method: 'get', path: '/api/v1/indexer', fixture: 'prowlarr/indexer' },
+  { service: 'prowlarr', method: 'get', path: '/api/v1/applications', fixture: 'prowlarr/applications' },
+  { service: 'prowlarr', method: 'get', path: '/api/v1/indexerstatus', fixture: 'prowlarr/indexerstatus' },
+  { service: 'prowlarr', method: 'get', path: '/api/v1/system/task', fixture: 'prowlarr/system-task' },
+  { service: 'prowlarr', method: 'get', path: '/api/v1/history/since', fixture: 'prowlarr/history-since' },
 ];
 
 const fixturesDir = path.resolve(__dirname, '../fixtures/api');

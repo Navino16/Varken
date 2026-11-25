@@ -1,0 +1,31 @@
+[
+  {
+    "id": 701,
+    "indexerId": 1,
+    "date": "2026-11-24T12:01:00Z",
+    "downloadId": "abc",
+    "successful": true,
+    "eventType": "releaseGrabbed",
+    "data": {
+      "source": "Sonarr",
+      "host": "sonarr",
+      "grabMethod": "Proxy",
+      "title": "Severance.S01E01.1080p",
+      "elapsedTime": "830"
+    }
+  },
+  {
+    "id": 702,
+    "indexerId": 2,
+    "date": "2026-11-24T12:01:00Z",
+    "successful": false,
+    "eventType": "releaseGrabbed",
+    "data": {
+      "source": "Radarr",
+      "host": "radarr",
+      "grabMethod": "Redirect",
+      "title": "Heat.1995.1080p",
+      "elapsedTime": ""
+    }
+  }
+]

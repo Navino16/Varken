@@ -1,8 +1,14 @@
 import { BaseInputPlugin } from './BaseInputPlugin';
-import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
+import type { PluginMetadata, DataPoint, PointSpec, ScheduleConfig } from '../../types/plugin.types';
 import type { ProwlarrConfig } from '../../types/inputs/prowlarr.types';
-import type { paths } from '../../types/generated/prowlarr';
+import type { components, paths } from '../../types/generated/prowlarr';
 import { servarrServerInfo } from './utils/servarrServerInfo';
+import { healthPoints, pickNumbers, servarrTime, taskPoints } from './utils/servarr';
+
+type IndexerStatistics = components['schemas']['IndexerStatistics'];
+type IndexerResource = components['schemas']['IndexerResource'];
+
+const DAY_MS = 86_400_000;
 
 /**
  * Prowlarr input plugin
@@ -43,6 +49,18 @@ export class ProwlarrPlugin extends BaseInputPlugin<ProwlarrConfig> {
       points.push(...statsPoints);
     }
 
+    if (this.config.status.enabled) {
+      points.push(...(await this.collectStatus()));
+    }
+
+    if (this.config.history.enabled) {
+      points.push(...(await this.collectHistory()));
+    }
+
+    if (this.config.inventory.enabled) {
+      points.push(...(await this.collectInventory()));
+    }
+
     if (this.config.serverInfo.enabled) {
       points.push(...(await this.collectServerInfo()));
     }
@@ -67,6 +85,18 @@ export class ProwlarrPlugin extends BaseInputPlugin<ProwlarrConfig> {
       );
     }
 
+    if (this.config.status.enabled) {
+      schedules.push(this.createSchedule('status', this.config.status.intervalSeconds, true, this.collectStatus));
+    }
+
+    if (this.config.history.enabled) {
+      schedules.push(this.createSchedule('history', this.config.history.intervalSeconds, true, this.collectHistory));
+    }
+
+    if (this.config.inventory.enabled) {
+      schedules.push(this.createSchedule('inventory', this.config.inventory.intervalSeconds, true, this.collectInventory));
+    }
+
     if (this.config.serverInfo.enabled) {
       schedules.push(this.createSchedule('serverInfo', this.config.serverInfo.intervalSeconds, true, this.collectServerInfo));
     }
@@ -75,49 +105,160 @@ export class ProwlarrPlugin extends BaseInputPlugin<ProwlarrConfig> {
   }
 
   /**
-   * Collect indexer statistics from Prowlarr
+   * Collect indexer statistics from Prowlarr: cumulative, last 24h, per user agent and per host.
    */
   private async collectIndexerStats(): Promise<DataPoint[]> {
     return this.safeFetch('collect Prowlarr indexer stats', async () => {
-      const points: DataPoint[] = [];
-      const response = await this.prowlarr.get('/api/v1/indexerstats');
-      const indexers = response?.indexers;
+      const now = new Date();
+      const window = { startDate: new Date(now.getTime() - DAY_MS).toISOString(), endDate: now.toISOString() };
+      const [cumulative, windowed, indexers] = await Promise.all([
+        this.prowlarr.get('/api/v1/indexerstats'),
+        this.prowlarr.get('/api/v1/indexerstats', { query: window }),
+        this.prowlarr.get('/api/v1/indexer'),
+      ]);
+      const settings = new Map(indexers.map((indexer) => [indexer.id, indexer]));
+      const statsPoints = (stats: readonly IndexerStatistics[] | null | undefined, extraTags: Record<string, string>): DataPoint[] =>
+        (stats ?? []).map((stat) => this.indexerStatsPoint(stat, settings.get(stat.indexerId), extraTags));
 
-      if (!indexers || indexers.length === 0) {
+      const points = [
+        ...statsPoints(cumulative?.indexers, { type: 'IndexerStats' }),
+        ...statsPoints(windowed?.indexers, { type: 'IndexerStatsWindow', window: '24h' }),
+        ...this.createPoints([
+          ...(cumulative?.userAgents ?? []).map((ua) => ({
+            tags: { type: 'UserAgentStats', user_agent: ua.userAgent || 'unknown' },
+            fields: pickNumbers(ua, { numberOfQueries: 'numberOfQueries', numberOfGrabs: 'numberOfGrabs' }),
+          })),
+          ...(cumulative?.hosts ?? []).map((host) => ({
+            tags: { type: 'HostStats', host: host.host || 'unknown' },
+            fields: pickNumbers(host, { numberOfQueries: 'numberOfQueries', numberOfGrabs: 'numberOfGrabs' }),
+          })),
+        ]),
+      ];
+
+      if (points.length === 0) {
         this.logger.debug('No indexer stats found in Prowlarr');
-        return points;
+      } else {
+        this.logger.info(`Collected stats for ${cumulative?.indexers?.length ?? 0} indexers from Prowlarr`);
       }
-
-      for (const indexer of indexers) {
-        const hashId = this.hashit(`${this.config.id}${indexer.indexerId}${indexer.indexerName}`);
-
-        points.push(
-          this.createDataPoint(
-            'Prowlarr',
-            {
-              type: 'IndexerStats',
-              indexerId: indexer.indexerId ?? 0,
-              indexerName: indexer.indexerName ?? 'unknown',
-              server: this.config.id,
-            },
-            {
-              hash: hashId,
-              averageResponseTime: indexer.averageResponseTime ?? 0,
-              numberOfQueries: indexer.numberOfQueries ?? 0,
-              numberOfGrabs: indexer.numberOfGrabs ?? 0,
-              numberOfRssQueries: indexer.numberOfRssQueries ?? 0,
-              numberOfAuthQueries: indexer.numberOfAuthQueries ?? 0,
-              numberOfFailedQueries: indexer.numberOfFailedQueries ?? 0,
-              numberOfFailedGrabs: indexer.numberOfFailedGrabs ?? 0,
-              numberOfFailedRssQueries: indexer.numberOfFailedRssQueries ?? 0,
-              numberOfFailedAuthQueries: indexer.numberOfFailedAuthQueries ?? 0,
-            }
-          )
-        );
-      }
-
-      this.logger.info(`Collected stats for ${points.length} indexers from Prowlarr`);
       return points;
+    });
+  }
+
+  private indexerStatsPoint(stat: IndexerStatistics, indexer: IndexerResource | undefined, extraTags: Record<string, string>): DataPoint {
+    return this.createDataPoint(
+      'Prowlarr',
+      {
+        ...extraTags,
+        indexerId: stat.indexerId ?? 0,
+        indexerName: stat.indexerName ?? 'unknown',
+        server: this.config.id,
+        protocol: indexer?.protocol ?? 'unknown',
+        privacy: indexer?.privacy ?? 'unknown',
+        enabled: indexer ? (indexer.enable ? 1 : 0) : 'unknown',
+        priority: indexer?.priority ?? 'unknown',
+      },
+      {
+        hash: this.hashit(`${this.config.id}${stat.indexerId}${stat.indexerName}`),
+        averageResponseTime: stat.averageResponseTime ?? 0,
+        averageGrabResponseTime: stat.averageGrabResponseTime ?? 0,
+        numberOfQueries: stat.numberOfQueries ?? 0,
+        numberOfGrabs: stat.numberOfGrabs ?? 0,
+        numberOfRssQueries: stat.numberOfRssQueries ?? 0,
+        numberOfAuthQueries: stat.numberOfAuthQueries ?? 0,
+        numberOfFailedQueries: stat.numberOfFailedQueries ?? 0,
+        numberOfFailedGrabs: stat.numberOfFailedGrabs ?? 0,
+        numberOfFailedRssQueries: stat.numberOfFailedRssQueries ?? 0,
+        numberOfFailedAuthQueries: stat.numberOfFailedAuthQueries ?? 0,
+      }
+    );
+  }
+
+  private async collectStatus(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Prowlarr status', async () => {
+      const [health, statuses, tasks] = await Promise.all([
+        this.prowlarr.get('/api/v1/health'),
+        this.prowlarr.get('/api/v1/indexerstatus'),
+        this.prowlarr.get('/api/v1/system/task'),
+      ]);
+      const now = new Date();
+      const ageOf = (time: string | null | undefined): number | undefined => {
+        const at = servarrTime(time);
+        return at === undefined ? undefined : Math.floor((now.getTime() - at) / 1000);
+      };
+      const indexerStatus: PointSpec[] = statuses.map((status) => {
+        const disabledTill = servarrTime(status.disabledTill);
+        const disabled = disabledTill !== undefined && disabledTill > now.getTime();
+        return {
+          tags: { type: 'IndexerStatus', indexerId: status.indexerId ?? 0 },
+          fields: {
+            disabled: disabled ? 1 : 0,
+            ...(disabled ? { disabled_for_seconds: Math.ceil((disabledTill - now.getTime()) / 1000) } : {}),
+            ...pickNumbers(
+              { recent: ageOf(status.mostRecentFailure), initial: ageOf(status.initialFailure) },
+              { recent: 'most_recent_failure_age_seconds', initial: 'initial_failure_age_seconds' }
+            ),
+          },
+        };
+      });
+      return this.createPoints([
+        ...healthPoints(health, (s) => this.hashit(s)),
+        ...indexerStatus,
+        { tags: { type: 'IndexerStatusSummary' }, fields: { disabled_indexers: indexerStatus.filter((p) => p.fields.disabled === 1).length } },
+        ...taskPoints(tasks, now),
+      ]);
+    });
+  }
+
+  /** Grabs only: queries and RSS syncs are already counted by the indexer stats and would flood the store. */
+  private async collectHistory(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Prowlarr history', async () => {
+      const date = (await this.eventCursor('history')).toISOString();
+      const records = await this.prowlarr.get('/api/v1/history/since', { query: { date, eventType: 'releaseGrabbed' } });
+      const fresh = await this.takeNewEvents('history', records, (r) => Date.parse(r.date ?? ''), (r) => String(r.id));
+      return this.createPoints(
+        fresh.map((r) => {
+          const data = r.data ?? {};
+          const elapsed = data.elapsedTime ? Number(data.elapsedTime) : Number.NaN;
+          return {
+            tags: {
+              type: 'History',
+              indexerId: r.indexerId ?? 0,
+              event_type: r.eventType ?? 'unknown',
+              successful: r.successful ? 1 : 0,
+              source: data.source || 'unknown',
+              grab_method: data.grabMethod || 'unknown',
+            },
+            fields: { hash: this.hashit(`${this.config.id}${r.id}`), ...(Number.isFinite(elapsed) ? { elapsed_ms: elapsed } : {}) },
+            timestamp: new Date(r.date ?? ''),
+          };
+        })
+      );
+    });
+  }
+
+  private async collectInventory(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Prowlarr inventory', async () => {
+      const [indexers, applications] = await Promise.all([this.prowlarr.get('/api/v1/indexer'), this.prowlarr.get('/api/v1/applications')]);
+      return this.createPoints([
+        {
+          tags: { type: 'Inventory' },
+          fields: {
+            indexers: indexers.length,
+            indexers_enabled: indexers.filter((i) => i.enable).length,
+            applications: applications.length,
+            applications_syncing: applications.filter((a) => a.syncLevel !== 'disabled').length,
+          },
+        },
+        ...applications.map((a) => ({
+          tags: {
+            type: 'Application',
+            application: a.name || 'unknown',
+            implementation: a.implementation || 'unknown',
+            sync_level: a.syncLevel ?? 'unknown',
+          },
+          fields: { hash: this.hashit(`${this.config.id}${a.id}`) },
+        })),
+      ]);
     });
   }
 
