@@ -553,7 +553,7 @@ Config: `inputs.tautulli[].serverInfo` (`enabled`, `intervalSeconds`, default di
 
 ### type = HomeStat
 
-Config: `inputs.tautulli[].stats` · Source: `get_home_stats` (`time_range=30`, `stats_count=5`). One point per row of each home stats card Tautulli is configured to show, over the last 30 days.
+Config: `inputs.tautulli[].stats` · Source: `get_home_stats` (`time_range=30`, `stats_count=5`). Like every point below written by `stats` (graphs, recently added), it is collected at most every 5 minutes, whatever the `stats` interval; `library_stats` follows the interval. One point per row of each home stats card Tautulli is configured to show, over the last 30 days.
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
@@ -590,7 +590,7 @@ Config: `inputs.tautulli[].stats` · Source: `get_plays_by_date`, `get_plays_by_
 | `direct_play`, `direct_stream`, `transcode` | field | number | Plays (`PlaysByStreamType`) or maximum concurrent streams (`ConcurrentStreams`) per stream type |
 | `max_concurrent_streams` | field | number | Maximum concurrent streams of all types (`ConcurrentStreams`) |
 
-Tautulli's last category is its current day (month), still in progress: it is written once the next one starts. The high-water mark compares each bucket by its end, so the day Varken starts on is written once it completes, earlier ones are not backfilled. Plays are counted on the day they start and recorded when they stop: a play still running at midnight is missing from that day if Varken reads it before the play ends. Month names are parsed in English (`Nov 2026`); a category that does not parse is skipped.
+A bucket is written one day after it ends (a day appears the day after next): Tautulli counts a play on the day it starts but records it when it stops, so a play still running at midnight is in its day only once it ends, and Tautulli's days are local (UTC-12 to UTC+14) while bucket bounds are UTC. The high-water mark compares buckets by that same settling time, so the day Varken starts on is always written; a day that ended shortly before startup may be written too. Month names are parsed in English (`Nov 2026`); a category that does not parse is skipped and logged at debug level.
 
 ### type = RecentlyAdded
 
@@ -602,7 +602,7 @@ Config: `inputs.tautulli[].stats` · Source: `get_recently_added` (`count=50`). 
 | `section_id` | tag | string | Library section id |
 | `library_name` | tag | string | Library name |
 | `rating_key` | tag | string | Plex item id |
-| `hash` | field | string | MD5 of server id + rating key |
+| `hash` | field | string | MD5 of server id + rating key + added time |
 | `title` | field | string | Full title |
 | `year` | field | number | Release year; omitted when unknown |
 
@@ -616,7 +616,7 @@ Config: `inputs.tautulli[].history` (`enabled`, `intervalSeconds`, default disab
 | `rating_key` | tag | number | Plex item id |
 | `user_id`, `username` | tag | mixed | Plex user |
 | `platform`, `player`, `product` | tag | string | Client |
-| `transcode_decision` | tag | string | `direct play`, `copy`, `transcode` |
+| `transcode_decision` | tag | string | `Direct play`, `Direct stream` (`copy`), `Transcode`, as on `Session` |
 | `network` | tag | string | `lan` / `wan`, else `unknown` |
 | `live` | tag | number | `1` for Live TV |
 | `hash` | field | string | MD5 of server id + history row id |
@@ -648,7 +648,7 @@ Email and IP addresses are never written.
 
 ### type = Library / MediaInfo
 
-Config: `inputs.tautulli[].libraryMedia` (`enabled`, `intervalDays`, default disabled, 1 day) · Source: `get_libraries_table`, then per library `get_library_watch_time_stats` (`query_days=1,7,30,0`) and, for `movie`, `show`, `artist` and `photo` libraries, `get_library_media_info` (all rows, from Tautulli's media info cache). One `Library` point per library, one `MediaInfo` point per library, resolution and codec.
+Config: `inputs.tautulli[].libraryMedia` (`enabled`, `intervalDays`, default disabled, 1 day) · Source: `get_libraries_table`, then per library `get_library_watch_time_stats` (`query_days=1,7,30,0`) and, for `movie`, `show`, `artist` and `photo` libraries, `get_library_media_info` (all rows). Per-user and per-library calls run 4 at a time. One `Library` point per library, one `MediaInfo` point per library, resolution and codec.
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
@@ -658,12 +658,12 @@ Config: `inputs.tautulli[].libraryMedia` (`enabled`, `intervalDays`, default dis
 | `is_active`, `keep_history` | field | number | `0`/`1` (`Library`) |
 | `plays_1d` ... `plays_all`, `watch_seconds_1d` ... `watch_seconds_all` | field | number | As on `User` (`Library`) |
 | `media_items` | field | number | Items in the media info table: movies, shows, artists or photo albums (`Library`) |
-| `file_size` | field | number | Total size in bytes (`Library`); size of the group (`MediaInfo`), omitted when Tautulli knows no size |
+| `file_size` | field | number | Total size in bytes of the items whose size Tautulli knows (`Library`, `MediaInfo`); omitted when it knows none, e.g. show and artist libraries until their sizes are computed in Tautulli's Media Info tab |
 | `media_info_age_seconds` | field | number | Age of Tautulli's media info cache (`Library`) |
 | `video_resolution`, `video_codec` | tag | string | Group (`MediaInfo`); `unknown` when empty, e.g. for show and artist rows |
 | `items` | field | number | Items in the group (`MediaInfo`) |
 
-Media fields and `MediaInfo` points are omitted while Tautulli has never built the library's media info (`last_refreshed` null).
+Tautulli serves media info from a cache: the first call builds it from Plex (on a large library it can outlast `httpTimeoutMs`, Tautulli then finishes it and the next collection reads it), and only Tautulli's UI refreshes it. Varken refreshes the cache of `movie` libraries when it is older than `intervalDays`, and keeps the cached answer if the refresh fails; it never refreshes show and artist libraries, since a refresh drops the sizes Tautulli's UI computed for them, so their media info is as recent as their last refresh in Tautulli (`media_info_age_seconds`). Media fields and `MediaInfo` points are omitted when the library has no item or Tautulli cannot read it (`last_refreshed` null).
 
 ## Plex
 

@@ -102,18 +102,36 @@ describe('TautulliPlugin collectors', () => {
       expect(queryOf(client, cmd('get_plays_by_dayofweek'))[0]).toMatchObject({ time_range: 30 });
     });
 
-    it('emits a completed day once', async () => {
+    it('emits a day once a full day after it ends', async () => {
       datePlays(25);
       expect(ofType(await plugin.collect(), 'PlaysByDate')).toEqual([]);
 
       vi.setSystemTime(new Date('2026-11-26T00:10:00Z'));
       datePlays(26);
+      expect(ofType(await plugin.collect(), 'PlaysByDate').map((p) => p.timestamp.toISOString())).toEqual(['2026-11-24T00:00:00.000Z']);
+
+      vi.setSystemTime(new Date('2026-11-27T00:10:00Z'));
+      datePlays(27);
       const points = ofType(await plugin.collect(), 'PlaysByDate');
 
-      expect(points.map((p) => [p.timestamp.toISOString(), p.fields])).toEqual([['2026-11-25T00:00:00.000Z', { tv: 6, total: 6 }]]);
+      expect(points.map((p) => [p.timestamp.toISOString(), p.fields])).toEqual([['2026-11-25T00:00:00.000Z', { tv: 5, total: 5 }]]);
+      vi.setSystemTime(new Date('2026-11-27T00:20:00Z'));
       expect(ofType(await plugin.collect(), 'PlaysByDate')).toEqual([]);
       expect(queryOf(client, cmd('get_plays_by_date'))[0]).toMatchObject({ time_range: 7 });
       expect(queryOf(client, cmd('get_plays_per_month'))[0]).toMatchObject({ time_range: 3 });
+    });
+
+    it('keeps the startup day when Tautulli runs west of UTC', async () => {
+      plugin = new TautulliPlugin();
+      vi.setSystemTime(new Date('2026-11-26T02:00:00Z'));
+      await plugin.initialize(config({ stats: true }));
+      datePlays(25);
+      await plugin.collect();
+
+      vi.setSystemTime(new Date('2026-11-27T06:00:00Z'));
+      datePlays(26);
+
+      expect(ofType(await plugin.collect(), 'PlaysByDate').map((p) => p.timestamp.toISOString())).toEqual(['2026-11-25T00:00:00.000Z']);
     });
 
     it('emits stream type and concurrency buckets', async () => {
@@ -128,10 +146,32 @@ describe('TautulliPlugin collectors', () => {
       shift('get_concurrent_streams_by_stream_type');
       const points = await plugin.collect();
 
-      expect(ofType(points, 'PlaysByStreamType').map((p) => p.fields)).toEqual([{ direct_play: 5, direct_stream: 1, transcode: 1 }]);
+      expect(ofType(points, 'PlaysByStreamType').map((p) => p.fields)).toEqual([{ direct_play: 1, direct_stream: 0, transcode: 1 }]);
       expect(ofType(points, 'ConcurrentStreams').map((p) => p.fields)).toEqual([
-        { direct_play: 2, direct_stream: 1, transcode: 1, max_concurrent_streams: 3 },
+        { direct_play: 1, direct_stream: 0, transcode: 1, max_concurrent_streams: 1 },
       ]);
+    });
+
+    it('logs graph categories it cannot parse', async () => {
+      client.override(cmd('get_plays_per_month'), {
+        response: { result: 'success', message: null, data: { categories: ['Okt. 2026', 'Nov. 2026'], series: [{ name: 'TV', data: [1, 2] }] } },
+      });
+      await plugin.collect();
+      const debug = (plugin as unknown as { logger: { debug: Mock } }).logger.debug;
+
+      expect(debug).toHaveBeenCalledWith(expect.stringContaining('Okt. 2026'));
+    });
+
+    it('runs home stats and graphs at most every 5 minutes', async () => {
+      expect(ofType(await plugin.collect(), 'HomeStat')).not.toEqual([]);
+
+      vi.setSystemTime(new Date(NOW.getTime() + 30_000));
+      const points = await plugin.collect();
+      expect(ofType(points, 'HomeStat')).toEqual([]);
+      expect(ofType(points, 'library_stats')).not.toEqual([]);
+
+      vi.setSystemTime(new Date(NOW.getTime() + 300_000));
+      expect(ofType(await plugin.collect(), 'HomeStat')).not.toEqual([]);
     });
 
     it('emits recently added items once', async () => {
@@ -150,8 +190,24 @@ describe('TautulliPlugin collectors', () => {
         ],
       ]);
       expect(points[0].timestamp.getTime()).toBe((NOW_S + 300) * 1000 + 104);
+      vi.setSystemTime(new Date(NOW.getTime() + 1_200_000));
       expect(ofType(await plugin.collect(), 'RecentlyAdded')).toEqual([]);
       expect(queryOf(client, cmd('get_recently_added'))[0]).toMatchObject({ count: '50' });
+    });
+
+    it('hashes recently added items with their added time', async () => {
+      const body = loadFixture('tautulli/get-recently-added') as { response: { data: { recently_added: { added_at: string }[] } } };
+      body.response.data.recently_added[0].added_at = String(NOW_S + 300);
+      client.override(cmd('get_recently_added'), body as never);
+      vi.setSystemTime(new Date(NOW.getTime() + 600_000));
+      const [first] = ofType(await plugin.collect(), 'RecentlyAdded');
+
+      body.response.data.recently_added[0].added_at = String(NOW_S + 900);
+      client.override(cmd('get_recently_added'), body as never);
+      vi.setSystemTime(new Date(NOW.getTime() + 1_200_000));
+      const [second] = ofType(await plugin.collect(), 'RecentlyAdded');
+
+      expect(second.fields.hash).not.toBe(first.fields.hash);
     });
 
     it('consumes no event when one stats request fails', async () => {
@@ -198,7 +254,7 @@ describe('TautulliPlugin collectors', () => {
             platform: 'Android',
             player: 'SHIELD',
             product: 'Plex for Android (TV)',
-            transcode_decision: 'direct play',
+            transcode_decision: 'Direct play',
             network: 'lan',
             live: 0,
           },
@@ -215,7 +271,7 @@ describe('TautulliPlugin collectors', () => {
             platform: 'Android',
             player: 'SHIELD',
             product: 'Plex for Android (TV)',
-            transcode_decision: 'transcode',
+            transcode_decision: 'Transcode',
             network: 'wan',
             live: 0,
           },
@@ -389,7 +445,7 @@ describe('TautulliPlugin collectors', () => {
     });
 
     it('keeps the library point when media info was never built', async () => {
-      client.overrideUnchecked(cmd('get_library_media_info'), {
+      client.override(cmd('get_library_media_info'), {
         response: {
           result: 'success',
           message: null,
@@ -401,6 +457,55 @@ describe('TautulliPlugin collectors', () => {
       expect(ofType(points, 'Library')[0].fields).not.toHaveProperty('media_items');
       expect(ofType(points, 'Library')[0].fields).toHaveProperty('plays', 120);
       expect(ofType(points, 'MediaInfo')).toEqual([]);
+    });
+
+    const mediaInfo = (lastRefreshed: number, rows?: Record<string, unknown>[]): unknown => {
+      const body = loadFixture('tautulli/get-library-media-info') as { response: { data: Record<string, unknown> } };
+      body.response.data.last_refreshed = lastRefreshed;
+      if (rows) {
+        Object.assign(body.response.data, { data: rows, recordsTotal: rows.length, recordsFiltered: rows.length, total_file_size: 0, filtered_file_size: 0 });
+      }
+      return body;
+    };
+
+    it('omits the size of libraries whose items have no known size', async () => {
+      const shows = [
+        { section_id: 2, section_type: 'show', media_type: 'show', rating_key: '300', title: 'Severance', video_resolution: '', video_codec: '', file_size: '' },
+        { section_id: 2, section_type: 'show', media_type: 'show', rating_key: '301', title: 'Andor', video_resolution: '', video_codec: '', file_size: '' },
+      ];
+      client.override(cmd('get_library_media_info'), (params) => (params?.section_id === '2' ? mediaInfo(NOW_S - 3600, shows) : mediaInfo(NOW_S - 3600)));
+      const points = await plugin.collect();
+      const tv = ofType(points, 'Library')[1];
+
+      expect(tv.fields).toMatchObject({ media_items: 2 });
+      expect(tv.fields).not.toHaveProperty('file_size');
+      expect(ofType(points, 'MediaInfo').filter((p) => p.tags.section_id === 2).map((p) => [p.tags.video_resolution, p.fields])).toEqual([
+        ['unknown', { items: 2 }],
+      ]);
+    });
+
+    it('refreshes a stale movie media info cache', async () => {
+      client.override(cmd('get_library_media_info'), (params) => mediaInfo(params?.refresh === 'true' ? NOW_S : NOW_S - 2 * 86400));
+      const points = await plugin.collect();
+
+      expect(queryOf(client, cmd('get_library_media_info')).map((q) => [q.section_id, q.refresh])).toEqual([
+        ['1', undefined],
+        ['2', undefined],
+        ['1', 'true'],
+      ]);
+      expect(ofType(points, 'Library')[0].fields.media_info_age_seconds).toBe(0);
+    });
+
+    it('keeps the cached media info when the refresh fails', async () => {
+      client.override(cmd('get_library_media_info'), (params) => {
+        if (params?.refresh === 'true') {
+          throw new Error('timeout of 30000ms exceeded');
+        }
+        return mediaInfo(NOW_S - 2 * 86400);
+      });
+      const points = await plugin.collect();
+
+      expect(ofType(points, 'Library')[0].fields).toMatchObject({ media_items: 3, media_info_age_seconds: 2 * 86400 });
     });
 
     it('schedules the libraryMedia collector in days', () => {

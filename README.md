@@ -227,7 +227,7 @@ Plex, Jellyfin and Emby also accept these collectors, all disabled by default:
 | `inventory` | 3600s | Users and devices |
 | `liveTv` | 300s | Live TV sessions (Plex), recordings and timers |
 
-Tautulli's `stats` collector (300s suggested) writes library counts, home stats (top items, users, platforms, most concurrent streams), play graphs and recently added items. Tautulli also accepts these collectors, all disabled by default:
+Tautulli's `stats` collector writes library counts at its interval, and home stats (top items, users, platforms, most concurrent streams), play graphs and recently added items at most every 5 minutes. Tautulli also accepts these collectors, all disabled by default:
 
 | Key | Default interval | What it writes |
 |-----|------------------|----------------|

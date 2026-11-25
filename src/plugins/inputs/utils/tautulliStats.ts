@@ -70,18 +70,24 @@ function bucketRange(category: string, unit: 'day' | 'month'): { start: number; 
   return { start: Date.UTC(year, month, 1), end: Date.UTC(year, month + 1, 1) };
 }
 
-/** Tautulli's last category is its current day or month, still in progress. */
-export function completedBuckets(graph: Graph, unit: 'day' | 'month'): GraphBucket[] {
+/** Tautulli's last category is its current day or month, still in progress; `skipped` lists categories that do not parse. */
+export function completedBuckets(graph: Graph, unit: 'day' | 'month'): { buckets: GraphBucket[]; skipped: string[] } {
   const categories = graph.categories ?? [];
   const buckets: GraphBucket[] = [];
+  const skipped: string[] = [];
   for (const [index, category] of categories.slice(0, -1).entries()) {
-    const range = bucketRange(category, unit);
     const fields = seriesFields(graph, index);
-    if (range && Object.keys(fields).length > 0) {
+    if (Object.keys(fields).length === 0) {
+      continue;
+    }
+    const range = bucketRange(category, unit);
+    if (range) {
       buckets.push({ category, ...range, fields });
+    } else {
+      skipped.push(category);
     }
   }
-  return buckets;
+  return { buckets, skipped };
 }
 
 type HomeStatRow = NonNullable<HomeStat['rows']>[number];
@@ -114,7 +120,7 @@ export function homeStatPoints(stats: readonly HomeStat[], now: Date): PointSpec
       put('duration_seconds', numberOf(row.total_duration));
       put('users_watched', numberOf(row.users_watched));
       put('count', numberOf(row.count));
-      const lastPlay = numberOf(row.last_play);
+      const lastPlay = numberOf(row.last_play ?? row.last_watch);
       put('last_play_age_seconds', ageSeconds(lastPlay === undefined ? undefined : lastPlay * 1000, now));
       points.push({ tags: { type: 'HomeStat', stat_id: stat.stat_id, rank: index + 1 }, fields });
     }

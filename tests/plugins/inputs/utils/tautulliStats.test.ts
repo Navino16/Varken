@@ -69,7 +69,7 @@ describe('graphSnapshotPoints', () => {
 
 describe('completedBuckets', () => {
   it('returns every day but the current one', () => {
-    const buckets = completedBuckets(
+    const { buckets } = completedBuckets(
       { categories: ['2026-11-23', '2026-11-24', '2026-11-25'], series: [{ name: 'TV', data: [3, 1, 4] }, { name: 'Total', data: [3, 1, 4] }] },
       'day'
     );
@@ -81,7 +81,7 @@ describe('completedBuckets', () => {
   });
 
   it('parses month categories', () => {
-    const buckets = completedBuckets({ categories: ['Nov 2026', 'Dec 2026', 'Jan 2027'], series: [{ name: 'TV', data: [40, 52, 31] }] }, 'month');
+    const { buckets } = completedBuckets({ categories: ['Nov 2026', 'Dec 2026', 'Jan 2027'], series: [{ name: 'TV', data: [40, 52, 31] }] }, 'month');
 
     expect(buckets.map((b) => [b.category, new Date(b.start).toISOString(), new Date(b.end).toISOString(), b.fields])).toEqual([
       ['Nov 2026', '2026-11-01T00:00:00.000Z', '2026-12-01T00:00:00.000Z', { tv: 40 }],
@@ -90,16 +90,17 @@ describe('completedBuckets', () => {
   });
 
   it('skips unparsable categories', () => {
-    const buckets = completedBuckets({ categories: ['Okt. 2026', 'Oct 2026', 'Nov 2026'], series: [{ name: 'TV', data: [1, 2, 3] }] }, 'month');
+    const months = completedBuckets({ categories: ['Okt. 2026', 'Oct 2026', 'Nov 2026'], series: [{ name: 'TV', data: [1, 2, 3] }] }, 'month');
+    const days = completedBuckets({ categories: ['2026-13-40', '2026-11-24', '2026-11-25'], series: [{ name: 'TV', data: [1, 2, 3] }] }, 'day');
 
-    expect(buckets.map((b) => b.category)).toEqual(['Oct 2026']);
-    expect(completedBuckets({ categories: ['2026-13-40', '2026-11-24', '2026-11-25'], series: [{ name: 'TV', data: [1, 2, 3] }] }, 'day').map((b) => b.category)).toEqual([
-      '2026-11-24',
-    ]);
+    expect(months.buckets.map((b) => b.category)).toEqual(['Oct 2026']);
+    expect(months.skipped).toEqual(['Okt. 2026']);
+    expect(days.buckets.map((b) => b.category)).toEqual(['2026-11-24']);
+    expect(days.skipped).toEqual(['2026-13-40']);
   });
 
   it('returns no bucket without series', () => {
-    expect(completedBuckets({ categories: ['2026-11-24', '2026-11-25'], series: [] }, 'day')).toEqual([]);
+    expect(completedBuckets({ categories: ['2026-11-24', '2026-11-25'], series: [] }, 'day')).toEqual({ buckets: [], skipped: [] });
   });
 });
 
@@ -138,6 +139,12 @@ describe('homeStatPoints', () => {
     const [point] = homeStatPoints([{ stat_id: 'last_watched', rows: [{ title: 'Inception', friendly_name: 'Jon Snow', section_name: 'Movies' }] }], now);
 
     expect(point.fields.title).toBe('Inception');
+  });
+
+  it('reads the last play of the last watched card', () => {
+    const [point] = homeStatPoints([{ stat_id: 'last_watched', rows: [{ title: 'Inception', last_watch: epoch('2026-11-25T09:30:00Z') }] }], now);
+
+    expect(point.fields.last_play_age_seconds).toBe(3600);
   });
 
   it('skips cards without stat id or rows', () => {
