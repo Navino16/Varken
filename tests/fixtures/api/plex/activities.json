@@ -1,0 +1,24 @@
+{
+  "MediaContainer": {
+    "Activity": [
+      {
+        "uuid": "4f3c2b1a-0000-4000-8000-000000000001",
+        "type": "media.generate.intros",
+        "cancellable": true,
+        "userID": 1,
+        "title": "Detecting intros",
+        "subtitle": "TV Shows",
+        "progress": 40
+      },
+      {
+        "uuid": "4f3c2b1a-0000-4000-8000-000000000002",
+        "type": "library.update.section",
+        "cancellable": false,
+        "userID": 1,
+        "title": "Scanning Movies",
+        "subtitle": "Movies",
+        "progress": 5
+      }
+    ]
+  }
+}

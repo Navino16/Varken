@@ -1,0 +1,48 @@
+{
+  "MediaContainer": {
+    "size": 3,
+    "totalSize": 3,
+    "offset": 0,
+    "Metadata": [
+      {
+        "historyKey": "/status/sessions/history/1201",
+        "key": "/library/metadata/501",
+        "ratingKey": "501",
+        "librarySectionID": "1",
+        "title": "Arrival",
+        "type": "movie",
+        "thumb": "/library/metadata/501/thumb/1732017600",
+        "originallyAvailableAt": "2016-11-11",
+        "viewedAt": 1795597954,
+        "accountID": 1,
+        "deviceID": 11
+      },
+      {
+        "historyKey": "/status/sessions/history/1202",
+        "key": "/library/metadata/702",
+        "ratingKey": "702",
+        "librarySectionID": "2",
+        "title": "Pilot",
+        "type": "episode",
+        "thumb": "/library/metadata/702/thumb/1732017600",
+        "originallyAvailableAt": "2008-01-20",
+        "viewedAt": 1795597954,
+        "accountID": 2,
+        "deviceID": 12
+      },
+      {
+        "historyKey": "/status/sessions/history/1203",
+        "key": "/library/metadata/703",
+        "ratingKey": "703",
+        "librarySectionID": "2",
+        "title": "Cat's in the Bag...",
+        "type": "episode",
+        "thumb": "/library/metadata/703/thumb/1732017600",
+        "originallyAvailableAt": "2008-01-27",
+        "viewedAt": 1795600740,
+        "accountID": 3,
+        "deviceID": 99
+      }
+    ]
+  }
+}

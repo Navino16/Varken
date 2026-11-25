@@ -1,0 +1,48 @@
+{
+  "MediaContainer": {
+    "size": 2,
+    "TranscodeSession": [
+      {
+        "key": "/transcode/sessions/abc123",
+        "throttled": true,
+        "complete": false,
+        "progress": 42.5,
+        "speed": 2.4,
+        "duration": 6960000,
+        "remaining": 600,
+        "context": "streaming",
+        "sourceVideoCodec": "hevc",
+        "sourceAudioCodec": "eac3",
+        "videoDecision": "transcode",
+        "audioDecision": "copy",
+        "protocol": "dash",
+        "container": "mp4",
+        "videoCodec": "h264",
+        "audioCodec": "aac",
+        "audioChannels": 2,
+        "width": 1920,
+        "height": 1080,
+        "transcodeHwRequested": true,
+        "transcodeHwDecoding": "vaapi",
+        "transcodeHwEncoding": "vaapi",
+        "transcodeHwFullPipeline": true
+      },
+      {
+        "key": "/transcode/sessions/def456",
+        "throttled": false,
+        "complete": false,
+        "progress": 10.0,
+        "speed": 1.0,
+        "context": "streaming",
+        "videoDecision": "copy",
+        "audioDecision": "transcode",
+        "protocol": "hls",
+        "container": "mpegts",
+        "videoCodec": "h264",
+        "audioCodec": "aac",
+        "audioChannels": 2,
+        "transcodeHwRequested": false
+      }
+    ]
+  }
+}

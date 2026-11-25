@@ -1,0 +1,21 @@
+{
+  "MediaContainer": {
+    "size": 2,
+    "Device": [
+      {
+        "id": 11,
+        "name": "Living Room TV",
+        "platform": "Android",
+        "clientIdentifier": "a1b2c3d4e5f6-living-room",
+        "createdAt": 1795132800
+      },
+      {
+        "id": 12,
+        "name": "Alice's iPhone",
+        "platform": "iOS",
+        "clientIdentifier": "f6e5d4c3b2a1-alice-phone",
+        "createdAt": 1763596800
+      }
+    ]
+  }
+}

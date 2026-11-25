@@ -1,0 +1,20 @@
+{
+  "MediaContainer": {
+    "size": 1,
+    "TranscodeJob": [
+      {
+        "generatorID": 3,
+        "type": "transcode",
+        "key": "/transcode/sessions/abc123",
+        "progress": 42.5,
+        "speed": 2.4,
+        "remaining": 600,
+        "size": 524288000,
+        "title": "Arrival",
+        "thumb": "/library/metadata/501/thumb/1732017600",
+        "ratingKey": "501",
+        "targetTagID": 7
+      }
+    ]
+  }
+}

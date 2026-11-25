@@ -1,0 +1,17 @@
+{
+  "MediaContainer": {
+    "size": 2,
+    "Account": [
+      {
+        "id": 1,
+        "key": "/accounts/1",
+        "name": "admin"
+      },
+      {
+        "id": 2,
+        "key": "/accounts/2",
+        "name": "alice"
+      }
+    ]
+  }
+}
