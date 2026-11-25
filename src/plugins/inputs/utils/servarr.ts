@@ -1,5 +1,6 @@
 import type { PointSpec } from '../../../types/plugin.types';
 import { booleanFlags } from './flags';
+import { eventTimestamp } from './events';
 
 export interface ServarrQueueLike {
   size?: number;
@@ -54,6 +55,7 @@ export interface ServarrTaskLike {
 }
 
 export interface ServarrHistoryLike {
+  id?: number;
   date?: string;
   eventType?: string;
   quality?: { quality?: { name?: string | null } } | null;
@@ -91,10 +93,13 @@ export function parseTimeSpan(span: string | null | undefined): number | undefin
 }
 
 /** `{ sourceKey: fieldName }` → fields for the finite numbers of `source`. */
-export function pickNumbers(source: object | null | undefined, keys: Record<string, string>): Record<string, number> {
+export function pickNumbers<T extends object>(
+  source: T | null | undefined,
+  keys: Partial<Record<keyof T & string, string>>
+): Record<string, number> {
   const fields: Record<string, number> = {};
   const values = (source ?? {}) as Record<string, unknown>;
-  for (const [key, field] of Object.entries(keys)) {
+  for (const [key, field] of Object.entries(keys) as [string, string][]) {
     const value = values[key];
     if (isNumber(value)) {
       fields[field] = value;
@@ -114,7 +119,7 @@ export function queueEnrichment(
   if (isNumber(item.sizeleft)) {
     fields.sizeleft = Math.round(item.sizeleft);
   }
-  if (isNumber(item.size) && isNumber(item.sizeleft) && item.size > 0) {
+  if (isNumber(item.size) && isNumber(item.sizeleft) && item.size > 0 && item.sizeleft >= 0 && item.sizeleft <= item.size) {
     fields.progress = (100 * (item.size - item.sizeleft)) / item.size;
   }
   const eta = servarrTime(item.estimatedCompletionTime);
@@ -190,10 +195,10 @@ function queueStatusPoint(queue: ServarrQueueStatusLike): PointSpec {
     fields: {
       ...pickNumbers(queue, { totalCount: 'total_count', count: 'count', unknownCount: 'unknown_count' }),
       ...booleanFlags({
-        errors: queue.errors,
-        warnings: queue.warnings,
-        unknown_errors: queue.unknownErrors,
-        unknown_warnings: queue.unknownWarnings,
+        has_errors: queue.errors,
+        has_warnings: queue.warnings,
+        has_unknown_errors: queue.unknownErrors,
+        has_unknown_warnings: queue.unknownWarnings,
       }),
     },
   };
@@ -234,7 +239,7 @@ export function historyPoint(record: ServarrHistoryLike, idTags: Record<string, 
       ...idTags,
     },
     fields,
-    timestamp: new Date(time),
+    timestamp: eventTimestamp(time, record.id),
   };
 }
 

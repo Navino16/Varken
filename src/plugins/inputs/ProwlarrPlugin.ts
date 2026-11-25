@@ -4,6 +4,7 @@ import type { ProwlarrConfig } from '../../types/inputs/prowlarr.types';
 import type { components, paths } from '../../types/generated/prowlarr';
 import { servarrServerInfo } from './utils/servarrServerInfo';
 import { healthPoints, pickNumbers, servarrTime, taskPoints } from './utils/servarr';
+import { eventTimestamp } from './utils/events';
 
 type IndexerStatistics = components['schemas']['IndexerStatistics'];
 type IndexerResource = components['schemas']['IndexerResource'];
@@ -111,12 +112,13 @@ export class ProwlarrPlugin extends BaseInputPlugin<ProwlarrConfig> {
     return this.safeFetch('collect Prowlarr indexer stats', async () => {
       const now = new Date();
       const window = { startDate: new Date(now.getTime() - DAY_MS).toISOString(), endDate: now.toISOString() };
-      const [cumulative, windowed, indexers] = await Promise.all([
+      // Window and indexer settings are extras: their failure must not cost the cumulative stats.
+      const [cumulative, windowed, indexersResult] = await Promise.all([
         this.prowlarr.get('/api/v1/indexerstats'),
-        this.prowlarr.get('/api/v1/indexerstats', { query: window }),
-        this.prowlarr.get('/api/v1/indexer'),
+        this.settled('windowed indexer stats', this.prowlarr.get('/api/v1/indexerstats', { query: window })),
+        this.settled('indexer settings', this.prowlarr.get('/api/v1/indexer')),
       ]);
-      const settings = new Map(indexers.map((indexer) => [indexer.id, indexer]));
+      const settings = new Map((indexersResult ?? []).map((indexer) => [indexer.id, indexer]));
       const statsPoints = (stats: readonly IndexerStatistics[] | null | undefined, extraTags: Record<string, string>): DataPoint[] =>
         (stats ?? []).map((stat) => this.indexerStatsPoint(stat, settings.get(stat.indexerId), extraTags));
 
@@ -144,6 +146,15 @@ export class ProwlarrPlugin extends BaseInputPlugin<ProwlarrConfig> {
     });
   }
 
+  private async settled<T>(what: string, request: Promise<T>): Promise<T | undefined> {
+    try {
+      return await request;
+    } catch (error) {
+      this.logger.warn(`Skipping Prowlarr ${what}: ${error instanceof Error ? error.message : String(error)}`);
+      return undefined;
+    }
+  }
+
   private indexerStatsPoint(stat: IndexerStatistics, indexer: IndexerResource | undefined, extraTags: Record<string, string>): DataPoint {
     return this.createDataPoint(
       'Prowlarr',
@@ -160,7 +171,7 @@ export class ProwlarrPlugin extends BaseInputPlugin<ProwlarrConfig> {
       {
         hash: this.hashit(`${this.config.id}${stat.indexerId}${stat.indexerName}`),
         averageResponseTime: stat.averageResponseTime ?? 0,
-        averageGrabResponseTime: stat.averageGrabResponseTime ?? 0,
+        ...pickNumbers(stat, { averageGrabResponseTime: 'averageGrabResponseTime' }),
         numberOfQueries: stat.numberOfQueries ?? 0,
         numberOfGrabs: stat.numberOfGrabs ?? 0,
         numberOfRssQueries: stat.numberOfRssQueries ?? 0,
@@ -229,7 +240,7 @@ export class ProwlarrPlugin extends BaseInputPlugin<ProwlarrConfig> {
               grab_method: data.grabMethod || 'unknown',
             },
             fields: { hash: this.hashit(`${this.config.id}${r.id}`), ...(Number.isFinite(elapsed) ? { elapsed_ms: elapsed } : {}) },
-            timestamp: new Date(r.date ?? ''),
+            timestamp: eventTimestamp(Date.parse(r.date ?? ''), r.id),
           };
         })
       );

@@ -285,8 +285,7 @@ export class RadarrPlugin extends BaseInputPlugin<RadarrConfig> {
         tags: { type: 'Collection', collectionId: c.tmdbId ?? 0, name: c.title ?? 'unknown' },
         fields: {
           ...booleanFlags({ monitored: c.monitored }),
-          movies: c.movies?.length ?? 0,
-          movies_in_library: c.movies?.filter((m) => m.isExisting).length ?? 0,
+          ...(c.movies ? { movies: c.movies.length, movies_in_library: c.movies.filter((m) => m.isExisting).length } : {}),
           ...pickNumbers(c, { missingMovies: 'missing' }),
         },
       }));

@@ -33,9 +33,15 @@ export class EventStateStore {
     }
     const file = this.fileOf(key);
     const tmp = `${file}.${process.pid}.tmp`;
-    await fs.mkdir(path.dirname(file), { recursive: true });
-    await fs.writeFile(tmp, JSON.stringify({ time: new Date(mark.time).toISOString(), ids: mark.ids }));
-    await fs.rename(tmp, file);
+    try {
+      await fs.mkdir(path.dirname(file), { recursive: true });
+      await fs.writeFile(tmp, JSON.stringify({ time: new Date(mark.time).toISOString(), ids: mark.ids }));
+      await fs.rename(tmp, file);
+    } catch (error) {
+      // The in-memory mark still deduplicates until a restart; failing the collector would drop the events.
+      logger.warn(`Cannot write event state ${file}, keeping it in memory: ${(error as Error).message}`);
+      await fs.rm(tmp, { force: true }).catch(() => undefined);
+    }
   }
 
   private async read(key: string): Promise<EventMark | undefined> {

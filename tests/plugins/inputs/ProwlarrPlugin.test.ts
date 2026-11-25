@@ -187,6 +187,29 @@ describe('ProwlarrPlugin', () => {
       expect(windowed[0].fields).toMatchObject({ numberOfQueries: 1520, averageGrabResponseTime: 830 });
     });
 
+    it('keeps cumulative stats when the windowed or indexer call fails', async () => {
+      client.override('/api/v1/indexerstats', (params) => {
+        if (params?.startDate) {
+          throw new Error('window timeout');
+        }
+        return loadFixture<object>('prowlarr/indexerstats');
+      });
+      client.fail('/api/v1/indexer', new Error('indexer list down'));
+
+      const points = await plugin.collect();
+
+      expect(ofType(points, 'IndexerStats')).toHaveLength(3);
+      expect(ofType(points, 'IndexerStats')[0].tags.protocol).toBe('unknown');
+      expect(ofType(points, 'IndexerStatsWindow')).toEqual([]);
+    });
+
+    it('omits averageGrabResponseTime when Prowlarr does not report it', async () => {
+      const { averageGrabResponseTime: _omitted, ...bare } = loadFixture<{ indexers: components['schemas']['IndexerStatistics'][] }>('prowlarr/indexerstats').indexers[0];
+      client.override('/api/v1/indexerstats', { indexers: [bare] });
+
+      expect(ofType(await plugin.collect(), 'IndexerStats')[0].fields).not.toHaveProperty('averageGrabResponseTime');
+    });
+
     it('collects user agent and host stats', async () => {
       const points = await plugin.collect();
 
@@ -237,12 +260,12 @@ describe('ProwlarrPlugin', () => {
       });
       expect(points.map((p) => [p.timestamp.toISOString(), p.tags, p.fields])).toEqual([
         [
-          '2026-11-24T12:01:00.000Z',
+          '2026-11-24T12:01:00.701Z',
           { type: 'History', server: 1, indexerId: 1, event_type: 'releaseGrabbed', successful: 1, source: 'Sonarr', grab_method: 'Proxy' },
           { hash: expect.stringMatching(/^[0-9a-f]{32}$/), elapsed_ms: 830 },
         ],
         [
-          '2026-11-24T12:01:00.000Z',
+          '2026-11-24T12:01:00.702Z',
           { type: 'History', server: 1, indexerId: 2, event_type: 'releaseGrabbed', successful: 0, source: 'Radarr', grab_method: 'Redirect' },
           { hash: expect.stringMatching(/^[0-9a-f]{32}$/) },
         ],

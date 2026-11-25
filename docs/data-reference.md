@@ -4,7 +4,7 @@ Every input plugin writes DataPoints whose measurement is the service name (`Son
 Numbers meant for graphing are fields; tags hold labels and identifiers. The `hash` field is a deduplication key (MD5) and is not meant to be graphed.
 Decimal fields (`score_percent`, `lat`, `lon`, and the Servarr `progress`, `used_percent`, `last_duration_seconds`, `percent_of_*`) are always written as floats, even for whole values, so their column type stays stable.
 Points are timestamped with the collection time (`createDataPoint` default) unless stated otherwise in a section.
-Event points (`type = History`) are timestamped with the event time. Each event collector keeps a high-water mark in `DATA_FOLDER/event-state/` and only writes events newer than it, so an event is written once even across restarts. Without a mark (first run, deleted or unreadable file) it starts from the plugin start time: earlier events are not backfilled.
+Event points (`type = History`) are timestamped with the event time, plus the record id's last three digits as milliseconds: the APIs report whole seconds, and this keeps same-second events with identical tags as separate points. Each event collector keeps a high-water mark in `DATA_FOLDER/event-state/` and only writes events newer than it, so an event is written once even across restarts. Without a mark (first run, deleted or unreadable file) it starts from the plugin start time: earlier events are not backfilled.
 
 ## Sonarr, Radarr, Lidarr, Readarr: shared points
 
@@ -23,7 +23,7 @@ Added to every `type = Queue` point (see each service below).
 | `indexer` | tag | string | Indexer the release came from |
 | `size` | field | number | Release size in bytes |
 | `sizeleft` | field | number | Bytes left to download |
-| `progress` | field | float | Downloaded percentage; omitted when `size` is `0` |
+| `progress` | field | float | Downloaded percentage; omitted when `size` is `0` or `sizeleft` is outside `0..size` |
 | `eta_seconds` | field | number | Seconds until the estimated completion (`0` when past); omitted when unknown |
 
 All tags are `unknown` when absent.
@@ -77,8 +77,8 @@ Config: `status` · Source: `<prefix>/queue/status`.
 | `total_count` | field | number | Queue items, including unknown ones |
 | `count` | field | number | Queue items matched to a library item |
 | `unknown_count` | field | number | Queue items not matched |
-| `errors`, `warnings` | field | number | `1` when a matched item is in error / warning |
-| `unknown_errors`, `unknown_warnings` | field | number | Same for unmatched items |
+| `has_errors`, `has_warnings` | field | number | `1` when a matched item is in error / warning |
+| `has_unknown_errors`, `has_unknown_warnings` | field | number | Same for unmatched items |
 
 ### type = Task
 
@@ -248,7 +248,7 @@ Config: `inputs.radarr[].library` (`enabled`, `intervalDays`, default disabled, 
 | `collectionId` | tag | number | Collection TMDb id |
 | `name` | tag | string | Collection title |
 | `monitored` | field | number | `1` when monitored |
-| `movies` | field | number | Movies in the collection |
+| `movies` | field | number | Movies in the collection (with `movies_in_library`, omitted when the response has no movie list) |
 | `movies_in_library` | field | number | Of which already in Radarr |
 | `missing` | field | number | Radarr's missing-movie count for the collection |
 
@@ -394,7 +394,7 @@ Config: `inputs.prowlarr[].indexerStats` (`enabled`, `intervalSeconds`) · Sourc
 | `priority` | tag | number | Indexer priority (same source) |
 | `hash` | field | string | MD5 of server id + indexer id + indexer name |
 | `averageResponseTime` | field | number | Average response time (`0` when absent) |
-| `averageGrabResponseTime` | field | number | Average grab response time |
+| `averageGrabResponseTime` | field | number | Average grab response time; omitted when absent |
 | `numberOfQueries` | field | number | Total queries |
 | `numberOfGrabs` | field | number | Total grabs |
 | `numberOfRssQueries` | field | number | RSS queries |
@@ -404,7 +404,7 @@ Config: `inputs.prowlarr[].indexerStats` (`enabled`, `intervalSeconds`) · Sourc
 | `numberOfFailedRssQueries` | field | number | Failed RSS queries |
 | `numberOfFailedAuthQueries` | field | number | Failed auth queries |
 
-All numeric fields default to `0` when absent. The same collector also writes:
+All other numeric fields default to `0` when absent. The protocol/privacy/enabled/priority tags are `unknown` when `/api/v1/indexer` fails, and `IndexerStatsWindow` is skipped when the windowed call fails: neither costs the cumulative stats. The same collector also writes:
 
 - `IndexerStatsWindow`: the same tags and fields over the last 24 hours (`/api/v1/indexerstats?startDate=&endDate=`), plus tag `window` = `24h`.
 - `UserAgentStats` (tag `user_agent`) and `HostStats` (tag `host`): fields `numberOfQueries`, `numberOfGrabs` per calling application and per host.

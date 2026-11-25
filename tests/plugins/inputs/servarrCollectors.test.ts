@@ -81,10 +81,10 @@ describe.each(services)('$name shared Servarr collectors', (svc) => {
         total_count: 5,
         count: 4,
         unknown_count: 1,
-        errors: 1,
-        warnings: 0,
-        unknown_errors: 0,
-        unknown_warnings: 0,
+        has_errors: 1,
+        has_warnings: 0,
+        has_unknown_errors: 0,
+        has_unknown_warnings: 0,
       });
       expect(ofType(points, 'Task').map((p) => [p.tags.task, p.fields])).toEqual([
         [
@@ -167,9 +167,9 @@ describe.each(services)('$name shared Servarr collectors', (svc) => {
       const points = await history();
 
       expect(points.map((p) => [p.timestamp.toISOString(), p.tags.event_type])).toEqual([
-        ['2026-11-24T12:01:00.000Z', 'grabbed'],
-        ['2026-11-24T12:02:00.000Z', svc.imported],
-        ['2026-11-24T12:02:00.000Z', 'downloadFailed'],
+        ['2026-11-24T12:01:00.501Z', 'grabbed'],
+        ['2026-11-24T12:02:00.502Z', svc.imported],
+        ['2026-11-24T12:02:00.503Z', 'downloadFailed'],
       ]);
       expect(points[0].tags).toEqual(expect.objectContaining({ server: 1, quality: expect.any(String), indexer: expect.any(String), ...svc.historyIds }));
       expect(points[0].tags.download_client).not.toBe('unknown');

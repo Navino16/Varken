@@ -358,7 +358,7 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
       }
       return [];
     }
-    const newest = Math.max(...fresh.map(timeOf));
+    const newest = fresh.reduce((max, e) => Math.max(max, timeOf(e)), Number.NEGATIVE_INFINITY);
     const ids = fresh.filter((e) => timeOf(e) === newest).map(idOf);
     await store.set(key, { time: newest, ids: newest === mark.time ? [...mark.ids, ...ids] : ids });
     return fresh;

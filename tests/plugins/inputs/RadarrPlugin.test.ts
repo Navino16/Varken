@@ -227,6 +227,14 @@ describe('RadarrPlugin', () => {
       ]);
     });
 
+    it('omits collection movie counts the response lacks', async () => {
+      client.override('/api/v3/collection', [{ id: 3, title: 'Bare Collection', tmdbId: 3, monitored: true, missingMovies: 0 }]);
+
+      const collection = (await plugin.collect()).find((p) => p.tags.type === 'Collection');
+
+      expect(collection?.fields).toEqual({ monitored: 1, missing: 0 });
+    });
+
     it('schedules library every intervalDays', () => {
       expect(plugin.getSchedules().find((s) => s.name === 'Radarr_1_library')?.intervalSeconds).toBe(172800);
     });

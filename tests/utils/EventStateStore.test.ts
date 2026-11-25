@@ -74,6 +74,17 @@ describe('EventStateStore', () => {
     expect(warn).not.toHaveBeenCalled();
   });
 
+  it('keeps the mark in memory when the state file cannot be written', async () => {
+    const notAFolder = path.join(folder, 'file');
+    await fs.writeFile(notAFolder, '');
+    const store = new EventStateStore(notAFolder);
+
+    await expect(store.set('Sonarr_1_history', { time: 5, ids: ['1'] })).resolves.toBeUndefined();
+
+    await expect(store.get('Sonarr_1_history')).resolves.toEqual({ time: 5, ids: ['1'] });
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
   it('keeps marks in memory when folder is null', async () => {
     const store = new EventStateStore(null);
     await store.set('Sonarr_1_history', { time: 5, ids: ['1'] });

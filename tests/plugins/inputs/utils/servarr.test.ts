@@ -42,6 +42,10 @@ describe('queueEnrichment', () => {
     });
   });
 
+  it('omits progress when sizeleft exceeds size', () => {
+    expect(queueEnrichment({ ...item, size: 100, sizeleft: 150 }, now).fields).not.toHaveProperty('progress');
+  });
+
   it('omits progress when size is 0', () => {
     const { fields } = queueEnrichment({ ...item, size: 0, sizeleft: 0 }, now);
 
@@ -94,8 +98,8 @@ describe('parseTimeSpan', () => {
 
 describe('pickNumbers', () => {
   it('renames finite numbers and skips the rest', () => {
-    expect(pickNumbers({ a: 1, b: Number.NaN, c: '3', d: 2.5 }, { a: 'x', b: 'y', c: 'z', d: 'w', e: 'v' })).toEqual({ x: 1, w: 2.5 });
-    expect(pickNumbers(null, { a: 'x' })).toEqual({});
+    expect(pickNumbers({ a: 1, b: Number.NaN, c: '3', d: 2.5, e: undefined }, { a: 'x', b: 'y', c: 'z', d: 'w', e: 'v' })).toEqual({ x: 1, w: 2.5 });
+    expect(pickNumbers<{ a: number }>(null, { a: 'x' })).toEqual({});
   });
 });
 
@@ -175,7 +179,7 @@ describe('statusPoints', () => {
     expect(points[3]).toEqual({ tags: { type: 'RootFolder', path: '/tv' }, fields: { accessible: 1, free_bytes: 250, unmapped_folders: 1 } });
     expect(points[5]).toEqual({
       tags: { type: 'QueueStatus' },
-      fields: { total_count: 5, count: 4, unknown_count: 1, errors: 1, warnings: 0, unknown_errors: 0, unknown_warnings: 0 },
+      fields: { total_count: 5, count: 4, unknown_count: 1, has_errors: 1, has_warnings: 0, has_unknown_errors: 0, has_unknown_warnings: 0 },
     });
   });
 
@@ -233,7 +237,7 @@ describe('historyPoint', () => {
         episodeId: 2,
       },
       fields: { hash: 'abc', size: 1234 },
-      timestamp: new Date('2026-11-25T09:30:00Z'),
+      timestamp: new Date('2026-11-25T09:30:00.007Z'),
     });
   });
 
@@ -242,6 +246,14 @@ describe('historyPoint', () => {
 
     expect(point?.tags).toEqual({ type: 'History', event_type: 'unknown', quality: 'unknown', download_client: 'qBit', indexer: 'unknown' });
     expect(point?.fields).toEqual({ hash: 'abc' });
+  });
+
+  it('gives same-second events distinct timestamps', () => {
+    const first = historyPoint({ ...record, id: 1000 }, {}, 'a');
+    const second = historyPoint({ ...record, id: 1001 }, {}, 'b');
+
+    expect(first?.timestamp).toEqual(new Date('2026-11-25T09:30:00.000Z'));
+    expect(second?.timestamp).toEqual(new Date('2026-11-25T09:30:00.001Z'));
   });
 
   it('returns undefined on a bad date', () => {
