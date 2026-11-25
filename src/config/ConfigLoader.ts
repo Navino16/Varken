@@ -177,6 +177,20 @@ inputs:
     issuecounts: 'issueCounts',
     latestrequests: 'latestRequests',
     indexerstats: 'indexerStats',
+    serverinfo: 'serverInfo',
+    localcoordinates: 'localCoordinates',
+    httptimeoutms: 'httpTimeoutMs',
+    healthchecktimeoutms: 'healthCheckTimeoutMs',
+    collectortimeoutms: 'collectorTimeoutMs',
+    paginationpagesize: 'paginationPageSize',
+    maxpaginationrecords: 'maxPaginationRecords',
+    cachettlseconds: 'cacheTtlSeconds',
+    maxconsecutiveerrors: 'maxConsecutiveErrors',
+    backoffmultiplier: 'backoffMultiplier',
+    maxintervalseconds: 'maxIntervalSeconds',
+    cooldownseconds: 'cooldownSeconds',
+    recoverysuccesses: 'recoverySuccesses',
+    circuitbreaker: 'circuitBreaker',
   };
 
   /**
