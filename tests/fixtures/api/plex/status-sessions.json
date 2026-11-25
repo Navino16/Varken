@@ -33,7 +33,8 @@
           "local": true,
           "relayed": false,
           "secure": true,
-          "userID": 1
+          "userID": 1,
+          "model": "AppleTV14,1"
         },
         "Session": {
           "id": "k3j4h5g6f7d8s9a0",
@@ -52,6 +53,14 @@
             "width": 1920,
             "height": 1080,
             "duration": 3420000
+          }
+        ],
+        "Genre": [
+          {
+            "tag": "Thriller"
+          },
+          {
+            "tag": "Drama"
           }
         ]
       },
@@ -124,8 +133,15 @@
           "transcodeHwRequested": true,
           "transcodeHwFullPipeline": false,
           "sourceVideoCodec": "hevc",
-          "sourceAudioCodec": "truehd"
-        }
+          "sourceAudioCodec": "truehd",
+          "transcodeHwDecoding": "dxva2",
+          "transcodeHwEncoding": "qsv"
+        },
+        "Genre": [
+          {
+            "tag": "Science Fiction"
+          }
+        ]
       }
     ]
   }
