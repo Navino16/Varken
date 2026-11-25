@@ -1,4 +1,6 @@
 import { BaseInputPlugin } from './BaseInputPlugin';
+import { isPrivateIp } from './utils/network';
+import { resolutionLabel } from './utils/mediaStreams';
 import { RequestCache } from '../../utils/RequestCache';
 import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
 import type { TautulliConfig, GeoIPInfo } from '../../types/inputs/tautulli.types';
@@ -17,25 +19,16 @@ const SERVER_INFO_PATH: GetPath<paths> = '/api/v2?cmd=get_server_info';
 
 const PLAYER_STATE = { PLAYING: 0, PAUSED: 1, BUFFERING: 3 } as const;
 
+/** Tautulli sends most numbers as strings: empty or non-numeric values are undefined. */
+function numberOf(value: string | number | null | undefined): number | undefined {
+  if (value === null || value === undefined || value === '') {
+    return undefined;
+  }
+  const n = Number(value);
+  return Number.isFinite(n) ? n : undefined;
+}
+
 export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
-  private static readonly PRIVATE_IPV4_RANGES = [
-    /^10\./, // 10.0.0.0/8
-    /^172\.(1[6-9]|2[0-9]|3[0-1])\./, // 172.16.0.0/12
-    /^192\.168\./, // 192.168.0.0/16
-    /^127\./, // Loopback
-    /^0\./, // Zero network
-    /^169\.254\./, // Link-local
-    /^224\./, // Multicast
-    /^255\./, // Broadcast
-  ];
-
-  private static readonly PRIVATE_IPV6_RANGES = [
-    /^::1$/, // Loopback
-    /^fe80:/i, // Link-local
-    /^fc00:/i, // Unique local
-    /^fd00:/i, // Unique local
-  ];
-
   private static readonly GEOIP_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
   private static readonly GEOIP_CACHE_MAX_SIZE = 1000;
   /** update_check makes Tautulli query GitHub uncached (up to 3 unauthenticated calls); Tautulli itself checks every few hours. */
@@ -227,6 +220,7 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
           city: data.city || '',
           region: data.region || '',
           country: data.country || '',
+          code: data.code || '',
           latitude: data.latitude ?? null,
           longitude: data.longitude ?? null,
         };
@@ -239,31 +233,12 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
   }
 
   /**
-   * Check if an IP address is private/local (RFC 1918, loopback, link-local, etc.)
-   */
-  private isPrivateIP(ip: string): boolean {
-    for (const range of TautulliPlugin.PRIVATE_IPV4_RANGES) {
-      if (range.test(ip)) {
-        return true;
-      }
-    }
-
-    for (const range of TautulliPlugin.PRIVATE_IPV6_RANGES) {
-      if (range.test(ip)) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  /**
    * Process a single Tautulli session into a DataPoint
    */
   private async processSession(session: TautulliSession): Promise<DataPoint | null> {
     const tautulliSaysLocal = session.local === 1;
     const ip = session.ip_address_public || session.ip_address;
-    const ipIsPrivate = ip ? this.isPrivateIP(ip) : false;
+    const ipIsPrivate = ip ? isPrivateIp(ip) : false;
 
     // Determine if stream is local: either Tautulli says so, or IP is private
     const isLocal = tautulliSaysLocal || ipIsPrivate;
@@ -402,8 +377,65 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
       fields.lat = latitude;
       fields.lon = longitude;
     }
+    const details = this.sessionDetails(session, geoData);
+    Object.assign(tags, details.tags);
+    Object.assign(fields, details.fields);
 
-    return this.createDataPoint('Tautulli', tags, fields, undefined, ['lat', 'lon']);
+    return this.createDataPoint('Tautulli', tags, fields, undefined, ['lat', 'lon', 'transcode_speed', 'transcode_progress']);
+  }
+
+  private sessionDetails(
+    session: TautulliSession,
+    geoData: GeoIPInfo | null
+  ): { tags: Record<string, string | number>; fields: Record<string, number> } {
+    const decision = (value: string | undefined): string =>
+      this.titleCase(value === 'copy' ? 'direct stream' : value || '') || 'unknown';
+    const year = numberOf(session.year);
+    const tags: Record<string, string | number> = {
+      network: session.location === 'lan' || session.location === 'wan' ? session.location : 'unknown',
+      live: session.live ?? 'unknown',
+      audio_decision: decision(session.stream_audio_decision),
+      subtitle_decision: decision(session.stream_subtitle_decision),
+      container_decision: decision(session.stream_container_decision),
+      video_codec: (session.video_codec || '').toUpperCase() || 'unknown',
+      stream_video_codec: (session.stream_video_codec || '').toUpperCase() || 'unknown',
+      video_resolution: resolutionLabel(session.video_resolution),
+      stream_video_resolution: resolutionLabel(session.stream_video_resolution),
+      video_dynamic_range: session.video_dynamic_range || 'unknown',
+      stream_video_dynamic_range: session.stream_video_dynamic_range || 'unknown',
+      year: year ?? 'unknown',
+      genre: session.genres?.[0] || 'unknown',
+      library_name: session.library_name || 'unknown',
+      section_id: session.section_id || 'unknown',
+      user_id: session.user_id ?? 'unknown',
+      device: session.device || 'unknown',
+      country: geoData?.country || 'unknown',
+      country_code: geoData?.code || 'unknown',
+    };
+
+    const fields: Record<string, number> = {};
+    const put = (key: string, value: number | undefined): void => {
+      if (value !== undefined) {
+        fields[key] = value;
+      }
+    };
+    put('bandwidth', numberOf(session.bandwidth));
+    put('stream_bitrate', numberOf(session.stream_bitrate));
+    put('source_bitrate', numberOf(session.bitrate));
+    const duration = numberOf(session.duration);
+    put('duration_seconds', duration === undefined ? undefined : Math.floor(duration / 1000));
+    const viewOffset = numberOf(session.view_offset);
+    put('view_offset_seconds', viewOffset === undefined ? undefined : Math.floor(viewOffset / 1000));
+    if (session.transcode_decision === 'transcode' || session.transcode_decision === 'copy') {
+      put('transcode_speed', numberOf(session.transcode_speed));
+      put('transcode_progress', numberOf(session.transcode_progress));
+      put('transcode_throttled', numberOf(session.transcode_throttled) === undefined ? undefined : Number(Boolean(session.transcode_throttled)));
+      put(
+        'transcode_hw_full_pipeline',
+        numberOf(session.transcode_hw_full_pipeline) === undefined ? undefined : Number(Boolean(session.transcode_hw_full_pipeline))
+      );
+    }
+    return { tags, fields };
   }
 
   /**
@@ -428,6 +460,9 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
         const sectionName = library.section_name ?? 'unknown';
         const sectionType = library.section_type ?? 'unknown';
         const fields: Record<string, string | number | boolean> = { total };
+        if (typeof library.is_active === 'number') {
+          fields.is_active = library.is_active ? 1 : 0;
+        }
 
         // Add section-type specific fields
         if (sectionType === 'show') {

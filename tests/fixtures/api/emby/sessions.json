@@ -28,7 +28,13 @@
       "RunTimeTicks": 34200000000,
       "IndexNumber": 1,
       "ParentIndexNumber": 1,
-      "ProductionYear": 2022
+      "ProductionYear": 2022,
+      "Genres": [
+        "Thriller",
+        "Drama"
+      ],
+      "OfficialRating": "TV-MA",
+      "CommunityRating": 8.7
     },
     "PlayState": {
       "PositionTicks": 17100000000,
@@ -46,7 +52,16 @@
       "Bitrate": 8000000,
       "Width": 1920,
       "Height": 1080,
-      "AudioChannels": 2
+      "AudioChannels": 2,
+      "TranscodeReasons": [
+        "VideoCodecNotSupported",
+        "AudioCodecNotSupported"
+      ],
+      "Framerate": 23.976,
+      "CompletionPercentage": 12.5,
+      "VideoDecoderIsHardware": true,
+      "VideoEncoderIsHardware": false,
+      "CurrentCpuUsage": 37.5
     }
   },
   {
@@ -75,14 +90,32 @@
       "Height": 1608,
       "Width": 3840,
       "RunTimeTicks": 99600000000,
-      "ProductionYear": 2024
+      "ProductionYear": 2024,
+      "Genres": [
+        "Science Fiction"
+      ],
+      "OfficialRating": "PG-13",
+      "CommunityRating": 8.1,
+      "MediaStreams": [
+        {
+          "Type": "Video",
+          "Index": 0,
+          "Codec": "hevc"
+        },
+        {
+          "Type": "Audio",
+          "Index": 1,
+          "Codec": "truehd"
+        }
+      ]
     },
     "PlayState": {
       "PositionTicks": 24900000000,
       "CanSeek": true,
       "IsPaused": true,
       "IsMuted": false,
-      "PlayMethod": "DirectPlay"
+      "PlayMethod": "DirectPlay",
+      "AudioStreamIndex": 1
     }
   },
   {
@@ -96,6 +129,24 @@
     "DeviceId": "dev-8e3f4a5b",
     "ApplicationVersion": "2.2.30",
     "RemoteEndPoint": "198.51.100.8",
+    "LastActivityDate": "2026-11-24T20:41:12.0000000Z",
+    "SupportsRemoteControl": true,
+    "PlayableMediaTypes": [
+      "Audio",
+      "Video"
+    ]
+  },
+  {
+    "Id": "9f4a5b6c7d8e49f0a1b2c3d4e5f6a7b8",
+    "ServerId": "9b1c2d3e4f5a46b7c8d9e0f1a2b3c4d5",
+    "UserId": "e1f2a3b4c5d64e7f8a9b0c1d2e3f4a5b",
+    "UserName": "alice",
+    "Client": "Emby for Android TV",
+    "DeviceName": "Alice Phone",
+    "DeviceType": "Phone",
+    "DeviceId": "dev-9f4a5b6c",
+    "ApplicationVersion": "2.2.30",
+    "RemoteEndPoint": "192.168.1.43",
     "LastActivityDate": "2026-11-24T20:41:12.0000000Z",
     "SupportsRemoteControl": true,
     "PlayableMediaTypes": [

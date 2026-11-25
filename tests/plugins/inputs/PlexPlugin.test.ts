@@ -126,10 +126,107 @@ describe('PlexPlugin', () => {
       expect(movie.fields.progress_percent).toBe(25);
     });
 
-    it('emits a summary stream_count point', async () => {
+    it('summarises bandwidth and stream kinds', async () => {
       const summary = (await plugin.collect()).find((p) => p.tags.type === 'current_stream_stats');
 
-      expect(summary?.fields).toEqual({ stream_count: 2, transcode_streams: 1 });
+      expect(summary?.fields).toEqual({
+        stream_count: 2,
+        transcode_streams: 1,
+        direct_play_streams: 1,
+        direct_streams: 0,
+        lan_streams: 1,
+        wan_streams: 1,
+        total_bandwidth: 16000,
+        lan_bandwidth: 12000,
+        wan_bandwidth: 4000,
+      });
+    });
+
+    it('enriches a direct-play session', async () => {
+      const [episode] = sessionPoints(await plugin.collect());
+
+      expect(episode.tags).toMatchObject({
+        network: 'lan',
+        relayed: 0,
+        audio_decision: 'direct play',
+        subtitle_decision: 'unknown',
+        video_codec: 'H264',
+        stream_video_codec: 'H264',
+        stream_audio_codec: 'EAC3',
+        video_resolution: '1080p',
+        stream_video_resolution: '1080p',
+        device_name: 'Living Room',
+        device_model: 'AppleTV14,1',
+        platform_version: '18.1',
+        user_id: '1',
+        year: 2022,
+        genre: 'Thriller',
+      });
+      expect(episode.fields).toEqual({
+        hash: expect.any(String),
+        progress_percent: 50,
+        bandwidth: 12000,
+        source_bitrate: 10230,
+        duration_seconds: 3420,
+        view_offset_seconds: 1710,
+      });
+    });
+
+    it('enriches a transcoded session', async () => {
+      const [, movie] = sessionPoints(await plugin.collect());
+
+      expect(movie.tags).toMatchObject({
+        network: 'wan',
+        relayed: 0,
+        audio_decision: 'transcode',
+        subtitle_decision: 'burn',
+        video_codec: 'HEVC',
+        stream_video_codec: 'H264',
+        stream_audio_codec: 'AAC',
+        video_resolution: '4K',
+        stream_video_resolution: '720p',
+        device_name: 'Pixel 9',
+        device_model: 'unknown',
+        user_id: '2',
+        year: 2024,
+        genre: 'Science Fiction',
+      });
+      expect(movie.fields).toEqual({
+        hash: expect.any(String),
+        progress_percent: 25,
+        bandwidth: 4000,
+        source_bitrate: 38500,
+        duration_seconds: 9960,
+        view_offset_seconds: 2490,
+        transcode_speed: 2.1,
+        transcode_progress: 27.4,
+        transcode_throttled: 0,
+        transcode_hw_requested: 1,
+        transcode_hw_full_pipeline: 0,
+        transcode_hw_decoding: 1,
+        transcode_hw_encoding: 1,
+      });
+      expect(movie.floatFields).toEqual(['transcode_speed', 'transcode_progress']);
+    });
+
+    it('keeps the source resolution when the video is not transcoded', async () => {
+      const [, movie] = sessions();
+      client.override('/status/sessions', {
+        MediaContainer: { size: 1, Metadata: [{ ...movie, TranscodeSession: { ...movie.TranscodeSession, videoDecision: 'copy' } }] },
+      });
+
+      expect(sessionPoints(await plugin.collect())[0].tags.stream_video_resolution).toBe('4K');
+    });
+
+    it('falls back to Player.local without a Session element', async () => {
+      const [episode, movie] = sessions();
+      const { Session: _a, ...localEpisode } = episode;
+      const { Session: _b, ...remoteMovie } = movie;
+      const { local: _c, ...unknownPlayer } = episode.Player ?? {};
+      const { Session: _d, ...unknownEpisode } = { ...episode, Player: unknownPlayer };
+      client.override('/status/sessions', { MediaContainer: { size: 3, Metadata: [localEpisode, remoteMovie, unknownEpisode] } });
+
+      expect(sessionPoints(await plugin.collect()).map((p) => p.tags.network)).toEqual(['lan', 'wan', 'unknown']);
     });
 
     function withMovieDecisions(videoDecision: string, audioDecision: string): void {
@@ -163,7 +260,19 @@ describe('PlexPlugin', () => {
 
       const points = await plugin.collect();
 
-      expect(points.map((p) => p.fields)).toEqual([{ stream_count: 0, transcode_streams: 0 }]);
+      expect(points.map((p) => p.fields)).toEqual([
+        {
+          stream_count: 0,
+          transcode_streams: 0,
+          direct_play_streams: 0,
+          direct_streams: 0,
+          lan_streams: 0,
+          wan_streams: 0,
+          total_bandwidth: 0,
+          lan_bandwidth: 0,
+          wan_bandwidth: 0,
+        },
+      ]);
     });
 
     it('maps buffering and unknown player states', async () => {

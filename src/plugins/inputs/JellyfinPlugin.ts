@@ -3,6 +3,8 @@ import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plug
 import type { JellyfinConfig } from '../../types/inputs/jellyfin.types';
 import type { components, paths } from '../../types/generated/jellyfin';
 import { isTranscoding, sourceAudioCodec } from './utils/mediaStreams';
+import { qualityOf, sessionEnrichment, streamSummary } from './utils/embySessions';
+import { pickNumbers } from './utils/numbers';
 import { booleanFlags } from './utils/flags';
 
 type JellyfinSession = components['schemas']['SessionInfoDto'];
@@ -84,7 +86,8 @@ export class JellyfinPlugin extends BaseInputPlugin<JellyfinConfig> {
   private async collectSessions(): Promise<DataPoint[]> {
     return this.safeFetch('collect Jellyfin sessions', async () => {
       const points: DataPoint[] = [];
-      const sessions = await this.jellyfin.get('/Sessions');
+      // Same window as Jellyfin's dashboard: older device sessions would inflate the connected counters.
+      const sessions = await this.jellyfin.get('/Sessions', { query: { activeWithinSeconds: 960 } });
       const active = (sessions ?? []).filter((s) => s.NowPlayingItem);
 
       for (const session of active) {
@@ -101,6 +104,7 @@ export class JellyfinPlugin extends BaseInputPlugin<JellyfinConfig> {
           {
             stream_count: active.length,
             transcode_streams: active.filter((s) => isTranscoding(s.TranscodingInfo)).length,
+            ...streamSummary(sessions ?? []),
           }
         )
       );
@@ -129,11 +133,15 @@ export class JellyfinPlugin extends BaseInputPlugin<JellyfinConfig> {
               section_name: library.Name ?? 'unknown',
               section_type: library.CollectionType || 'unknown',
               name: library.Name ?? 'unknown',
+              refresh_status: library.RefreshStatus || 'unknown',
             },
             {
               locations: library.Locations?.length ?? 0,
               libraries: library.Name ?? 'unknown',
-            }
+              ...pickNumbers(library, { RefreshProgress: 'refresh_progress' }),
+            },
+            undefined,
+            ['refresh_progress']
           )
         );
       }
@@ -156,6 +164,7 @@ export class JellyfinPlugin extends BaseInputPlugin<JellyfinConfig> {
               books: counts.BookCount ?? 0,
               box_sets: counts.BoxSetCount ?? 0,
               total: counts.ItemCount ?? 0,
+              ...pickNumbers(counts, { MusicVideoCount: 'music_videos', ProgramCount: 'programs', TrailerCount: 'trailers' }),
             }
           )
         );
@@ -188,7 +197,7 @@ export class JellyfinPlugin extends BaseInputPlugin<JellyfinConfig> {
     const playerState = playState?.IsPaused ? PLAYER_STATE.PAUSED : PLAYER_STATE.PLAYING;
     const videoDecision = transcode ? (transcode.IsVideoDirect ? 'direct stream' : 'transcode') : 'direct play';
 
-    const quality = item?.Height ? `${item.Height}p` : (item?.Container ?? '').toUpperCase() || 'unknown';
+    const quality = qualityOf(item);
     const fullTitle = item?.SeriesName ? `${item.SeriesName} - ${item?.Name}` : item?.Name || 'unknown';
 
     const runtimeMs = item?.RunTimeTicks ? item.RunTimeTicks / 10000 : 0;
@@ -196,6 +205,11 @@ export class JellyfinPlugin extends BaseInputPlugin<JellyfinConfig> {
     const progressPercent = runtimeMs > 0 ? Math.round((positionMs / runtimeMs) * 100) : 0;
 
     const hashId = this.hashit(`${session.Id}${session.UserName}${fullTitle}`);
+    const enrichment = sessionEnrichment(session);
+    const pausedAt = Date.parse(session.LastPausedDate ?? '');
+    if (playState?.IsPaused && Number.isFinite(pausedAt)) {
+      enrichment.fields.paused_seconds = Math.max(0, Math.floor((Date.now() - pausedAt) / 1000));
+    }
 
     return this.createDataPoint(
       'Jellyfin',
@@ -216,11 +230,16 @@ export class JellyfinPlugin extends BaseInputPlugin<JellyfinConfig> {
         device_type: session.DeviceType || 'unknown',
         play_method: playState?.PlayMethod || 'unknown',
         server: this.config.id,
+        ...enrichment.tags,
+        hw_acceleration: transcode ? (transcode.HardwareAccelerationType ?? 'unknown') : 'none',
       },
       {
         hash: hashId,
         progress_percent: progressPercent,
-      }
+        ...enrichment.fields,
+      },
+      undefined,
+      enrichment.floatFields
     );
   }
 

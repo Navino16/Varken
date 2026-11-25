@@ -2,7 +2,7 @@
 
 Every input plugin writes DataPoints whose measurement is the service name (`Sonarr`, `Tautulli`, ...). Every point carries a `server` tag (the instance `id` from the config) and a `type` tag that distinguishes the kinds of points a plugin writes; both are omitted from the tables below.
 Numbers meant for graphing are fields; tags hold labels and identifiers. The `hash` field is a deduplication key (MD5) and is not meant to be graphed.
-Decimal fields (`score_percent`, `lat`, `lon`, and the Servarr `progress`, `used_percent`, `last_duration_seconds`, `percent_of_*`) are always written as floats, even for whole values, so their column type stays stable.
+Decimal fields (`score_percent`, `lat`, `lon`, the Servarr `progress`, `used_percent`, `last_duration_seconds`, `percent_of_*`, and the session `transcode_speed`, `transcode_progress`, `stream_framerate`, `community_rating`, `transcode_cpu_percent`, `refresh_progress`) are always written as floats, even for whole values, so their column type stays stable.
 Points are timestamped with the collection time (`createDataPoint` default) unless stated otherwise in a section.
 Event points (`type = History`) are timestamped with the event time, plus the record id's last three digits as milliseconds: the APIs report whole seconds, and this keeps same-second events with identical tags as separate points. Each event collector keeps a high-water mark in `DATA_FOLDER/event-state/` and only writes events newer than it, so an event is written once even across restarts. Without a mark (first run, deleted or unreadable file) it starts from the plugin start time: earlier events are not backfilled.
 
@@ -488,6 +488,18 @@ Config: `inputs.tautulli[].activity` (`enabled`, `intervalSeconds`), `inputs.tau
 | `progress` | field | number | Progress percent (`0` when not numeric) |
 | `lat` | field | number | Latitude; only written for local streams with `geoip.localCoordinates`, or remote streams whose GeoIP result has both coordinates |
 | `lon` | field | number | Longitude; same condition as `lat` |
+| `network` | tag | string | `lan` / `wan` as Tautulli reports it, else `unknown` (`location` stays the GeoIP city) |
+| `live` | tag | number | `1` for Live TV |
+| `audio_decision`, `subtitle_decision`, `container_decision` | tag | string | Stream decisions (`copy` → `Direct stream`, `unknown` when empty) |
+| `video_codec` / `stream_video_codec` | tag | string | Source / streamed video codec, upper-cased |
+| `video_resolution` / `stream_video_resolution` | tag | string | Source / streamed resolution (`1080p`, `4K`, ...) |
+| `video_dynamic_range` / `stream_video_dynamic_range` | tag | string | `SDR`, `HDR`, `Dolby Vision`, ... |
+| `year`, `genre`, `library_name`, `section_id`, `user_id`, `device` | tag | mixed | Item and user details |
+| `country`, `country_code` | tag | string | GeoIP country (`unknown` for local streams or without GeoIP) |
+| `bandwidth`, `stream_bitrate`, `source_bitrate` | field | number | Bandwidth and bitrates (kbps); omitted when Tautulli sends an empty value |
+| `duration_seconds`, `view_offset_seconds` | field | number | Item duration and playback position |
+| `transcode_speed`, `transcode_progress` | field | float | Transcoder speed and progress (transcode / copy only) |
+| `transcode_throttled`, `transcode_hw_full_pipeline` | field | number | Transcoder flags, `0`/`1` |
 
 A stream is local when Tautulli reports `local = 1` or the IP is private/loopback/link-local.
 
@@ -523,6 +535,7 @@ Config: `inputs.tautulli[].stats` (`enabled`, `intervalSeconds`) and `inputs.tau
 | `albums` | field | number | Albums; `artist` libraries only |
 | `tracks` | field | number | Tracks; `artist` libraries only |
 | `libraries` | field | string | Library name (legacy); only written when `libraries.enabled` is true |
+| `is_active` | field | number | `1` when the library is active in Tautulli |
 
 ### type = ServerInfo
 
@@ -562,6 +575,21 @@ Config: `inputs.plex[].sessions` (`enabled`, `intervalSeconds`) · Source: `/sta
 | `secure` | tag | string | `1` if the player connection is secure, else `0` |
 | `hash` | field | string | MD5 of session key + rating key + user + full title |
 | `progress_percent` | field | number | Rounded `viewOffset / duration` in percent (`0` without duration) |
+| `network` | tag | string | `lan` / `wan` (`Session.location`, else `Player.local`; `unknown` otherwise) |
+| `relayed` | tag | number | `1` when relayed through Plex (`unknown` when not reported) |
+| `audio_decision` | tag | string | Audio decision of the transcoder (`direct play` without a transcode session) |
+| `subtitle_decision` | tag | string | Subtitle decision (`unknown` without a transcode session) |
+| `video_codec` / `stream_video_codec` | tag | string | Source / streamed video codec, upper-cased (stream = source when not transcoding) |
+| `stream_audio_codec` | tag | string | Streamed audio codec (`audio_codec` is the source) |
+| `video_resolution` / `stream_video_resolution` | tag | string | Source / streamed resolution (`1080p`, `4K`, ...); the stream one differs only when the video is transcoded, bucketed by its dimensions (`4K`, `1080p`, `720p`, `480p`, `SD`) |
+| `device_name`, `device_model`, `platform_version` | tag | string | Player name, model and OS version |
+| `user_id` | tag | string | Plex user id |
+| `year`, `genre` | tag | number / string | Release year and first genre |
+| `bandwidth` | field | number | Session bandwidth (kbps) |
+| `source_bitrate` | field | number | Source bitrate (kbps) |
+| `duration_seconds`, `view_offset_seconds` | field | number | Item duration and playback position |
+| `transcode_speed`, `transcode_progress` | field | float | Transcoder speed and progress (transcoding only) |
+| `transcode_throttled`, `transcode_hw_requested`, `transcode_hw_full_pipeline`, `transcode_hw_decoding`, `transcode_hw_encoding` | field | number | Transcoder flags, `0`/`1` (transcoding only) |
 
 ### type = current_stream_stats
 
@@ -571,6 +599,9 @@ Config: `inputs.plex[].sessions` · Source: `/status/sessions`.
 |-----|------|------|---------|
 | `stream_count` | field | number | Number of sessions |
 | `transcode_streams` | field | number | Sessions whose video or audio decision is `transcode` |
+| `direct_play_streams`, `direct_streams` | field | number | Sessions without a transcode session / with one that only copies |
+| `lan_streams`, `wan_streams` | field | number | Sessions by `network` |
+| `total_bandwidth`, `lan_bandwidth`, `wan_bandwidth` | field | number | Sum of `Session.bandwidth` (kbps), overall and by network |
 
 ### type = library_stats
 
@@ -601,7 +632,7 @@ Config: `inputs.plex[].serverInfo` (`enabled`, `intervalSeconds`, default disabl
 
 ### type = Session
 
-Config: `inputs.jellyfin[].sessions` (`enabled`, `intervalSeconds`) · Source: `/Sessions` (only sessions with a now-playing item).
+Config: `inputs.jellyfin[].sessions` (`enabled`, `intervalSeconds`) · Source: `/Sessions?activeWithinSeconds=960` (only sessions with a now-playing item; the summary also counts idle sessions active in the last 16 minutes).
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
@@ -621,6 +652,20 @@ Config: `inputs.jellyfin[].sessions` (`enabled`, `intervalSeconds`) · Source: `
 | `play_method` | tag | string | Play method (`unknown` when absent) |
 | `hash` | field | string | MD5 of session id + user name + title |
 | `progress_percent` | field | number | Rounded position / runtime in percent (`0` without runtime) |
+| `network` | tag | string | `lan` / `wan` from `RemoteEndPoint` (RFC 1918, loopback, link-local and IPv6 unique-local ranges; port and IPv4-mapped forms handled), `unknown` without an address |
+| `audio_decision` | tag | string | `direct play` (no transcoding), `direct stream` (audio copied) or `transcode` |
+| `transcode_reasons` | tag | string | Sorted, comma-joined transcode reasons (`none` without transcoding) |
+| `video_codec` / `stream_video_codec` | tag | string | Source / streamed video codec, upper-cased |
+| `stream_audio_codec` | tag | string | Streamed audio codec (`audio_codec` is the source) |
+| `stream_video_resolution` | tag | string | Transcoded height, else `quality` |
+| `device_name`, `user_id` | tag | string | Device name and user id |
+| `year`, `genre`, `content_rating` | tag | number / string | Production year, first genre, official rating |
+| `duration_seconds`, `view_offset_seconds` | field | number | Item duration and playback position |
+| `stream_bitrate` | field | number | Transcoded bitrate (kbps), transcoding only |
+| `stream_framerate`, `transcode_progress` | field | float | Transcoded frame rate and progress, transcoding only |
+| `community_rating` | field | float | Community rating |
+| `hw_acceleration` | tag | string | Hardware acceleration type (`none` without transcoding, `unknown` when the server does not report it) |
+| `paused_seconds` | field | number | Seconds since `LastPausedDate`, only while paused |
 
 ### type = current_stream_stats
 
@@ -630,6 +675,10 @@ Config: `inputs.jellyfin[].sessions` · Source: `/Sessions`.
 |-----|------|------|---------|
 | `stream_count` | field | number | Sessions with a now-playing item |
 | `transcode_streams` | field | number | Sessions transcoding, i.e. not both video and audio copied (remux does not count) |
+| `connected_clients` | field | number | All connected sessions, playing or not |
+| `connected_users`, `streaming_users` | field | number | Distinct users connected / playing |
+| `direct_play_streams`, `direct_streams` | field | number | Streams without transcoding / remuxed |
+| `lan_streams`, `wan_streams` | field | number | Streams by `network` |
 
 ### type = library_stats
 
@@ -642,6 +691,8 @@ Config: `inputs.jellyfin[].libraries` (`enabled`, `intervalSeconds`) · Source: 
 | `name` | tag | string | Duplicate of `section_name` (legacy) |
 | `locations` | field | number | Number of library folders |
 | `libraries` | field | string | Library name (legacy) |
+| `refresh_status` | tag | string | Library scan state (`Idle`, `Active`, ...) |
+| `refresh_progress` | field | float | Scan progress, when a scan is running |
 
 ### type = item_counts
 
@@ -658,6 +709,7 @@ Config: `inputs.jellyfin[].libraries` · Source: `/Items/Counts`. Not written if
 | `books` | field | number | Book count |
 | `box_sets` | field | number | Box set count |
 | `total` | field | number | Total item count |
+| `music_videos`, `programs`, `trailers` | field | number | Additional counters, omitted when absent |
 
 All fields default to `0` when absent.
 
@@ -698,15 +750,33 @@ Config: `inputs.emby[].sessions` (`enabled`, `intervalSeconds`) · Source: `/emb
 | `play_method` | tag | string | Play method (`unknown` when absent) |
 | `hash` | field | string | MD5 of session id + user name + title |
 | `progress_percent` | field | number | Rounded position / runtime in percent (`0` without runtime) |
+| `network` | tag | string | `lan` / `wan` from `RemoteEndPoint` (RFC 1918, loopback, link-local and IPv6 unique-local ranges; port and IPv4-mapped forms handled), `unknown` without an address |
+| `audio_decision` | tag | string | `direct play` (no transcoding), `direct stream` (audio copied) or `transcode` |
+| `transcode_reasons` | tag | string | Sorted, comma-joined transcode reasons (`none` without transcoding) |
+| `video_codec` / `stream_video_codec` | tag | string | Source / streamed video codec, upper-cased |
+| `stream_audio_codec` | tag | string | Streamed audio codec (`audio_codec` is the source) |
+| `stream_video_resolution` | tag | string | Transcoded height, else `quality` |
+| `device_name`, `user_id` | tag | string | Device name and user id |
+| `year`, `genre`, `content_rating` | tag | number / string | Production year, first genre, official rating |
+| `duration_seconds`, `view_offset_seconds` | field | number | Item duration and playback position |
+| `stream_bitrate` | field | number | Transcoded bitrate (kbps), transcoding only |
+| `stream_framerate`, `transcode_progress` | field | float | Transcoded frame rate and progress, transcoding only |
+| `community_rating` | field | float | Community rating |
+| `video_decoder_hw`, `video_encoder_hw` | field | number | `1` when the transcoder decodes / encodes in hardware |
+| `transcode_cpu_percent` | field | float | Transcoder CPU usage |
 
 ### type = current_stream_stats
 
-Config: `inputs.emby[].sessions` · Source: `/emby/Sessions`.
+Config: `inputs.emby[].sessions` · Source: `/emby/Sessions`. Emby's `/Sessions` has no activity window, so `connected_*` counts every session the server still holds.
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
 | `stream_count` | field | number | Sessions with a now-playing item |
 | `transcode_streams` | field | number | Sessions transcoding, i.e. not both video and audio copied (remux does not count) |
+| `connected_clients` | field | number | All connected sessions, playing or not |
+| `connected_users`, `streaming_users` | field | number | Distinct users connected / playing |
+| `direct_play_streams`, `direct_streams` | field | number | Streams without transcoding / remuxed |
+| `lan_streams`, `wan_streams` | field | number | Streams by `network` |
 
 ### type = library_stats
 
@@ -719,6 +789,8 @@ Config: `inputs.emby[].libraries` (`enabled`, `intervalSeconds`) · Source: `/em
 | `name` | tag | string | Duplicate of `section_name` (legacy) |
 | `locations` | field | number | Number of library folders |
 | `libraries` | field | string | Library name (legacy) |
+| `refresh_status` | tag | string | Library scan state (`Idle`, `Active`, ...) |
+| `refresh_progress` | field | float | Scan progress, when a scan is running |
 
 ### type = item_counts
 
@@ -735,6 +807,7 @@ Config: `inputs.emby[].libraries` · Source: `/emby/Items/Counts`. Not written i
 | `books` | field | number | Book count |
 | `box_sets` | field | number | Box set count |
 | `total` | field | number | Total item count |
+| `music_videos`, `programs`, `trailers`, `games`, `game_systems` | field | number | Additional counters, omitted when absent |
 
 All fields default to `0` when absent.
 

@@ -4,7 +4,8 @@ import type { PluginMetadata, DataPoint, PointSpec, ScheduleConfig } from '../..
 import type { ReadarrConfig } from '../../types/inputs/readarr.types';
 import type { paths } from '../../types/generated/readarr';
 import { servarrServerInfo } from './utils/servarrServerInfo';
-import { queueEnrichment, statusPoints, totalsPoint, historyPoint, pickNumbers, releaseAgeDays, sumFields } from './utils/servarr';
+import { queueEnrichment, statusPoints, totalsPoint, historyPoint, releaseAgeDays, sumFields } from './utils/servarr';
+import { pickNumbers } from './utils/numbers';
 import { booleanFlags } from './utils/flags';
 
 /**

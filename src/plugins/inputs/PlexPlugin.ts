@@ -2,6 +2,9 @@ import { BaseInputPlugin } from './BaseInputPlugin';
 import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
 import type { PlexConfig } from '../../types/inputs/plex.types';
 import type { paths } from '../../types/generated/plex';
+import { booleanFlags } from './utils/flags';
+import { isNumber } from './utils/numbers';
+import { resolutionBucket, resolutionLabel } from './utils/mediaStreams';
 
 type Sessions = paths['/status/sessions']['get']['responses'][200]['content']['application/json'];
 type PlexSession = NonNullable<NonNullable<Sessions['MediaContainer']>['Metadata']>[number];
@@ -13,6 +16,26 @@ const PLAYER_STATE = { PLAYING: 0, PAUSED: 1, BUFFERING: 3 } as const;
 /** The spec leaves several metadata attributes untyped (title, type, codecs…). */
 function text(value: unknown): string {
   return value === undefined || value === null ? '' : String(value);
+}
+
+function networkOf(session: PlexSession): 'lan' | 'wan' | 'unknown' {
+  const location = session.Session?.location;
+  if (location === 'lan' || location === 'wan') {
+    return location;
+  }
+  const local = session.Player?.local;
+  if (typeof local === 'boolean') {
+    return local ? 'lan' : 'wan';
+  }
+  return 'unknown';
+}
+
+function streamKind(session: PlexSession): 'direct play' | 'direct stream' | 'transcode' {
+  const transcode = session.TranscodeSession;
+  if (!transcode) {
+    return 'direct play';
+  }
+  return transcode.videoDecision === 'transcode' || transcode.audioDecision === 'transcode' ? 'transcode' : 'direct stream';
 }
 
 /**
@@ -96,7 +119,13 @@ export class PlexPlugin extends BaseInputPlugin<PlexConfig> {
         points.push(this.processSession(session));
       }
 
-      // Summary point so Grafana can easily graph "current stream count"
+      const kinds = sessions.map(streamKind);
+      const networks = sessions.map(networkOf);
+      const bandwidthOn = (network?: string): number =>
+        sessions.reduce((total, s, i) => {
+          const bandwidth = s.Session?.bandwidth;
+          return total + (isNumber(bandwidth) && (!network || networks[i] === network) ? bandwidth : 0);
+        }, 0);
       points.push(
         this.createDataPoint(
           'Plex',
@@ -106,9 +135,14 @@ export class PlexPlugin extends BaseInputPlugin<PlexConfig> {
           },
           {
             stream_count: sessions.length,
-            transcode_streams: sessions.filter(
-              (s) => s.TranscodeSession?.videoDecision === 'transcode' || s.TranscodeSession?.audioDecision === 'transcode'
-            ).length,
+            transcode_streams: kinds.filter((k) => k === 'transcode').length,
+            direct_play_streams: kinds.filter((k) => k === 'direct play').length,
+            direct_streams: kinds.filter((k) => k === 'direct stream').length,
+            lan_streams: networks.filter((n) => n === 'lan').length,
+            wan_streams: networks.filter((n) => n === 'wan').length,
+            total_bandwidth: bandwidthOn(),
+            lan_bandwidth: bandwidthOn('lan'),
+            wan_bandwidth: bandwidthOn('wan'),
           }
         )
       );
@@ -197,6 +231,8 @@ export class PlexPlugin extends BaseInputPlugin<PlexConfig> {
 
     const hashId = this.hashit(`${session.sessionKey}${session.ratingKey}${session.User?.title ?? ''}${fullTitle}`);
 
+    const enrichment = this.sessionEnrichment(session);
+
     return this.createDataPoint(
       'Plex',
       {
@@ -216,12 +252,78 @@ export class PlexPlugin extends BaseInputPlugin<PlexConfig> {
         device_type: player?.platform || 'unknown',
         secure: player?.secure ? '1' : '0',
         server: this.config.id,
+        ...enrichment.tags,
       },
       {
         hash: hashId,
         progress_percent: duration > 0 ? Math.round(((session.viewOffset ?? 0) / duration) * 100) : 0,
-      }
+        ...enrichment.fields,
+      },
+      undefined,
+      enrichment.floatFields
     );
+  }
+
+  private sessionEnrichment(session: PlexSession): {
+    tags: Record<string, string | number>;
+    fields: Record<string, number>;
+    floatFields: string[];
+  } {
+    const media = session.Media?.[0];
+    const player = session.Player;
+    const transcode = session.TranscodeSession;
+    const videoCodec = text(media?.videoCodec).toUpperCase() || 'unknown';
+    const audioCodec = text(media?.audioCodec).toUpperCase() || 'unknown';
+    const resolution = resolutionLabel(text(media?.videoResolution));
+
+    const fields: Record<string, number> = {};
+    if (isNumber(session.Session?.bandwidth)) {
+      fields.bandwidth = session.Session.bandwidth;
+    }
+    if (isNumber(media?.bitrate)) {
+      fields.source_bitrate = media.bitrate;
+    }
+    if (isNumber(session.duration)) {
+      fields.duration_seconds = Math.floor(session.duration / 1000);
+    }
+    if (isNumber(session.viewOffset)) {
+      fields.view_offset_seconds = Math.floor(session.viewOffset / 1000);
+    }
+    if (transcode) {
+      Object.assign(fields, {
+        ...(isNumber(transcode.speed) ? { transcode_speed: transcode.speed } : {}),
+        ...(isNumber(transcode.progress) ? { transcode_progress: transcode.progress } : {}),
+        ...booleanFlags({
+          transcode_throttled: transcode.throttled,
+          transcode_hw_requested: transcode.transcodeHwRequested,
+          transcode_hw_full_pipeline: transcode.transcodeHwFullPipeline,
+        }),
+        transcode_hw_decoding: transcode.transcodeHwDecoding ? 1 : 0,
+        transcode_hw_encoding: transcode.transcodeHwEncoding ? 1 : 0,
+      });
+    }
+
+    return {
+      tags: {
+        network: networkOf(session),
+        relayed: typeof player?.relayed === 'boolean' ? Number(player.relayed) : 'unknown',
+        audio_decision: transcode?.audioDecision || 'direct play',
+        subtitle_decision: transcode?.subtitleDecision || 'unknown',
+        video_codec: videoCodec,
+        stream_video_codec: transcode?.videoCodec ? transcode.videoCodec.toUpperCase() : videoCodec,
+        stream_audio_codec: transcode?.audioCodec ? transcode.audioCodec.toUpperCase() : audioCodec,
+        video_resolution: resolution,
+        stream_video_resolution: transcode?.videoDecision === 'transcode' ? resolutionBucket(transcode.width, transcode.height) : resolution,
+        device_name: text(player?.title) || 'unknown',
+        device_model: text(player?.model) || 'unknown',
+        platform_version: text(player?.platformVersion) || 'unknown',
+        user_id: text(session.User?.id) || 'unknown',
+        year: session.year ?? 'unknown',
+        genre: text(session.Genre?.[0]?.tag) || 'unknown',
+      },
+      fields,
+      floatFields: ['transcode_speed', 'transcode_progress'],
+    };
   }
 
   private async collectServerInfo(): Promise<DataPoint[]> {

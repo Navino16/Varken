@@ -3,6 +3,8 @@ import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plug
 import type { EmbyConfig } from '../../types/inputs/emby.types';
 import type { components, paths } from '../../types/generated/emby';
 import { isTranscoding, sourceAudioCodec } from './utils/mediaStreams';
+import { qualityOf, sessionEnrichment, streamSummary } from './utils/embySessions';
+import { pickNumbers } from './utils/numbers';
 import { booleanFlags } from './utils/flags';
 
 type EmbySession = components['schemas']['Session.SessionInfo'];
@@ -100,6 +102,7 @@ export class EmbyPlugin extends BaseInputPlugin<EmbyConfig> {
           {
             stream_count: active.length,
             transcode_streams: active.filter((s) => isTranscoding(s.TranscodingInfo)).length,
+            ...streamSummary(sessions ?? []),
           }
         )
       );
@@ -128,11 +131,15 @@ export class EmbyPlugin extends BaseInputPlugin<EmbyConfig> {
               section_name: library.Name ?? 'unknown',
               section_type: library.CollectionType || 'unknown',
               name: library.Name ?? 'unknown',
+              refresh_status: library.RefreshStatus || 'unknown',
             },
             {
               locations: library.Locations?.length ?? 0,
               libraries: library.Name ?? 'unknown',
-            }
+              ...pickNumbers(library, { RefreshProgress: 'refresh_progress' }),
+            },
+            undefined,
+            ['refresh_progress']
           )
         );
       }
@@ -155,6 +162,13 @@ export class EmbyPlugin extends BaseInputPlugin<EmbyConfig> {
               books: counts.BookCount ?? 0,
               box_sets: counts.BoxSetCount ?? 0,
               total: counts.ItemCount ?? 0,
+              ...pickNumbers(counts, {
+                MusicVideoCount: 'music_videos',
+                ProgramCount: 'programs',
+                TrailerCount: 'trailers',
+                GameCount: 'games',
+                GameSystemCount: 'game_systems',
+              }),
             }
           )
         );
@@ -183,7 +197,7 @@ export class EmbyPlugin extends BaseInputPlugin<EmbyConfig> {
     const playerState = playState?.IsPaused ? PLAYER_STATE.PAUSED : PLAYER_STATE.PLAYING;
     const videoDecision = transcode ? (transcode.IsVideoDirect ? 'direct stream' : 'transcode') : 'direct play';
 
-    const quality = item?.Height ? `${item.Height}p` : (item?.Container ?? '').toUpperCase() || 'unknown';
+    const quality = qualityOf(item);
     const fullTitle = item?.SeriesName ? `${item.SeriesName} - ${item?.Name}` : item?.Name || 'unknown';
 
     const runtimeMs = item?.RunTimeTicks ? item.RunTimeTicks / 10000 : 0;
@@ -191,6 +205,12 @@ export class EmbyPlugin extends BaseInputPlugin<EmbyConfig> {
     const progressPercent = runtimeMs > 0 ? Math.round((positionMs / runtimeMs) * 100) : 0;
 
     const hashId = this.hashit(`${session.Id}${session.UserName}${fullTitle}`);
+    const enrichment = sessionEnrichment(session);
+    Object.assign(
+      enrichment.fields,
+      booleanFlags({ video_decoder_hw: transcode?.VideoDecoderIsHardware, video_encoder_hw: transcode?.VideoEncoderIsHardware }),
+      pickNumbers(transcode, { CurrentCpuUsage: 'transcode_cpu_percent' })
+    );
 
     return this.createDataPoint(
       'Emby',
@@ -211,11 +231,15 @@ export class EmbyPlugin extends BaseInputPlugin<EmbyConfig> {
         device_type: session.DeviceType || 'unknown',
         play_method: playState?.PlayMethod || 'unknown',
         server: this.config.id,
+        ...enrichment.tags,
       },
       {
         hash: hashId,
         progress_percent: progressPercent,
-      }
+        ...enrichment.fields,
+      },
+      undefined,
+      [...enrichment.floatFields, 'transcode_cpu_percent']
     );
   }
 

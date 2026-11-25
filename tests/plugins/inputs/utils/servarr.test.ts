@@ -3,7 +3,6 @@ import {
   healthPoints,
   historyPoint,
   parseTimeSpan,
-  pickNumbers,
   releaseAgeDays,
   sumFields,
   queueEnrichment,
@@ -93,13 +92,6 @@ describe('parseTimeSpan', () => {
 
   it.each([['garbage'], [''], [null], [undefined]])('returns undefined for %s', (span) => {
     expect(parseTimeSpan(span)).toBeUndefined();
-  });
-});
-
-describe('pickNumbers', () => {
-  it('renames finite numbers and skips the rest', () => {
-    expect(pickNumbers({ a: 1, b: Number.NaN, c: '3', d: 2.5, e: undefined }, { a: 'x', b: 'y', c: 'z', d: 'w', e: 'v' })).toEqual({ x: 1, w: 2.5 });
-    expect(pickNumbers<{ a: number }>(null, { a: 'x' })).toEqual({});
   });
 });
 

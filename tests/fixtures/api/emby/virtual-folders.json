@@ -20,6 +20,7 @@
     "ItemId": "4",
     "Id": "4",
     "Guid": "6e0d2b3c4d5e4f6a9b7c8d9e0f1a2b3c",
-    "RefreshStatus": "Idle"
+    "RefreshStatus": "Active",
+    "RefreshProgress": 42.5
   }
 ]
