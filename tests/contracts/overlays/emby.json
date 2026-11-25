@@ -26,6 +26,18 @@
         }
       },
       "why": "Undocumented since Emby 4.10 (replaced by /Library/VirtualFolders/Query) but still served: emby/embyserver:4.10.2.0 answers GET /emby/Library/VirtualFolders with 200 while unknown routes answer 404 (checked 2026-11-24). Declared as in the 4.1.1.0 spec (https://swagger.emby.media/openapi.json): an array of VirtualFolderInfo. Kept for servers older than /Query"
+    },
+    {
+      "op": "add",
+      "path": "/paths/~1LiveTv~1Recordings/get/responses/200/content",
+      "value": {
+        "application/json": {
+          "schema": {
+            "$ref": "#/components/schemas/QueryResult_BaseItemDto"
+          }
+        }
+      },
+      "why": "The runtime spec of emby/embyserver:4.10.2.0 documents this 200 without content. The open-source Emby API (https://github.com/MediaBrowser/Emby/blob/8d5d78b8f76278d4f4f4d929b9ebc5952f7192bc/MediaBrowser.Api/LiveTv/LiveTvService.cs#L155-L157 and #L1082-L1113) declares GetRecordings as IReturn<QueryResult<BaseItemDto>> and returns a QueryResult<BaseItemDto>, the schema the runtime spec already has for its sibling routes (/LiveTv/Programs/Recommended)"
     }
   ]
 }

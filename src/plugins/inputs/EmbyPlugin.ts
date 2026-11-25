@@ -6,6 +6,7 @@ import { isTranscoding, sourceAudioCodec } from './utils/mediaStreams';
 import { qualityOf, sessionEnrichment, streamSummary } from './utils/embySessions';
 import { pickNumbers } from './utils/numbers';
 import { booleanFlags } from './utils/flags';
+import { activityPoint, devicePoints, liveTvPoint, pluginPoints, taskPoints, userPoints } from './utils/embyEndpoints';
 
 type EmbySession = components['schemas']['Session.SessionInfo'];
 type EmbyItemCounts = components['schemas']['ItemCounts'];
@@ -21,6 +22,7 @@ const PLAYER_STATE = { PLAYING: 0, PAUSED: 1, BUFFERING: 3 } as const;
  *   - `GET /emby/Sessions` → active streams
  *   - `GET /emby/Library/VirtualFolders` → library metadata
  *   - `GET /emby/Items/Counts` → global content counts
+ *   - optional status, activity log, inventory and Live TV collectors (see docs/data-reference.md)
  */
 export class EmbyPlugin extends BaseInputPlugin<EmbyConfig> {
   readonly metadata: PluginMetadata = {
@@ -57,6 +59,22 @@ export class EmbyPlugin extends BaseInputPlugin<EmbyConfig> {
       points.push(...(await this.collectServerInfo()));
     }
 
+    if (this.config.status.enabled) {
+      points.push(...(await this.collectStatus()));
+    }
+
+    if (this.config.history.enabled) {
+      points.push(...(await this.collectHistory()));
+    }
+
+    if (this.config.inventory.enabled) {
+      points.push(...(await this.collectInventory()));
+    }
+
+    if (this.config.liveTv.enabled) {
+      points.push(...(await this.collectLiveTv()));
+    }
+
     return points;
   }
 
@@ -77,6 +95,22 @@ export class EmbyPlugin extends BaseInputPlugin<EmbyConfig> {
 
     if (this.config.serverInfo.enabled) {
       schedules.push(this.createSchedule('serverInfo', this.config.serverInfo.intervalSeconds, true, this.collectServerInfo));
+    }
+
+    if (this.config.status.enabled) {
+      schedules.push(this.createSchedule('status', this.config.status.intervalSeconds, true, this.collectStatus));
+    }
+
+    if (this.config.history.enabled) {
+      schedules.push(this.createSchedule('history', this.config.history.intervalSeconds, true, this.collectHistory));
+    }
+
+    if (this.config.inventory.enabled) {
+      schedules.push(this.createSchedule('inventory', this.config.inventory.intervalSeconds, true, this.collectInventory));
+    }
+
+    if (this.config.liveTv.enabled) {
+      schedules.push(this.createSchedule('liveTv', this.config.liveTv.intervalSeconds, true, this.collectLiveTv));
     }
 
     return schedules;
@@ -257,6 +291,49 @@ export class EmbyPlugin extends BaseInputPlugin<EmbyConfig> {
           })
         ),
       ];
+    });
+  }
+
+  private async collectStatus(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Emby status', async () => {
+      const [tasks, plugins] = await Promise.all([
+        this.emby.get('/ScheduledTasks', { query: { IsHidden: false } }),
+        this.emby.get('/Plugins'),
+      ]);
+      return this.createPoints([...taskPoints(tasks, new Date()), ...pluginPoints(plugins)]);
+    });
+  }
+
+  private async collectHistory(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Emby activity log', async () => {
+      const MinDate = (await this.eventCursor('history')).toISOString();
+      const log = await this.emby.get('/System/ActivityLog/Entries', { query: { MinDate } });
+      const entries = await this.takeNewEvents('history', log.Items ?? [], (e) => Date.parse(e.Date ?? ''), (e) => String(e.Id));
+      return this.createPoints(entries.flatMap((e) => activityPoint(e, this.hashit(`${this.config.id}${e.Id}`)) ?? []));
+    });
+  }
+
+  private async collectInventory(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Emby inventory', async () => {
+      const [users, devices] = await Promise.all([this.emby.get('/Users/Query'), this.emby.get('/Devices')]);
+      const now = new Date();
+      return this.createPoints([...userPoints(users.Items ?? [], now), ...devicePoints(devices.Items ?? [], now)]);
+    });
+  }
+
+  private async collectLiveTv(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Emby live TV', async () => {
+      const [recordings, inProgress, timers] = await Promise.all([
+        this.emby.get('/LiveTv/Recordings', { query: { Limit: 1 } }),
+        this.emby.get('/LiveTv/Recordings', { query: { IsInProgress: true, Limit: 1 } }),
+        this.emby.get('/LiveTv/Timers'),
+      ]);
+      return this.createPoints([
+        liveTvPoint(
+          { recordings: recordings.TotalRecordCount, recordingsInProgress: inProgress.TotalRecordCount, timers: timers.Items ?? [] },
+          new Date()
+        ),
+      ]);
     });
   }
 }

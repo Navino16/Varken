@@ -1,0 +1,32 @@
+{
+  "Items": [
+    {
+      "Id": 1201,
+      "Name": "alice is playing Arrival on Living Room TV",
+      "Overview": "IP address: 192.168.1.20",
+      "Type": "VideoPlayback",
+      "ItemId": "501",
+      "Date": "2026-11-25T09:12:34.0000000Z",
+      "UserId": "e1f2a3b4c5d64e7f8a9b0c1d2e3f4a5b",
+      "Severity": "Info"
+    },
+    {
+      "Id": 1202,
+      "Name": "bob has finished playing Pilot on iPhone",
+      "ShortOverview": "IP address: 10.0.0.12",
+      "Type": "VideoPlaybackStopped",
+      "ItemId": "702",
+      "Date": "2026-11-25T09:12:34.0000000Z",
+      "UserId": "b0b0b0b0c5d64e7f8a9b0c1d2e3f4a5b",
+      "Severity": "Info"
+    },
+    {
+      "Id": 1203,
+      "Name": "Failed login attempt from 203.0.113.7",
+      "Type": "AuthenticationFailed",
+      "Date": "2026-11-25T09:59:00.0000000Z",
+      "Severity": "Error"
+    }
+  ],
+  "TotalRecordCount": 3
+}
