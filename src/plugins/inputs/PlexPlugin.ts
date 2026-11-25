@@ -98,7 +98,9 @@ export class PlexPlugin extends BaseInputPlugin<PlexConfig> {
           },
           {
             stream_count: sessions.length,
-            transcode_streams: sessions.filter((s) => s.TranscodeSession !== undefined).length,
+            transcode_streams: sessions.filter(
+              (s) => s.TranscodeSession?.videoDecision === 'transcode' || s.TranscodeSession?.audioDecision === 'transcode'
+            ).length,
           }
         )
       );
