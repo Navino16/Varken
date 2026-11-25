@@ -6,7 +6,6 @@ import {
   releaseAgeDays,
   sumFields,
   queueEnrichment,
-  servarrTime,
   statusPoints,
   taskPoints,
   totalsPoint,
@@ -69,15 +68,6 @@ describe('queueEnrichment', () => {
       fields: {},
       floatFields: ['progress'],
     });
-  });
-});
-
-describe('servarrTime', () => {
-  it('parses ISO times and treats DateTime.MinValue and garbage as absent', () => {
-    expect(servarrTime('2026-11-25T10:00:00Z')).toBe(now.getTime());
-    expect(servarrTime('0001-01-01T00:00:00Z')).toBeUndefined();
-    expect(servarrTime('garbage')).toBeUndefined();
-    expect(servarrTime(null)).toBeUndefined();
   });
 });
 

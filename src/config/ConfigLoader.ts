@@ -178,6 +178,7 @@ inputs:
     latestrequests: 'latestRequests',
     indexerstats: 'indexerStats',
     serverinfo: 'serverInfo',
+    livetv: 'liveTv',
     localcoordinates: 'localCoordinates',
     httptimeoutms: 'httpTimeoutMs',
     healthchecktimeoutms: 'healthCheckTimeoutMs',

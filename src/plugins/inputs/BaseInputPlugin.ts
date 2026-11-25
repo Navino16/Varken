@@ -8,6 +8,7 @@ import { RequestCache } from '../../utils/RequestCache';
 import type { GlobalConfig } from '../../config/schemas/config.schema';
 import type { ApiCallOptions, ApiClient } from '../../types/api-contract';
 import { expandPathTemplate } from '../../utils/pathTemplate';
+import { responseStatus, serializeQuery } from '../../utils/http';
 import { getEventStateStore, type EventMark } from '../../utils/EventStateStore';
 import type {
   InputPlugin,
@@ -145,6 +146,7 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
         'Content-Type': 'application/json',
         Accept: 'application/json',
       },
+      paramsSerializer: { serialize: serializeQuery },
     };
 
     // Handle SSL verification
@@ -385,6 +387,20 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.error(`Failed to ${operation}: ${message}`);
+      throw error;
+    }
+  }
+
+  /** Result of an optional request; undefined when the service answers one of `statuses` (feature absent or not licensed). */
+  protected async optionalFetch<T>(operation: string, statuses: readonly number[], fn: () => Promise<T>): Promise<T | undefined> {
+    try {
+      return await fn();
+    } catch (error) {
+      const status = responseStatus(error);
+      if (status !== undefined && statuses.includes(status)) {
+        this.logger.debug(`Skipped ${operation}: the service answered ${status}`);
+        return undefined;
+      }
       throw error;
     }
   }

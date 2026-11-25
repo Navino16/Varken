@@ -38,6 +38,10 @@ describe('PlexPlugin', () => {
     sessions: { enabled: true, intervalSeconds: 30 },
     libraries: { enabled: true, intervalSeconds: 3600 },
     serverInfo: { enabled: false, intervalSeconds: 300 },
+    status: { enabled: false, intervalSeconds: 300 },
+    history: { enabled: false, intervalSeconds: 300 },
+    inventory: { enabled: false, intervalSeconds: 3600 },
+    liveTv: { enabled: false, intervalSeconds: 300 },
   };
 
   beforeEach(() => {
@@ -340,6 +344,8 @@ describe('PlexPlugin', () => {
       expect(points.map((p) => [p.tags.section_name, p.tags.section_type, p.tags.name, p.fields.total, p.fields.libraries])).toEqual([
         ['Movies', 'movie', 'Movies', 1342, 'Movies'],
         ['TV Shows', 'show', 'TV Shows', 1342, 'TV Shows'],
+        ['Music', 'artist', 'Music', 1342, 'Music'],
+        ['Photos', 'photo', 'Photos', 1342, 'Photos'],
       ]);
       expect(client.get).toHaveBeenCalledWith('/library/sections/all', { params: undefined });
     });
@@ -358,13 +364,85 @@ describe('PlexPlugin', () => {
         path.startsWith('/library/sections/1/') ? { MediaContainer: { size: 7 } } : { MediaContainer: {} }
       );
 
-      expect((await plugin.collect()).map((p) => p.fields.total)).toEqual([7, 0]);
+      expect((await plugin.collect()).map((p) => p.fields.total)).toEqual([7, 0, 0, 0]);
     });
 
     it('returns 0 count when the per-library endpoint fails', async () => {
       client.fail('/library/sections/{sectionId}/all', new Error('boom'));
 
-      expect((await plugin.collect()).map((p) => p.fields.total)).toEqual([0, 0]);
+      expect((await plugin.collect()).map((p) => p.fields.total)).toEqual([0, 0, 0, 0]);
+    });
+
+    const countBySection = (params: Record<string, unknown> | undefined, path: string): object => {
+      const query = (params?.mediaQuery ?? {}) as Record<string, unknown>;
+      const section = Number(path.split('/')[3]);
+      const recent = query['addedAt>>'] === '-7d' ? 1 : 0;
+      return { MediaContainer: { size: 0, totalSize: section * 1000 + Number(query.type ?? 0) * 10 + recent } };
+    };
+    const library = (points: DataPoint[], name: string): DataPoint | undefined => points.find((p) => p.tags.section_name === name);
+
+    it('counts seasons, episodes and recent additions of show sections', async () => {
+      client.override('/library/sections/{sectionId}/all', countBySection);
+
+      const show = library(await plugin.collect(), 'TV Shows');
+
+      expect(show?.fields).toMatchObject({ total: 2000, seasons: 2030, episodes: 2040, added_7d: 2041 });
+      expect(client.get).toHaveBeenCalledWith('/library/sections/2/all', {
+        params: { mediaQuery: { type: 4, 'addedAt>>': '-7d' } },
+        headers: { 'X-Plex-Container-Start': 0, 'X-Plex-Container-Size': 0 },
+      });
+    });
+
+    it('counts albums, tracks and recent additions of artist sections', async () => {
+      client.override('/library/sections/{sectionId}/all', countBySection);
+
+      const music = library(await plugin.collect(), 'Music');
+
+      expect(music?.fields).toMatchObject({ albums: 3090, tracks: 3100, added_7d: 3101 });
+    });
+
+    it('counts recent additions of movie sections', async () => {
+      client.override('/library/sections/{sectionId}/all', countBySection);
+
+      const movies = library(await plugin.collect(), 'Movies');
+
+      expect(movies?.fields).toMatchObject({ total: 1000, added_7d: 1011 });
+      expect(movies?.fields).not.toHaveProperty('episodes');
+    });
+
+    it('adds scan state to every section', async () => {
+      vi.useFakeTimers({ now: new Date('2026-11-25T10:30:00Z') });
+      try {
+        const points = await plugin.collect();
+
+        expect(library(points, 'Music')?.fields).toMatchObject({ refreshing: 1, scanned_age_seconds: 1800, locations: 2 });
+        expect(library(points, 'Movies')?.fields).toMatchObject({ refreshing: 0, locations: 1 });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('omits a count that fails', async () => {
+      client.override('/library/sections/{sectionId}/all', (params, path) => {
+        if ((params?.mediaQuery as Record<string, unknown> | undefined)?.type === 4) {
+          throw new Error('boom');
+        }
+        return countBySection(params, path);
+      });
+
+      const show = library(await plugin.collect(), 'TV Shows');
+
+      expect(show?.fields).toMatchObject({ total: 2000, seasons: 2030 });
+      expect(show?.fields).not.toHaveProperty('episodes');
+      expect(show?.fields).not.toHaveProperty('added_7d');
+    });
+
+    it('requests no extra count for photo sections', async () => {
+      const points = await plugin.collect();
+
+      const calls = (client.get as Mock).mock.calls.filter(([path]) => path === '/library/sections/4/all');
+      expect(calls).toHaveLength(1);
+      expect(library(points, 'Photos')?.fields).toEqual({ total: 1342, libraries: 'Photos', refreshing: 0, scanned_age_seconds: expect.any(Number), locations: 1 });
     });
 
     it('handles a server without libraries', async () => {

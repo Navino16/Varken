@@ -44,7 +44,7 @@
     },
     {
       "op": "add",
-      "path": "/paths/~1status~1sessions/get/responses/200/content/application~1json/schema/properties/MediaContainer/allOf/1/properties/Metadata/items/allOf/0/properties/TranscodeSession",
+      "path": "/components/schemas/TranscodeSession",
       "value": {
         "type": "object",
         "description": "The transcode session when the item is being transcoded",
@@ -144,6 +144,14 @@
           }
         }
       },
+      "why": "https://github.com/pkkid/python-plexapi/blob/4.18.3/plexapi/media.py#L528-L600 — TranscodeSession attributes (videoDecision, audioDecision, timeStamp…) of transcoded /status/sessions items; the official spec declares this object (with error) only for the download queue (#/paths/~1downloadQueue~1{queueId}~1items); declared once as a component, shared by /status/sessions and /transcode/sessions"
+    },
+    {
+      "op": "add",
+      "path": "/paths/~1status~1sessions/get/responses/200/content/application~1json/schema/properties/MediaContainer/allOf/1/properties/Metadata/items/allOf/0/properties/TranscodeSession",
+      "value": {
+        "$ref": "#/components/schemas/TranscodeSession"
+      },
       "why": "https://github.com/pkkid/python-plexapi/blob/4.18.3/plexapi/media.py#L528-L600 — TranscodeSession attributes (videoDecision, audioDecision, timeStamp…) of transcoded /status/sessions items; the official spec declares this object (with error) only for the download queue (#/paths/~1downloadQueue~1{queueId}~1items)"
     },
     {
@@ -193,6 +201,392 @@
         }
       },
       "why": "properties-MediaContainer also declares Metadata items as $ref metadata; with unknown properties rejected (spec §Contract check) that branch would reject the session fields (User, Player, Session…) the sibling allOf member adds to the same items. Keeps the container fields only"
+    },
+    {
+      "op": "add",
+      "path": "/components/parameters/mediaQuery/schema",
+      "value": {
+        "type": "object",
+        "additionalProperties": {
+          "type": [
+            "string",
+            "integer"
+          ]
+        }
+      },
+      "why": "https://developer.plex.tv/pms/#section/API-Info/Media-Queries — the spec's own info.description: a media query is a set of `<field><operator>=<value>` query keys (e.g. type=4, addedAt>>=-7d) with string or integer values; the published schema (an object without properties) accepts none of them"
+    },
+    {
+      "op": "add",
+      "path": "/paths/~1status~1sessions~1history~1all/get/parameters/-",
+      "value": {
+        "name": "viewedAt>",
+        "in": "query",
+        "required": false,
+        "description": "Only plays viewed at or after this epoch time (seconds)",
+        "schema": {
+          "type": "integer"
+        }
+      },
+      "why": "https://github.com/pkkid/python-plexapi/blob/4.18.3/plexapi/server.py#L651-L675 — PlexServer.history(mindate=…) filters plays with the viewedAt> query key (epoch seconds); the spec only declares an exact viewedAt"
+    },
+    {
+      "op": "add",
+      "path": "/paths/~1statistics~1resources",
+      "value": {
+        "get": {
+          "summary": "Get resource usage statistics",
+          "operationId": "statisticsGetResources",
+          "tags": [
+            "Status"
+          ],
+          "parameters": [
+            {
+              "name": "timespan",
+              "in": "query",
+              "required": false,
+              "description": "Bin size: 1 months, 2 weeks, 3 days, 4 hours, 6 seconds",
+              "schema": {
+                "type": "integer"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "MediaContainer": {
+                        "allOf": [
+                          {
+                            "$ref": "#/components/schemas/MediaContainer"
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "StatisticsResources": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "at": {
+                                      "type": "integer"
+                                    },
+                                    "hostCpuUtilization": {
+                                      "type": "number"
+                                    },
+                                    "hostMemoryUtilization": {
+                                      "type": "number"
+                                    },
+                                    "processCpuUtilization": {
+                                      "type": "number"
+                                    },
+                                    "processMemoryUtilization": {
+                                      "type": "number"
+                                    },
+                                    "timespan": {
+                                      "type": "integer"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "why": "https://github.com/pkkid/python-plexapi/blob/4.18.3/plexapi/server.py#L1012-L1016 and https://github.com/pkkid/python-plexapi/blob/4.18.3/plexapi/server.py#L1225-L1250 — PlexServer.resources() reads /statistics/resources?timespan=6 as StatisticsResources items (at, host/process CPU and memory utilization, timespan); absent from the official spec"
+    },
+    {
+      "op": "add",
+      "path": "/paths/~1statistics~1bandwidth",
+      "value": {
+        "get": {
+          "summary": "Get bandwidth statistics",
+          "operationId": "statisticsGetBandwidth",
+          "tags": [
+            "Status"
+          ],
+          "parameters": [
+            {
+              "name": "timespan",
+              "in": "query",
+              "required": false,
+              "description": "Bin size: 1 months, 2 weeks, 3 days, 4 hours, 6 seconds",
+              "schema": {
+                "type": "integer"
+              }
+            },
+            {
+              "name": "at>",
+              "in": "query",
+              "required": false,
+              "description": "Only bins starting at or after this epoch time (seconds)",
+              "schema": {
+                "type": "integer"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "MediaContainer": {
+                        "allOf": [
+                          {
+                            "$ref": "#/components/schemas/MediaContainer"
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "StatisticsBandwidth": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "accountID": {
+                                      "type": "integer"
+                                    },
+                                    "at": {
+                                      "type": "integer"
+                                    },
+                                    "bytes": {
+                                      "type": "integer"
+                                    },
+                                    "deviceID": {
+                                      "type": "integer"
+                                    },
+                                    "lan": {
+                                      "type": "boolean"
+                                    },
+                                    "timespan": {
+                                      "type": "integer"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "why": "https://github.com/pkkid/python-plexapi/blob/4.18.3/plexapi/server.py#L922-L1010 and https://github.com/pkkid/python-plexapi/blob/4.18.3/plexapi/server.py#L1181-L1210 — PlexServer.bandwidth() reads /statistics/bandwidth (timespan and at> filters) as StatisticsBandwidth items (accountID, at, bytes, deviceID, lan, timespan); absent from the official spec"
+    },
+    {
+      "op": "add",
+      "path": "/paths/~1transcode~1sessions",
+      "value": {
+        "get": {
+          "summary": "Get transcode sessions",
+          "operationId": "transcodeGetSessions",
+          "tags": [
+            "Status"
+          ],
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "MediaContainer": {
+                        "allOf": [
+                          {
+                            "$ref": "#/components/schemas/MediaContainer"
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "TranscodeSession": {
+                                "type": "array",
+                                "items": {
+                                  "$ref": "#/components/schemas/TranscodeSession"
+                                }
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "why": "https://github.com/pkkid/python-plexapi/blob/4.18.3/plexapi/server.py#L807-L809 — PlexServer.transcodeSessions() lists /transcode/sessions as TranscodeSession items (https://github.com/pkkid/python-plexapi/blob/4.18.3/plexapi/media.py#L528-L600); absent from the official spec"
+    },
+    {
+      "op": "add",
+      "path": "/paths/~1accounts",
+      "value": {
+        "get": {
+          "summary": "Get system accounts",
+          "operationId": "accountsGetSlash",
+          "tags": [
+            "Status"
+          ],
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "MediaContainer": {
+                        "allOf": [
+                          {
+                            "$ref": "#/components/schemas/MediaContainer"
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "Account": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "integer"
+                                    },
+                                    "key": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "why": "https://github.com/pkkid/python-plexapi/blob/4.18.3/plexapi/server.py#L271-L275 and https://github.com/pkkid/python-plexapi/blob/4.18.3/plexapi/server.py#L1126-L1155 — PlexServer.systemAccounts() reads /accounts as Account items (id, key, name); the ids are the accountID of history and bandwidth rows; absent from the official spec"
+    },
+    {
+      "op": "add",
+      "path": "/paths/~1devices",
+      "value": {
+        "get": {
+          "summary": "Get system devices",
+          "operationId": "devicesGetSlash",
+          "tags": [
+            "Status"
+          ],
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "MediaContainer": {
+                        "allOf": [
+                          {
+                            "$ref": "#/components/schemas/MediaContainer"
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "Device": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "clientIdentifier": {
+                                      "type": "string"
+                                    },
+                                    "createdAt": {
+                                      "type": "integer"
+                                    },
+                                    "id": {
+                                      "type": "integer"
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "platform": {
+                                      "type": "string"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "why": "https://github.com/pkkid/python-plexapi/blob/4.18.3/plexapi/server.py#L292-L296 and https://github.com/pkkid/python-plexapi/blob/4.18.3/plexapi/server.py#L1157-L1179 — PlexServer.systemDevices() reads /devices as Device items (id, name, platform, clientIdentifier, createdAt); the ids are the deviceID of history and bandwidth rows; absent from the official spec"
+    },
+    {
+      "op": "replace",
+      "path": "/paths/~1status~1sessions~1history~1all/get/responses/200/content/application~1json/schema/properties/MediaContainer/allOf/0",
+      "value": {
+        "type": "object",
+        "properties": {
+          "identifier": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "totalSize": {
+            "type": "integer",
+            "description": "The total size of objects available.  Also provided in the X-Plex-Container-Total-Size header"
+          },
+          "offset": {
+            "type": "integer",
+            "description": "The offset of where this container page starts among the total objects available.  Also provided in the X-Plex-Container-Start header"
+          }
+        }
+      },
+      "why": "properties-MediaContainer also declares Metadata items as $ref metadata; with unknown properties rejected (spec §Contract check) that branch would reject the history fields (historyKey, viewedAt, accountID, deviceID…) the sibling allOf member adds to the same items. Keeps the container fields only"
+    },
+    {
+      "op": "remove",
+      "path": "/paths/~1livetv~1sessions/get/responses/200/content/application~1json/schema/examples",
+      "why": "Upstream bug: an OpenAPI media-type examples map placed inside the schema, where OpenAPI 3.1 (JSON Schema 2020-12) requires examples to be an array; the schema fails to compile"
     }
   ]
 }

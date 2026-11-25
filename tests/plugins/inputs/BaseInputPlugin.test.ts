@@ -100,6 +100,10 @@ class TestInputPlugin extends BaseInputPlugin<TestConfig> {
     return this.validateResponseData(response as import('axios').AxiosResponse);
   }
 
+  public testOptionalFetch<T>(operation: string, statuses: readonly number[], fn: () => Promise<T>): Promise<T | undefined> {
+    return this.optionalFetch(operation, statuses, fn);
+  }
+
   public testSafeFetch<T>(operation: string, fn: () => Promise<T>): Promise<T> {
     return this.safeFetch(operation, fn);
   }
@@ -154,6 +158,14 @@ describe('BaseInputPlugin', () => {
     it('should use URL directly as baseURL', async () => {
       await plugin.initialize({ ...testConfig, url: 'https://localhost:8989' });
       expect(plugin.getHttpClient().defaults.baseURL).toBe('https://localhost:8989');
+    });
+
+    it('serializes object query parameters as top-level keys on the wire', async () => {
+      await plugin.initialize(testConfig);
+
+      expect(plugin.getHttpClient().getUri({ url: '/x', params: { mediaQuery: { type: 4, 'addedAt>>': '-7d' }, sort: ['a', 'b'] } })).toBe(
+        'http://localhost:8989/x?type=4&addedAt%3E%3E=-7d&sort=a&sort=b'
+      );
     });
   });
 
@@ -689,6 +701,25 @@ describe('BaseInputPlugin', () => {
 
     it('should pass through boolean response', () => {
       expect(() => plugin.testValidateResponseData(makeResponse(true))).not.toThrow();
+    });
+  });
+
+  describe('optionalFetch', () => {
+    const failing = (status: number) => async (): Promise<never> => {
+      throw Object.assign(new Error(`status ${status}`), { response: { status } });
+    };
+
+    it('returns the result when the request succeeds', async () => {
+      await expect(plugin.testOptionalFetch('x', [403], async () => 7)).resolves.toBe(7);
+    });
+
+    it('returns undefined for a tolerated status', async () => {
+      await expect(plugin.testOptionalFetch('x', [401, 403], failing(403))).resolves.toBeUndefined();
+    });
+
+    it('re-throws any other error', async () => {
+      await expect(plugin.testOptionalFetch('x', [403], failing(500))).rejects.toThrow('status 500');
+      await expect(plugin.testOptionalFetch('x', [403], async () => Promise.reject(new Error('down')))).rejects.toThrow('down');
     });
   });
 

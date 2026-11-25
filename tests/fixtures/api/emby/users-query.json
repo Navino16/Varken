@@ -1,0 +1,32 @@
+{
+  "Items": [
+    {
+      "Name": "admin",
+      "ServerId": "9b1c2d3e4f5a46b7c8d9e0f1a2b3c4d5",
+      "Id": "e1f2a3b4c5d64e7f8a9b0c1d2e3f4a5b",
+      "HasPassword": true,
+      "HasConfiguredPassword": true,
+      "LastLoginDate": "2026-11-20T10:00:00.0000000Z",
+      "LastActivityDate": "2026-11-25T09:30:00.0000000Z",
+      "Policy": {
+        "IsAdministrator": true,
+        "IsHidden": true,
+        "IsDisabled": false
+      }
+    },
+    {
+      "Name": "bob",
+      "ServerId": "9b1c2d3e4f5a46b7c8d9e0f1a2b3c4d5",
+      "Id": "b0b0b0b0c5d64e7f8a9b0c1d2e3f4a5b",
+      "HasPassword": false,
+      "HasConfiguredPassword": false,
+      "LastActivityDate": "2026-11-10T10:00:00.0000000Z",
+      "Policy": {
+        "IsAdministrator": false,
+        "IsHidden": false,
+        "IsDisabled": true
+      }
+    }
+  ],
+  "TotalRecordCount": 2
+}

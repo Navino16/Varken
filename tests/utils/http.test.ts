@@ -9,6 +9,8 @@ import {
   isNetworkError,
   withTimeout,
   extractResponseData,
+  serializeQuery,
+  responseStatus,
 } from '../../src/utils/http';
 
 // Mock the logger
@@ -525,6 +527,48 @@ describe('HTTP Utilities', () => {
       expect(client).toBeDefined();
       // Verify interceptors are added
       expect(client.interceptors.response).toBeDefined();
+    });
+  });
+
+  describe('serializeQuery', () => {
+    it('serializes scalars', () => {
+      expect(serializeQuery({ page: 1, monitored: true, date: '2026-11-25T10:00:00Z' })).toBe(
+        'page=1&monitored=true&date=2026-11-25T10%3A00%3A00Z'
+      );
+    });
+
+    it('repeats array values', () => {
+      expect(serializeQuery({ sort: ['viewedAt:desc', 'index'] })).toBe('sort=viewedAt%3Adesc&sort=index');
+    });
+
+    it('spreads object parameters into the query', () => {
+      expect(serializeQuery({ mediaQuery: { type: 4, 'addedAt>>': '-7d' } })).toBe('type=4&addedAt%3E%3E=-7d');
+    });
+
+    it('serializes dates as ISO strings', () => {
+      expect(serializeQuery({ since: new Date('2026-11-25T10:00:00Z') })).toBe('since=2026-11-25T10%3A00%3A00.000Z');
+    });
+
+    it('skips undefined and null', () => {
+      expect(serializeQuery({ a: undefined, b: null, c: 0 })).toBe('c=0');
+    });
+
+    it('is the client params serializer', () => {
+      const client = createHttpClient({ baseURL: 'http://localhost:8080' });
+
+      expect(client.getUri({ url: '/x', params: { mediaQuery: { type: 4 } } })).toBe('http://localhost:8080/x?type=4');
+    });
+  });
+
+  describe('responseStatus', () => {
+    it('reads the response status of a failed request', () => {
+      expect(responseStatus(Object.assign(new Error('x'), { response: { status: 403 } }))).toBe(403);
+    });
+
+    it('is undefined without a response status', () => {
+      expect(responseStatus(new Error('x'))).toBeUndefined();
+      expect(responseStatus(null)).toBeUndefined();
+      expect(responseStatus({ response: { status: '403' } })).toBeUndefined();
     });
   });
 });

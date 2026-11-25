@@ -1,0 +1,27 @@
+{
+  "Items": [
+    {
+      "Name": "iPhone",
+      "CustomName": "Alice phone",
+      "AccessToken": "0123456789abcdef0123456789abcdef",
+      "Id": "swiftfin-ios-7f3a",
+      "LastUserName": "alice",
+      "AppName": "Swiftfin iOS",
+      "AppVersion": "1.2.0",
+      "LastUserId": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "DateLastActivity": "2026-11-25T10:00:00.0000000Z"
+    },
+    {
+      "Name": "Living Room TV",
+      "AccessToken": "fedcba9876543210fedcba9876543210",
+      "Id": "androidtv-91be",
+      "LastUserName": "bob",
+      "AppName": "Jellyfin Android TV",
+      "AppVersion": "0.18.2",
+      "LastUserId": "11111111111111111111111111111111",
+      "DateLastActivity": "2026-11-01T20:00:00.0000000Z"
+    }
+  ],
+  "TotalRecordCount": 2,
+  "StartIndex": 0
+}

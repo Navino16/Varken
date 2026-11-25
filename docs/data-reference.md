@@ -2,9 +2,9 @@
 
 Every input plugin writes DataPoints whose measurement is the service name (`Sonarr`, `Tautulli`, ...). Every point carries a `server` tag (the instance `id` from the config) and a `type` tag that distinguishes the kinds of points a plugin writes; both are omitted from the tables below.
 Numbers meant for graphing are fields; tags hold labels and identifiers. The `hash` field is a deduplication key (MD5) and is not meant to be graphed.
-Decimal fields (`score_percent`, `lat`, `lon`, the Servarr `progress`, `used_percent`, `last_duration_seconds`, `percent_of_*`, and the session `transcode_speed`, `transcode_progress`, `stream_framerate`, `community_rating`, `transcode_cpu_percent`, `refresh_progress`) are always written as floats, even for whole values, so their column type stays stable.
+Decimal fields (`score_percent`, `lat`, `lon`, the Servarr `progress`, `used_percent`, `last_duration_seconds`, `percent_of_*`, and the session `transcode_speed`, `transcode_progress`, `stream_framerate`, `community_rating`, `transcode_cpu_percent`, `refresh_progress`, the Plex `progress`, `speed`, `percent` and `*_cpu_percent` / `*_memory_percent`, the Jellyfin/Emby task `progress`) are always written as floats, even for whole values, so their column type stays stable.
 Points are timestamped with the collection time (`createDataPoint` default) unless stated otherwise in a section.
-Event points (`type = History`) are timestamped with the event time, plus the record id's last three digits as milliseconds: the APIs report whole seconds, and this keeps same-second events with identical tags as separate points. Each event collector keeps a high-water mark in `DATA_FOLDER/event-state/` and only writes events newer than it, so an event is written once even across restarts. Without a mark (first run, deleted or unreadable file) it starts from the plugin start time: earlier events are not backfilled.
+Event points (`type = History`, Plex `Play` and `Bandwidth`, Jellyfin/Emby `Activity`) are timestamped with the event time, plus the record id's last three digits as milliseconds: the APIs report whole seconds, and this keeps same-second events with identical tags as separate points. Each event collector keeps a high-water mark in `DATA_FOLDER/event-state/` and only writes events newer than it, so an event is written once even across restarts. Without a mark (first run, deleted or unreadable file) it starts from the plugin start time: earlier events are not backfilled.
 
 ## Sonarr, Radarr, Lidarr, Readarr: shared points
 
@@ -614,6 +614,14 @@ Config: `inputs.plex[].libraries` (`enabled`, `intervalSeconds`) · Source: `/li
 | `name` | tag | string | Duplicate of `section_name` (legacy) |
 | `total` | field | number | Item count (`0` if the count request fails) |
 | `libraries` | field | string | Library title (legacy) |
+| `refreshing` | field | number | `1` while Plex scans the library |
+| `scanned_age_seconds` | field | number | Seconds since the last scan (`scannedAt`) |
+| `locations` | field | number | Folders of the library |
+| `seasons`, `episodes` | field | number | Show libraries only: media query `type=3` / `type=4` |
+| `albums`, `tracks` | field | number | Music libraries only: media query `type=9` / `type=10` |
+| `added_7d` | field | number | Movies, episodes or tracks added in the last 7 days (`addedAt>>=-7d`) |
+
+The extra counts are size-0 requests like `total`; a count whose request fails is omitted (unlike `total`). Photo and other libraries get no extra count.
 
 ### type = ServerInfo
 
@@ -628,7 +636,127 @@ Config: `inputs.plex[].serverInfo` (`enabled`, `intervalSeconds`, default disabl
 | `update_available` | field | number | `1` when the updater lists a release, else `0` |
 | `active_transcodes` | field | number | `transcoderActiveVideoSessions`; omitted when Plex does not report it |
 
+### type = Activities / Activity
+
+Config: `inputs.plex[].status` (`enabled`, `intervalSeconds`, default disabled, 300) · Source: `/activities`. `Activities` is one point per poll; `Activity` one point per running server activity (scan, intro detection, ...).
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `count` | field | number | `Activities`: running activities |
+| `activity_type` | tag | string | `Activity`: activity type (`library.update.section`, `media.generate.intros`, ...) |
+| `present` | field | number | `Activity`: always `1`, keeps the point when Plex reports no other value |
+| `progress` | field | float | `Activity`: progress in percent |
+| `cancellable` | field | number | `Activity`: `1` when it can be cancelled |
+
+### type = BackgroundTranscodes / BackgroundTranscode
+
+Config: `status` · Source: `/status/sessions/background` (optimize and sync jobs).
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `count` | field | number | `BackgroundTranscodes`: running jobs |
+| `rating_key` | tag | string | `BackgroundTranscode`: item being transcoded |
+| `present` | field | number | `BackgroundTranscode`: always `1` |
+| `progress`, `speed` | field | float | `BackgroundTranscode`: progress in percent, transcode speed |
+| `remaining_seconds` | field | number | `BackgroundTranscode`: estimated time left |
+| `size` | field | number | `BackgroundTranscode`: output size in bytes |
+
+Plex reports unknown sizes and durations as negative numbers (e.g. `-22`): those are omitted.
+
+### type = ButlerTask
+
+Config: `status` · Source: `/butler`. One point per scheduled maintenance task.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `task` | tag | string | Task name (`BackupDatabase`, `OptimizeDatabase`, ...) |
+| `enabled` | field | number | `1` when enabled |
+| `randomized` | field | number | `1` when its schedule is randomized |
+| `interval_days` | field | number | Days between runs |
+
+### type = Updater
+
+Config: `status` · Source: `/updater/status`.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `state` | tag | string | State of the first listed release (`available`, `downloaded`, ...), `none` without release |
+| `version` | tag | string | Version of that release, `none` without release |
+| `can_install` | field | number | `1` when Plex can install the update |
+| `checked_age_seconds` | field | number | Seconds since the last update check |
+| `releases` | field | number | Releases listed |
+
+### type = Resources
+
+Config: `status` · Source: `/statistics/resources?timespan=6`. The most recent sample, timestamped with its time; no point when Plex returns none, or refuses the request (`401`/`403`) without failing the other status points.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `host_cpu_percent`, `host_memory_percent` | field | float | CPU and memory use of the host |
+| `process_cpu_percent`, `process_memory_percent` | field | float | CPU and memory use of Plex Media Server |
+
+### type = TranscodeSessions
+
+Config: `status` · Source: `/transcode/sessions` (playback and background transcodes).
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `count` | field | number | Transcoder sessions |
+| `video_transcodes`, `audio_transcodes` | field | number | Sessions transcoding the video / the audio |
+| `hw_decoding`, `hw_encoding` | field | number | Sessions using hardware decoding / encoding |
+| `throttled` | field | number | Throttled sessions |
+
+### type = Bandwidth
+
+Config: `status` · Source: `/statistics/bandwidth?timespan=4&at>=<mark>` (hourly bins), with `/accounts` and `/devices` for the names. One event point per account, device and network for each **completed** hour, timestamped with the start of the hour: an hour is written once it has ended, so its point arrives up to one status interval after the hour. A status poll that fails writes no hour, and the next successful poll writes it. When Plex refuses the request (`401`/`403`) no bandwidth point is written and the other status points are kept.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `network` | tag | string | `lan` or `wan` |
+| `account_id`, `username` | tag | number, string | Plex account (`unknown` when not in `/accounts`) |
+| `device_id`, `device_name`, `platform` | tag | number, string | Device (`unknown` when not in `/devices`) |
+| `bytes` | field | number | Bytes sent during the hour |
+
+### type = Play
+
+Config: `inputs.plex[].history` (`enabled`, `intervalSeconds`, default disabled, 300) · Source: `/status/sessions/history/all?viewedAt>=<mark>`, with `/accounts` and `/devices` for the names. One event point per play, timestamped with `viewedAt`.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `media_type` | tag | string | `movie`, `episode`, `track`, ... |
+| `library_section_id` | tag | string | Library of the item |
+| `rating_key` | tag | string | Item played |
+| `account_id`, `username` | tag | number, string | Plex account (`unknown` when not in `/accounts`) |
+| `device_id`, `device_name`, `platform` | tag | number, string | Device (`unknown` when not in `/devices`) |
+| `hash` | field | string | MD5 of server id + `historyKey` |
+| `title` | field | string | Item title (episode or track title for episodes and tracks) |
+
+### type = Inventory / Device
+
+Config: `inputs.plex[].inventory` (`enabled`, `intervalSeconds`, default disabled, 3600) · Source: `/accounts`, `/devices`. Device client identifiers are never written.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `accounts`, `devices` | field | number | `Inventory`: accounts and devices known to the server |
+| `device_id`, `device_name`, `platform` | tag | number, string | `Device`: one point per device |
+| `present` | field | number | `Device`: always `1` |
+| `created_age_days` | field | number | `Device`: days since the device first connected |
+
+### type = LiveTv / Recording
+
+Config: `inputs.plex[].liveTv` (`enabled`, `intervalSeconds`, default disabled, 300) · Source: `/livetv/sessions`, `/media/subscriptions/scheduled`. `Recording` is one point per recording in progress. A server without DVR or Plex Pass answers `403` to the recordings request: the `LiveTv` point then only carries `sessions`.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `sessions` | field | number | `LiveTv`: live TV sessions |
+| `recordings_scheduled`, `recordings_in_progress`, `recordings_failed` | field | number | `LiveTv`: recording operations by status (`scheduled`, `inprogress`, `error`) |
+| `grab_id`, `provider` | tag | string | `Recording`: operation id and guide provider |
+| `present` | field | number | `Recording`: always `1` |
+| `percent` | field | float | `Recording`: progress in percent |
+
 ## Jellyfin
+
+The `status`, `history`, `inventory` and `liveTv` collectors are described in [Jellyfin and Emby: status, history, inventory, Live TV](#jellyfin-and-emby-status-history-inventory-live-tv).
 
 ### type = Session
 
@@ -726,7 +854,7 @@ Config: `inputs.jellyfin[].serverInfo` (`enabled`, `intervalSeconds`, default di
 
 ## Emby
 
-Same shape as Jellyfin; the API is called under the `/emby` prefix.
+Same shape as Jellyfin; the API is called under the `/emby` prefix. The `status`, `history`, `inventory` and `liveTv` collectors are described in [Jellyfin and Emby: status, history, inventory, Live TV](#jellyfin-and-emby-status-history-inventory-live-tv).
 
 ### type = Session
 
@@ -823,6 +951,101 @@ Config: `inputs.emby[].serverInfo` (`enabled`, `intervalSeconds`, default disabl
 | `restart_pending` | field | number | Restart pending: `1` yes, `0` no; omitted when the service does not report it |
 | `shutting_down` | field | number | Server shutting down: `1` yes, `0` no; omitted when the service does not report it |
 | `maintenance_mode` | field | number | Maintenance mode: `1` yes, `0` no; omitted when the service does not report it |
+
+## Jellyfin and Emby: status, history, inventory, Live TV
+
+Both services write the same points; differences are noted per section. Sources are given for Jellyfin; Emby calls them under `/emby` with its own parameter names (`IsHidden`, `MinDate`, `Limit`, `IsInProgress`).
+
+### type = Task / Tasks
+
+Config: `inputs.<service>[].status` (`enabled`, `intervalSeconds`, default disabled, 300) · Source: `/ScheduledTasks?isHidden=false`. `Task` is one point per scheduled task, `Tasks` one point per poll.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `task` | tag | string | Task key (`RefreshLibrary`, ...) |
+| `name`, `category` | tag | string | Task display name and category |
+| `state` | tag | string | `Idle`, `Running`, `Cancelling` |
+| `last_status` | tag | string | Result of the last run (`Completed`, `Failed`, `Cancelled`, `Aborted`), `never` when it never ran |
+| `progress` | field | float | Progress in percent, while running |
+| `last_execution_age_seconds` | field | number | Seconds since the last run ended |
+| `last_duration_seconds` | field | float | Duration of the last run |
+| `running`, `failed` | field | number | `Tasks`: tasks running, tasks whose last run failed |
+
+### type = Plugin / Plugins
+
+Config: `status` · Source: `/Plugins`. `Plugin` is one point per installed plugin, `Plugins` one point per poll.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `plugin`, `version` | tag | string | `Plugin`: plugin name and version |
+| `status` | tag | string | `Plugin`, Jellyfin only: `Active`, `Restart`, `Malfunctioned`, `NotSupported`, `Disabled`, ... |
+| `installed` | field | number | `Plugin`: always `1` |
+| `plugins` | field | number | `Plugins`: installed plugins |
+| `plugins_active`, `plugins_failing` | field | number | `Plugins`, Jellyfin only: plugins `Active`, plugins `Malfunctioned` or `NotSupported` |
+
+### type = Storage
+
+Config: `status` · Source: `/System/Info/Storage` (Jellyfin 10.11 and later; older servers answer `404` and get no storage point, the other status points are kept). One point per server folder and per library folder. Space is that of the device holding the folder (`StorageHelper.GetFreeSpaceOf`), not of the folder itself; a device Jellyfin cannot read (reported as `-1`) gets no space fields.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `folder` | tag | string | `program_data`, `web`, `image_cache`, `cache`, `log`, `internal_metadata`, `transcoding_temp` or `library` |
+| `library` | tag | string | Library name, `none` for server folders |
+| `path`, `storage_type` | tag | string | Folder path and file system |
+| `free_bytes`, `used_bytes` | field | number | Free and used space of the device |
+| `used_percent` | field | float | `used / (used + free)`; omitted when both are 0 |
+
+### type = Activity
+
+Config: `inputs.<service>[].history` (`enabled`, `intervalSeconds`, default disabled, 300) · Source: `/System/ActivityLog/Entries?minDate=<mark>`. One event point per activity log entry (playback, login, failed login, ...). The entry overview is never written (it holds client IP addresses).
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `activity_type` | tag | string | Entry type (`VideoPlayback`, `AuthenticationFailed`, ...) |
+| `severity` | tag | string | Jellyfin `Information`, `Warning`, `Error`, ... · Emby `Info`, `Warn`, `Error`, ... |
+| `user_id` | tag | string | User concerned (`unknown` when absent) |
+| `item_id` | tag | string | Item concerned, `none` when absent |
+| `hash` | field | string | MD5 of server id + entry id |
+| `name` | field | string | Entry text |
+
+### type = User / Users
+
+Config: `inputs.<service>[].inventory` (`enabled`, `intervalSeconds`, default disabled, 3600) · Source: Jellyfin `/Users`, Emby `/Users/Query`.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `user_id`, `username` | tag | string | `User`: one point per user |
+| `present` | field | number | `User`: always `1` |
+| `is_admin`, `is_disabled`, `is_hidden`, `has_password` | field | number | `User`: `1` yes, `0` no; omitted when not reported |
+| `last_activity_age_seconds`, `last_login_age_seconds` | field | number | `User`: seconds since the last activity / login; omitted when never |
+| `users`, `admins`, `disabled` | field | number | `Users`: counts |
+| `active_24h`, `active_30d` | field | number | `Users`: users active in the last 24 hours / 30 days |
+
+### type = Device / Devices
+
+Config: `inventory` · Source: `/Devices`. Access tokens (Jellyfin) and IP addresses (Emby) are never written.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `device_id` | tag | string | `Device`: device id |
+| `device_name` | tag | string | `Device`: custom name, else device name |
+| `app_name`, `app_version` | tag | string | `Device`: client application |
+| `last_user` | tag | string | `Device`: last user name |
+| `present` | field | number | `Device`: always `1` |
+| `last_activity_age_seconds` | field | number | `Device`: seconds since its last activity |
+| `devices`, `active_24h` | field | number | `Devices`: devices, devices active in the last 24 hours |
+
+### type = LiveTv
+
+Config: `inputs.<service>[].liveTv` (`enabled`, `intervalSeconds`, default disabled, 300) · Source: `/LiveTv/Recordings` (twice, all and in progress, one record each), `/LiveTv/Timers`.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `recordings`, `recordings_in_progress` | field | number | Recordings stored, recordings in progress |
+| `timers` | field | number | Recording timers |
+| `recordings_scheduled` | field | number | Timers with status `New` |
+| `recordings_failed` | field | number | Timers with status `Error` or `ConflictedNotOk` |
+| `next_recording_in_seconds` | field | number | Seconds until the next timer starts; omitted when none is planned |
 
 ## Ombi
 

@@ -1,0 +1,29 @@
+{
+  "Items": [
+    {
+      "Name": "Alice phone",
+      "Id": "7",
+      "ReportedDeviceId": "emby-ios-7f3a",
+      "InternalId": 7,
+      "LastUserName": "alice",
+      "AppName": "Emby for iOS",
+      "AppVersion": "2.2.30",
+      "LastUserId": "e1f2a3b4c5d64e7f8a9b0c1d2e3f4a5b",
+      "DateLastActivity": "2026-11-25T10:00:00.0000000Z",
+      "IpAddress": "192.168.1.42"
+    },
+    {
+      "Name": "Living Room TV",
+      "Id": "8",
+      "ReportedDeviceId": "emby-androidtv-91be",
+      "InternalId": 8,
+      "LastUserName": "bob",
+      "AppName": "Emby for Android TV",
+      "AppVersion": "2.1.10",
+      "LastUserId": "b0b0b0b0c5d64e7f8a9b0c1d2e3f4a5b",
+      "DateLastActivity": "2026-11-01T20:00:00.0000000Z",
+      "IpAddress": "203.0.113.50"
+    }
+  ],
+  "TotalRecordCount": 2
+}

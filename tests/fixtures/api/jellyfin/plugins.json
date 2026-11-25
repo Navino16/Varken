@@ -1,0 +1,20 @@
+[
+  {
+    "Name": "Trakt",
+    "Version": "25.0.0.0",
+    "Description": "Sync your library to trakt.tv",
+    "Id": "22222222222222222222222222222222",
+    "CanUninstall": true,
+    "HasImage": true,
+    "Status": "Active"
+  },
+  {
+    "Name": "Old Subtitles",
+    "Version": "1.0.0.0",
+    "Description": "Downloads subtitles",
+    "Id": "33333333333333333333333333333333",
+    "CanUninstall": true,
+    "HasImage": false,
+    "Status": "Malfunctioned"
+  }
+]

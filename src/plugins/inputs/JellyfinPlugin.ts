@@ -6,6 +6,7 @@ import { isTranscoding, sourceAudioCodec } from './utils/mediaStreams';
 import { qualityOf, sessionEnrichment, streamSummary } from './utils/embySessions';
 import { pickNumbers } from './utils/numbers';
 import { booleanFlags } from './utils/flags';
+import { activityPoint, devicePoints, liveTvPoint, pluginPoints, storagePoints, taskPoints, userPoints } from './utils/embyEndpoints';
 
 type JellyfinSession = components['schemas']['SessionInfoDto'];
 type JellyfinItemCounts = components['schemas']['ItemCounts'];
@@ -19,6 +20,7 @@ const PLAYER_STATE = { PLAYING: 0, PAUSED: 1, BUFFERING: 3 } as const;
  *   - Active streaming sessions (`GET /Sessions` filtered to those with `NowPlayingItem`)
  *   - Library metadata (`GET /Library/VirtualFolders`) plus a global item count
  *     summary (`GET /Items/Counts`)
+ *   - Optional status, activity log, inventory and Live TV collectors (see docs/data-reference.md)
  *
  * Auth uses the `X-Emby-Token` header (legacy name, still the most widely
  * supported across Jellyfin / Emby forks). Responses are JSON by default.
@@ -58,6 +60,22 @@ export class JellyfinPlugin extends BaseInputPlugin<JellyfinConfig> {
       points.push(...(await this.collectServerInfo()));
     }
 
+    if (this.config.status.enabled) {
+      points.push(...(await this.collectStatus()));
+    }
+
+    if (this.config.history.enabled) {
+      points.push(...(await this.collectHistory()));
+    }
+
+    if (this.config.inventory.enabled) {
+      points.push(...(await this.collectInventory()));
+    }
+
+    if (this.config.liveTv.enabled) {
+      points.push(...(await this.collectLiveTv()));
+    }
+
     return points;
   }
 
@@ -78,6 +96,22 @@ export class JellyfinPlugin extends BaseInputPlugin<JellyfinConfig> {
 
     if (this.config.serverInfo.enabled) {
       schedules.push(this.createSchedule('serverInfo', this.config.serverInfo.intervalSeconds, true, this.collectServerInfo));
+    }
+
+    if (this.config.status.enabled) {
+      schedules.push(this.createSchedule('status', this.config.status.intervalSeconds, true, this.collectStatus));
+    }
+
+    if (this.config.history.enabled) {
+      schedules.push(this.createSchedule('history', this.config.history.intervalSeconds, true, this.collectHistory));
+    }
+
+    if (this.config.inventory.enabled) {
+      schedules.push(this.createSchedule('inventory', this.config.inventory.intervalSeconds, true, this.collectInventory));
+    }
+
+    if (this.config.liveTv.enabled) {
+      schedules.push(this.createSchedule('liveTv', this.config.liveTv.intervalSeconds, true, this.collectLiveTv));
     }
 
     return schedules;
@@ -256,6 +290,51 @@ export class JellyfinPlugin extends BaseInputPlugin<JellyfinConfig> {
           })
         ),
       ];
+    });
+  }
+
+  private async collectStatus(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Jellyfin status', async () => {
+      const [tasks, plugins, storage] = await Promise.all([
+        this.jellyfin.get('/ScheduledTasks', { query: { isHidden: false } }),
+        this.jellyfin.get('/Plugins'),
+        // Jellyfin 10.11+: older servers answer 404.
+        this.optionalFetch('Jellyfin storage', [404], () => this.jellyfin.get('/System/Info/Storage')),
+      ]);
+      return this.createPoints([...taskPoints(tasks, new Date()), ...pluginPoints(plugins), ...(storage ? storagePoints(storage) : [])]);
+    });
+  }
+
+  private async collectHistory(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Jellyfin activity log', async () => {
+      const minDate = (await this.eventCursor('history')).toISOString();
+      const log = await this.jellyfin.get('/System/ActivityLog/Entries', { query: { minDate } });
+      const entries = await this.takeNewEvents('history', log.Items ?? [], (e) => Date.parse(e.Date ?? ''), (e) => String(e.Id));
+      return this.createPoints(entries.flatMap((e) => activityPoint(e, this.hashit(`${this.config.id}${e.Id}`)) ?? []));
+    });
+  }
+
+  private async collectInventory(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Jellyfin inventory', async () => {
+      const [users, devices] = await Promise.all([this.jellyfin.get('/Users'), this.jellyfin.get('/Devices')]);
+      const now = new Date();
+      return this.createPoints([...userPoints(users, now), ...devicePoints(devices.Items ?? [], now)]);
+    });
+  }
+
+  private async collectLiveTv(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Jellyfin live TV', async () => {
+      const [recordings, inProgress, timers] = await Promise.all([
+        this.jellyfin.get('/LiveTv/Recordings', { query: { limit: 1 } }),
+        this.jellyfin.get('/LiveTv/Recordings', { query: { isInProgress: true, limit: 1 } }),
+        this.jellyfin.get('/LiveTv/Timers'),
+      ]);
+      return this.createPoints([
+        liveTvPoint(
+          { recordings: recordings.TotalRecordCount, recordingsInProgress: inProgress.TotalRecordCount, timers: timers.Items ?? [] },
+          new Date()
+        ),
+      ]);
     });
   }
 }

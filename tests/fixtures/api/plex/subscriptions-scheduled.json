@@ -1,0 +1,39 @@
+{
+  "MediaContainer": {
+    "size": 3,
+    "MediaGrabOperation": [
+      {
+        "mediaSubscriptionID": 1,
+        "mediaIndex": 0,
+        "id": "grab-1",
+        "key": "/media/grabbers/operations/grab-1",
+        "grabberIdentifier": "tv.plex.grabbers.hdhomerun",
+        "grabberProtocol": "stream",
+        "status": "scheduled",
+        "provider": "tv.plex.providers.epg.cloud"
+      },
+      {
+        "mediaSubscriptionID": 2,
+        "mediaIndex": 0,
+        "id": "grab-2",
+        "key": "/media/grabbers/operations/grab-2",
+        "grabberIdentifier": "tv.plex.grabbers.hdhomerun",
+        "grabberProtocol": "stream",
+        "percent": 55.5,
+        "currentSize": 1048576,
+        "status": "inprogress",
+        "provider": "tv.plex.providers.epg.cloud"
+      },
+      {
+        "mediaSubscriptionID": 3,
+        "mediaIndex": 0,
+        "id": "grab-3",
+        "key": "/media/grabbers/operations/grab-3",
+        "grabberIdentifier": "tv.plex.grabbers.hdhomerun",
+        "grabberProtocol": "stream",
+        "status": "error",
+        "provider": "tv.plex.providers.epg.cloud"
+      }
+    ]
+  }
+}

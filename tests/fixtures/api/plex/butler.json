@@ -1,0 +1,30 @@
+{
+  "ButlerTasks": {
+    "ButlerTask": [
+      {
+        "name": "BackupDatabase",
+        "interval": 3,
+        "scheduleRandomized": false,
+        "enabled": true,
+        "title": "Backup Database",
+        "description": "Create a backup copy of the server's database in the configured backup directory"
+      },
+      {
+        "name": "OptimizeDatabase",
+        "interval": 7,
+        "scheduleRandomized": false,
+        "enabled": true,
+        "title": "Optimize Database",
+        "description": "Rebuild the database"
+      },
+      {
+        "name": "GenerateChapterThumbs",
+        "interval": 1,
+        "scheduleRandomized": true,
+        "enabled": false,
+        "title": "Generate Chapter Thumbnails",
+        "description": "Generate chapter thumbnails"
+      }
+    ]
+  }
+}

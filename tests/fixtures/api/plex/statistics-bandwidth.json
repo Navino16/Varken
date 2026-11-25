@@ -1,0 +1,39 @@
+{
+  "MediaContainer": {
+    "size": 4,
+    "StatisticsBandwidth": [
+      {
+        "accountID": 1,
+        "at": 1795593600,
+        "bytes": 1073741824,
+        "deviceID": 11,
+        "lan": true,
+        "timespan": 4
+      },
+      {
+        "accountID": 2,
+        "at": 1795597200,
+        "bytes": 536870912,
+        "deviceID": 12,
+        "lan": false,
+        "timespan": 4
+      },
+      {
+        "accountID": 1,
+        "at": 1795597200,
+        "bytes": 268435456,
+        "deviceID": 11,
+        "lan": true,
+        "timespan": 4
+      },
+      {
+        "accountID": 1,
+        "at": 1795600800,
+        "bytes": 134217728,
+        "deviceID": 11,
+        "lan": true,
+        "timespan": 4
+      }
+    ]
+  }
+}

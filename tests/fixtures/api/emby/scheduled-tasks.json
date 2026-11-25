@@ -1,0 +1,65 @@
+[
+  {
+    "Name": "Scan media library",
+    "State": "Running",
+    "CurrentProgressPercentage": 42.5,
+    "Id": "6330ee8fb4a957f33981f89aa78b030f",
+    "LastExecutionResult": {
+      "StartTimeUtc": "2026-11-25T09:00:00.0000000Z",
+      "EndTimeUtc": "2026-11-25T09:01:30.5000000Z",
+      "Status": "Completed",
+      "Name": "Scan media library",
+      "Key": "RefreshLibrary",
+      "Id": "6330ee8fb4a957f33981f89aa78b030f"
+    },
+    "Triggers": [
+      {
+        "Type": "IntervalTrigger",
+        "IntervalTicks": 432000000000
+      }
+    ],
+    "Description": "Scans your media library for new files and refreshes metadata.",
+    "Category": "Library",
+    "IsHidden": false,
+    "Key": "RefreshLibrary"
+  },
+  {
+    "Name": "Cache file cleanup",
+    "State": "Idle",
+    "Id": "4e6637c832ed644d1af3370a2506e80a",
+    "LastExecutionResult": {
+      "StartTimeUtc": "2026-11-24T10:00:00.0000000Z",
+      "EndTimeUtc": "2026-11-24T10:00:10.0000000Z",
+      "Status": "Failed",
+      "Name": "Cache file cleanup",
+      "Key": "DeleteCacheFiles",
+      "Id": "4e6637c832ed644d1af3370a2506e80a",
+      "ErrorMessage": "Access to the path is denied."
+    },
+    "Triggers": [
+      {
+        "Type": "IntervalTrigger",
+        "IntervalTicks": 864000000000
+      }
+    ],
+    "Description": "Deletes cache files no longer needed by the system",
+    "Category": "Maintenance",
+    "IsHidden": false,
+    "Key": "DeleteCacheFiles"
+  },
+  {
+    "Name": "Thumbnail image extraction",
+    "State": "Idle",
+    "Id": "8ae8c6b7a9c84e3e9f0c4b2a1d3e5f60",
+    "Triggers": [
+      {
+        "Type": "DailyTrigger",
+        "TimeOfDayTicks": 108000000000
+      }
+    ],
+    "Description": "Extracts thumbnail images",
+    "Category": "Library",
+    "IsHidden": false,
+    "Key": "ThumbnailExtraction"
+  }
+]

@@ -275,6 +275,18 @@ inputs:
   #     serverInfo:
   #       enabled: true
   #       intervalSeconds: 300
+  #     status:
+  #       enabled: true
+  #       intervalSeconds: 300
+  #     history:
+  #       enabled: true
+  #       intervalSeconds: 300
+  #     inventory:
+  #       enabled: true
+  #       intervalSeconds: 3600
+  #     liveTv:
+  #       enabled: false
+  #       intervalSeconds: 300
 
   # Jellyfin
   # jellyfin:
@@ -291,6 +303,18 @@ inputs:
   #     serverInfo:
   #       enabled: true
   #       intervalSeconds: 300
+  #     status:
+  #       enabled: true
+  #       intervalSeconds: 300
+  #     history:
+  #       enabled: true
+  #       intervalSeconds: 300
+  #     inventory:
+  #       enabled: true
+  #       intervalSeconds: 3600
+  #     liveTv:
+  #       enabled: false
+  #       intervalSeconds: 300
 
   # Emby
   # emby:
@@ -306,6 +330,18 @@ inputs:
   #       intervalSeconds: 3600
   #     serverInfo:
   #       enabled: true
+  #       intervalSeconds: 300
+  #     status:
+  #       enabled: true
+  #       intervalSeconds: 300
+  #     history:
+  #       enabled: true
+  #       intervalSeconds: 300
+  #     inventory:
+  #       enabled: true
+  #       intervalSeconds: 3600
+  #     liveTv:
+  #       enabled: false
   #       intervalSeconds: 300
 
   # ---------------------------------------------------------------------------

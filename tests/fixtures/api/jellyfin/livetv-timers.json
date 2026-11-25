@@ -1,0 +1,28 @@
+{
+  "Items": [
+    {
+      "Id": "77777777777777777777777777777777",
+      "Type": "Timer",
+      "ChannelId": "88888888888888888888888888888888",
+      "ChannelName": "France 2",
+      "Name": "Evening News",
+      "StartDate": "2026-11-25T12:00:00.0000000Z",
+      "EndDate": "2026-11-25T12:30:00.0000000Z",
+      "Status": "New",
+      "Priority": 0
+    },
+    {
+      "Id": "99999999999999999999999999999999",
+      "Type": "Timer",
+      "ChannelId": "88888888888888888888888888888888",
+      "ChannelName": "France 2",
+      "Name": "Morning Show",
+      "StartDate": "2026-11-25T08:00:00.0000000Z",
+      "EndDate": "2026-11-25T09:00:00.0000000Z",
+      "Status": "Error",
+      "Priority": 0
+    }
+  ],
+  "TotalRecordCount": 2,
+  "StartIndex": 0
+}

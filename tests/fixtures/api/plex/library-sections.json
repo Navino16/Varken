@@ -1,6 +1,6 @@
 {
   "MediaContainer": {
-    "size": 2,
+    "size": 4,
     "allowSync": false,
     "title1": "Plex Library",
     "Directory": [
@@ -55,6 +55,64 @@
           {
             "id": 2,
             "path": "/data/tv"
+          }
+        ]
+      },
+      {
+        "key": "3",
+        "title": "Music",
+        "type": "artist",
+        "agent": "tv.plex.agents.music",
+        "scanner": "Plex Music",
+        "language": "en-US",
+        "allowSync": true,
+        "art": "/:/resources/show-fanart.jpg",
+        "thumb": "/:/resources/show.png",
+        "composite": "/library/sections/3/composite/1732017600",
+        "content": true,
+        "directory": true,
+        "filters": true,
+        "hidden": false,
+        "refreshing": true,
+        "createdAt": 1700000000,
+        "updatedAt": 1732017600,
+        "scannedAt": 1795600800,
+        "contentChangedAt": 2412345,
+        "Location": [
+          {
+            "id": 3,
+            "path": "/data/music"
+          },
+          {
+            "id": 4,
+            "path": "/data/music-flac"
+          }
+        ]
+      },
+      {
+        "key": "4",
+        "title": "Photos",
+        "type": "photo",
+        "agent": "com.plexapp.agents.none",
+        "scanner": "Plex Photo Scanner",
+        "language": "en-US",
+        "allowSync": true,
+        "art": "/:/resources/show-fanart.jpg",
+        "thumb": "/:/resources/show.png",
+        "composite": "/library/sections/4/composite/1732017600",
+        "content": true,
+        "directory": true,
+        "filters": true,
+        "hidden": false,
+        "refreshing": false,
+        "createdAt": 1700000000,
+        "updatedAt": 1732017600,
+        "scannedAt": 1795600800,
+        "contentChangedAt": 2412345,
+        "Location": [
+          {
+            "id": 5,
+            "path": "/data/photos"
           }
         ]
       }
