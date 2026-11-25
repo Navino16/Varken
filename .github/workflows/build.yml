@@ -1,16 +1,10 @@
 name: Build Docker Image
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: navino16/varken
-
 on:
   workflow_dispatch:
   push:
-    branches:
-      - 'develop'
-    tags:
-      - '*'
+    branches: [develop]
+    tags: ['*']
     paths-ignore:
       - '**.md'
       - '.github/**'
@@ -24,232 +18,22 @@ concurrency:
 permissions: {}
 
 jobs:
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
+  ci:
+    uses: Navino16/.github/.github/workflows/ci.yml@1.0.0
     permissions:
       contents: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
+    with:
+      codecov: false
+    secrets: inherit
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run Biome lint
-        run: npm run lint
-
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run tests
-        run: npm test
-
-  docker:
-    name: Build (${{ matrix.platform }})
-    runs-on: ${{ matrix.runner }}
-    needs: [lint, test]
-    permissions:
-      contents: read
-      packages: write
-    strategy:
-      matrix:
-        include:
-          - platform: linux/amd64
-            suffix: amd64
-            runner: ubuntu-latest
-          - platform: linux/arm64
-            suffix: arm64
-            runner: ubuntu-24.04-arm
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Docker meta
-        id: meta
-        uses: docker/metadata-action@v6
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v4
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Docker build and push
-        id: build
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          platforms: ${{ matrix.platform }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=${{ matrix.suffix }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.suffix }}
-          outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
-
-      - name: Export digest
-        run: |
-          mkdir -p /tmp/digests
-          digest="${{ steps.build.outputs.digest }}"
-          touch "/tmp/digests/${digest#sha256:}"
-
-      - name: Upload digest
-        uses: actions/upload-artifact@v7
-        with:
-          name: digests-${{ matrix.suffix }}
-          path: /tmp/digests/*
-          if-no-files-found: error
-          retention-days: 1
-
-  merge:
-    name: Merge Manifests
-    runs-on: ubuntu-latest
-    needs: [docker]
-    permissions:
-      packages: write
-    steps:
-      - name: Download digests
-        uses: actions/download-artifact@v8
-        with:
-          path: /tmp/digests
-          pattern: digests-*
-          merge-multiple: true
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Docker meta
-        id: meta
-        uses: docker/metadata-action@v6
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          flavor: |
-            latest=auto
-          tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=ref,event=branch
-            type=ref,event=pr
-            type=sha,prefix=sha-
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v4
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create manifest list and push
-        working-directory: /tmp/digests
-        run: |
-          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@sha256:%s ' *)
-
-      - name: Inspect image
-        run: |
-          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
-
-  release:
-    name: Create Release
-    runs-on: ubuntu-latest
-    needs: [merge]
+  build:
+    needs: [ci]
+    uses: Navino16/.github/.github/workflows/build.yml@1.0.0
     permissions:
       contents: write
-    if: startsWith(github.ref, 'refs/tags/')
-    outputs:
-      changelog: ${{ steps.changelog.outputs.changelog }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      - name: Build Changelog
-        id: changelog
-        uses: mikepenz/release-changelog-builder-action@v6
-        with:
-          configurationJson: |
-            {
-              "categories": [
-                {
-                  "title": "## ⚠️ Breaking Changes",
-                  "labels": ["breaking change"]
-                },
-                {
-                  "title": "## 🚀 Features",
-                  "labels": ["enhancement"]
-                },
-                {
-                  "title": "## 🐛 Bug Fixes",
-                  "labels": ["bug"]
-                },
-                {
-                  "title": "## 📚 Documentation",
-                  "labels": ["documentation"]
-                },
-                {
-                  "title": "## 📦 Dependencies",
-                  "labels": ["dependencies"]
-                }
-              ],
-              "base_branches": ["develop"],
-              "template": "#{{CHANGELOG}}\n\n**Full Changelog**: #{{RELEASE_DIFF}}"
-            }
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v3
-        with:
-          body: ${{ steps.changelog.outputs.changelog }}
-          generate_release_notes: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  notify-discord:
-    name: Discord Release Notification
-    runs-on: ubuntu-latest
-    permissions: {}
-    needs: [release]
-    if: startsWith(github.ref, 'refs/tags/')
-    steps:
-      - name: Send Discord notification
-        env:
-          WEBHOOK_URL: ${{ secrets.DISCORD_RELEASES_WEBHOOK }}
-          TAG: ${{ github.ref_name }}
-          CHANGELOG: ${{ needs.release.outputs.changelog }}
-        run: |
-          BODY=$(echo "$CHANGELOG" | head -c 1800)
-          PAYLOAD=$(jq -n \
-            --arg content "<@&${{ vars.DISCORD_RELEASE_ROLE_ID }}>" \
-            --arg title "Varken ${TAG}" \
-            --arg url "https://github.com/${{ github.repository }}/releases/tag/${TAG}" \
-            --arg description "$BODY" \
-            '{content: $content, embeds: [{title: $title, url: $url, description: $description, color: 6500081}]}')
-          curl -H "Content-Type: application/json" -d "$PAYLOAD" "$WEBHOOK_URL"
+      packages: write
+      pull-requests: read
+    with:
+      release-title: Varken
+      discord-role-id: ${{ vars.DISCORD_RELEASE_ROLE_ID }}
+    secrets: inherit
