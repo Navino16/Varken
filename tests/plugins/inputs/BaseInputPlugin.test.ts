@@ -1,8 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { BaseInputPlugin, BaseInputConfig, PaginatedResponse } from '../../../src/plugins/inputs/BaseInputPlugin';
 import { DataPoint, PluginMetadata, ScheduleConfig } from '../../../src/types/plugin.types';
 import type { GlobalConfig } from '../../../src/config/schemas/config.schema';
 import type { ApiClient } from '../../../src/types/api-contract';
+import { getEventStateStore, useEventStateFolder } from '../../../src/utils/EventStateStore';
 
 // Mock the logger
 vi.mock('../../../src/core/Logger', () => ({
@@ -106,6 +107,14 @@ class TestInputPlugin extends BaseInputPlugin<TestConfig> {
   public testHttpPost<T>(path: string, data?: unknown): Promise<T> {
     return this.httpPost<T>(path, data);
   }
+
+  public testEventCursor(collector: string): Promise<Date> {
+    return this.eventCursor(collector);
+  }
+
+  public testTakeNewEvents(collector: string, events: readonly { id: number; date: string }[]): Promise<{ id: number; date: string }[]> {
+    return this.takeNewEvents(collector, events, (e) => Date.parse(e.date), (e) => String(e.id));
+  }
 }
 
 describe('BaseInputPlugin', () => {
@@ -175,6 +184,67 @@ describe('BaseInputPlugin', () => {
       expect(point.measurement).toBe('TestInput');
       expect(point.tags).toEqual({ type: 'ServerInfo', server: 1, version: '4.0.20' });
       expect(point.fields).toEqual({ reachable: 1, update_available: 1 });
+    });
+  });
+
+  describe('event cursor', () => {
+    const T = '2026-11-25T10:05:00.000Z';
+    const ev = (id: number, date: string): { id: number; date: string } => ({ id, date });
+
+    beforeEach(async () => {
+      useEventStateFolder(null);
+      vi.useFakeTimers({ now: new Date('2026-11-25T10:00:00Z') });
+      await plugin.initialize(testConfig);
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('starts the cursor at plugin start when no mark exists', async () => {
+      await expect(plugin.testEventCursor('history')).resolves.toEqual(new Date('2026-11-25T10:00:00Z'));
+    });
+
+    it('keeps only events after the mark', async () => {
+      const fresh = await plugin.testTakeNewEvents('history', [ev(1, '2026-11-25T09:59:59Z'), ev(2, T)]);
+
+      expect(fresh.map((e) => e.id)).toEqual([2]);
+      await expect(plugin.testEventCursor('history')).resolves.toEqual(new Date(T));
+    });
+
+    it('emits events sharing the mark timestamp once', async () => {
+      expect((await plugin.testTakeNewEvents('history', [ev(1, T), ev(2, T)])).map((e) => e.id)).toEqual([1, 2]);
+      expect((await plugin.testTakeNewEvents('history', [ev(2, T), ev(3, T)])).map((e) => e.id)).toEqual([3]);
+      expect(await plugin.testTakeNewEvents('history', [ev(1, T), ev(2, T), ev(3, T)])).toEqual([]);
+    });
+
+    it('skips events with an unparsable time', async () => {
+      expect((await plugin.testTakeNewEvents('history', [ev(1, 'garbage'), ev(2, T)])).map((e) => e.id)).toEqual([2]);
+    });
+
+    it('persists the start mark on the first call even without new events', async () => {
+      await plugin.testTakeNewEvents('history', []);
+
+      await expect(getEventStateStore().get('TestInput_1_history')).resolves.toEqual({
+        time: Date.parse('2026-11-25T10:00:00Z'),
+        ids: [],
+      });
+    });
+
+    it('resumes from the persisted mark after a restart', async () => {
+      await plugin.testTakeNewEvents('history', [ev(1, T)]);
+      vi.setSystemTime(new Date('2026-11-25T11:00:00Z'));
+      const restarted = new TestInputPlugin();
+      await restarted.initialize(testConfig);
+
+      await expect(restarted.testEventCursor('history')).resolves.toEqual(new Date(T));
+      expect((await restarted.testTakeNewEvents('history', [ev(1, T), ev(2, '2026-11-25T10:30:00Z')])).map((e) => e.id)).toEqual([2]);
+    });
+
+    it('keeps separate marks per collector', async () => {
+      await plugin.testTakeNewEvents('history', [ev(1, T)]);
+
+      await expect(plugin.testEventCursor('grabs')).resolves.toEqual(new Date('2026-11-25T10:00:00Z'));
     });
   });
 

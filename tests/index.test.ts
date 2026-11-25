@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { main, VERSION, DEFAULT_HEALTH_PORT, MainDependencies, isDryRun } from '../src/index';
+import { getEventStateStore, useEventStateFolder } from '../src/utils/EventStateStore';
 
 describe('index.ts (Entry Point)', () => {
   const originalEnv = { ...process.env };
@@ -336,6 +337,24 @@ describe('index.ts (Entry Point)', () => {
 
       expect(mockOrchestratorInstance.dryRun).toHaveBeenCalledTimes(1);
       expect(mockOrchestratorInstance.start).not.toHaveBeenCalled();
+    });
+
+    it('keeps event state in memory in dry-run', async () => {
+      process.env.DRY_RUN = 'true';
+      useEventStateFolder('/somewhere');
+
+      await main(mockDeps);
+
+      expect(getEventStateStore().folder).toBeNull();
+    });
+
+    it('persists event state in DATA_FOLDER outside dry-run', async () => {
+      process.env.DATA_FOLDER = '/custom/data';
+
+      await main(mockDeps);
+
+      expect(getEventStateStore().folder).toBe('/custom/data');
+      useEventStateFolder(null);
     });
 
     it('should log dry-run mode on startup', async () => {

@@ -8,6 +8,7 @@ import { RequestCache } from '../../utils/RequestCache';
 import type { GlobalConfig } from '../../config/schemas/config.schema';
 import type { ApiCallOptions, ApiClient } from '../../types/api-contract';
 import { expandPathTemplate } from '../../utils/pathTemplate';
+import { getEventStateStore, type EventMark } from '../../utils/EventStateStore';
 import type {
   InputPlugin,
   PluginMetadata,
@@ -60,6 +61,7 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
   protected logger = createLogger(this.constructor.name);
   private static readonly HTTP_CACHE_MAX_SIZE = 500;
   private httpCache!: RequestCache<unknown>;
+  private startedAt = new Date();
 
   /**
    * Plugin metadata - must be implemented by subclasses
@@ -71,6 +73,7 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
    */
   async initialize(config: TConfig, globalConfig?: GlobalConfig): Promise<void> {
     this.config = config;
+    this.startedAt = new Date();
     if (globalConfig) {
       this.globalConfig = globalConfig;
     }
@@ -316,6 +319,49 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
    */
   protected createServerInfoPoint(tags: Record<string, string | number>, fields: Record<string, number>): DataPoint {
     return this.createDataPoint(this.metadata.name, { type: 'ServerInfo', server: this.config.id, ...tags }, { reachable: 1, ...fields });
+  }
+
+  /** Time to ask an event endpoint for events since: the collector's mark, or plugin start when it has none. */
+  protected async eventCursor(collector: string): Promise<Date> {
+    return new Date((await this.eventMark(collector)).time);
+  }
+
+  /**
+   * Events newer than the collector's high-water mark; advances and persists the mark.
+   * Events at exactly the mark time are told apart by id, since `since` endpoints are inclusive.
+   */
+  protected async takeNewEvents<T>(
+    collector: string,
+    events: readonly T[],
+    timeOf: (e: T) => number,
+    idOf: (e: T) => string
+  ): Promise<T[]> {
+    const store = getEventStateStore();
+    const key = this.eventKey(collector);
+    const stored = await store.get(key);
+    const mark = stored ?? { time: this.startedAt.getTime(), ids: [] };
+    const fresh = events.filter((e) => {
+      const time = timeOf(e);
+      return Number.isFinite(time) && (time > mark.time || (time === mark.time && !mark.ids.includes(idOf(e))));
+    });
+    if (fresh.length === 0) {
+      if (!stored) {
+        await store.set(key, mark);
+      }
+      return [];
+    }
+    const newest = Math.max(...fresh.map(timeOf));
+    const ids = fresh.filter((e) => timeOf(e) === newest).map(idOf);
+    await store.set(key, { time: newest, ids: newest === mark.time ? [...mark.ids, ...ids] : ids });
+    return fresh;
+  }
+
+  private async eventMark(collector: string): Promise<EventMark> {
+    return (await getEventStateStore().get(this.eventKey(collector))) ?? { time: this.startedAt.getTime(), ids: [] };
+  }
+
+  private eventKey(collector: string): string {
+    return `${this.metadata.name}_${this.config.id}_${collector}`;
   }
 
   /**
