@@ -42,6 +42,7 @@ Built with TypeScript, Node.js, and a plugin-based architecture with scheduled d
 
 - **Multiple data sources** — Sonarr, Radarr, Readarr, Lidarr, Prowlarr, Bazarr, Tautulli, Plex, Jellyfin, Emby, Ombi, Overseerr
 - **Server info** — version of every connected service, plus available updates, pending restarts, uptime and health issues where the service exposes them
+- **Session details** — bandwidth, LAN/WAN, direct play / direct stream / transcode decisions, hardware transcoding, source vs streamed format, device and user for Plex, Jellyfin, Emby and Tautulli streams
 - **Servarr insights** — download progress and state, health, disk space, root folders, scheduled tasks, wanted / blocklist totals, history events and library statistics for Sonarr, Radarr, Lidarr and Readarr; indexer status, grabs, per-app stats and inventory for Prowlarr
 - **Multiple outputs** — InfluxDB 1.x, InfluxDB 2.x, VictoriaMetrics, QuestDB, TimescaleDB
 - **Multi-instance support** — connect multiple instances of each service
