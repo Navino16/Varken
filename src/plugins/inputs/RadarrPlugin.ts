@@ -191,7 +191,7 @@ export class RadarrPlugin extends BaseInputPlugin<RadarrConfig> {
         this.radarr.get('/api/v3/update'),
         this.radarr.get('/api/v3/health'),
       ]);
-      const { tags, fields } = servarrServerInfo(status ?? {}, updates ?? [], health ?? [], new Date());
+      const { tags, fields } = servarrServerInfo(status, updates, health, new Date());
       return [this.createServerInfoPoint(tags, fields)];
     });
   }

@@ -128,7 +128,7 @@ export class ProwlarrPlugin extends BaseInputPlugin<ProwlarrConfig> {
         this.prowlarr.get('/api/v1/update'),
         this.prowlarr.get('/api/v1/health'),
       ]);
-      const { tags, fields } = servarrServerInfo(status ?? {}, updates ?? [], health ?? [], new Date());
+      const { tags, fields } = servarrServerInfo(status, updates, health, new Date());
       return [this.createServerInfoPoint(tags, fields)];
     });
   }

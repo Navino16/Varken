@@ -189,7 +189,7 @@ export class ReadarrPlugin extends BaseInputPlugin<ReadarrConfig> {
         this.readarr.get('/api/v1/update'),
         this.readarr.get('/api/v1/health'),
       ]);
-      const { tags, fields } = servarrServerInfo(status ?? {}, updates ?? [], health ?? [], new Date());
+      const { tags, fields } = servarrServerInfo(status, updates, health, new Date());
       return [this.createServerInfoPoint(tags, fields)];
     });
   }

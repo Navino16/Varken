@@ -186,7 +186,7 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
         this.lidarr.get('/api/v1/update'),
         this.lidarr.get('/api/v1/health'),
       ]);
-      const { tags, fields } = servarrServerInfo(status ?? {}, updates ?? [], health ?? [], new Date());
+      const { tags, fields } = servarrServerInfo(status, updates, health, new Date());
       return [this.createServerInfoPoint(tags, fields)];
     });
   }

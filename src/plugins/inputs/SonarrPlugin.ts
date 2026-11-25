@@ -247,7 +247,7 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
         this.sonarr.get('/api/v3/update'),
         this.sonarr.get('/api/v3/health'),
       ]);
-      const { tags, fields } = servarrServerInfo(status ?? {}, updates ?? [], health ?? [], new Date());
+      const { tags, fields } = servarrServerInfo(status, updates, health, new Date());
       return [this.createServerInfoPoint(tags, fields)];
     });
   }

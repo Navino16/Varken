@@ -279,6 +279,12 @@ describe('SonarrPlugin', () => {
       expect(plugin.getSchedules().map((s) => s.name)).toEqual(['Sonarr_1_serverInfo']);
     });
 
+    it('fails the server info collector when health fails', async () => {
+      client.fail('/api/v3/health', new Error('Unauthorized'));
+
+      await expect(plugin.collect()).rejects.toThrow('Unauthorized');
+    });
+
     it('fails the server info collector when update fails', async () => {
       client.fail('/api/v3/update', new Error('Forbidden'));
 
