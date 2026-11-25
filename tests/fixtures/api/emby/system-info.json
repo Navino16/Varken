@@ -16,5 +16,6 @@
   "SupportsHttps": false,
   "HttpsPortNumber": 8920,
   "HasUpdateAvailable": false,
-  "LocalAddress": "http://192.168.1.11:8096"
+  "LocalAddress": "http://192.168.1.11:8096",
+  "IsInMaintenanceMode": false
 }

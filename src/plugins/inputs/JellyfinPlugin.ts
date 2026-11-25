@@ -3,6 +3,7 @@ import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plug
 import type { JellyfinConfig } from '../../types/inputs/jellyfin.types';
 import type { components, paths } from '../../types/generated/jellyfin';
 import { isTranscoding, sourceAudioCodec } from './utils/mediaStreams';
+import { booleanFlags } from './utils/flags';
 
 type JellyfinSession = components['schemas']['SessionInfoDto'];
 type JellyfinItemCounts = components['schemas']['ItemCounts'];
@@ -51,6 +52,10 @@ export class JellyfinPlugin extends BaseInputPlugin<JellyfinConfig> {
       points.push(...(await this.collectLibraries()));
     }
 
+    if (this.config.serverInfo.enabled) {
+      points.push(...(await this.collectServerInfo()));
+    }
+
     return points;
   }
 
@@ -67,6 +72,10 @@ export class JellyfinPlugin extends BaseInputPlugin<JellyfinConfig> {
       schedules.push(
         this.createSchedule('libraries', this.config.libraries.intervalSeconds, true, this.collectLibraries)
       );
+    }
+
+    if (this.config.serverInfo.enabled) {
+      schedules.push(this.createSchedule('serverInfo', this.config.serverInfo.intervalSeconds, true, this.collectServerInfo));
     }
 
     return schedules;
@@ -213,5 +222,21 @@ export class JellyfinPlugin extends BaseInputPlugin<JellyfinConfig> {
         progress_percent: progressPercent,
       }
     );
+  }
+
+  private async collectServerInfo(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Jellyfin server info', async () => {
+      const info = await this.jellyfin.get('/System/Info');
+      return [
+        this.createServerInfoPoint(
+          { version: info?.Version || 'unknown' },
+          booleanFlags({
+            update_available: info?.HasUpdateAvailable,
+            restart_pending: info?.HasPendingRestart,
+            shutting_down: info?.IsShuttingDown,
+          })
+        ),
+      ];
+    });
   }
 }
