@@ -4,7 +4,7 @@ import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plug
 import type { ReadarrConfig } from '../../types/inputs/readarr.types';
 import type { paths } from '../../types/generated/readarr';
 import { servarrServerInfo } from './utils/servarrServerInfo';
-import { queueEnrichment, statusPoints, totalsPoint } from './utils/servarr';
+import { queueEnrichment, statusPoints, totalsPoint, historyPoint } from './utils/servarr';
 
 /**
  * Readarr input plugin
@@ -59,6 +59,10 @@ export class ReadarrPlugin extends BaseInputPlugin<ReadarrConfig> {
       points.push(...(await this.collectTotals()));
     }
 
+    if (this.config.history.enabled) {
+      points.push(...(await this.collectHistory()));
+    }
+
     if (this.config.serverInfo.enabled) {
       points.push(...(await this.collectServerInfo()));
     }
@@ -90,6 +94,10 @@ export class ReadarrPlugin extends BaseInputPlugin<ReadarrConfig> {
 
     if (this.config.totals.enabled) {
       schedules.push(this.createSchedule('totals', this.config.totals.intervalSeconds, true, this.collectTotals));
+    }
+
+    if (this.config.history.enabled) {
+      schedules.push(this.createSchedule('history', this.config.history.intervalSeconds, true, this.collectHistory));
     }
 
     if (this.config.serverInfo.enabled) {
@@ -238,6 +246,17 @@ export class ReadarrPlugin extends BaseInputPlugin<ReadarrConfig> {
       return this.createPoints([
         totalsPoint({ missing: missing.totalRecords, cutoff_unmet: cutoff.totalRecords, blocklist: blocklist.totalRecords }),
       ]);
+    });
+  }
+
+  private async collectHistory(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Readarr history', async () => {
+      const date = (await this.eventCursor('history')).toISOString();
+      const records = await this.readarr.get('/api/v1/history/since', { query: { date, includeAuthor: false, includeBook: false } });
+      const fresh = await this.takeNewEvents('history', records, (r) => Date.parse(r.date ?? ''), (r) => String(r.id));
+      return this.createPoints(
+        fresh.flatMap((r) => historyPoint(r, { authorId: r.authorId ?? 0, bookId: r.bookId ?? 0 }, this.hashit(`${this.config.id}${r.id}`)) ?? [])
+      );
     });
   }
 }

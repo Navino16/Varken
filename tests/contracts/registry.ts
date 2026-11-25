@@ -102,6 +102,10 @@ export const contractRoutes: ContractRoute[] = [
   { service: 'lidarr', method: 'get', path: '/api/v1/blocklist', fixture: 'lidarr/blocklist' },
   { service: 'readarr', method: 'get', path: '/api/v1/wanted/cutoff', fixture: 'readarr/wanted-cutoff' },
   { service: 'readarr', method: 'get', path: '/api/v1/blocklist', fixture: 'readarr/blocklist' },
+  { service: 'sonarr', method: 'get', path: '/api/v3/history/since', fixture: 'sonarr/history-since' },
+  { service: 'radarr', method: 'get', path: '/api/v3/history/since', fixture: 'radarr/history-since' },
+  { service: 'lidarr', method: 'get', path: '/api/v1/history/since', fixture: 'lidarr/history-since' },
+  { service: 'readarr', method: 'get', path: '/api/v1/history/since', fixture: 'readarr/history-since' },
 ];
 
 const fixturesDir = path.resolve(__dirname, '../fixtures/api');

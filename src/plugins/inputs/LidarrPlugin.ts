@@ -4,7 +4,7 @@ import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plug
 import type { LidarrConfig } from '../../types/inputs/lidarr.types';
 import type { paths } from '../../types/generated/lidarr';
 import { servarrServerInfo } from './utils/servarrServerInfo';
-import { queueEnrichment, statusPoints, totalsPoint } from './utils/servarr';
+import { queueEnrichment, statusPoints, totalsPoint, historyPoint } from './utils/servarr';
 
 /**
  * Lidarr input plugin
@@ -58,6 +58,10 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
       points.push(...(await this.collectTotals()));
     }
 
+    if (this.config.history.enabled) {
+      points.push(...(await this.collectHistory()));
+    }
+
     if (this.config.serverInfo.enabled) {
       points.push(...(await this.collectServerInfo()));
     }
@@ -89,6 +93,10 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
 
     if (this.config.totals.enabled) {
       schedules.push(this.createSchedule('totals', this.config.totals.intervalSeconds, true, this.collectTotals));
+    }
+
+    if (this.config.history.enabled) {
+      schedules.push(this.createSchedule('history', this.config.history.intervalSeconds, true, this.collectHistory));
     }
 
     if (this.config.serverInfo.enabled) {
@@ -235,6 +243,17 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
       return this.createPoints([
         totalsPoint({ missing: missing.totalRecords, cutoff_unmet: cutoff.totalRecords, blocklist: blocklist.totalRecords }),
       ]);
+    });
+  }
+
+  private async collectHistory(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Lidarr history', async () => {
+      const date = (await this.eventCursor('history')).toISOString();
+      const records = await this.lidarr.get('/api/v1/history/since', { query: { date, includeArtist: false, includeAlbum: false, includeTrack: false } });
+      const fresh = await this.takeNewEvents('history', records, (r) => Date.parse(r.date ?? ''), (r) => String(r.id));
+      return this.createPoints(
+        fresh.flatMap((r) => historyPoint(r, { artistId: r.artistId ?? 0, albumId: r.albumId ?? 0 }, this.hashit(`${this.config.id}${r.id}`)) ?? [])
+      );
     });
   }
 }

@@ -23,10 +23,10 @@ vi.mock('axios', () => ({ default: { create: vi.fn() } }));
 
 /** Collectors whose behaviour is identical across Sonarr, Radarr, Lidarr and Readarr. */
 const services = [
-  { name: 'Sonarr', service: 'sonarr', prefix: '/api/v3', create: () => new SonarrPlugin(), schema: SonarrConfigSchema, totals: [42, 7, 2] },
-  { name: 'Radarr', service: 'radarr', prefix: '/api/v3', create: () => new RadarrPlugin(), schema: RadarrConfigSchema, totals: [12, 3, 1] },
-  { name: 'Lidarr', service: 'lidarr', prefix: '/api/v1', create: () => new LidarrPlugin(), schema: LidarrConfigSchema, totals: [3, 5, 6] },
-  { name: 'Readarr', service: 'readarr', prefix: '/api/v1', create: () => new ReadarrPlugin(), schema: ReadarrConfigSchema, totals: [3, 4, 8] },
+  { name: 'Sonarr', service: 'sonarr', prefix: '/api/v3', create: () => new SonarrPlugin(), schema: SonarrConfigSchema, totals: [42, 7, 2], historyIds: { seriesId: 10, episodeId: 101 }, imported: 'downloadFolderImported', historyQuery: { includeSeries: false, includeEpisode: false } },
+  { name: 'Radarr', service: 'radarr', prefix: '/api/v3', create: () => new RadarrPlugin(), schema: RadarrConfigSchema, totals: [12, 3, 1], historyIds: { movieId: 1 }, imported: 'downloadFolderImported', historyQuery: { includeMovie: false } },
+  { name: 'Lidarr', service: 'lidarr', prefix: '/api/v1', create: () => new LidarrPlugin(), schema: LidarrConfigSchema, totals: [3, 5, 6], historyIds: { artistId: 1, albumId: 1 }, imported: 'trackFileImported', historyQuery: { includeArtist: false, includeAlbum: false, includeTrack: false } },
+  { name: 'Readarr', service: 'readarr', prefix: '/api/v1', create: () => new ReadarrPlugin(), schema: ReadarrConfigSchema, totals: [3, 4, 8], historyIds: { authorId: 1, bookId: 1 }, imported: 'bookFileImported', historyQuery: { includeAuthor: false, includeBook: false } },
 ] as const;
 
 type Service = (typeof services)[number];
@@ -153,6 +153,55 @@ describe.each(services)('$name shared Servarr collectors', (svc) => {
 
     it('schedules totals when enabled', () => {
       expect(plugin.getSchedules().find((s) => s.name === `${svc.name}_1_totals`)?.intervalSeconds).toBe(900);
+    });
+  });
+
+  describe('history', () => {
+    const history = async (): Promise<DataPoint[]> => ofType(await plugin.collect(), 'History');
+
+    beforeEach(async () => {
+      await init({ history: { enabled: true, intervalSeconds: 300 } });
+    });
+
+    it('emits one point per history event', async () => {
+      const points = await history();
+
+      expect(points.map((p) => [p.timestamp.toISOString(), p.tags.event_type])).toEqual([
+        ['2026-11-24T12:01:00.000Z', 'grabbed'],
+        ['2026-11-24T12:02:00.000Z', svc.imported],
+        ['2026-11-24T12:02:00.000Z', 'downloadFailed'],
+      ]);
+      expect(points[0].tags).toEqual(expect.objectContaining({ server: 1, quality: expect.any(String), indexer: expect.any(String), ...svc.historyIds }));
+      expect(points[0].tags.download_client).not.toBe('unknown');
+      expect(points[0].fields).toEqual({ hash: expect.stringMatching(/^[0-9a-f]{32}$/), size: 2147483648 });
+      expect(new Set(points.map((p) => p.fields.hash)).size).toBe(3);
+    });
+
+    it('asks history since the last event', async () => {
+      await history();
+      await history();
+
+      const path = `${svc.prefix}/history/since`;
+      expect(client.get).toHaveBeenNthCalledWith(1, path, { params: { date: '2026-11-24T12:00:00.000Z', ...svc.historyQuery } });
+      expect(client.get).toHaveBeenNthCalledWith(2, path, { params: { date: '2026-11-24T12:02:00.000Z', ...svc.historyQuery } });
+    });
+
+    it('does not re-emit events on the next poll', async () => {
+      await history();
+
+      expect(await history()).toEqual([]);
+    });
+
+    it('emits nothing for events before plugin start when no state exists', async () => {
+      vi.setSystemTime(new Date('2026-11-24T13:00:00Z'));
+      plugin = svc.create();
+      await init({ history: { enabled: true, intervalSeconds: 300 } });
+
+      expect(await history()).toEqual([]);
+    });
+
+    it('schedules history when enabled', () => {
+      expect(plugin.getSchedules().find((s) => s.name === `${svc.name}_1_history`)?.intervalSeconds).toBe(300);
     });
   });
 });

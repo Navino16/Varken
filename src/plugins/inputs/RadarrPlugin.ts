@@ -4,7 +4,7 @@ import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plug
 import type { RadarrConfig } from '../../types/inputs/radarr.types';
 import type { paths } from '../../types/generated/radarr';
 import { servarrServerInfo } from './utils/servarrServerInfo';
-import { queueEnrichment, statusPoints, totalsPoint } from './utils/servarr';
+import { queueEnrichment, statusPoints, totalsPoint, historyPoint } from './utils/servarr';
 
 /**
  * Radarr input plugin
@@ -59,6 +59,10 @@ export class RadarrPlugin extends BaseInputPlugin<RadarrConfig> {
       points.push(...(await this.collectTotals()));
     }
 
+    if (this.config.history.enabled) {
+      points.push(...(await this.collectHistory()));
+    }
+
     if (this.config.serverInfo.enabled) {
       points.push(...(await this.collectServerInfo()));
     }
@@ -90,6 +94,10 @@ export class RadarrPlugin extends BaseInputPlugin<RadarrConfig> {
 
     if (this.config.totals.enabled) {
       schedules.push(this.createSchedule('totals', this.config.totals.intervalSeconds, true, this.collectTotals));
+    }
+
+    if (this.config.history.enabled) {
+      schedules.push(this.createSchedule('history', this.config.history.intervalSeconds, true, this.collectHistory));
     }
 
     if (this.config.serverInfo.enabled) {
@@ -240,6 +248,17 @@ export class RadarrPlugin extends BaseInputPlugin<RadarrConfig> {
       return this.createPoints([
         totalsPoint({ missing: missing.totalRecords, cutoff_unmet: cutoff.totalRecords, blocklist: blocklist.totalRecords }),
       ]);
+    });
+  }
+
+  private async collectHistory(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Radarr history', async () => {
+      const date = (await this.eventCursor('history')).toISOString();
+      const records = await this.radarr.get('/api/v3/history/since', { query: { date, includeMovie: false } });
+      const fresh = await this.takeNewEvents('history', records, (r) => Date.parse(r.date ?? ''), (r) => String(r.id));
+      return this.createPoints(
+        fresh.flatMap((r) => historyPoint(r, { movieId: r.movieId ?? 0 }, this.hashit(`${this.config.id}${r.id}`)) ?? [])
+      );
     });
   }
 }
