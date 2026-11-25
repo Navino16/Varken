@@ -9,11 +9,13 @@ import type { GetPath } from '../../types/api-contract';
 import { booleanFlags } from './utils/flags';
 import { numberOf } from './utils/numbers';
 import { eventTimestamp } from './utils/events';
-import { completedBuckets, graphSnapshotPoints, homeStatPoints, type GraphBucket } from './utils/tautulliStats';
+import { completedBuckets, graphSnapshotPoints, homeStatPoints, watchTimeFields, type GraphBucket } from './utils/tautulliStats';
+import { ageSeconds } from './utils/time';
 
 type TautulliSession = components['schemas']['Session'];
 type RecentlyAddedItem = components['schemas']['RecentlyAddedItem'];
 type HistoryRow = components['schemas']['HistoryRow'];
+type UserTableRow = components['schemas']['UserTableRow'];
 
 const SERVER_INFO_PATH: GetPath<paths> = '/api/v2?cmd=get_server_info';
 
@@ -21,6 +23,9 @@ const SERVER_INFO_PATH: GetPath<paths> = '/api/v2?cmd=get_server_info';
  * Tautulli input plugin
  * Collects activity, libraries, and stats from Tautulli API v2
  */
+
+const WATCH_TIME_DAYS = '1,7,30,0';
+const DAY_SECONDS = 24 * 60 * 60;
 
 const PLAYER_STATE = { PLAYING: 0, PAUSED: 1, BUFFERING: 3 } as const;
 
@@ -103,6 +108,10 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
       points.push(...(await this.collectHistory()));
     }
 
+    if (this.config.users.enabled) {
+      points.push(...(await this.collectUsers()));
+    }
+
     return points;
   }
 
@@ -143,6 +152,10 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
 
     if (this.config.history.enabled) {
       schedules.push(this.createSchedule('history', this.config.history.intervalSeconds, true, this.collectHistory));
+    }
+
+    if (this.config.users.enabled) {
+      schedules.push(this.createSchedule('users', this.config.users.intervalSeconds, true, this.collectUsers));
     }
 
     return schedules;
@@ -617,6 +630,52 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
       timestamp: eventTimestamp(stoppedAt, row.row_id),
       floatFields: ['watched_status'],
     };
+  }
+
+  /** Users table with per-user watch time over 1, 7 and 30 days and all time. */
+  private async collectUsers(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Tautulli users', async () => {
+      const tautulli = this.api<paths>();
+      const table = await tautulli.get('/api/v2?cmd=get_users_table', { query: { apikey: this.config.apiKey, length: 10000 } });
+      const users = table.response.data.data ?? [];
+      const watchTimes = await Promise.all(
+        users.map((user) =>
+          tautulli.get('/api/v2?cmd=get_user_watch_time_stats', {
+            query: { apikey: this.config.apiKey, user_id: String(user.user_id), query_days: WATCH_TIME_DAYS },
+          })
+        )
+      );
+      const now = new Date();
+      const lastSeen = users.map((user) => ageSeconds(typeof user.last_seen === 'number' ? user.last_seen * 1000 : undefined, now));
+      const seenWithin = (seconds: number): number => lastSeen.filter((age) => age !== undefined && age <= seconds).length;
+      const specs: PointSpec[] = users.map((user, index) => ({
+        tags: { type: 'User', user_id: user.user_id ?? 'unknown', username: user.username || 'unknown', friendly_name: user.friendly_name || 'unknown' },
+        fields: { ...this.userFields(user, lastSeen[index]), ...watchTimeFields(watchTimes[index].response.data) },
+      }));
+      specs.push({
+        tags: { type: 'Users' },
+        fields: { users: users.length, active: users.filter((user) => user.is_active === 1).length, seen_24h: seenWithin(DAY_SECONDS), seen_30d: seenWithin(30 * DAY_SECONDS) },
+      });
+      return this.createPoints(specs);
+    });
+  }
+
+  private userFields(user: UserTableRow, lastSeenAge: number | undefined): Record<string, number> {
+    const fields: Record<string, number> = {};
+    const values: Record<string, number | null | undefined> = {
+      plays: user.plays,
+      duration_seconds: user.duration,
+      last_seen_age_seconds: lastSeenAge,
+      is_active: user.is_active,
+      allow_guest: user.allow_guest,
+      keep_history: user.keep_history,
+    };
+    for (const [key, value] of Object.entries(values)) {
+      if (typeof value === 'number') {
+        fields[key] = value;
+      }
+    }
+    return fields;
   }
 
   /**

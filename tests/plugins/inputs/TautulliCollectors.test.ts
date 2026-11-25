@@ -267,4 +267,69 @@ describe('TautulliPlugin collectors', () => {
       expect(plugin.getSchedules().map((s) => s.name)).toEqual(['Tautulli_1_history']);
     });
   });
+  describe('users', () => {
+    beforeEach(async () => {
+      await plugin.initialize(config({ users: true }));
+      client.override(cmd('get_user_watch_time_stats'), (params) => {
+        const body = loadFixture('tautulli/get-user-watch-time-stats') as { response: { data: { total_plays: number }[] } };
+        if (params?.user_id === '133789') {
+          for (const row of body.response.data) {
+            row.total_plays += 100;
+          }
+        }
+        return body;
+      });
+    });
+
+    it('collects users with watch time', async () => {
+      const users = ofType(await plugin.collect(), 'User');
+
+      expect(users.map((p) => [p.tags, p.fields])).toEqual([
+        [
+          { type: 'User', server: 1, user_id: 133788, username: 'jon', friendly_name: 'Jon Snow' },
+          {
+            plays: 40,
+            duration_seconds: 144000,
+            last_seen_age_seconds: 3600,
+            is_active: 1,
+            allow_guest: 0,
+            keep_history: 1,
+            plays_1d: 1,
+            watch_seconds_1d: 3600,
+            plays_7d: 5,
+            watch_seconds_7d: 18000,
+            plays_30d: 20,
+            watch_seconds_30d: 72000,
+            plays_all: 40,
+            watch_seconds_all: 144000,
+          },
+        ],
+        [
+          { type: 'User', server: 1, user_id: 133789, username: 'arya', friendly_name: 'Arya Stark' },
+          expect.objectContaining({ plays: 12, last_seen_age_seconds: 864000, is_active: 0, allow_guest: 1, plays_1d: 101, plays_all: 140 }),
+        ],
+      ]);
+      expect(queryOf(client, cmd('get_users_table'))[0]).toMatchObject({ length: 10000 });
+      expect(queryOf(client, cmd('get_user_watch_time_stats'))).toEqual([
+        expect.objectContaining({ user_id: '133788', query_days: '1,7,30,0' }),
+        expect.objectContaining({ user_id: '133789', query_days: '1,7,30,0' }),
+      ]);
+    });
+
+    it('never emits user emails or IP addresses', async () => {
+      const values = valuesOf(await plugin.collect());
+
+      for (const secret of ['jon@example.com', 'arya@example.com', '192.168.1.20', '203.0.113.9']) {
+        expect(values).not.toContain(secret);
+      }
+    });
+
+    it('counts users seen within 24 hours and 30 days', async () => {
+      expect(ofType(await plugin.collect(), 'Users')[0].fields).toEqual({ users: 2, active: 1, seen_24h: 1, seen_30d: 2 });
+    });
+
+    it('schedules the users collector', () => {
+      expect(plugin.getSchedules().map((s) => [s.name, s.intervalSeconds])).toEqual([['Tautulli_1_users', 300]]);
+    });
+  });
 });
