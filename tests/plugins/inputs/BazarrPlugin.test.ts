@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
 import axios from 'axios';
 import { BazarrPlugin } from '../../../src/plugins/inputs/BazarrPlugin';
 import type { BazarrConfig } from '../../../src/types/inputs/bazarr.types';
@@ -35,6 +35,7 @@ describe('BazarrPlugin', () => {
     verifySsl: false,
     wanted: { enabled: true, intervalSeconds: 300 },
     history: { enabled: true, intervalSeconds: 600 },
+    serverInfo: { enabled: false, intervalSeconds: 300 },
   };
 
   beforeEach(() => {
@@ -237,6 +238,37 @@ describe('BazarrPlugin', () => {
     it('should shutdown without error', async () => {
       await plugin.initialize(testConfig);
       await expect(plugin.shutdown()).resolves.toBeUndefined();
+    });
+  });
+  describe('server info', () => {
+    beforeEach(async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date(1763971200.25 * 1000 + 3_600_000));
+      await plugin.initialize({
+        ...testConfig,
+        wanted: { enabled: false, intervalSeconds: 300 },
+        history: { enabled: false, intervalSeconds: 600 },
+        serverInfo: { enabled: true, intervalSeconds: 300 },
+      });
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('collects server info', async () => {
+      const points = await plugin.collect();
+
+      expect(points).toHaveLength(1);
+      expect(points[0]).toMatchObject({
+        measurement: 'Bazarr',
+        tags: { type: 'ServerInfo', server: 1, version: '1.6.2', sonarr_version: '4.0.20.3014', radarr_version: '7.0.3.10918' },
+        fields: { uptime_seconds: 3600, health_issues: 1 },
+      });
+    });
+
+    it('schedules serverInfo when enabled', () => {
+      expect(plugin.getSchedules().map((s) => s.name)).toEqual(['Bazarr_1_serverInfo']);
     });
   });
 });
