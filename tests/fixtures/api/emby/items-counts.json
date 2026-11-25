@@ -3,12 +3,14 @@
   "SeriesCount": 96,
   "EpisodeCount": 4370,
   "ArtistCount": 214,
-  "ProgramCount": 0,
-  "TrailerCount": 0,
+  "ProgramCount": 3,
+  "TrailerCount": 40,
   "SongCount": 6021,
   "AlbumCount": 487,
-  "MusicVideoCount": 0,
+  "MusicVideoCount": 12,
   "BoxSetCount": 38,
   "BookCount": 15,
-  "ItemCount": 12093
+  "ItemCount": 12093,
+  "GameCount": 5,
+  "GameSystemCount": 1
 }

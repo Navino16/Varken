@@ -25,6 +25,11 @@ export function sourceAudioCodec(
   return codec.toUpperCase() || 'unknown';
 }
 
+/** Codec of the first video stream (Jellyfin/Emby), upper-cased. */
+export function sourceVideoCodec(streams: readonly StreamLike[] | null | undefined): string {
+  return ((streams ?? []).find((s) => s.Type === 'Video')?.Codec || '').toUpperCase() || 'unknown';
+}
+
 /** A session is transcoding unless both tracks are known to be copied (remux). */
 export function isTranscoding(transcode: TranscodeLike | null | undefined): boolean {
   if (!transcode) {

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
 import axios from 'axios';
 import { EmbyPlugin } from '../../../src/plugins/inputs/EmbyPlugin';
 import type { EmbyConfig } from '../../../src/types/inputs/emby.types';
@@ -131,7 +131,7 @@ describe('EmbyPlugin', () => {
     it('emits a summary point with stream_count and transcode_streams', async () => {
       const summary = (await plugin.collect()).find((p) => p.tags.type === 'current_stream_stats');
 
-      expect(summary?.fields).toEqual({ stream_count: 2, transcode_streams: 1 });
+      expect(summary?.fields).toMatchObject({ stream_count: 2, transcode_streams: 1 });
     });
 
     it('marks paused sessions correctly', async () => {
@@ -224,7 +224,7 @@ describe('EmbyPlugin', () => {
 
       const summary = (await plugin.collect()).find((p) => p.tags.type === 'current_stream_stats');
 
-      expect(summary?.fields).toEqual({ stream_count: 2, transcode_streams: 0 });
+      expect(summary?.fields).toMatchObject({ stream_count: 2, transcode_streams: 0 });
     });
 
     it('emits only an empty summary when the sessions payload is null', async () => {
@@ -232,7 +232,8 @@ describe('EmbyPlugin', () => {
 
       const points = await plugin.collect();
 
-      expect(points.map((p) => p.fields)).toEqual([{ stream_count: 0, transcode_streams: 0 }]);
+      expect(points).toHaveLength(1);
+      expect(points[0].fields).toMatchObject({ stream_count: 0, transcode_streams: 0, connected_clients: 0 });
     });
 
     it('generates deterministic hash ids', async () => {
@@ -258,7 +259,7 @@ describe('EmbyPlugin', () => {
         ['Movies', 'movies', 1, 'Movies'],
         ['Shows', 'tvshows', 2, 'Shows'],
       ]);
-      expect(points.find((p) => p.tags.type === 'item_counts')?.fields).toEqual({
+      expect(points.find((p) => p.tags.type === 'item_counts')?.fields).toMatchObject({
         movies: 812,
         series: 96,
         episodes: 4370,
@@ -314,6 +315,102 @@ describe('EmbyPlugin', () => {
       await expect(plugin.collect()).rejects.toThrow('emby offline');
     });
   });
+  describe('session details', () => {
+    beforeEach(async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-11-24T20:41:12Z'));
+      await plugin.initialize(sessionsOnly);
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('enriches sessions', async () => {
+      const [episode, movie] = sessionPoints(await plugin.collect());
+
+      expect(episode.tags).toMatchObject({
+        network: 'lan',
+        audio_decision: 'transcode',
+        transcode_reasons: 'AudioCodecNotSupported,VideoCodecNotSupported',
+        stream_video_codec: 'H264',
+        stream_audio_codec: 'AAC',
+        stream_video_resolution: '1080p',
+        device_name: 'Living Room TV',
+        user_id: 'e1f2a3b4c5d64e7f8a9b0c1d2e3f4a5b',
+        year: 2022,
+        genre: 'Thriller',
+        content_rating: 'TV-MA',
+      });
+      expect(episode.fields).toMatchObject({
+        duration_seconds: 3420,
+        view_offset_seconds: 1710,
+        stream_bitrate: 8000,
+        stream_framerate: 23.976,
+        transcode_progress: 12.5,
+        community_rating: 8.7,
+      });
+      expect(episode.floatFields).toEqual(expect.arrayContaining(['stream_framerate', 'transcode_progress', 'community_rating']));
+      expect(movie.tags).toMatchObject({
+        network: 'wan',
+        audio_decision: 'direct play',
+        transcode_reasons: 'none',
+        video_codec: 'HEVC',
+        stream_video_codec: 'HEVC',
+        stream_audio_codec: 'TRUEHD',
+        genre: 'Science Fiction',
+      });
+      expect(movie.fields).not.toHaveProperty('stream_bitrate');
+    });
+
+    it('summarises connected clients and stream kinds', async () => {
+      const summary = (await plugin.collect()).find((p) => p.tags.type === 'current_stream_stats');
+
+      expect(summary?.fields).toEqual({
+        stream_count: 2,
+        transcode_streams: 1,
+        connected_clients: 4,
+        connected_users: 3,
+        streaming_users: 2,
+        direct_play_streams: 1,
+        direct_streams: 0,
+        lan_streams: 1,
+        wan_streams: 1,
+      });
+    });
+
+    it('adds Emby-only transcoding details', async () => {
+      const [episode, movie] = sessionPoints(await plugin.collect());
+
+      expect(episode.fields).toMatchObject({ video_decoder_hw: 1, video_encoder_hw: 0, transcode_cpu_percent: 37.5 });
+      expect(episode.floatFields).toContain('transcode_cpu_percent');
+      expect(movie.fields).not.toHaveProperty('transcode_cpu_percent');
+    });
+
+  });
+
+  describe('library details', () => {
+    beforeEach(async () => {
+      await plugin.initialize(librariesOnly);
+    });
+
+    it('counts music videos, programs, trailers and games', async () => {
+      const counts = (await plugin.collect()).find((p) => p.tags.type === 'item_counts');
+
+      expect(counts?.fields).toMatchObject({ music_videos: 12, programs: 3, trailers: 40, games: 5, game_systems: 1 });
+    });
+
+    it('reports library refresh state', async () => {
+      const [movies, shows] = (await plugin.collect()).filter((p) => p.tags.type === 'library_stats');
+
+      expect(movies.tags.refresh_status).toBe('Idle');
+      expect(movies.fields).not.toHaveProperty('refresh_progress');
+      expect(shows.tags.refresh_status).toBe('Active');
+      expect(shows.fields.refresh_progress).toBe(42.5);
+      expect(shows.floatFields).toEqual(['refresh_progress']);
+    });
+  });
+
   describe('server info', () => {
     beforeEach(async () => {
       await plugin.initialize({
