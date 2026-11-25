@@ -6,6 +6,14 @@ import { booleanFlags } from './utils/flags';
 import { isNumber } from './utils/numbers';
 import { resolutionBucket, resolutionLabel } from './utils/mediaStreams';
 import { ageSeconds } from './utils/time';
+import {
+  activityPoints,
+  backgroundTranscodePoints,
+  butlerPoints,
+  resourcesPoint,
+  transcodeSessionsPoint,
+  updaterPoint,
+} from './utils/plexStatus';
 
 type Sessions = paths['/status/sessions']['get']['responses'][200]['content']['application/json'];
 type PlexSession = NonNullable<NonNullable<Sessions['MediaContainer']>['Metadata']>[number];
@@ -96,6 +104,10 @@ export class PlexPlugin extends BaseInputPlugin<PlexConfig> {
       points.push(...(await this.collectServerInfo()));
     }
 
+    if (this.config.status.enabled) {
+      points.push(...(await this.collectStatus()));
+    }
+
     return points;
   }
 
@@ -116,6 +128,10 @@ export class PlexPlugin extends BaseInputPlugin<PlexConfig> {
 
     if (this.config.serverInfo.enabled) {
       schedules.push(this.createSchedule('serverInfo', this.config.serverInfo.intervalSeconds, true, this.collectServerInfo));
+    }
+
+    if (this.config.status.enabled) {
+      schedules.push(this.createSchedule('status', this.config.status.intervalSeconds, true, this.collectStatus));
     }
 
     return schedules;
@@ -395,6 +411,29 @@ export class PlexPlugin extends BaseInputPlugin<PlexConfig> {
           fields
         ),
       ];
+    });
+  }
+
+  private async collectStatus(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Plex status', async () => {
+      const [activities, background, butler, updater, resources, transcodes] = await Promise.all([
+        this.plex.get('/activities'),
+        this.plex.get('/status/sessions/background'),
+        this.plex.get('/butler'),
+        this.plex.get('/updater/status'),
+        this.plex.get('/statistics/resources', { query: { timespan: 6 } }),
+        this.plex.get('/transcode/sessions'),
+      ]);
+      const now = new Date();
+      const resourceUsage = resourcesPoint(resources?.MediaContainer);
+      return this.createPoints([
+        ...activityPoints(activities?.MediaContainer),
+        ...backgroundTranscodePoints(background?.MediaContainer),
+        ...butlerPoints(butler),
+        updaterPoint(updater?.MediaContainer, now),
+        ...(resourceUsage ? [resourceUsage] : []),
+        transcodeSessionsPoint(transcodes?.MediaContainer),
+      ]);
     });
   }
 }
