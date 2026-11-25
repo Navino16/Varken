@@ -341,7 +341,7 @@ describe('OverseerrPlugin', () => {
 
       const [point] = await plugin.collect();
 
-      expect(point.fields).toEqual({ restart_pending: 0 });
+      expect(point.fields).toEqual({ reachable: 1, restart_pending: 0 });
     });
 
     it('schedules serverInfo when enabled', () => {

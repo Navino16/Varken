@@ -230,8 +230,8 @@ export class JellyfinPlugin extends BaseInputPlugin<JellyfinConfig> {
       return [
         this.createServerInfoPoint(
           { version: info?.Version || 'unknown' },
+          // HasUpdateAvailable is deprecated: Jellyfin always sends false.
           booleanFlags({
-            update_available: info?.HasUpdateAvailable,
             restart_pending: info?.HasPendingRestart,
             shutting_down: info?.IsShuttingDown,
           })

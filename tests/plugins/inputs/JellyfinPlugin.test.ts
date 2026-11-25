@@ -315,16 +315,21 @@ describe('JellyfinPlugin', () => {
       const points = await plugin.collect();
 
       expect(points).toHaveLength(1);
-      expect(points[0]).toMatchObject({
-        measurement: 'Jellyfin',
-        tags: { type: 'ServerInfo', server: 1, version: '12.4.0' },
-        fields: { update_available: 0, restart_pending: 0, shutting_down: 0, },
-      });
+      expect(points[0]).toMatchObject({ measurement: 'Jellyfin', tags: { type: 'ServerInfo', server: 1, version: '12.4.0' } });
+      expect(points[0].fields).toEqual({ reachable: 1, restart_pending: 0, shutting_down: 0 });
     });
 
     it('omits flags the server does not report', async () => {
-      const { HasUpdateAvailable: _update, ...info } = loadFixture<SystemInfo>('jellyfin/system-info');
+      const { HasPendingRestart: _restart, ...info } = loadFixture<SystemInfo>('jellyfin/system-info');
       client.override('/System/Info', info);
+
+      const [point] = await plugin.collect();
+
+      expect(point.fields).not.toHaveProperty('restart_pending');
+    });
+
+    it('ignores the deprecated HasUpdateAvailable, which Jellyfin always sends as false', async () => {
+      client.override('/System/Info', { ...loadFixture<SystemInfo>('jellyfin/system-info'), HasUpdateAvailable: true });
 
       const [point] = await plugin.collect();
 

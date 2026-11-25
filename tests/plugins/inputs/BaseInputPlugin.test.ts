@@ -174,7 +174,7 @@ describe('BaseInputPlugin', () => {
 
       expect(point.measurement).toBe('TestInput');
       expect(point.tags).toEqual({ type: 'ServerInfo', server: 1, version: '4.0.20' });
-      expect(point.fields).toEqual({ update_available: 1 });
+      expect(point.fields).toEqual({ reachable: 1, update_available: 1 });
     });
   });
 
