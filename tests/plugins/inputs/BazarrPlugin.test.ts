@@ -147,6 +147,12 @@ describe('BazarrPlugin', () => {
       expect(points[0].timestamp).toEqual(new Date(2026, 10, 20, 14, 5, 9));
     });
 
+    it('declares the history score as a float field', async () => {
+      const [point] = ofKind(await plugin.collect(), 'History', 'movie');
+
+      expect(point.floatFields).toEqual(['score_percent']);
+    });
+
     it('should collect series history', async () => {
       const points = ofKind(await plugin.collect(), 'History', 'series');
 

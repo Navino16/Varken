@@ -281,6 +281,33 @@ describe('TautulliPlugin', () => {
       expect(geoipCalls()).toHaveLength(1);
     });
 
+    it('declares the coordinates as float fields', async () => {
+      const point = await onlySession(sessions().remote);
+
+      expect(point?.floatFields).toEqual(['lat', 'lon']);
+    });
+
+    it('drops a lone coordinate', async () => {
+      const body = geoip();
+      body.response.data = { ...body.response.data, longitude: null };
+      client.override(GEOIP, body);
+
+      const point = await onlySession(sessions().remote);
+
+      expect(point?.fields).not.toHaveProperty('lat');
+      expect(point?.fields).not.toHaveProperty('lon');
+    });
+
+    it('keeps a genuine zero coordinate', async () => {
+      const body = geoip();
+      body.response.data = { ...body.response.data, latitude: 0, longitude: 0 };
+      client.override(GEOIP, body);
+
+      const point = await onlySession(sessions().remote);
+
+      expect(point?.fields).toMatchObject({ lat: 0, lon: 0 });
+    });
+
     it('should handle GeoIP API failure gracefully', async () => {
       client.fail(GEOIP, new Error('Request failed with status code 400'));
 

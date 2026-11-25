@@ -151,6 +151,21 @@ describe('BaseOutputPlugin', () => {
       expect(result).not.toContain('percentage=42.5i');
     });
 
+    it('writes declared float fields without the integer suffix', () => {
+      const point: DataPoint = {
+        measurement: 'test',
+        tags: {},
+        fields: { score_percent: 100, count: 3 },
+        floatFields: ['score_percent'],
+        timestamp: new Date('2024-01-15T10:30:00.000Z'),
+      };
+
+      const result = plugin.testToLineProtocol(point);
+      expect(result).toContain('score_percent=100,');
+      expect(result).not.toContain('score_percent=100i');
+      expect(result).toContain('count=3i');
+    });
+
     it('should escape special characters in measurement', () => {
       const point: DataPoint = {
         measurement: 'test measurement,with=special',

@@ -12,6 +12,8 @@ export interface DataPoint {
   measurement: string;
   tags: Record<string, string | number>;
   fields: Record<string, string | number | boolean>;
+  /** Numeric fields always written as floats, so a whole value does not switch the column to integer. */
+  floatFields?: readonly string[];
   timestamp: Date;
 }
 

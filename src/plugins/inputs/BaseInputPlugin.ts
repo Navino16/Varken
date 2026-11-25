@@ -298,12 +298,14 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
     measurement: string,
     tags: Record<string, string | number>,
     fields: Record<string, string | number | boolean>,
-    timestamp?: Date
+    timestamp?: Date,
+    floatFields?: readonly string[]
   ): DataPoint {
     return {
       measurement,
       tags,
       fields,
+      ...(floatFields ? { floatFields } : {}),
       timestamp: timestamp || new Date(),
     };
   }

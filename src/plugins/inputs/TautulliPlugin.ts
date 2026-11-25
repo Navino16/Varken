@@ -391,7 +391,7 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
       fields.lon = longitude;
     }
 
-    return this.createDataPoint('Tautulli', tags, fields);
+    return this.createDataPoint('Tautulli', tags, fields, undefined, ['lat', 'lon']);
   }
 
   /**

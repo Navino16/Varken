@@ -3,6 +3,8 @@ import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plug
 import type { BazarrConfig } from '../../types/inputs/bazarr.types';
 import type { components, paths } from '../../types/generated/bazarr';
 
+const SCORE_FLOAT_FIELDS = ['score_percent'];
+
 /**
  * Bazarr input plugin
  * Collects wanted subtitles and history data from Bazarr API
@@ -185,7 +187,8 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
               hash: hashId,
               ...this.scoreField(item.score),
             },
-            this.parseHistoryTimestamp(item.parsed_timestamp)
+            this.parseHistoryTimestamp(item.parsed_timestamp),
+            SCORE_FLOAT_FIELDS
           )
         );
       }
@@ -221,7 +224,8 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
               hash: hashId,
               ...this.scoreField(item.score),
             },
-            this.parseHistoryTimestamp(item.parsed_timestamp)
+            this.parseHistoryTimestamp(item.parsed_timestamp),
+            SCORE_FLOAT_FIELDS
           )
         );
       }
