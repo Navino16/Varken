@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "name": "Refresh Monitored Downloads",
+    "taskName": "RefreshMonitoredDownloads",
+    "interval": 1,
+    "lastExecution": "2026-11-24T11:59:00Z",
+    "lastStartTime": "2026-11-24T11:59:00Z",
+    "nextExecution": "2026-11-24T12:00:30Z",
+    "lastDuration": "00:00:00.2500000"
+  },
+  {
+    "id": 2,
+    "name": "Rss Sync",
+    "taskName": "RssSync",
+    "interval": 15,
+    "lastExecution": "2026-11-24T11:00:00Z",
+    "lastStartTime": "2026-11-24T10:59:48Z",
+    "nextExecution": "2026-11-24T11:15:00Z",
+    "lastDuration": "00:00:12.5000000"
+  },
+  {
+    "id": 3,
+    "name": "Backup",
+    "taskName": "Backup",
+    "interval": 10080,
+    "lastExecution": "0001-01-01T00:00:00Z",
+    "lastStartTime": "0001-01-01T00:00:00Z",
+    "nextExecution": "2026-11-25T00:00:00Z",
+    "lastDuration": "00:00:00"
+  }
+]

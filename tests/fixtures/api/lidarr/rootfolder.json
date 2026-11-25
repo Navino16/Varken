@@ -1,0 +1,18 @@
+[
+  {
+    "id": 1,
+    "name": "Music",
+    "path": "/data/media/music",
+    "accessible": true,
+    "freeSpace": 250000000000,
+    "totalSpace": 1000000000000
+  },
+  {
+    "id": 2,
+    "name": "Offline",
+    "path": "/mnt/offline",
+    "accessible": false,
+    "freeSpace": null,
+    "totalSpace": null
+  }
+]

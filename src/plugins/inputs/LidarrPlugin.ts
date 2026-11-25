@@ -4,7 +4,7 @@ import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plug
 import type { LidarrConfig } from '../../types/inputs/lidarr.types';
 import type { paths } from '../../types/generated/lidarr';
 import { servarrServerInfo } from './utils/servarrServerInfo';
-import { queueEnrichment } from './utils/servarr';
+import { queueEnrichment, statusPoints } from './utils/servarr';
 
 /**
  * Lidarr input plugin
@@ -50,6 +50,10 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
       points.push(...missingPoints);
     }
 
+    if (this.config.status.enabled) {
+      points.push(...(await this.collectStatus()));
+    }
+
     if (this.config.serverInfo.enabled) {
       points.push(...(await this.collectServerInfo()));
     }
@@ -73,6 +77,10 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
       schedules.push(
         this.createSchedule('missing', this.config.missing.intervalSeconds, true, this.collectMissing)
       );
+    }
+
+    if (this.config.status.enabled) {
+      schedules.push(this.createSchedule('status', this.config.status.intervalSeconds, true, this.collectStatus));
     }
 
     if (this.config.serverInfo.enabled) {
@@ -192,6 +200,19 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
       ]);
       const { tags, fields } = servarrServerInfo(status, updates, health, new Date());
       return [this.createServerInfoPoint(tags, fields)];
+    });
+  }
+
+  private async collectStatus(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Lidarr status', async () => {
+      const [health, disks, roots, queue, tasks] = await Promise.all([
+        this.lidarr.get('/api/v1/health'),
+        this.lidarr.get('/api/v1/diskspace'),
+        this.lidarr.get('/api/v1/rootfolder'),
+        this.lidarr.get('/api/v1/queue/status'),
+        this.lidarr.get('/api/v1/system/task'),
+      ]);
+      return this.createPoints(statusPoints({ health, disks, roots, queue, tasks }, new Date(), (s) => this.hashit(s)));
     });
   }
 }

@@ -1,0 +1,21 @@
+[
+  {
+    "id": 1,
+    "path": "/data/media/movies",
+    "accessible": true,
+    "freeSpace": 250000000000,
+    "unmappedFolders": [
+      {
+        "name": "Old Title",
+        "path": "/data/media/movies/Old Title",
+        "relativePath": "Old Title"
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "path": "/mnt/offline",
+    "accessible": false,
+    "freeSpace": null
+  }
+]

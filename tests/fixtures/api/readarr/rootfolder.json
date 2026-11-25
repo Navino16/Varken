@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1,
+    "name": "Books",
+    "path": "/data/media/books",
+    "isCalibreLibrary": false,
+    "accessible": true,
+    "freeSpace": 250000000000,
+    "totalSpace": 1000000000000
+  },
+  {
+    "id": 2,
+    "name": "Calibre",
+    "path": "/data/media/calibre",
+    "isCalibreLibrary": true,
+    "host": "calibre.local",
+    "port": 8081,
+    "username": "calibre-user",
+    "password": "calibre-secret",
+    "library": "Calibre_Library",
+    "useSsl": false,
+    "accessible": true,
+    "freeSpace": 250000000000,
+    "totalSpace": 1000000000000
+  }
+]

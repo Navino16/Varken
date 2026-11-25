@@ -4,7 +4,7 @@ import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plug
 import type { SonarrConfig } from '../../types/inputs/sonarr.types';
 import type { paths } from '../../types/generated/sonarr';
 import { servarrServerInfo } from './utils/servarrServerInfo';
-import { queueEnrichment } from './utils/servarr';
+import { queueEnrichment, statusPoints } from './utils/servarr';
 
 /**
  * Sonarr input plugin
@@ -52,6 +52,10 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
       points.push(...missingPoints, ...futurePoints);
     }
 
+    if (this.config.status.enabled) {
+      points.push(...(await this.collectStatus()));
+    }
+
     if (this.config.serverInfo.enabled) {
       points.push(...(await this.collectServerInfo()));
     }
@@ -88,6 +92,10 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
           () => this.collectCalendar('Future')
         )
       );
+    }
+
+    if (this.config.status.enabled) {
+      schedules.push(this.createSchedule('status', this.config.status.intervalSeconds, true, this.collectStatus));
     }
 
     if (this.config.serverInfo.enabled) {
@@ -253,6 +261,19 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
       ]);
       const { tags, fields } = servarrServerInfo(status, updates, health, new Date());
       return [this.createServerInfoPoint(tags, fields)];
+    });
+  }
+
+  private async collectStatus(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Sonarr status', async () => {
+      const [health, disks, roots, queue, tasks] = await Promise.all([
+        this.sonarr.get('/api/v3/health'),
+        this.sonarr.get('/api/v3/diskspace'),
+        this.sonarr.get('/api/v3/rootfolder'),
+        this.sonarr.get('/api/v3/queue/status'),
+        this.sonarr.get('/api/v3/system/task'),
+      ]);
+      return this.createPoints(statusPoints({ health, disks, roots, queue, tasks }, new Date(), (s) => this.hashit(s)));
     });
   }
 }

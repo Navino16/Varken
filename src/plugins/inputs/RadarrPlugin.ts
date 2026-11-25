@@ -4,7 +4,7 @@ import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plug
 import type { RadarrConfig } from '../../types/inputs/radarr.types';
 import type { paths } from '../../types/generated/radarr';
 import { servarrServerInfo } from './utils/servarrServerInfo';
-import { queueEnrichment } from './utils/servarr';
+import { queueEnrichment, statusPoints } from './utils/servarr';
 
 /**
  * Radarr input plugin
@@ -51,6 +51,10 @@ export class RadarrPlugin extends BaseInputPlugin<RadarrConfig> {
       points.push(...missingPoints);
     }
 
+    if (this.config.status.enabled) {
+      points.push(...(await this.collectStatus()));
+    }
+
     if (this.config.serverInfo.enabled) {
       points.push(...(await this.collectServerInfo()));
     }
@@ -74,6 +78,10 @@ export class RadarrPlugin extends BaseInputPlugin<RadarrConfig> {
       schedules.push(
         this.createSchedule('missing', this.config.missing.intervalSeconds, true, this.collectMissing)
       );
+    }
+
+    if (this.config.status.enabled) {
+      schedules.push(this.createSchedule('status', this.config.status.intervalSeconds, true, this.collectStatus));
     }
 
     if (this.config.serverInfo.enabled) {
@@ -197,6 +205,19 @@ export class RadarrPlugin extends BaseInputPlugin<RadarrConfig> {
       ]);
       const { tags, fields } = servarrServerInfo(status, updates, health, new Date());
       return [this.createServerInfoPoint(tags, fields)];
+    });
+  }
+
+  private async collectStatus(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Radarr status', async () => {
+      const [health, disks, roots, queue, tasks] = await Promise.all([
+        this.radarr.get('/api/v3/health'),
+        this.radarr.get('/api/v3/diskspace'),
+        this.radarr.get('/api/v3/rootfolder'),
+        this.radarr.get('/api/v3/queue/status'),
+        this.radarr.get('/api/v3/system/task'),
+      ]);
+      return this.createPoints(statusPoints({ health, disks, roots, queue, tasks }, new Date(), (s) => this.hashit(s)));
     });
   }
 }

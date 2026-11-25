@@ -76,6 +76,22 @@ export const contractRoutes: ContractRoute[] = [
   { service: 'tautulli', method: 'get', path: '/api/v2?cmd=get_tautulli_info', fixture: 'tautulli/get-tautulli-info' },
   { service: 'tautulli', method: 'get', path: '/api/v2?cmd=update_check', fixture: 'tautulli/update-check' },
   { service: 'tautulli', method: 'get', path: '/api/v2?cmd=get_pms_update', fixture: 'tautulli/get-pms-update' },
+  { service: 'sonarr', method: 'get', path: '/api/v3/diskspace', fixture: 'sonarr/diskspace' },
+  { service: 'sonarr', method: 'get', path: '/api/v3/rootfolder', fixture: 'sonarr/rootfolder' },
+  { service: 'sonarr', method: 'get', path: '/api/v3/queue/status', fixture: 'sonarr/queue-status' },
+  { service: 'sonarr', method: 'get', path: '/api/v3/system/task', fixture: 'sonarr/system-task' },
+  { service: 'radarr', method: 'get', path: '/api/v3/diskspace', fixture: 'radarr/diskspace' },
+  { service: 'radarr', method: 'get', path: '/api/v3/rootfolder', fixture: 'radarr/rootfolder' },
+  { service: 'radarr', method: 'get', path: '/api/v3/queue/status', fixture: 'radarr/queue-status' },
+  { service: 'radarr', method: 'get', path: '/api/v3/system/task', fixture: 'radarr/system-task' },
+  { service: 'lidarr', method: 'get', path: '/api/v1/diskspace', fixture: 'lidarr/diskspace' },
+  { service: 'lidarr', method: 'get', path: '/api/v1/rootfolder', fixture: 'lidarr/rootfolder' },
+  { service: 'lidarr', method: 'get', path: '/api/v1/queue/status', fixture: 'lidarr/queue-status' },
+  { service: 'lidarr', method: 'get', path: '/api/v1/system/task', fixture: 'lidarr/system-task' },
+  { service: 'readarr', method: 'get', path: '/api/v1/diskspace', fixture: 'readarr/diskspace' },
+  { service: 'readarr', method: 'get', path: '/api/v1/rootfolder', fixture: 'readarr/rootfolder' },
+  { service: 'readarr', method: 'get', path: '/api/v1/queue/status', fixture: 'readarr/queue-status' },
+  { service: 'readarr', method: 'get', path: '/api/v1/system/task', fixture: 'readarr/system-task' },
 ];
 
 const fixturesDir = path.resolve(__dirname, '../fixtures/api');
