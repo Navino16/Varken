@@ -5,13 +5,25 @@ import type { paths } from '../../types/generated/plex';
 import { booleanFlags } from './utils/flags';
 import { isNumber } from './utils/numbers';
 import { resolutionBucket, resolutionLabel } from './utils/mediaStreams';
+import { ageSeconds } from './utils/time';
 
 type Sessions = paths['/status/sessions']['get']['responses'][200]['content']['application/json'];
 type PlexSession = NonNullable<NonNullable<Sessions['MediaContainer']>['Metadata']>[number];
 type Libraries = paths['/library/sections/all']['get']['responses'][200]['content']['application/json'];
 type PlexLibrary = NonNullable<NonNullable<Libraries['MediaContainer']>['Directory']>[number];
 
+type MediaQuery = NonNullable<paths['/library/sections/{sectionId}/all']['get']['parameters']['query']>['mediaQuery'];
+
 const PLAYER_STATE = { PLAYING: 0, PAUSED: 1, BUFFERING: 3 } as const;
+
+const RECENT = { 'addedAt>>': '-7d' } as const;
+
+/** Extra counts per section type: Plex media types 1 movie, 3 season, 4 episode, 9 album, 10 track. */
+const SECTION_COUNTS: Record<string, Record<string, MediaQuery>> = {
+  movie: { added_7d: { type: 1, ...RECENT } },
+  show: { seasons: { type: 3 }, episodes: { type: 4 }, added_7d: { type: 4, ...RECENT } },
+  artist: { albums: { type: 9 }, tracks: { type: 10 }, added_7d: { type: 10, ...RECENT } },
+};
 
 /** The spec leaves several metadata attributes untyped (title, type, codecs…). */
 function text(value: unknown): string {
@@ -159,7 +171,7 @@ export class PlexPlugin extends BaseInputPlugin<PlexConfig> {
       const libraries = response?.MediaContainer?.Directory ?? [];
 
       for (const library of libraries) {
-        const count = await this.fetchLibraryItemCount(library);
+        const [count, extra] = await Promise.all([this.fetchLibraryItemCount(library), this.libraryEnrichment(library)]);
         points.push(
           this.createDataPoint(
             'Plex',
@@ -173,6 +185,7 @@ export class PlexPlugin extends BaseInputPlugin<PlexConfig> {
             {
               total: count,
               libraries: library.title ?? 'unknown',
+              ...extra,
             }
           )
         );
@@ -198,6 +211,42 @@ export class PlexPlugin extends BaseInputPlugin<PlexConfig> {
       const message = error instanceof Error ? error.message : 'Unknown error';
       this.logger.debug(`Could not fetch item count for library ${library.title}: ${message}`);
       return 0;
+    }
+  }
+
+  private async libraryEnrichment(library: PlexLibrary): Promise<Record<string, number>> {
+    const fields: Record<string, number> = booleanFlags({ refreshing: library.refreshing });
+    const scanned = ageSeconds(isNumber(library.scannedAt) ? library.scannedAt * 1000 : undefined, new Date());
+    if (scanned !== undefined) {
+      fields.scanned_age_seconds = scanned;
+    }
+    if (Array.isArray(library.Location)) {
+      fields.locations = library.Location.length;
+    }
+    const queries = Object.entries(SECTION_COUNTS[library.type ?? ''] ?? {});
+    const counts = await Promise.all(queries.map(([, mediaQuery]) => this.countItems(library, mediaQuery)));
+    queries.forEach(([field], i) => {
+      const count = counts[i];
+      if (count !== undefined) {
+        fields[field] = count;
+      }
+    });
+    return fields;
+  }
+
+  /** Size of a media query on a section, without transferring any item; undefined when the request fails. */
+  private async countItems(library: PlexLibrary, mediaQuery: MediaQuery): Promise<number | undefined> {
+    try {
+      const response = await this.plex.get('/library/sections/{sectionId}/all', {
+        path: { sectionId: String(library.key) },
+        query: { mediaQuery },
+        header: { 'X-Plex-Container-Start': 0, 'X-Plex-Container-Size': 0 },
+      });
+      return response?.MediaContainer?.totalSize ?? response?.MediaContainer?.size;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.debug(`Could not count ${JSON.stringify(mediaQuery)} in library ${library.title}: ${message}`);
+      return undefined;
     }
   }
 
