@@ -2,6 +2,7 @@ import { BaseInputPlugin } from './BaseInputPlugin';
 import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
 import type { OverseerrConfig } from '../../types/inputs/overseerr.types';
 import type { components, paths } from '../../types/generated/seerr';
+import { booleanFlags } from './utils/flags';
 
 const REQUEST_TYPE = { TV: 0, MOVIE: 1 } as const;
 
@@ -57,6 +58,10 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
       points.push(...latestRequestsPoints);
     }
 
+    if (this.config.serverInfo.enabled) {
+      points.push(...(await this.collectServerInfo()));
+    }
+
     return points;
   }
 
@@ -90,6 +95,10 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
           this.collectLatestRequests
         )
       );
+    }
+
+    if (this.config.serverInfo.enabled) {
+      schedules.push(this.createSchedule('serverInfo', this.config.serverInfo.intervalSeconds, true, this.collectServerInfo));
     }
 
     return schedules;
@@ -226,5 +235,16 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
     }
     const movie = await this.seerr.get('/movie/{movieId}', { path: { movieId: tmdbId } });
     return { requestType: REQUEST_TYPE.MOVIE, id: movie?.id, title: movie?.title ?? '' };
+  }
+
+  private async collectServerInfo(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Overseerr server info', async () => {
+      const status = await this.seerr.get('/status', { query: { checkUpdateAvailable: true } });
+      const fields = booleanFlags({ update_available: status?.updateAvailable, restart_pending: status?.restartRequired });
+      if (status?.commitsBehind !== undefined) {
+        fields.commits_behind = status.commitsBehind;
+      }
+      return [this.createServerInfoPoint({ version: status?.version || 'unknown' }, fields)];
+    });
   }
 }

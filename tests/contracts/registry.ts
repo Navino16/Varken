@@ -49,6 +49,8 @@ export const contractRoutes: ContractRoute[] = [
   { service: 'ombi', method: 'get', path: '/api/v1/Request/count', fixture: 'ombi/request-count' },
   { service: 'ombi', method: 'get', path: '/api/v1/Issues/count', fixture: 'ombi/issues-count' },
   { service: 'ombi', method: 'get', path: '/api/v1/Identity/Users', fixture: 'ombi/identity-users' },
+  { service: 'ombi', method: 'get', path: '/api/v1/Settings/about', fixture: 'ombi/settings-about' },
+  { service: 'ombi', method: 'get', path: '/api/v1/Update', fixture: 'ombi/update' },
   { service: 'ombi', method: 'get', path: '/api/v1/Request/tv', fixture: 'ombi/request-tv' },
   { service: 'ombi', method: 'get', path: '/api/v1/Request/movie', fixture: 'ombi/request-movie' },
   { service: 'ombi', method: 'get', path: '/api/v1/Status', fixture: 'ombi/status' },

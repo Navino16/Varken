@@ -2,6 +2,7 @@ import { BaseInputPlugin } from './BaseInputPlugin';
 import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
 import type { OmbiConfig } from '../../types/inputs/ombi.types';
 import type { components, paths } from '../../types/generated/ombi';
+import { booleanFlags } from './utils/flags';
 
 type OmbiMovieRequest = components['schemas']['Ombi.Store.Entities.Requests.MovieRequests'];
 type OmbiTVRequest = components['schemas']['Ombi.Store.Entities.Requests.TvRequests'];
@@ -68,6 +69,10 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
       points.push(...issueCountsPoints);
     }
 
+    if (this.config.serverInfo.enabled) {
+      points.push(...(await this.collectServerInfo()));
+    }
+
     return points;
   }
 
@@ -101,6 +106,10 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
           this.collectIssueCounts
         )
       );
+    }
+
+    if (this.config.serverInfo.enabled) {
+      schedules.push(this.createSchedule('serverInfo', this.config.serverInfo.intervalSeconds, true, this.collectServerInfo));
     }
 
     return schedules;
@@ -313,5 +322,17 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
         hash: hashId,
       }
     );
+  }
+
+  private async collectServerInfo(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Ombi server info', async () => {
+      const [about, update] = await Promise.all([this.ombi.get('/api/v1/Settings/about'), this.ombi.get('/api/v1/Update')]);
+      return [
+        this.createServerInfoPoint(
+          { version: about?.version || 'unknown', branch: about?.branch || 'unknown' },
+          booleanFlags({ update_available: update?.updateAvailable })
+        ),
+      ];
+    });
   }
 }

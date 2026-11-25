@@ -40,6 +40,7 @@ describe('OmbiPlugin', () => {
     verifySsl: false,
     requestCounts: { enabled: true, intervalSeconds: 300 },
     issueCounts: { enabled: true, intervalSeconds: 300 },
+    serverInfo: { enabled: false, intervalSeconds: 300 },
   };
 
   beforeEach(async () => {
@@ -260,6 +261,31 @@ describe('OmbiPlugin', () => {
       expect(first).toHaveLength(5);
       expect(new Set(first).size).toBe(5);
       expect(await hashes()).toEqual(first);
+    });
+  });
+  describe('server info', () => {
+    beforeEach(async () => {
+      await plugin.initialize({
+        ...testConfig,
+        requestCounts: { enabled: false, intervalSeconds: 300 },
+        issueCounts: { enabled: false, intervalSeconds: 300 },
+        serverInfo: { enabled: true, intervalSeconds: 300 },
+      });
+    });
+
+    it('collects server info', async () => {
+      const points = await plugin.collect();
+
+      expect(points).toHaveLength(1);
+      expect(points[0]).toMatchObject({
+        measurement: 'Ombi',
+        tags: { type: 'ServerInfo', server: 1, version: '4.53.10', branch: 'master' },
+        fields: { update_available: 1 },
+      });
+    });
+
+    it('schedules serverInfo when enabled', () => {
+      expect(plugin.getSchedules().map((s) => s.name)).toEqual(['Ombi_1_serverInfo']);
     });
   });
 });
