@@ -70,6 +70,9 @@ export const contractRoutes: ContractRoute[] = [
   { service: 'tautulli', method: 'get', path: '/api/v2?cmd=get_libraries', fixture: 'tautulli/get-libraries' },
   { service: 'tautulli', method: 'get', path: '/api/v2?cmd=get_geoip_lookup', fixture: 'tautulli/get-geoip-lookup' },
   { service: 'tautulli', method: 'get', path: '/api/v2?cmd=get_server_info', fixture: 'tautulli/get-server-info' },
+  { service: 'tautulli', method: 'get', path: '/api/v2?cmd=get_tautulli_info', fixture: 'tautulli/get-tautulli-info' },
+  { service: 'tautulli', method: 'get', path: '/api/v2?cmd=update_check', fixture: 'tautulli/update-check' },
+  { service: 'tautulli', method: 'get', path: '/api/v2?cmd=get_pms_update', fixture: 'tautulli/get-pms-update' },
 ];
 
 const fixturesDir = path.resolve(__dirname, '../fixtures/api');

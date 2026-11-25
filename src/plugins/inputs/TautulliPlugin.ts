@@ -4,6 +4,7 @@ import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plug
 import type { TautulliConfig, GeoIPInfo } from '../../types/inputs/tautulli.types';
 import type { components, paths } from '../../types/generated/tautulli';
 import type { GetPath } from '../../types/api-contract';
+import { booleanFlags } from './utils/flags';
 
 type TautulliSession = components['schemas']['Session'];
 
@@ -101,6 +102,10 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
       points.push(...libraryPoints);
     }
 
+    if (this.config.serverInfo.enabled) {
+      points.push(...(await this.collectServerInfo()));
+    }
+
     return points;
   }
 
@@ -133,6 +138,10 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
       schedules.push(
         this.createSchedule('libraries', intervalSeconds, true, this.collectLibraries)
       );
+    }
+
+    if (this.config.serverInfo.enabled) {
+      schedules.push(this.createSchedule('serverInfo', this.config.serverInfo.intervalSeconds, true, this.collectServerInfo));
     }
 
     return schedules;
@@ -458,5 +467,48 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
   private titleCase(str: string): string {
     if (!str) {return '';}
     return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+  }
+
+  private async collectServerInfo(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Tautulli server info', async () => {
+      const tautulli = this.api<paths>();
+      const query = { apikey: this.config.apiKey };
+      const [info, server, pmsUpdate, update] = await Promise.all([
+        tautulli.get('/api/v2?cmd=get_tautulli_info', { query }),
+        tautulli.get('/api/v2?cmd=get_server_info', { query }),
+        tautulli.get('/api/v2?cmd=get_pms_update', { query }),
+        this.checkTautulliUpdate(),
+      ]);
+      const tautulliInfo = info.response.data;
+      const pms = server.response.data;
+      const fields: Record<string, number> = booleanFlags({
+        update_available: update,
+        pms_update_available: pmsUpdate.response.data.update_available,
+      });
+      if (pms.pms_plexpass !== undefined) {
+        fields.pms_plexpass = pms.pms_plexpass;
+      }
+      return [
+        this.createServerInfoPoint(
+          {
+            version: tautulliInfo.tautulli_version || 'unknown',
+            branch: tautulliInfo.tautulli_branch || 'unknown',
+            pms_version: pms.pms_version || 'unknown',
+          },
+          fields
+        ),
+      ];
+    });
+  }
+
+  /** Tautulli answers HTTP 400 when it cannot tell its own version: the flag is then unknown, not a failure. */
+  private async checkTautulliUpdate(): Promise<boolean | undefined> {
+    try {
+      const response = await this.api<paths>().get('/api/v2?cmd=update_check', { query: { apikey: this.config.apiKey } });
+      return response.response.data.update;
+    } catch (error) {
+      this.logger.debug(`Tautulli update check failed: ${error instanceof Error ? error.message : String(error)}`);
+      return undefined;
+    }
   }
 }
