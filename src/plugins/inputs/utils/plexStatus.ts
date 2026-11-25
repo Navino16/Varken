@@ -8,6 +8,7 @@ type Json<P extends keyof paths> = paths[P] extends { get: { responses: { 200: {
 type Container<P extends keyof paths> = NonNullable<Json<P> extends { MediaContainer?: infer C } ? C : never>;
 
 const label = (value: string | null | undefined): string => value || 'unknown';
+const nonNegative = (value: number | undefined): number | undefined => (isNumber(value) && value >= 0 ? value : undefined);
 const epochMs = (seconds: number | undefined): number | undefined => (isNumber(seconds) ? seconds * 1000 : undefined);
 
 export function activityPoints(container: Container<'/activities'> | undefined): PointSpec[] {
@@ -16,7 +17,7 @@ export function activityPoints(container: Container<'/activities'> | undefined):
     { tags: { type: 'Activities' }, fields: { count: activities.length } },
     ...activities.map((a) => ({
       tags: { type: 'Activity', activity_type: label(a.type) },
-      fields: { ...pickNumbers(a, { progress: 'progress' }), ...booleanFlags({ cancellable: a.cancellable }) },
+      fields: { present: 1, ...pickNumbers(a, { progress: 'progress' }), ...booleanFlags({ cancellable: a.cancellable }) },
       floatFields: ['progress'],
     })),
   ];
@@ -28,7 +29,12 @@ export function backgroundTranscodePoints(container: Container<'/status/sessions
     { tags: { type: 'BackgroundTranscodes' }, fields: { count: jobs.length } },
     ...jobs.map((job) => ({
       tags: { type: 'BackgroundTranscode', rating_key: label(job.ratingKey) },
-      fields: pickNumbers(job, { progress: 'progress', speed: 'speed', remaining: 'remaining_seconds', size: 'size' }),
+      fields: {
+        present: 1,
+        ...pickNumbers(job, { progress: 'progress', speed: 'speed' }),
+        // Plex writes negative sentinels (e.g. size -22) when a value is unknown.
+        ...pickNumbers({ remaining: nonNegative(job.remaining), size: nonNegative(job.size) }, { remaining: 'remaining_seconds', size: 'size' }),
+      },
       floatFields: ['progress', 'speed'],
     })),
   ];
@@ -51,7 +57,7 @@ export function updaterPoint(container: Container<'/updater/status'> | undefined
   if (checked !== undefined) {
     fields.checked_age_seconds = checked;
   }
-  return { tags: { type: 'Updater', state: releases[0]?.state ?? 'none', version: releases[0]?.version || 'none' }, fields };
+  return { tags: { type: 'Updater', state: releases[0]?.state || 'none', version: releases[0]?.version || 'none' }, fields };
 }
 
 const RESOURCE_FIELDS = ['host_cpu_percent', 'host_memory_percent', 'process_cpu_percent', 'process_memory_percent'];

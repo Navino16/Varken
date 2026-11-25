@@ -7,7 +7,6 @@ import { isNumber, pickNumbers } from './utils/numbers';
 import { resolutionBucket, resolutionLabel } from './utils/mediaStreams';
 import { ageSeconds } from './utils/time';
 import { eventTimestamp } from './utils/events';
-import { responseStatus } from '../../utils/http';
 import {
   activityPoints,
   backgroundTranscodePoints,
@@ -461,17 +460,24 @@ export class PlexPlugin extends BaseInputPlugin<PlexConfig> {
 
   private async collectStatus(): Promise<DataPoint[]> {
     return this.safeFetch('collect Plex status', async () => {
-      const [activities, background, butler, updater, resources, transcodes, bandwidth] = await Promise.all([
+      const refused = [401, 403];
+      const since = Math.floor((await this.eventCursor('bandwidth')).getTime() / 1000) - HOUR_SECONDS;
+      const [activities, background, butler, updater, transcodes, resources, bandwidth, directory] = await Promise.all([
         this.plex.get('/activities'),
         this.plex.get('/status/sessions/background'),
         this.plex.get('/butler'),
         this.plex.get('/updater/status'),
-        this.plex.get('/statistics/resources', { query: { timespan: 6 } }),
         this.plex.get('/transcode/sessions'),
-        this.collectBandwidth(),
+        this.optionalFetch('Plex resource statistics', refused, () => this.plex.get('/statistics/resources', { query: { timespan: 6 } })),
+        this.optionalFetch('Plex bandwidth statistics', refused, () =>
+          this.plex.get('/statistics/bandwidth', { query: { timespan: 4, 'at>': since } })
+        ),
+        this.plexDirectory(),
       ]);
       const now = new Date();
       const resourceUsage = resourcesPoint(resources?.MediaContainer);
+      // Marks advance only once every request succeeded: a failed poll must not consume completed hours.
+      const bandwidthPoints = await this.bandwidthPoints(bandwidth?.MediaContainer?.StatisticsBandwidth ?? [], directory, now);
       return this.createPoints([
         ...activityPoints(activities?.MediaContainer),
         ...backgroundTranscodePoints(background?.MediaContainer),
@@ -479,7 +485,7 @@ export class PlexPlugin extends BaseInputPlugin<PlexConfig> {
         updaterPoint(updater?.MediaContainer, now),
         ...(resourceUsage ? [resourceUsage] : []),
         transcodeSessionsPoint(transcodes?.MediaContainer),
-        ...bandwidth,
+        ...bandwidthPoints,
       ]);
     });
   }
@@ -488,15 +494,9 @@ export class PlexPlugin extends BaseInputPlugin<PlexConfig> {
    * Hourly bins, each emitted once when its hour has ended: the bin of the current hour keeps growing.
    * The cursor holds the end of the last emitted hour.
    */
-  private async collectBandwidth(): Promise<PointSpec[]> {
-    const since = Math.floor((await this.eventCursor('bandwidth')).getTime() / 1000) - HOUR_SECONDS;
-    const [response, directory] = await Promise.all([
-      this.plex.get('/statistics/bandwidth', { query: { timespan: 4, 'at>': since } }),
-      this.plexDirectory(),
-    ]);
-    const now = Date.now();
+  private async bandwidthPoints(rows: readonly Bandwidth[], directory: PlexDirectory, now: Date): Promise<PointSpec[]> {
     const endOf = (row: Bandwidth): number => (isNumber(row.at) ? (row.at + HOUR_SECONDS) * 1000 : Number.NaN);
-    const completed = (response?.MediaContainer?.StatisticsBandwidth ?? []).filter((row) => endOf(row) <= now);
+    const completed = rows.filter((row) => endOf(row) <= now.getTime() && isNumber(row.bytes));
     const fresh = await this.takeNewEvents('bandwidth', completed, endOf, (r) => `${r.at}-${r.accountID}-${r.deviceID}-${r.lan}`);
     return fresh.map((row) => ({
       tags: {
@@ -504,7 +504,7 @@ export class PlexPlugin extends BaseInputPlugin<PlexConfig> {
         network: typeof row.lan === 'boolean' ? (row.lan ? 'lan' : 'wan') : 'unknown',
         ...this.directoryTags(directory, row.accountID, row.deviceID),
       },
-      fields: pickNumbers(row, { bytes: 'bytes' }),
+      fields: { bytes: row.bytes as number },
       timestamp: new Date((row.at as number) * 1000),
     }));
   }
@@ -543,7 +543,10 @@ export class PlexPlugin extends BaseInputPlugin<PlexConfig> {
         { tags: { type: 'Inventory' }, fields: { accounts: accounts?.MediaContainer?.Account?.length ?? 0, devices: deviceList.length } },
         ...deviceList.map((device): PointSpec => ({
           tags: { type: 'Device', device_id: device.id ?? 'unknown', device_name: device.name || 'unknown', platform: device.platform || 'unknown' },
-          fields: isNumber(device.createdAt) ? { created_age_days: Math.floor((now - device.createdAt * 1000) / 86_400_000) } : {},
+          fields: {
+            present: 1,
+            ...(isNumber(device.createdAt) ? { created_age_days: Math.floor((now - device.createdAt * 1000) / 86_400_000) } : {}),
+          },
         })),
       ]);
     });
@@ -563,7 +566,7 @@ export class PlexPlugin extends BaseInputPlugin<PlexConfig> {
         specs.push(
           ...withStatus('inprogress').map((grab) => ({
             tags: { type: 'Recording', grab_id: grab.id || 'unknown', provider: grab.provider || 'unknown' },
-            fields: pickNumbers(grab, { percent: 'percent' }),
+            fields: { present: 1, ...pickNumbers(grab, { percent: 'percent' }) },
             floatFields: ['percent'],
           }))
         );
@@ -574,15 +577,8 @@ export class PlexPlugin extends BaseInputPlugin<PlexConfig> {
 
   /** Recording operations; undefined when the server answers 403 (no DVR or no Plex Pass). */
   private async scheduledRecordings(): Promise<Grab[] | undefined> {
-    try {
-      return (await this.plex.get('/media/subscriptions/scheduled'))?.MediaContainer?.MediaGrabOperation ?? [];
-    } catch (error) {
-      if (responseStatus(error) === 403) {
-        this.logger.debug('Plex refused the scheduled recordings (no DVR or Plex Pass): recording fields skipped');
-        return undefined;
-      }
-      throw error;
-    }
+    const response = await this.optionalFetch('Plex scheduled recordings', [403], () => this.plex.get('/media/subscriptions/scheduled'));
+    return response === undefined ? undefined : (response?.MediaContainer?.MediaGrabOperation ?? []);
   }
 
   /** Names of the accounts and devices that history and bandwidth rows reference by id. */

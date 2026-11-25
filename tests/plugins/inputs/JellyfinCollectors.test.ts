@@ -76,6 +76,15 @@ describe('JellyfinPlugin collectors', () => {
       expect(client.get).toHaveBeenCalledWith('/ScheduledTasks', { params: { isHidden: false } });
     });
 
+    it('keeps tasks and plugins on servers without the storage endpoint', async () => {
+      client.fail('/System/Info/Storage', Object.assign(new Error('Request failed with status code 404'), { response: { status: 404 } }));
+
+      const points = await plugin.collect();
+
+      expect(ofType(points, 'Tasks')).toHaveLength(1);
+      expect(ofType(points, 'Storage')).toEqual([]);
+    });
+
     it('fails the status collector when one endpoint fails', async () => {
       client.fail('/Plugins', new Error('boom'));
 

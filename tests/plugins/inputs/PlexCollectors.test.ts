@@ -4,6 +4,7 @@ import { PlexPlugin } from '../../../src/plugins/inputs/PlexPlugin';
 import { PlexConfigSchema } from '../../../src/config/schemas/config.schema';
 import type { PlexConfig } from '../../../src/types/inputs/plex.types';
 import { createContractHttpClient, type ContractHttpClient } from '../../fixtures/contract-http';
+import { loadFixture } from '../../contracts/registry';
 import type { DataPoint } from '../../../src/types/plugin.types';
 import { useEventStateFolder } from '../../../src/utils/EventStateStore';
 
@@ -57,15 +58,29 @@ describe('PlexPlugin collectors', () => {
 
       expect(ofType(points, 'Activities')[0].fields).toEqual({ count: 2 });
       expect(ofType(points, 'Activity').map((p) => [p.tags.activity_type, p.fields])).toEqual([
-        ['media.generate.intros', { progress: 40, cancellable: 1 }],
-        ['library.update.section', { progress: 5, cancellable: 0 }],
+        ['media.generate.intros', { present: 1, progress: 40, cancellable: 1 }],
+        ['library.update.section', { present: 1, progress: 5, cancellable: 0 }],
       ]);
       expect(ofType(points, 'Activity')[0].floatFields).toContain('progress');
       expect(ofType(points, 'BackgroundTranscodes')[0].fields).toEqual({ count: 1 });
       expect(ofType(points, 'BackgroundTranscode')[0]).toMatchObject({
         tags: { rating_key: '501', server: 1 },
-        fields: { progress: 42.5, speed: 2.4, remaining_seconds: 600, size: 524288000 },
+        fields: { present: 1, progress: 42.5, speed: 2.4, remaining_seconds: 600, size: 524288000 },
       });
+    });
+
+    it('skips the negative sentinel sizes Plex reports for unknown values', async () => {
+      client.override('/status/sessions/background', { MediaContainer: { size: 1, TranscodeJob: [{ type: 'transcode', ratingKey: '501', progress: 1.5, size: -22, remaining: -1 }] } });
+
+      const [job] = ofType(await plugin.collect(), 'BackgroundTranscode');
+
+      expect(job.fields).toEqual({ present: 1, progress: 1.5 });
+    });
+
+    it('tags an empty release state as none', async () => {
+      client.overrideUnchecked('/updater/status', { MediaContainer: { canInstall: false, checkedAt: 1795602000, Release: [{ version: '1.42.3', state: '' }] } });
+
+      expect(ofType(await plugin.collect(), 'Updater')[0].tags.state).toBe('none');
     });
 
     it('collects butler tasks and updater state', async () => {
@@ -161,6 +176,34 @@ describe('PlexPlugin collectors', () => {
       ]);
     });
 
+    it('keeps completed hours when another status endpoint fails', async () => {
+      const butler = loadFixture<object>('plex/butler');
+      let calls = 0;
+      client.override('/butler', () => {
+        calls += 1;
+        if (calls === 1) {
+          throw new Error('butler down');
+        }
+        return butler;
+      });
+
+      await expect(plugin.collect()).rejects.toThrow('butler down');
+
+      expect(bandwidth(await plugin.collect())).toHaveLength(3);
+    });
+
+    it('keeps the other status points when Plex refuses the statistics', async () => {
+      const refused = Object.assign(new Error('Request failed with status code 403'), { response: { status: 403 } });
+      client.fail('/statistics/bandwidth', refused);
+      client.fail('/statistics/resources', refused);
+
+      const points = await plugin.collect();
+
+      expect(ofType(points, 'Activities')).toHaveLength(1);
+      expect(ofType(points, 'Resources')).toEqual([]);
+      expect(bandwidth(points)).toEqual([]);
+    });
+
     it('emits nothing for hours that completed before plugin start', async () => {
       plugin = new PlexPlugin();
       await plugin.initialize(config({ status: true }));
@@ -225,8 +268,8 @@ describe('PlexPlugin collectors', () => {
 
       expect(ofType(points, 'Inventory')[0].fields).toEqual({ accounts: 2, devices: 2 });
       expect(ofType(points, 'Device').map((p) => [p.tags.device_id, p.tags.device_name, p.tags.platform, p.fields])).toEqual([
-        [11, 'Living Room TV', 'Android', { created_age_days: 5 }],
-        [12, "Alice's iPhone", 'iOS', { created_age_days: 370 }],
+        [11, 'Living Room TV', 'Android', { present: 1, created_age_days: 5 }],
+        [12, "Alice's iPhone", 'iOS', { present: 1, created_age_days: 370 }],
       ]);
     });
 
@@ -254,7 +297,7 @@ describe('PlexPlugin collectors', () => {
       expect(ofType(points, 'Recording')).toEqual([
         expect.objectContaining({
           tags: { type: 'Recording', grab_id: 'grab-2', provider: 'tv.plex.providers.epg.cloud', server: 1 },
-          fields: { percent: 55.5 },
+          fields: { present: 1, percent: 55.5 },
           floatFields: ['percent'],
         }),
       ]);

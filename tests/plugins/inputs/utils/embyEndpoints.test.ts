@@ -107,9 +107,9 @@ describe('userPoints', () => {
   it('maps each user', () => {
     expect(userPoints(users, now)[0]).toEqual({
       tags: { type: 'User', user_id: 'a', username: 'admin' },
-      fields: { is_admin: 1, is_disabled: 0, is_hidden: 1, has_password: 1, last_activity_age_seconds: 3600, last_login_age_seconds: 432000 },
+      fields: { present: 1, is_admin: 1, is_disabled: 0, is_hidden: 1, has_password: 1, last_activity_age_seconds: 3600, last_login_age_seconds: 432000 },
     });
-    expect(userPoints(users, now)[2].fields).toEqual({});
+    expect(userPoints(users, now)[2].fields).toEqual({ present: 1 });
   });
 
   it('counts users active within 24 hours and 30 days', () => {
@@ -132,10 +132,17 @@ describe('devicePoints', () => {
 
     expect(points[0]).toEqual({
       tags: { type: 'Device', device_id: 'd1', device_name: 'Alice phone', app_name: 'Swiftfin', app_version: '1.2', last_user: 'alice' },
-      fields: { last_activity_age_seconds: 1800 },
+      fields: { present: 1, last_activity_age_seconds: 1800 },
     });
     expect(points[1].tags.device_name).toBe('TV');
     expect(points.at(-1)).toEqual({ tags: { type: 'Devices' }, fields: { devices: 2, active_24h: 1 } });
+  });
+});
+
+describe('list points without data', () => {
+  it('keeps a device without activity date and a user without flags as points', () => {
+    expect(devicePoints([{ Id: 'd' }], now)[0].fields).toEqual({ present: 1 });
+    expect(userPoints([{ Id: 'u' }], now)[0].fields).toEqual({ present: 1 });
   });
 });
 

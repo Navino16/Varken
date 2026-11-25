@@ -644,6 +644,7 @@ Config: `inputs.plex[].status` (`enabled`, `intervalSeconds`, default disabled, 
 |-----|------|------|---------|
 | `count` | field | number | `Activities`: running activities |
 | `activity_type` | tag | string | `Activity`: activity type (`library.update.section`, `media.generate.intros`, ...) |
+| `present` | field | number | `Activity`: always `1`, keeps the point when Plex reports no other value |
 | `progress` | field | float | `Activity`: progress in percent |
 | `cancellable` | field | number | `Activity`: `1` when it can be cancelled |
 
@@ -655,9 +656,12 @@ Config: `status` · Source: `/status/sessions/background` (optimize and sync job
 |-----|------|------|---------|
 | `count` | field | number | `BackgroundTranscodes`: running jobs |
 | `rating_key` | tag | string | `BackgroundTranscode`: item being transcoded |
+| `present` | field | number | `BackgroundTranscode`: always `1` |
 | `progress`, `speed` | field | float | `BackgroundTranscode`: progress in percent, transcode speed |
 | `remaining_seconds` | field | number | `BackgroundTranscode`: estimated time left |
 | `size` | field | number | `BackgroundTranscode`: output size in bytes |
+
+Plex reports unknown sizes and durations as negative numbers (e.g. `-22`): those are omitted.
 
 ### type = ButlerTask
 
@@ -684,7 +688,7 @@ Config: `status` · Source: `/updater/status`.
 
 ### type = Resources
 
-Config: `status` · Source: `/statistics/resources?timespan=6`. The most recent sample, timestamped with its time; no point when Plex returns none.
+Config: `status` · Source: `/statistics/resources?timespan=6`. The most recent sample, timestamped with its time; no point when Plex returns none, or refuses the request (`401`/`403`) without failing the other status points.
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
@@ -704,7 +708,7 @@ Config: `status` · Source: `/transcode/sessions` (playback and background trans
 
 ### type = Bandwidth
 
-Config: `status` · Source: `/statistics/bandwidth?timespan=4&at>=<mark>` (hourly bins), with `/accounts` and `/devices` for the names. One event point per account, device and network for each **completed** hour, timestamped with the start of the hour: an hour is written once it has ended, so its point arrives up to one status interval after the hour.
+Config: `status` · Source: `/statistics/bandwidth?timespan=4&at>=<mark>` (hourly bins), with `/accounts` and `/devices` for the names. One event point per account, device and network for each **completed** hour, timestamped with the start of the hour: an hour is written once it has ended, so its point arrives up to one status interval after the hour. A status poll that fails writes no hour, and the next successful poll writes it. When Plex refuses the request (`401`/`403`) no bandwidth point is written and the other status points are kept.
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
@@ -735,6 +739,7 @@ Config: `inputs.plex[].inventory` (`enabled`, `intervalSeconds`, default disable
 |-----|------|------|---------|
 | `accounts`, `devices` | field | number | `Inventory`: accounts and devices known to the server |
 | `device_id`, `device_name`, `platform` | tag | number, string | `Device`: one point per device |
+| `present` | field | number | `Device`: always `1` |
 | `created_age_days` | field | number | `Device`: days since the device first connected |
 
 ### type = LiveTv / Recording
@@ -746,6 +751,7 @@ Config: `inputs.plex[].liveTv` (`enabled`, `intervalSeconds`, default disabled, 
 | `sessions` | field | number | `LiveTv`: live TV sessions |
 | `recordings_scheduled`, `recordings_in_progress`, `recordings_failed` | field | number | `LiveTv`: recording operations by status (`scheduled`, `inprogress`, `error`) |
 | `grab_id`, `provider` | tag | string | `Recording`: operation id and guide provider |
+| `present` | field | number | `Recording`: always `1` |
 | `percent` | field | float | `Recording`: progress in percent |
 
 ## Jellyfin
@@ -979,7 +985,7 @@ Config: `status` · Source: `/Plugins`. `Plugin` is one point per installed plug
 
 ### type = Storage
 
-Config: `status` · Source: `/System/Info/Storage` (Jellyfin only). One point per server folder and per library folder. Space is that of the device holding the folder (`StorageHelper.GetFreeSpaceOf`), not of the folder itself; a device Jellyfin cannot read (reported as `-1`) gets no space fields.
+Config: `status` · Source: `/System/Info/Storage` (Jellyfin 10.11 and later; older servers answer `404` and get no storage point, the other status points are kept). One point per server folder and per library folder. Space is that of the device holding the folder (`StorageHelper.GetFreeSpaceOf`), not of the folder itself; a device Jellyfin cannot read (reported as `-1`) gets no space fields.
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
@@ -1009,6 +1015,7 @@ Config: `inputs.<service>[].inventory` (`enabled`, `intervalSeconds`, default di
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
 | `user_id`, `username` | tag | string | `User`: one point per user |
+| `present` | field | number | `User`: always `1` |
 | `is_admin`, `is_disabled`, `is_hidden`, `has_password` | field | number | `User`: `1` yes, `0` no; omitted when not reported |
 | `last_activity_age_seconds`, `last_login_age_seconds` | field | number | `User`: seconds since the last activity / login; omitted when never |
 | `users`, `admins`, `disabled` | field | number | `Users`: counts |
@@ -1024,6 +1031,7 @@ Config: `inventory` · Source: `/Devices`. Access tokens (Jellyfin) and IP addre
 | `device_name` | tag | string | `Device`: custom name, else device name |
 | `app_name`, `app_version` | tag | string | `Device`: client application |
 | `last_user` | tag | string | `Device`: last user name |
+| `present` | field | number | `Device`: always `1` |
 | `last_activity_age_seconds` | field | number | `Device`: seconds since its last activity |
 | `devices`, `active_24h` | field | number | `Devices`: devices, devices active in the last 24 hours |
 

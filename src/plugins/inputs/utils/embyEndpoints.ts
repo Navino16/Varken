@@ -160,12 +160,15 @@ function activeWithin(times: readonly (number | undefined)[], seconds: number, n
 export function userPoints(users: readonly EmbyUserLike[], now: Date): PointSpec[] {
   const lastActivity = users.map((u) => dotnetTime(u.LastActivityDate));
   const points = users.map((user, i): PointSpec => {
-    const fields: Record<string, number> = booleanFlags({
-      is_admin: user.Policy?.IsAdministrator,
-      is_disabled: user.Policy?.IsDisabled,
-      is_hidden: user.Policy?.IsHidden,
-      has_password: user.HasPassword,
-    });
+    const fields: Record<string, number> = {
+      present: 1,
+      ...booleanFlags({
+        is_admin: user.Policy?.IsAdministrator,
+        is_disabled: user.Policy?.IsDisabled,
+        is_hidden: user.Policy?.IsHidden,
+        has_password: user.HasPassword,
+      }),
+    };
     const activity = ageSeconds(lastActivity[i], now);
     if (activity !== undefined) {
       fields.last_activity_age_seconds = activity;
@@ -204,7 +207,7 @@ export function devicePoints(devices: readonly EmbyDeviceLike[], now: Date): Poi
         app_version: label(device.AppVersion),
         last_user: label(device.LastUserName),
       },
-      fields: age === undefined ? {} : { last_activity_age_seconds: age },
+      fields: age === undefined ? { present: 1 } : { present: 1, last_activity_age_seconds: age },
     };
   });
   return [...points, { tags: { type: 'Devices' }, fields: { devices: devices.length, active_24h: activeWithin(lastActivity, DAY_SECONDS, now) } }];

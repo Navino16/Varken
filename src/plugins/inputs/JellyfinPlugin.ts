@@ -298,9 +298,10 @@ export class JellyfinPlugin extends BaseInputPlugin<JellyfinConfig> {
       const [tasks, plugins, storage] = await Promise.all([
         this.jellyfin.get('/ScheduledTasks', { query: { isHidden: false } }),
         this.jellyfin.get('/Plugins'),
-        this.jellyfin.get('/System/Info/Storage'),
+        // Jellyfin 10.11+: older servers answer 404.
+        this.optionalFetch('Jellyfin storage', [404], () => this.jellyfin.get('/System/Info/Storage')),
       ]);
-      return this.createPoints([...taskPoints(tasks, new Date()), ...pluginPoints(plugins), ...storagePoints(storage)]);
+      return this.createPoints([...taskPoints(tasks, new Date()), ...pluginPoints(plugins), ...(storage ? storagePoints(storage) : [])]);
     });
   }
 
