@@ -495,6 +495,25 @@ scrape_configs:
 
 Or find community dashboards on [Grafana.com](https://grafana.com/grafana/dashboards/).
 
+### Data Reference
+
+Every measurement, tag and field Varken writes, per input plugin, is listed in [docs/data-reference.md](docs/data-reference.md).
+
+## Data changes after 2.4.0
+
+A few keys were wrong or could not be graphed. They were fixed in a way that breaks dashboards built on them: update those panels after upgrading. Keys whose type changed were renamed, so old queries return no data instead of failing writes.
+
+| Plugin | Before | After |
+|--------|--------|-------|
+| Plex | field `transcode_streams` counted every session with a transcode session, direct streams included | counts only sessions whose video or audio is transcoded |
+| Jellyfin, Emby | tag `audio_codec` = transcoded codec, `unknown` on direct play | source audio codec of the played track |
+| Jellyfin, Emby | field `transcode_streams` counted remuxes | counts only sessions whose video or audio is transcoded |
+| Tautulli | tags `progress_percent`, `latitude`, `longitude` | numeric fields `progress`, `lat`, `lon` (no coordinates when GeoIP has none) |
+| Bazarr | string field `score` (`"92.5%"`) | numeric field `score_percent` (`92.5`) |
+| Overseerr | tag `status` = media availability; `requested_user` / `requested_date` from the title's first request | tag `status` = request status, new tag `media_status` = media availability; `requested_user` / `requested_date` from the request itself |
+
+The full current schema is in [docs/data-reference.md](docs/data-reference.md).
+
 ## Migration from Python Version
 
 If you're upgrading from the legacy Python version of Varken:

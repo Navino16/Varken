@@ -130,6 +130,32 @@ describe('PlexPlugin', () => {
       expect(summary?.fields).toEqual({ stream_count: 2, transcode_streams: 1 });
     });
 
+    function withMovieDecisions(videoDecision: string, audioDecision: string): void {
+      const [episode, movie] = sessions();
+      client.override('/status/sessions', {
+        MediaContainer: {
+          size: 2,
+          Metadata: [episode, { ...movie, TranscodeSession: { ...movie.TranscodeSession, videoDecision, audioDecision } }],
+        },
+      });
+    }
+
+    async function transcodeStreams(): Promise<unknown> {
+      return (await plugin.collect()).find((p) => p.tags.type === 'current_stream_stats')?.fields.transcode_streams;
+    }
+
+    it('does not count a direct stream as a transcode', async () => {
+      withMovieDecisions('copy', 'copy');
+
+      expect(await transcodeStreams()).toBe(0);
+    });
+
+    it('counts an audio-only transcode', async () => {
+      withMovieDecisions('copy', 'transcode');
+
+      expect(await transcodeStreams()).toBe(1);
+    });
+
     it('emits a zero summary when nothing is playing', async () => {
       client.override('/status/sessions', { MediaContainer: { size: 0 } });
 

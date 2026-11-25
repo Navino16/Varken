@@ -88,7 +88,7 @@ export abstract class BaseOutputPlugin<TConfig extends BaseOutputConfig = BaseOu
       .filter(([, value]) => value !== undefined && value !== null)
       .map(([key, value]) => {
         const escapedKey = this.escapeLineProtocol(key, 'field');
-        const formattedValue = this.formatFieldValue(value);
+        const formattedValue = this.formatFieldValue(value, point.floatFields?.includes(key) ?? false);
         return `${escapedKey}=${formattedValue}`;
       })
       .join(',');
@@ -132,14 +132,14 @@ export abstract class BaseOutputPlugin<TConfig extends BaseOutputConfig = BaseOu
   /**
    * Format a field value according to Line Protocol rules
    */
-  private formatFieldValue(value: string | number | boolean): string {
+  private formatFieldValue(value: string | number | boolean, isFloat: boolean): string {
     if (typeof value === 'boolean') {
       return value ? 't' : 'f';
     }
 
     if (typeof value === 'number') {
       // Integers need 'i' suffix, floats don't
-      if (Number.isInteger(value)) {
+      if (Number.isInteger(value) && !isFloat) {
         return `${value}i`;
       }
       return String(value);

@@ -193,6 +193,19 @@ describe('InfluxDB2Plugin', () => {
       expect(mockWriteApi.writePoint).toHaveBeenCalled();
     });
 
+    it('writes declared float fields as floats even when whole', async () => {
+      const points: DataPoint[] = [
+        { measurement: 'test', tags: {}, fields: { lat: 48, count: 3 }, floatFields: ['lat'], timestamp: new Date() },
+      ];
+
+      await plugin.write(points);
+
+      const written = mockWriteApi.writePoint.mock.calls[0][0];
+      expect(written.floatField).toHaveBeenCalledWith('lat', 48);
+      expect(written.intField).toHaveBeenCalledWith('count', 3);
+      expect(written.intField).not.toHaveBeenCalledWith('lat', 48);
+    });
+
     it('should handle boolean fields', async () => {
       const points: DataPoint[] = [
         {

@@ -109,7 +109,7 @@ export class InfluxDB2Plugin extends BaseOutputPlugin<InfluxDB2Config> {
       if (typeof value === 'boolean') {
         point.booleanField(key, value);
       } else if (typeof value === 'number') {
-        if (Number.isInteger(value)) {
+        if (Number.isInteger(value) && !dataPoint.floatFields?.includes(key)) {
           point.intField(key, value);
         } else {
           point.floatField(key, value);
