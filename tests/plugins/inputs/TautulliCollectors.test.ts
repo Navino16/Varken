@@ -176,4 +176,95 @@ describe('TautulliPlugin collectors', () => {
       expect(plugin.getSchedules().map((s) => s.name)).toEqual(['Tautulli_1_stats']);
     });
   });
+  describe('history', () => {
+    beforeEach(async () => {
+      vi.setSystemTime(new Date('2026-11-25T09:30:00Z'));
+      await plugin.initialize(config({ history: true }));
+      vi.setSystemTime(NOW);
+    });
+
+    it('emits one Play point per history row', async () => {
+      const plays = ofType(await plugin.collect(), 'Play');
+
+      expect(plays.map((p) => [p.tags, p.fields])).toEqual([
+        [
+          {
+            type: 'Play',
+            server: 1,
+            media_type: 'movie',
+            rating_key: 101,
+            user_id: 133788,
+            username: 'jon',
+            platform: 'Android',
+            player: 'SHIELD',
+            product: 'Plex for Android (TV)',
+            transcode_decision: 'direct play',
+            network: 'lan',
+            live: 0,
+          },
+          { hash: expect.any(String), title: 'Inception', play_duration_seconds: 9540, paused_seconds: 60, percent_complete: 98, watched_status: 1 },
+        ],
+        [
+          {
+            type: 'Play',
+            server: 1,
+            media_type: 'episode',
+            rating_key: 2001,
+            user_id: 133789,
+            username: 'arya',
+            platform: 'Android',
+            player: 'SHIELD',
+            product: 'Plex for Android (TV)',
+            transcode_decision: 'transcode',
+            network: 'wan',
+            live: 0,
+          },
+          {
+            hash: expect.any(String),
+            title: 'Game of Thrones - Winter Is Coming',
+            play_duration_seconds: 5940,
+            paused_seconds: 60,
+            percent_complete: 60,
+            watched_status: 0.5,
+          },
+        ],
+      ]);
+      expect(plays.map((p) => p.timestamp.getTime() - (NOW_S - 1200) * 1000)).toEqual([3, 2]);
+      expect(plays[1].floatFields).toContain('watched_status');
+    });
+
+    it('does not re-emit plays on the next poll', async () => {
+      await plugin.collect();
+
+      expect(ofType(await plugin.collect(), 'Play')).toEqual([]);
+    });
+
+    it('asks history ordered by stop time', async () => {
+      await plugin.collect();
+
+      expect(queryOf(client, cmd('get_history'))[0]).toMatchObject({
+        grouping: 0,
+        include_activity: 0,
+        order_column: 'stopped',
+        order_dir: 'desc',
+        length: 500,
+      });
+    });
+
+    it('skips rows without a stop time', async () => {
+      const body = loadFixture('tautulli/get-history') as { response: { data: { data: { stopped: number | null }[] } } };
+      body.response.data.data[0].stopped = null;
+      client.override(cmd('get_history'), body as never);
+
+      expect(ofType(await plugin.collect(), 'Play').map((p) => p.fields.title)).toEqual(['Game of Thrones - Winter Is Coming']);
+    });
+
+    it('never emits history IP addresses', async () => {
+      expect(valuesOf(await plugin.collect())).not.toContain('203.0.113.9');
+    });
+
+    it('schedules the history collector', () => {
+      expect(plugin.getSchedules().map((s) => s.name)).toEqual(['Tautulli_1_history']);
+    });
+  });
 });

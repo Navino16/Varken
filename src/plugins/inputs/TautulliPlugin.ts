@@ -13,6 +13,7 @@ import { completedBuckets, graphSnapshotPoints, homeStatPoints, type GraphBucket
 
 type TautulliSession = components['schemas']['Session'];
 type RecentlyAddedItem = components['schemas']['RecentlyAddedItem'];
+type HistoryRow = components['schemas']['HistoryRow'];
 
 const SERVER_INFO_PATH: GetPath<paths> = '/api/v2?cmd=get_server_info';
 
@@ -98,6 +99,10 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
       points.push(...(await this.collectServerInfo()));
     }
 
+    if (this.config.history.enabled) {
+      points.push(...(await this.collectHistory()));
+    }
+
     return points;
   }
 
@@ -134,6 +139,10 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
 
     if (this.config.serverInfo.enabled) {
       schedules.push(this.createSchedule('serverInfo', this.config.serverInfo.intervalSeconds, true, this.collectServerInfo));
+    }
+
+    if (this.config.history.enabled) {
+      schedules.push(this.createSchedule('history', this.config.history.intervalSeconds, true, this.collectHistory));
     }
 
     return schedules;
@@ -562,6 +571,52 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
         timestamp: eventTimestamp(addedAt(item), numberOf(item.rating_key)),
       };
     });
+  }
+
+  /** One point per play, once Tautulli has recorded its end. */
+  private async collectHistory(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Tautulli history', async () => {
+      const response = await this.api<paths>().get('/api/v2?cmd=get_history', {
+        query: { apikey: this.config.apiKey, grouping: 0, include_activity: 0, order_column: 'stopped', order_dir: 'desc', length: 500 },
+      });
+      const stoppedAt = (row: HistoryRow): number => (typeof row.stopped === 'number' && row.stopped > 0 ? row.stopped * 1000 : Number.NaN);
+      const plays = await this.takeNewEvents('history', response.response.data.data ?? [], stoppedAt, (row) => String(row.row_id));
+      return this.createPoints(plays.map((row) => this.playPoint(row, stoppedAt(row))));
+    });
+  }
+
+  private playPoint(row: HistoryRow, stoppedAt: number): PointSpec {
+    const fields: Record<string, string | number> = {
+      hash: this.hashit(`${this.config.id}${row.row_id}`),
+      title: row.full_title || row.title || 'unknown',
+    };
+    const put = (key: string, value: number | null | undefined): void => {
+      if (typeof value === 'number' && Number.isFinite(value)) {
+        fields[key] = value;
+      }
+    };
+    put('play_duration_seconds', row.play_duration);
+    put('paused_seconds', row.paused_counter);
+    put('percent_complete', row.percent_complete);
+    put('watched_status', row.watched_status);
+    return {
+      tags: {
+        type: 'Play',
+        media_type: row.media_type || 'unknown',
+        rating_key: row.rating_key ?? 'unknown',
+        user_id: row.user_id ?? 'unknown',
+        username: row.user || 'unknown',
+        platform: row.platform || 'unknown',
+        player: row.player || 'unknown',
+        product: row.product || 'unknown',
+        transcode_decision: row.transcode_decision || 'unknown',
+        network: row.location === 'lan' || row.location === 'wan' ? row.location : 'unknown',
+        live: row.live ?? 'unknown',
+      },
+      fields,
+      timestamp: eventTimestamp(stoppedAt, row.row_id),
+      floatFields: ['watched_status'],
+    };
   }
 
   /**
