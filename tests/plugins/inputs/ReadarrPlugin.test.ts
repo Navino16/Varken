@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
 import axios from 'axios';
 import { ReadarrPlugin } from '../../../src/plugins/inputs/ReadarrPlugin';
 import { PROTOCOL_ID } from '../../../src/plugins/inputs/constants';
@@ -39,6 +39,7 @@ describe('ReadarrPlugin', () => {
     verifySsl: false,
     queue: { enabled: true, intervalSeconds: 30 },
     missing: { enabled: true, intervalSeconds: 300 },
+    serverInfo: { enabled: false, intervalSeconds: 300 },
   };
 
   beforeEach(() => {
@@ -242,6 +243,46 @@ describe('ReadarrPlugin', () => {
       const second = (await plugin.collect()).map((p) => p.fields.hash);
 
       expect(second).toEqual(first);
+    });
+  });
+
+  describe('server info', () => {
+    const serverInfoOnly = (): ReadarrConfig => ({
+      ...testConfig,
+      queue: { enabled: false, intervalSeconds: 30 },
+      missing: { enabled: false, intervalSeconds: 30 },
+      serverInfo: { enabled: true, intervalSeconds: 300 },
+    });
+
+    beforeEach(async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-11-24T10:00:00Z'));
+      await plugin.initialize(serverInfoOnly());
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('collects server info', async () => {
+      const points = await plugin.collect();
+
+      expect(points).toHaveLength(1);
+      expect(points[0]).toMatchObject({
+        measurement: 'Readarr',
+        tags: { type: 'ServerInfo', server: 1, version: '0.4.18.2805', branch: 'main' },
+        fields: { update_available: 1, health_errors: 1, health_warnings: 1, health_notices: 0, uptime_seconds: 7200 },
+      });
+    });
+
+    it('schedules serverInfo when enabled', () => {
+      expect(plugin.getSchedules().map((s) => s.name)).toEqual(['Readarr_1_serverInfo']);
+    });
+
+    it('fails the server info collector when update fails', async () => {
+      client.fail('/api/v1/update', new Error('Forbidden'));
+
+      await expect(plugin.collect()).rejects.toThrow('Forbidden');
     });
   });
 

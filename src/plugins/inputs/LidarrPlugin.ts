@@ -3,6 +3,7 @@ import { PROTOCOL_ID } from './constants';
 import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
 import type { LidarrConfig } from '../../types/inputs/lidarr.types';
 import type { paths } from '../../types/generated/lidarr';
+import { servarrServerInfo } from './utils/servarrServerInfo';
 
 /**
  * Lidarr input plugin
@@ -48,6 +49,10 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
       points.push(...missingPoints);
     }
 
+    if (this.config.serverInfo.enabled) {
+      points.push(...(await this.collectServerInfo()));
+    }
+
     return points;
   }
 
@@ -67,6 +72,10 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
       schedules.push(
         this.createSchedule('missing', this.config.missing.intervalSeconds, true, this.collectMissing)
       );
+    }
+
+    if (this.config.serverInfo.enabled) {
+      schedules.push(this.createSchedule('serverInfo', this.config.serverInfo.intervalSeconds, true, this.collectServerInfo));
     }
 
     return schedules;
@@ -167,6 +176,18 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
 
       this.logger.info(`Collected ${points.length} missing albums from Lidarr`);
       return points;
+    });
+  }
+
+  private async collectServerInfo(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Lidarr server info', async () => {
+      const [status, updates, health] = await Promise.all([
+        this.lidarr.get('/api/v1/system/status'),
+        this.lidarr.get('/api/v1/update'),
+        this.lidarr.get('/api/v1/health'),
+      ]);
+      const { tags, fields } = servarrServerInfo(status ?? {}, updates ?? [], health ?? [], new Date());
+      return [this.createServerInfoPoint(tags, fields)];
     });
   }
 }

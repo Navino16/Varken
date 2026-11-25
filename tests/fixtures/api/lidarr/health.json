@@ -1,0 +1,16 @@
+[
+  {
+    "id": 1,
+    "source": "IndexerStatusCheck",
+    "type": "warning",
+    "message": "Indexers unavailable due to failures: NZBgeek",
+    "wikiUrl": "https://wiki.servarr.com/lidarr/system#indexerstatuscheck"
+  },
+  {
+    "id": 2,
+    "source": "RootFolderCheck",
+    "type": "error",
+    "message": "Missing root folder: /data/media",
+    "wikiUrl": "https://wiki.servarr.com/lidarr/system#rootfoldercheck"
+  }
+]

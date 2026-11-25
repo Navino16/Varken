@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
 import axios from 'axios';
 import { ProwlarrPlugin } from '../../../src/plugins/inputs/ProwlarrPlugin';
 import type { ProwlarrConfig } from '../../../src/types/inputs/prowlarr.types';
@@ -21,6 +21,7 @@ describe('ProwlarrPlugin', () => {
     apiKey: 'prowlarr-api-key',
     verifySsl: false,
     indexerStats: { enabled: true, intervalSeconds: 300 },
+    serverInfo: { enabled: false, intervalSeconds: 300 },
   };
   const disabled: ProwlarrConfig = { ...testConfig, indexerStats: { ...testConfig.indexerStats, enabled: false } };
 
@@ -141,6 +142,45 @@ describe('ProwlarrPlugin', () => {
 
     expect(await plugin.collect()).toEqual([]);
     expect(client.get).not.toHaveBeenCalled();
+  });
+
+  describe('server info', () => {
+    const serverInfoOnly = (): ProwlarrConfig => ({
+      ...testConfig,
+      indexerStats: { enabled: false, intervalSeconds: 30 },
+      serverInfo: { enabled: true, intervalSeconds: 300 },
+    });
+
+    beforeEach(async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-11-24T10:00:00Z'));
+      await plugin.initialize(serverInfoOnly());
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('collects server info', async () => {
+      const points = await plugin.collect();
+
+      expect(points).toHaveLength(1);
+      expect(points[0]).toMatchObject({
+        measurement: 'Prowlarr',
+        tags: { type: 'ServerInfo', server: 1, version: '3.1.0.5799', branch: 'main' },
+        fields: { update_available: 1, health_errors: 1, health_warnings: 1, health_notices: 0, uptime_seconds: 7200 },
+      });
+    });
+
+    it('schedules serverInfo when enabled', () => {
+      expect(plugin.getSchedules().map((s) => s.name)).toEqual(['Prowlarr_1_serverInfo']);
+    });
+
+    it('fails the server info collector when update fails', async () => {
+      client.fail('/api/v1/update', new Error('Forbidden'));
+
+      await expect(plugin.collect()).rejects.toThrow('Forbidden');
+    });
   });
 
   describe('shutdown', () => {

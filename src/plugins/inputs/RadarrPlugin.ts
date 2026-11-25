@@ -3,6 +3,7 @@ import { PROTOCOL_ID } from './constants';
 import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
 import type { RadarrConfig } from '../../types/inputs/radarr.types';
 import type { paths } from '../../types/generated/radarr';
+import { servarrServerInfo } from './utils/servarrServerInfo';
 
 /**
  * Radarr input plugin
@@ -49,6 +50,10 @@ export class RadarrPlugin extends BaseInputPlugin<RadarrConfig> {
       points.push(...missingPoints);
     }
 
+    if (this.config.serverInfo.enabled) {
+      points.push(...(await this.collectServerInfo()));
+    }
+
     return points;
   }
 
@@ -68,6 +73,10 @@ export class RadarrPlugin extends BaseInputPlugin<RadarrConfig> {
       schedules.push(
         this.createSchedule('missing', this.config.missing.intervalSeconds, true, this.collectMissing)
       );
+    }
+
+    if (this.config.serverInfo.enabled) {
+      schedules.push(this.createSchedule('serverInfo', this.config.serverInfo.intervalSeconds, true, this.collectServerInfo));
     }
 
     return schedules;
@@ -172,6 +181,18 @@ export class RadarrPlugin extends BaseInputPlugin<RadarrConfig> {
 
       this.logger.info(`Collected ${points.length} missing movies from Radarr`);
       return points;
+    });
+  }
+
+  private async collectServerInfo(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Radarr server info', async () => {
+      const [status, updates, health] = await Promise.all([
+        this.radarr.get('/api/v3/system/status'),
+        this.radarr.get('/api/v3/update'),
+        this.radarr.get('/api/v3/health'),
+      ]);
+      const { tags, fields } = servarrServerInfo(status ?? {}, updates ?? [], health ?? [], new Date());
+      return [this.createServerInfoPoint(tags, fields)];
     });
   }
 }

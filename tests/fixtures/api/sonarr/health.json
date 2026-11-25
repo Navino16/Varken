@@ -1,0 +1,14 @@
+[
+  {
+    "id": 1,
+    "source": "IndexerStatusCheck",
+    "type": "warning",
+    "message": "Indexers unavailable due to failures: NZBgeek"
+  },
+  {
+    "id": 2,
+    "source": "RootFolderCheck",
+    "type": "error",
+    "message": "Missing root folder: /data/media"
+  }
+]
