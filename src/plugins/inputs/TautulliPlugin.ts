@@ -2,14 +2,17 @@ import { BaseInputPlugin } from './BaseInputPlugin';
 import { isPrivateIp } from './utils/network';
 import { resolutionLabel } from './utils/mediaStreams';
 import { RequestCache } from '../../utils/RequestCache';
-import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
+import type { PluginMetadata, DataPoint, PointSpec, ScheduleConfig } from '../../types/plugin.types';
 import type { TautulliConfig, GeoIPInfo } from '../../types/inputs/tautulli.types';
 import type { components, paths } from '../../types/generated/tautulli';
 import type { GetPath } from '../../types/api-contract';
 import { booleanFlags } from './utils/flags';
 import { numberOf } from './utils/numbers';
+import { eventTimestamp } from './utils/events';
+import { completedBuckets, graphSnapshotPoints, homeStatPoints, type GraphBucket } from './utils/tautulliStats';
 
 type TautulliSession = components['schemas']['Session'];
+type RecentlyAddedItem = components['schemas']['RecentlyAddedItem'];
 
 const SERVER_INFO_PATH: GetPath<paths> = '/api/v2?cmd=get_server_info';
 
@@ -85,9 +88,10 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
       points.push(...activityPoints);
     }
 
-    if (this.config.libraries.enabled || this.config.stats.enabled) {
-      const libraryPoints = await this.collectLibraries();
-      points.push(...libraryPoints);
+    if (this.config.stats.enabled) {
+      points.push(...(await this.collectStats()));
+    } else if (this.config.libraries.enabled) {
+      points.push(...(await this.collectLibraries()));
     }
 
     if (this.config.serverInfo.enabled) {
@@ -116,7 +120,7 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
 
     if (this.config.stats.enabled) {
       schedules.push(
-        this.createSchedule('stats', this.config.stats.intervalSeconds, true, this.collectLibraries)
+        this.createSchedule('stats', this.config.stats.intervalSeconds, true, this.collectStats)
       );
     }
 
@@ -488,6 +492,75 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
 
       this.logger.info(`Collected ${libraries.length} library stats from Tautulli`);
       return points;
+    });
+  }
+
+  /** Library stats, home stats, graphs and recently added items. */
+  private async collectStats(): Promise<DataPoint[]> {
+    const libraries = await this.collectLibraries();
+    const points = await this.safeFetch('collect Tautulli stats', async () => {
+      const tautulli = this.api<paths>();
+      const query = { apikey: this.config.apiKey };
+      const window = { ...query, time_range: 30 };
+      const days = { ...query, time_range: 7 };
+      const [home, dayOfWeek, hourOfDay, platforms, users, byDate, byStreamType, concurrent, byMonth, recent] = await Promise.all([
+        tautulli.get('/api/v2?cmd=get_home_stats', { query: { ...window, stats_count: 5 } }),
+        tautulli.get('/api/v2?cmd=get_plays_by_dayofweek', { query: window }),
+        tautulli.get('/api/v2?cmd=get_plays_by_hourofday', { query: window }),
+        tautulli.get('/api/v2?cmd=get_stream_type_by_top_10_platforms', { query: window }),
+        tautulli.get('/api/v2?cmd=get_stream_type_by_top_10_users', { query: window }),
+        tautulli.get('/api/v2?cmd=get_plays_by_date', { query: days }),
+        tautulli.get('/api/v2?cmd=get_plays_by_stream_type', { query: days }),
+        tautulli.get('/api/v2?cmd=get_concurrent_streams_by_stream_type', { query: days }),
+        tautulli.get('/api/v2?cmd=get_plays_per_month', { query: { ...query, time_range: 3 } }),
+        tautulli.get('/api/v2?cmd=get_recently_added', { query: { ...query, count: '50' } }),
+      ]);
+      const specs: PointSpec[] = [
+        ...homeStatPoints(home.response.data, new Date()),
+        ...graphSnapshotPoints('PlaysByDayOfWeek', 'day', dayOfWeek.response.data),
+        ...graphSnapshotPoints('PlaysByHourOfDay', 'hour', hourOfDay.response.data),
+        ...graphSnapshotPoints('StreamTypeByPlatform', 'platform', platforms.response.data),
+        ...graphSnapshotPoints('StreamTypeByUser', 'user', users.response.data),
+      ];
+      const buckets: [string, string, GraphBucket[]][] = [
+        ['plays_by_date', 'PlaysByDate', completedBuckets(byDate.response.data, 'day')],
+        ['plays_by_stream_type', 'PlaysByStreamType', completedBuckets(byStreamType.response.data, 'day')],
+        ['concurrent_streams', 'ConcurrentStreams', completedBuckets(concurrent.response.data, 'day')],
+        ['plays_by_month', 'PlaysByMonth', completedBuckets(byMonth.response.data, 'month')],
+      ];
+      for (const [collector, type, list] of buckets) {
+        const fresh = await this.takeNewEvents(collector, list, (b) => b.end, (b) => b.category);
+        specs.push(...fresh.map((b) => ({ tags: { type }, fields: b.fields, timestamp: new Date(b.start) })));
+      }
+      specs.push(...(await this.recentlyAddedPoints(recent.response.data.recently_added ?? [])));
+      return this.createPoints(specs);
+    });
+    return [...libraries, ...points];
+  }
+
+  private async recentlyAddedPoints(items: readonly RecentlyAddedItem[]): Promise<PointSpec[]> {
+    const addedAt = (item: RecentlyAddedItem): number => (numberOf(item.added_at) ?? Number.NaN) * 1000;
+    const fresh = await this.takeNewEvents('recently_added', items, addedAt, (item) => String(item.rating_key));
+    return fresh.map((item) => {
+      const fields: Record<string, string | number> = {
+        hash: this.hashit(`${this.config.id}${item.rating_key}`),
+        title: item.full_title || item.title || 'unknown',
+      };
+      const year = numberOf(item.year);
+      if (year !== undefined) {
+        fields.year = year;
+      }
+      return {
+        tags: {
+          type: 'RecentlyAdded',
+          media_type: item.media_type || 'unknown',
+          section_id: item.section_id || 'unknown',
+          library_name: item.library_name || 'unknown',
+          rating_key: item.rating_key || 'unknown',
+        },
+        fields,
+        timestamp: eventTimestamp(addedAt(item), numberOf(item.rating_key)),
+      };
     });
   }
 

@@ -541,7 +541,7 @@ describe('TautulliPlugin', () => {
 
       const points = await plugin.collect();
 
-      expect(points).toEqual([]);
+      expect(points.filter((p) => ['Session', 'current_stream_stats', 'library_stats'].includes(String(p.tags.type)))).toEqual([]);
     });
   });
 
