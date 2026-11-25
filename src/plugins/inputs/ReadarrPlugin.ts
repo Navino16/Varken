@@ -4,6 +4,7 @@ import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plug
 import type { ReadarrConfig } from '../../types/inputs/readarr.types';
 import type { paths } from '../../types/generated/readarr';
 import { servarrServerInfo } from './utils/servarrServerInfo';
+import { queueEnrichment } from './utils/servarr';
 
 /**
  * Readarr input plugin
@@ -97,6 +98,7 @@ export class ReadarrPlugin extends BaseInputPlugin<ReadarrConfig> {
         return points;
       }
 
+      const now = new Date();
       for (const queueItem of allRecords) {
         if (!queueItem.book) {
           this.logger.debug('Skipping queue item with missing book data');
@@ -112,6 +114,7 @@ export class ReadarrPlugin extends BaseInputPlugin<ReadarrConfig> {
 
         const hashId = this.hashit(`${this.config.id}${name}${quality}`);
 
+        const enrichment = queueEnrichment(queueItem, now);
         points.push(
           this.createDataPoint(
             'Readarr',
@@ -124,10 +127,11 @@ export class ReadarrPlugin extends BaseInputPlugin<ReadarrConfig> {
               protocol,
               protocol_id: protocolId,
               titleSlug: book.titleSlug ?? 'unknown',
+              ...enrichment.tags,
             },
-            {
-              hash: hashId,
-            }
+            { hash: hashId, ...enrichment.fields },
+            undefined,
+            enrichment.floatFields
           )
         );
       }

@@ -4,6 +4,7 @@ import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plug
 import type { RadarrConfig } from '../../types/inputs/radarr.types';
 import type { paths } from '../../types/generated/radarr';
 import { servarrServerInfo } from './utils/servarrServerInfo';
+import { queueEnrichment } from './utils/servarr';
 
 /**
  * Radarr input plugin
@@ -97,6 +98,7 @@ export class RadarrPlugin extends BaseInputPlugin<RadarrConfig> {
         return points;
       }
 
+      const now = new Date();
       for (const queueItem of allRecords) {
         if (!queueItem.movie) {
           this.logger.debug('Skipping queue item with missing movie data');
@@ -111,6 +113,7 @@ export class RadarrPlugin extends BaseInputPlugin<RadarrConfig> {
 
         const hashId = this.hashit(`${this.config.id}${name}${quality}`);
 
+        const enrichment = queueEnrichment(queueItem, now);
         points.push(
           this.createDataPoint(
             'Radarr',
@@ -123,10 +126,11 @@ export class RadarrPlugin extends BaseInputPlugin<RadarrConfig> {
               protocol,
               protocol_id: protocolId,
               titleSlug: movie.titleSlug ?? 'unknown',
+              ...enrichment.tags,
             },
-            {
-              hash: hashId,
-            }
+            { hash: hashId, ...enrichment.fields },
+            undefined,
+            enrichment.floatFields
           )
         );
       }

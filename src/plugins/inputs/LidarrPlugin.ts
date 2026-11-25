@@ -4,6 +4,7 @@ import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plug
 import type { LidarrConfig } from '../../types/inputs/lidarr.types';
 import type { paths } from '../../types/generated/lidarr';
 import { servarrServerInfo } from './utils/servarrServerInfo';
+import { queueEnrichment } from './utils/servarr';
 
 /**
  * Lidarr input plugin
@@ -96,6 +97,7 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
         return points;
       }
 
+      const now = new Date();
       for (const queueItem of allRecords) {
         if (!queueItem.album) {
           this.logger.debug('Skipping queue item with missing album data');
@@ -111,6 +113,7 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
 
         const hashId = this.hashit(`${this.config.id}${name}${quality}`);
 
+        const enrichment = queueEnrichment(queueItem, now);
         points.push(
           this.createDataPoint(
             'Lidarr',
@@ -122,10 +125,11 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
               quality,
               protocol,
               protocol_id: protocolId,
+              ...enrichment.tags,
             },
-            {
-              hash: hashId,
-            }
+            { hash: hashId, ...enrichment.fields },
+            undefined,
+            enrichment.floatFields
           )
         );
       }

@@ -4,6 +4,7 @@ import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plug
 import type { SonarrConfig } from '../../types/inputs/sonarr.types';
 import type { paths } from '../../types/generated/sonarr';
 import { servarrServerInfo } from './utils/servarrServerInfo';
+import { queueEnrichment } from './utils/servarr';
 
 /**
  * Sonarr input plugin
@@ -111,6 +112,7 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
         return points;
       }
 
+      const now = new Date();
       for (const queueItem of allRecords) {
         if (!queueItem.series || !queueItem.episode) {
           this.logger.debug('Skipping queue item with missing series or episode data');
@@ -126,6 +128,7 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
 
         const hashId = this.hashit(`${this.config.id}${seriesTitle}${sxe}`);
 
+        const enrichment = queueEnrichment(queueItem, now);
         points.push(
           this.createDataPoint(
             'Sonarr',
@@ -139,10 +142,11 @@ export class SonarrPlugin extends BaseInputPlugin<SonarrConfig> {
               protocol,
               protocol_id: protocolId,
               quality,
+              ...enrichment.tags,
             },
-            {
-              hash: hashId,
-            }
+            { hash: hashId, ...enrichment.fields },
+            undefined,
+            enrichment.floatFields
           )
         );
       }

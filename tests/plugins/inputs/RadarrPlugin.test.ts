@@ -98,6 +98,23 @@ describe('RadarrPlugin', () => {
     const queuePoints = async (): Promise<Awaited<ReturnType<RadarrPlugin['collect']>>> =>
       (await plugin.collect()).filter((p) => p.tags.type === 'Queue');
 
+    it('enriches queue points with download state', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-11-24T10:00:00Z'));
+      const [point] = await queuePoints();
+      vi.useRealTimers();
+
+      expect(point.tags).toMatchObject({
+        status: 'downloading',
+        tracked_download_state: 'downloading',
+        tracked_download_status: 'ok',
+        download_client: 'SABnzbd',
+        indexer: 'Indexer',
+      });
+      expect(point.fields).toEqual({ hash: expect.any(String), size: 15000000000, sizeleft: 5000000000, progress: 66.66666666666667, eta_seconds: 28800 });
+      expect(point.floatFields).toEqual(['progress']);
+    });
+
     it('collects queue items from the queue fixture', async () => {
       const points = await queuePoints();
 

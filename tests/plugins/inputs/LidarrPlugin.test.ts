@@ -112,6 +112,23 @@ describe('LidarrPlugin', () => {
     const ofType = async (type: string): Promise<DataPoint[]> =>
       (await plugin.collect()).filter((p) => p.tags.type === type);
 
+    it('enriches queue points with download state', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-11-24T10:00:00Z'));
+      const [point] = await ofType('Queue');
+      vi.useRealTimers();
+
+      expect(point.tags).toMatchObject({
+        status: 'downloading',
+        tracked_download_state: 'downloading',
+        tracked_download_status: 'ok',
+        download_client: 'qBittorrent',
+        indexer: 'Redacted',
+      });
+      expect(point.fields).toEqual({ hash: expect.any(String), size: 524288000, sizeleft: 262144000, progress: 50, eta_seconds: 32400 });
+      expect(point.floatFields).toEqual(['progress']);
+    });
+
     it('collects queue items from the queue fixture', async () => {
       const points = await ofType('Queue');
 

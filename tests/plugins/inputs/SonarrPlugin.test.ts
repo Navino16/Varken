@@ -122,6 +122,29 @@ describe('SonarrPlugin', () => {
     const ofType = async (type: string): Promise<DataPoint[]> =>
       (await plugin.collect()).filter((p) => p.tags.type === type);
 
+    it('enriches queue points with download state', async () => {
+      const [point] = await ofType('Queue');
+
+      expect(point.tags).toMatchObject({
+        status: 'downloading',
+        tracked_download_state: 'downloading',
+        tracked_download_status: 'ok',
+        download_client: 'SABnzbd',
+        indexer: 'NZBgeek',
+      });
+      expect(point.fields).toEqual({ hash: expect.any(String), size: 2147483648, sizeleft: 1073741824, progress: 50, eta_seconds: 28800 });
+      expect(point.floatFields).toEqual(['progress']);
+    });
+
+    it('omits progress for a queue item without size', async () => {
+      client.override('/api/v3/queue', page([{ ...queueRecords()[0], size: 0, sizeleft: 0 }]));
+
+      const [point] = await ofType('Queue');
+
+      expect(point.fields).not.toHaveProperty('progress');
+      expect(point.fields.size).toBe(0);
+    });
+
     it('collects queue items from the queue fixture', async () => {
       const points = await ofType('Queue');
 

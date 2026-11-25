@@ -112,6 +112,23 @@ describe('ReadarrPlugin', () => {
     const ofType = async (type: string): Promise<DataPoint[]> =>
       (await plugin.collect()).filter((p) => p.tags.type === type);
 
+    it('enriches queue points with download state', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-11-24T10:00:00Z'));
+      const [point] = await ofType('Queue');
+      vi.useRealTimers();
+
+      expect(point.tags).toMatchObject({
+        status: 'downloading',
+        tracked_download_state: 'downloading',
+        tracked_download_status: 'ok',
+        download_client: 'qBittorrent',
+        indexer: 'MyAnonamouse',
+      });
+      expect(point.fields).toEqual({ hash: expect.any(String), size: 5242880, sizeleft: 1048576, progress: 80, eta_seconds: 30600 });
+      expect(point.floatFields).toEqual(['progress']);
+    });
+
     it('collects queue items from the queue fixture', async () => {
       const points = await ofType('Queue');
 
