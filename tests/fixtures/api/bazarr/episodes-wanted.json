@@ -1,0 +1,54 @@
+{
+  "data": [
+    {
+      "seriesTitle": "Severance",
+      "episode_number": "1x1",
+      "episodeTitle": "Good News About Hell",
+      "missing_subtitles": [
+        {
+          "name": "English",
+          "code2": "en",
+          "code3": "eng",
+          "forced": false,
+          "hi": false
+        }
+      ],
+      "sonarrSeriesId": 10,
+      "sonarrEpisodeId": 101,
+      "sceneName": "Severance.S01E01.1080p.WEB.H264-GLHF",
+      "tags": [
+        "apple"
+      ],
+      "seriesType": "standard"
+    },
+    {
+      "seriesTitle": "Severance",
+      "episode_number": "2x3",
+      "episodeTitle": "Who Is Alive?",
+      "missing_subtitles": [
+        {
+          "name": "English",
+          "code2": "en",
+          "code3": "eng",
+          "forced": false,
+          "hi": false
+        },
+        {
+          "name": "French",
+          "code2": "fr",
+          "code3": "fra",
+          "forced": false,
+          "hi": true
+        }
+      ],
+      "sonarrSeriesId": 10,
+      "sonarrEpisodeId": 203,
+      "sceneName": null,
+      "tags": [
+        "apple"
+      ],
+      "seriesType": null
+    }
+  ],
+  "total": 2
+}

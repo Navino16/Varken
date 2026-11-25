@@ -1,0 +1,356 @@
+import Ajv2020, { type ErrorObject, type ValidateFunction } from 'ajv/dist/2020';
+import addFormats from 'ajv-formats';
+import { openapiSchemaToJsonSchema } from '@openapi-contrib/openapi-schema-to-json-schema';
+import { matchPathTemplate, stripQuery } from './paths';
+import { loadContract, type Contract, type ServiceId } from './spec';
+
+type Schema = Record<string, unknown>;
+
+export interface OperationMatch {
+  specPath: string;
+  operation: Record<string, unknown>;
+}
+
+interface CompiledContract {
+  ajv: Ajv2020;
+  validators: Map<string, ValidateFunction>;
+}
+
+const compiled = new WeakMap<Contract, CompiledContract>();
+const COMPONENT_REF = '#/components/schemas/';
+const OPEN_COMPONENT_REF = '#/components/openSchemas/';
+
+function isSchema(value: unknown): value is Schema {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+// The converter drops `nullable` on schemas without `type` (e.g. Swashbuckle's `{ allOf: [$ref], nullable }`).
+function wrapTypelessNullable(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(wrapTypelessNullable);
+  }
+  if (!isSchema(value)) {
+    return value;
+  }
+  const mapped = Object.fromEntries(Object.entries(value).map(([key, child]) => [key, wrapTypelessNullable(child)]));
+  if (mapped.nullable !== true || 'type' in mapped) {
+    return mapped;
+  }
+  const { nullable: _nullable, ...rest } = mapped;
+  return { anyOf: [rest, { type: 'null' }] };
+}
+
+function toJsonSchema(contract: Contract, schema: unknown): Schema {
+  if (contract.entry.format === 'openapi3.1') {
+    return structuredClone(schema) as Schema;
+  }
+  const converted = openapiSchemaToJsonSchema(wrapTypelessNullable(schema) as never) as Schema;
+  delete converted.$schema;
+  return converted;
+}
+
+const COMPOSITION_KEYS = ['allOf', 'anyOf', 'oneOf'] as const;
+const CONDITIONAL_KEYS = ['if', 'then', 'else'] as const;
+
+function isObjectType(schema: Schema): boolean {
+  return schema.type === 'object' || (Array.isArray(schema.type) && schema.type.includes('object'));
+}
+
+function toOpenRef(member: unknown): void {
+  if (isSchema(member) && typeof member.$ref === 'string' && member.$ref.startsWith(COMPONENT_REF)) {
+    member.$ref = OPEN_COMPONENT_REF + member.$ref.slice(COMPONENT_REF.length);
+  }
+}
+
+// Unknown properties must fail even where specs allow them (spec §Contract check). unevaluatedProperties
+// is set on the outermost schema only, so properties declared by composition members (allOf/anyOf/oneOf,
+// if/then/else, dependentSchemas) still count; those members point to the open variant of components.
+function strictify(schema: unknown, compositionMember: boolean): void {
+  if (!isSchema(schema)) {
+    return;
+  }
+  const isMap = isSchema(schema.additionalProperties);
+  const closed = schema.additionalProperties === false;
+  if (typeof schema.additionalProperties === 'boolean') {
+    delete schema.additionalProperties;
+  }
+  const composes =
+    COMPOSITION_KEYS.some((key) => Array.isArray(schema[key])) || 'if' in schema || isSchema(schema.dependentSchemas);
+  if ((schema.properties || composes || closed || isObjectType(schema)) && !compositionMember && !isMap) {
+    schema.unevaluatedProperties = false;
+  }
+
+  for (const key of ['properties', 'patternProperties'] as const) {
+    if (isSchema(schema[key])) {
+      Object.values(schema[key]).forEach((child) => strictify(child, false));
+    }
+  }
+  if (isMap) {
+    strictify(schema.additionalProperties, false);
+  }
+  for (const key of ['items', 'additionalItems', 'not', 'contains']) {
+    strictify(schema[key], false);
+  }
+  if (Array.isArray(schema.prefixItems)) {
+    schema.prefixItems.forEach((child) => strictify(child, false));
+  }
+  for (const key of COMPOSITION_KEYS) {
+    const members = schema[key];
+    if (Array.isArray(members)) {
+      for (const member of members) {
+        toOpenRef(member);
+        strictify(member, true);
+      }
+    }
+  }
+  for (const key of CONDITIONAL_KEYS) {
+    toOpenRef(schema[key]);
+    strictify(schema[key], true);
+  }
+  if (isSchema(schema.dependentSchemas)) {
+    for (const member of Object.values(schema.dependentSchemas)) {
+      toOpenRef(member);
+      strictify(member, true);
+    }
+  }
+}
+
+function rewriteRefs(value: unknown, base: string): void {
+  if (Array.isArray(value)) {
+    value.forEach((item) => rewriteRefs(item, base));
+    return;
+  }
+  if (!isSchema(value)) {
+    return;
+  }
+  if (typeof value.$ref === 'string' && value.$ref.startsWith('#/')) {
+    value.$ref = `${base}${value.$ref}`;
+  }
+  Object.values(value).forEach((child) => rewriteRefs(child, base));
+}
+
+function contractId(contract: Contract): string {
+  return `contract:${contract.service}`;
+}
+
+function getCompiled(contract: Contract): CompiledContract {
+  const existing = compiled.get(contract);
+  if (existing) {
+    return existing;
+  }
+
+  const ajv = new Ajv2020({ allErrors: true, strict: false });
+  addFormats(ajv);
+  for (const format of ['int32', 'int64', 'float', 'double']) {
+    ajv.addFormat(format, { type: 'number', validate: () => true });
+  }
+  for (const format of ['date-span', 'guid']) {
+    ajv.addFormat(format, { type: 'string', validate: () => true });
+  }
+  for (const { name, pattern } of contract.formats ?? []) {
+    ajv.addFormat(name, new RegExp(pattern));
+  }
+
+  const rawSchemas = Object.entries(contract.spec.components?.schemas ?? {});
+  const variant = (open: boolean): Record<string, Schema> =>
+    Object.fromEntries(
+      rawSchemas.map(([name, schema]) => {
+        const converted = toJsonSchema(contract, schema);
+        strictify(converted, open);
+        return [name, converted];
+      })
+    );
+  ajv.addSchema({ $id: contractId(contract), components: { schemas: variant(false), openSchemas: variant(true) } });
+
+  const entry = { ajv, validators: new Map<string, ValidateFunction>() };
+  compiled.set(contract, entry);
+  return entry;
+}
+
+export function findOperation(contract: Contract, method: 'get', calledPath: string): OperationMatch | undefined {
+  let fullPath = calledPath;
+  const prefix = contract.entry.pathPrefix;
+  if (prefix) {
+    const path = stripQuery(calledPath);
+    if (path !== prefix && !path.startsWith(`${prefix}/`)) {
+      return undefined;
+    }
+    fullPath = calledPath.slice(prefix.length);
+  }
+  const path = stripQuery(fullPath);
+
+  const paths = contract.spec.paths;
+  const pick = (specPath: string): OperationMatch | undefined => {
+    const operation = paths[specPath]?.[method];
+    return isSchema(operation) ? { specPath, operation } : undefined;
+  };
+
+  // Command-style APIs (Tautulli) key their operations by a fixed query string: `/api/v2?cmd=get_activity`.
+  return (fullPath === path ? undefined : pick(fullPath)) ?? pick(path) ?? Object.keys(paths).filter((p) => matchPathTemplate(p, path)).map(pick).find(Boolean);
+}
+
+function isJsonMediaType(mediaType: string): boolean {
+  const base = mediaType.split(';')[0].trim().toLowerCase();
+  return base === 'application/json' || base.endsWith('+json');
+}
+
+function jsonResponseSchema(operation: Record<string, unknown>): unknown {
+  const responses = operation.responses as Record<string, Schema> | undefined;
+  for (const status of ['200', 'default']) {
+    const content = responses?.[status]?.content;
+    if (isSchema(content)) {
+      const mediaType = Object.keys(content).find(isJsonMediaType);
+      if (mediaType) {
+        return (content[mediaType] as Schema).schema;
+      }
+    }
+  }
+  return undefined;
+}
+
+function formatError(error: ErrorObject): string {
+  const where = error.instancePath || '/';
+  const extra = error.params.unevaluatedProperty ? ` (${error.params.unevaluatedProperty})` : '';
+  return `${where} ${error.message}${extra}`;
+}
+
+export function validateAgainstContract(
+  contract: Contract,
+  method: 'get',
+  calledPath: string,
+  body: unknown
+): string[] {
+  const match = findOperation(contract, method, calledPath);
+  if (!match) {
+    return [`no ${method.toUpperCase()} operation for ${stripQuery(calledPath)}`];
+  }
+  const schema = jsonResponseSchema(match.operation);
+  if (schema === undefined) {
+    return [`no application/json 200 response schema for ${method.toUpperCase()} ${match.specPath}`];
+  }
+
+  const { ajv, validators } = getCompiled(contract);
+  let validate = validators.get(match.specPath);
+  if (!validate) {
+    const converted = toJsonSchema(contract, schema);
+    strictify(converted, false);
+    rewriteRefs(converted, contractId(contract));
+    validate = ajv.compile(converted);
+    validators.set(match.specPath, validate);
+  }
+
+  return validate(body) ? [] : (validate.errors ?? []).map(formatError);
+}
+
+interface RequestParameter {
+  name: string;
+  required: boolean;
+  schema: unknown;
+}
+
+function declaredParameters(contract: Contract, match: OperationMatch, location: 'query' | 'header'): RequestParameter[] {
+  const resolve = (parameter: unknown): Schema | undefined => {
+    if (!isSchema(parameter)) {
+      return undefined;
+    }
+    const ref = parameter.$ref;
+    if (typeof ref === 'string' && ref.startsWith('#/components/parameters/')) {
+      return resolve(contract.spec.components?.parameters?.[ref.slice('#/components/parameters/'.length)]);
+    }
+    return parameter;
+  };
+  const pathItem = contract.spec.paths[match.specPath] as Schema;
+  const all = [pathItem.parameters, match.operation.parameters].flatMap((list) => (Array.isArray(list) ? list : []));
+  return all
+    .map(resolve)
+    .filter((p): p is Schema => p?.in === location && typeof p.name === 'string')
+    .map((p) => ({ name: p.name as string, required: p.required === true, schema: p.schema ?? {} }));
+}
+
+function embeddedQuery(calledPath: string): Record<string, unknown> {
+  const index = calledPath.indexOf('?');
+  return index === -1 ? {} : Object.fromEntries(new URLSearchParams(calledPath.slice(index + 1)).keys().map((k) => [k, undefined]));
+}
+
+export function validateRequestParams(
+  contract: Contract,
+  method: 'get',
+  calledPath: string,
+  params: Record<string, unknown> | undefined,
+  location: 'query' | 'header' = 'query'
+): string[] {
+  const match = findOperation(contract, method, calledPath);
+  if (!match) {
+    return [`no ${method.toUpperCase()} operation for ${stripQuery(calledPath)}`];
+  }
+  const where = `${method.toUpperCase()} ${match.specPath}`;
+  // Header names are case-insensitive; required headers are not checked since auth headers come from client defaults.
+  const normalize = (name: string): string => (location === 'header' ? name.toLowerCase() : name);
+  const declared = new Map(declaredParameters(contract, match, location).map((p) => [normalize(p.name), p]));
+  const discriminators = embeddedQuery(match.specPath);
+  const embedded = location === 'query' ? embeddedQuery(calledPath) : {};
+  for (const name of Object.keys(discriminators)) {
+    delete embedded[name];
+  }
+  const sent = Object.entries({ ...embedded, ...params });
+  const errors: string[] = [];
+
+  for (const [name, value] of sent) {
+    const parameter = declared.get(normalize(name));
+    if (!parameter) {
+      errors.push(`unknown ${location} parameter "${name}" for ${where}`);
+      continue;
+    }
+    if (value === undefined) {
+      continue;
+    }
+    const { ajv, validators } = getCompiled(contract);
+    const key = `${match.specPath}?${location}:${parameter.name}`;
+    let validate = validators.get(key);
+    if (!validate) {
+      const converted = toJsonSchema(contract, parameter.schema);
+      strictify(converted, false);
+      rewriteRefs(converted, contractId(contract));
+      validate = ajv.compile(converted);
+      validators.set(key, validate);
+    }
+    if (!validate(value)) {
+      errors.push(...(validate.errors ?? []).map((e) => `${location} parameter "${name}" ${formatError(e).replace(/^\/ /, '')}`));
+    }
+  }
+  for (const parameter of location === 'query' ? declared.values() : []) {
+    const value = (params ?? {})[parameter.name];
+    if (parameter.required && value === undefined && !(parameter.name in embedded)) {
+      errors.push(`missing required query parameter "${parameter.name}" for ${where}`);
+    }
+  }
+  return errors;
+}
+
+export function assertRequestMatchesContract(
+  service: ServiceId,
+  method: 'get',
+  calledPath: string,
+  params: Record<string, unknown> | undefined,
+  headers?: Record<string, unknown>
+): void {
+  const contract = loadContract(service);
+  const errors = [
+    ...validateRequestParams(contract, method, calledPath, params),
+    ...(headers ? validateRequestParams(contract, method, calledPath, headers, 'header') : []),
+  ];
+  if (errors.length > 0) {
+    throw new Error(`Request GET ${calledPath} breaks the ${service} contract:\n  ${errors.join('\n  ')}`);
+  }
+}
+
+export function validateResponse(service: ServiceId, method: 'get', calledPath: string, body: unknown): string[] {
+  return validateAgainstContract(loadContract(service), method, calledPath, body);
+}
+
+export function assertMatchesContract(service: ServiceId, method: 'get', calledPath: string, body: unknown): void {
+  const errors = validateResponse(service, method, calledPath, body);
+  if (errors.length > 0) {
+    throw new Error(`Response for GET ${calledPath} breaks the ${service} contract:\n  ${errors.join('\n  ')}`);
+  }
+}

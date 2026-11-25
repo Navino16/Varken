@@ -1,0 +1,42 @@
+{
+  "response": {
+    "result": "success",
+    "message": null,
+    "data": [
+      {
+        "agent": "tv.plex.agents.movie",
+        "art": "/:/resources/movie-fanart.jpg",
+        "count": "1342",
+        "is_active": 1,
+        "section_id": "1",
+        "section_name": "Movies",
+        "section_type": "movie",
+        "thumb": "/:/resources/movie.png"
+      },
+      {
+        "agent": "tv.plex.agents.series",
+        "art": "/:/resources/show-fanart.jpg",
+        "child_count": "9815",
+        "count": "214",
+        "is_active": 1,
+        "parent_count": "687",
+        "section_id": "2",
+        "section_name": "TV Shows",
+        "section_type": "show",
+        "thumb": "/:/resources/show.png"
+      },
+      {
+        "agent": "tv.plex.agents.music",
+        "art": "/:/resources/artist-fanart.jpg",
+        "child_count": "21034",
+        "count": "388",
+        "is_active": 1,
+        "parent_count": "1702",
+        "section_id": "3",
+        "section_name": "Music",
+        "section_type": "artist",
+        "thumb": "/:/resources/artist.png"
+      }
+    ]
+  }
+}

@@ -1,8 +1,11 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
-import { JellyfinPlugin } from '../../../src/plugins/inputs/JellyfinPlugin';
-import type { JellyfinConfig, JellyfinSession } from '../../../src/types/inputs/jellyfin.types';
 import axios from 'axios';
-import { createMockHttpClient, type MockHttpClient } from '../../fixtures/http';
+import { JellyfinPlugin } from '../../../src/plugins/inputs/JellyfinPlugin';
+import type { JellyfinConfig } from '../../../src/types/inputs/jellyfin.types';
+import type { components } from '../../../src/types/generated/jellyfin';
+import { createContractHttpClient, type ContractHttpClient } from '../../fixtures/contract-http';
+import { loadFixture } from '../../contracts/registry';
+import type { DataPoint } from '../../../src/types/plugin.types';
 
 vi.mock('../../../src/core/Logger', async () => {
   const { loggerMock } = await import('../../fixtures/logger');
@@ -11,46 +14,19 @@ vi.mock('../../../src/core/Logger', async () => {
 
 vi.mock('axios', () => ({ default: { create: vi.fn() } }));
 
-const baseSession: JellyfinSession = {
-  Id: 'sess1',
-  ServerId: 'srv',
-  UserId: 'u1',
-  UserName: 'alice',
-  Client: 'Jellyfin Web',
-  DeviceId: 'dev1',
-  DeviceName: 'Firefox',
-  DeviceType: 'Web',
-  RemoteEndPoint: '10.0.0.1',
-  ApplicationVersion: '10.9.0',
-  IsActive: true,
-  SupportsRemoteControl: false,
-  SupportsMediaControl: true,
-  LastActivityDate: '2026-04-24T00:00:00Z',
-  LastPlaybackCheckIn: '2026-04-24T00:00:00Z',
-  PlayState: {
-    PositionTicks: 2_500_000_000, // 250s
-    CanSeek: true,
-    IsPaused: false,
-    IsMuted: false,
-    PlayMethod: 'DirectPlay',
-    RepeatMode: 'RepeatNone',
-  },
-  NowPlayingItem: {
-    Id: 'item1',
-    ServerId: 'srv',
-    Name: 'Pilot',
-    Type: 'Episode',
-    MediaType: 'Video',
-    RunTimeTicks: 10_000_000_000, // 1000s
-    SeriesName: 'Some Show',
-    Height: 1080,
-    Container: 'mkv',
-  },
-};
+type Session = components['schemas']['SessionInfoDto'];
+
+function sessions(): Session[] {
+  return loadFixture<Session[]>('jellyfin/sessions');
+}
+
+function sessionPoints(points: DataPoint[]): DataPoint[] {
+  return points.filter((p) => p.tags.type === 'Session');
+}
 
 describe('JellyfinPlugin', () => {
   let plugin: JellyfinPlugin;
-  let mockHttpClient: MockHttpClient;
+  let client: ContractHttpClient;
 
   const testConfig: JellyfinConfig = {
     id: 1,
@@ -60,12 +36,14 @@ describe('JellyfinPlugin', () => {
     sessions: { enabled: true, intervalSeconds: 30 },
     libraries: { enabled: true, intervalSeconds: 3600 },
   };
+  const sessionsOnly: JellyfinConfig = { ...testConfig, libraries: { enabled: false, intervalSeconds: 3600 } };
+  const librariesOnly: JellyfinConfig = { ...testConfig, sessions: { enabled: false, intervalSeconds: 30 } };
 
   beforeEach(() => {
     vi.clearAllMocks();
     plugin = new JellyfinPlugin();
-    mockHttpClient = createMockHttpClient();
-    (axios.create as Mock).mockReturnValue(mockHttpClient);
+    client = createContractHttpClient('jellyfin');
+    (axios.create as Mock).mockReturnValue(client);
   });
 
   describe('metadata', () => {
@@ -75,153 +53,205 @@ describe('JellyfinPlugin', () => {
     });
   });
 
+  describe('health', () => {
+    it('should pass the health check against the contract route', async () => {
+      await plugin.initialize(testConfig);
+
+      await expect(plugin.healthCheck()).resolves.toBe(true);
+      expect(client.get).toHaveBeenCalledWith('/System/Info', expect.anything());
+    });
+  });
+
   describe('initialize', () => {
     it('sets X-Emby-Token header', async () => {
       await plugin.initialize(testConfig);
-      expect(mockHttpClient.defaults.headers.common['X-Emby-Token']).toBe('test-api-key');
+
+      expect(client.defaults.headers.common['X-Emby-Token']).toBe('test-api-key');
     });
   });
 
   describe('getSchedules', () => {
     it('returns enabled schedules only', async () => {
       await plugin.initialize(testConfig);
-      const schedules = plugin.getSchedules();
-      expect(schedules.map((s) => s.name)).toEqual(['Jellyfin_1_sessions', 'Jellyfin_1_libraries']);
+
+      expect(plugin.getSchedules().map((s) => s.name)).toEqual(['Jellyfin_1_sessions', 'Jellyfin_1_libraries']);
     });
 
     it('omits disabled schedules', async () => {
-      await plugin.initialize({ ...testConfig, sessions: { enabled: false, intervalSeconds: 30 } });
-      const schedules = plugin.getSchedules();
-      expect(schedules).toHaveLength(1);
-      expect(schedules[0].name).toBe('Jellyfin_1_libraries');
+      await plugin.initialize(librariesOnly);
+
+      expect(plugin.getSchedules().map((s) => s.name)).toEqual(['Jellyfin_1_libraries']);
     });
   });
 
   describe('collect sessions', () => {
     beforeEach(async () => {
-      await plugin.initialize({ ...testConfig, libraries: { enabled: false, intervalSeconds: 3600 } });
+      await plugin.initialize(sessionsOnly);
     });
 
     it('emits one Session DataPoint per active stream with progress and quality', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({ data: [baseSession] });
+      const [episode, movie] = sessionPoints(await plugin.collect());
 
-      const points = await plugin.collect();
-      const session = points.find((p) => p.tags.type === 'Session');
-
-      expect(session).toBeDefined();
-      expect(session?.tags.username).toBe('alice');
-      expect(session?.tags.title).toBe('Some Show - Pilot');
-      expect(session?.tags.quality).toBe('1080p');
-      expect(session?.fields.progress_percent).toBe(25);
+      expect(episode.tags).toMatchObject({
+        session_id: '6c1d2e3f4a5b46c7d8e9f0a1b2c3d4e5',
+        ip_address: '192.168.1.42',
+        username: 'alice',
+        title: 'Severance - Good News About Hell',
+        product: 'Jellyfin Android TV',
+        platform: 'Tv',
+        product_version: '0.18.11',
+        quality: '1080p',
+        video_decision: 'transcode',
+        media_type: 'Video',
+        audio_codec: 'AAC',
+        player_state: 0,
+        device_type: 'Tv',
+        play_method: 'Transcode',
+        server: 1,
+      });
+      expect(episode.fields.progress_percent).toBe(50);
+      expect(movie.tags).toMatchObject({ title: 'Dune: Part Two', quality: '1608p', video_decision: 'direct play' });
+      expect(movie.fields.progress_percent).toBe(25);
     });
 
     it('ignores sessions without NowPlayingItem', async () => {
-      const idleSession = { ...baseSession, NowPlayingItem: undefined, Id: 'idle' };
-      mockHttpClient.get.mockResolvedValueOnce({ data: [idleSession, baseSession] });
+      const usernames = sessionPoints(await plugin.collect()).map((p) => p.tags.username);
 
-      const points = await plugin.collect();
-      const sessionPoints = points.filter((p) => p.tags.type === 'Session');
-      expect(sessionPoints).toHaveLength(1);
+      expect(usernames).toEqual(['alice', 'bob']);
     });
 
     it('emits a summary point with stream_count and transcode_streams', async () => {
-      const transcoding = {
-        ...baseSession,
-        Id: 'sess2',
-        TranscodingInfo: {
-          AudioCodec: 'aac',
-          VideoCodec: 'h264',
-          Container: 'ts',
-          IsVideoDirect: false,
-          IsAudioDirect: true,
-          Bitrate: 5000000,
-          Width: 1280,
-          Height: 720,
-          AudioChannels: 2,
-          TranscodeReasons: ['VideoCodecNotSupported'],
-        },
-      };
-      mockHttpClient.get.mockResolvedValueOnce({ data: [baseSession, transcoding] });
+      const summary = (await plugin.collect()).find((p) => p.tags.type === 'current_stream_stats');
 
-      const points = await plugin.collect();
-      const summary = points.find((p) => p.tags.type === 'current_stream_stats');
-      expect(summary?.fields.stream_count).toBe(2);
-      expect(summary?.fields.transcode_streams).toBe(1);
+      expect(summary?.fields).toEqual({ stream_count: 2, transcode_streams: 1 });
     });
 
     it('marks paused sessions correctly', async () => {
-      const paused = {
-        ...baseSession,
-        PlayState: { ...baseSession.PlayState!, IsPaused: true },
-      };
-      mockHttpClient.get.mockResolvedValueOnce({ data: [paused] });
+      const [episode, movie] = sessionPoints(await plugin.collect());
+
+      expect([episode.tags.player_state, movie.tags.player_state]).toEqual([0, 1]);
+    });
+
+    it('defaults missing session metadata to unknown', async () => {
+      const [, , idle] = sessions();
+      client.override('/Sessions', [{ Id: idle.Id, NowPlayingItem: { Id: '0f9e8d7c6b5a49382716a5b4c3d2e1f0' } }]);
+
+      const [point] = sessionPoints(await plugin.collect());
+
+      expect(point.tags).toMatchObject({
+        ip_address: 'unknown',
+        username: 'unknown',
+        title: 'unknown',
+        product: 'unknown',
+        platform: 'unknown',
+        product_version: 'unknown',
+        quality: 'unknown',
+        video_decision: 'direct play',
+        media_type: 'unknown',
+        audio_codec: 'unknown',
+        device_type: 'unknown',
+        play_method: 'unknown',
+      });
+      expect(point.fields.progress_percent).toBe(0);
+    });
+
+    it('falls back to container quality, item name and item type for movies', async () => {
+      const [, bob] = sessions();
+      const { Height: _h, MediaType: _m, ...item } = bob.NowPlayingItem ?? {};
+      client.override('/Sessions', [{ ...bob, NowPlayingItem: item }]);
+
+      const [point] = sessionPoints(await plugin.collect());
+
+      expect(point.tags).toMatchObject({ title: 'Dune: Part Two', quality: 'MKV', media_type: 'Movie' });
+    });
+
+    it('reports direct stream and transcode decisions with the audio codec', async () => {
+      const [alice] = sessions();
+      client.override('/Sessions', [{ ...alice, TranscodingInfo: { ...alice.TranscodingInfo, IsVideoDirect: true } }, alice]);
+
+      const points = sessionPoints(await plugin.collect());
+
+      expect(points.map((p) => p.tags.video_decision)).toEqual(['direct stream', 'transcode']);
+      expect(points[0].tags.audio_codec).toBe('AAC');
+    });
+
+    it('emits only an empty summary when the sessions payload is null', async () => {
+      client.overrideUnchecked('/Sessions', null);
 
       const points = await plugin.collect();
-      const session = points.find((p) => p.tags.type === 'Session');
-      expect(session?.tags.player_state).toBe(1);
+
+      expect(points.map((p) => p.fields)).toEqual([{ stream_count: 0, transcode_streams: 0 }]);
+    });
+
+    it('generates deterministic hash ids', async () => {
+      const hashes = async (): Promise<unknown[]> => sessionPoints(await plugin.collect()).map((p) => p.fields.hash);
+
+      const first = await hashes();
+
+      expect(new Set(first).size).toBe(2);
+      expect(await hashes()).toEqual(first);
     });
   });
 
   describe('collect libraries', () => {
     beforeEach(async () => {
-      await plugin.initialize({ ...testConfig, sessions: { enabled: false, intervalSeconds: 30 } });
+      await plugin.initialize(librariesOnly);
     });
 
     it('emits a DataPoint per library plus a global item_counts summary', async () => {
-      mockHttpClient.get
-        .mockResolvedValueOnce({
-          data: [
-            { Name: 'Movies', CollectionType: 'movies', LibraryOptions: {}, ItemId: 'a', Locations: ['/m'] },
-            { Name: 'TV Shows', CollectionType: 'tvshows', LibraryOptions: {}, ItemId: 'b', Locations: ['/tv'] },
-          ],
-        })
-        .mockResolvedValueOnce({
-          data: {
-            MovieCount: 500,
-            SeriesCount: 50,
-            EpisodeCount: 1000,
-            ArtistCount: 0,
-            ProgramCount: 0,
-            TrailerCount: 0,
-            SongCount: 0,
-            AlbumCount: 0,
-            MusicVideoCount: 0,
-            BoxSetCount: 5,
-            BookCount: 0,
-            ItemCount: 1555,
-          },
-        });
-
       const points = await plugin.collect();
-      const libPoints = points.filter((p) => p.tags.type === 'library_stats');
-      const summary = points.find((p) => p.tags.type === 'item_counts');
+      const libraries = points.filter((p) => p.tags.type === 'library_stats');
 
-      expect(libPoints).toHaveLength(2);
-      expect(libPoints[0].tags.section_name).toBe('Movies');
-      expect(summary?.fields.movies).toBe(500);
-      expect(summary?.fields.total).toBe(1555);
+      expect(libraries.map((p) => [p.tags.section_name, p.tags.section_type, p.fields.locations, p.fields.libraries])).toEqual([
+        ['Movies', 'movies', 1, 'Movies'],
+        ['Shows', 'tvshows', 2, 'Shows'],
+      ]);
+      expect(points.find((p) => p.tags.type === 'item_counts')?.fields).toEqual({
+        movies: 812,
+        series: 96,
+        episodes: 4370,
+        artists: 214,
+        albums: 487,
+        songs: 6021,
+        books: 15,
+        box_sets: 38,
+        total: 12093,
+      });
     });
 
     it('falls back gracefully when /Items/Counts fails', async () => {
-      mockHttpClient.get
-        .mockResolvedValueOnce({
-          data: [{ Name: 'Movies', CollectionType: 'movies', LibraryOptions: {}, ItemId: 'a', Locations: [] }],
-        })
-        .mockRejectedValueOnce(new Error('counts endpoint 500'));
+      client.fail('/Items/Counts', new Error('counts endpoint 500'));
 
       const points = await plugin.collect();
-      const libPoints = points.filter((p) => p.tags.type === 'library_stats');
-      const summary = points.find((p) => p.tags.type === 'item_counts');
 
-      expect(libPoints).toHaveLength(1);
-      expect(summary).toBeUndefined();
+      expect(points.filter((p) => p.tags.type === 'library_stats')).toHaveLength(2);
+      expect(points.find((p) => p.tags.type === 'item_counts')).toBeUndefined();
+    });
+
+    it('defaults missing collection type, locations and counters', async () => {
+      client.override('/Library/VirtualFolders', [{ Name: 'Mixed', ItemId: 'b8c9d0e1f2a34b5c6d7e8f9a0b1c2d3e' }]);
+      client.override('/Items/Counts', { MovieCount: 3 });
+
+      const points = await plugin.collect();
+
+      expect(points[0].tags.section_type).toBe('unknown');
+      expect(points[0].fields.locations).toBe(0);
+      expect(points[1].fields).toMatchObject({ movies: 3, series: 0, total: 0 });
+    });
+
+    it('emits no library points when the libraries payload is null', async () => {
+      client.overrideUnchecked('/Library/VirtualFolders', null);
+      client.fail('/Items/Counts', new Error('no counts'));
+
+      expect(await plugin.collect()).toEqual([]);
     });
   });
 
   describe('collect() branches', () => {
     it('propagates sessions errors via safeFetch', async () => {
       await plugin.initialize(testConfig);
-      mockHttpClient.get.mockRejectedValueOnce(new Error('jellyfin offline'));
+      client.fail('/Sessions', new Error('jellyfin offline'));
+
       await expect(plugin.collect()).rejects.toThrow('jellyfin offline');
     });
   });

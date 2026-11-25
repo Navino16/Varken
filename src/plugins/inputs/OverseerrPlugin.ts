@@ -1,14 +1,16 @@
 import { BaseInputPlugin } from './BaseInputPlugin';
 import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
-import type {
-  OverseerrConfig,
-  OverseerrRequestCounts,
-  OverseerrIssuesCounts,
-  OverseerrRequestsResponse,
-  OverseerrMediaDetails,
-} from '../../types/inputs/overseerr.types';
+import type { OverseerrConfig } from '../../types/inputs/overseerr.types';
+import type { components, paths } from '../../types/generated/seerr';
 
 const REQUEST_TYPE = { TV: 0, MOVIE: 1 } as const;
+
+interface MediaDetails {
+  requestType: number;
+  id?: number;
+  title: string;
+  mediaInfo?: components['schemas']['MediaInfo'];
+}
 
 /**
  * Overseerr input plugin
@@ -20,6 +22,8 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
     version: '1.0.0',
     description: 'Collects request counts and latest requests from Overseerr',
   };
+
+  private readonly seerr = this.api<paths>('/api/v1');
 
   /**
    * Initialize the plugin and configure the HTTP client with API key header
@@ -98,7 +102,7 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
   private async collectRequestCounts(): Promise<DataPoint[]> {
     return this.safeFetch('collect Overseerr request counts', async () => {
       const points: DataPoint[] = [];
-      const counts = await this.httpGet<OverseerrRequestCounts>('/api/v1/request/count');
+      const counts = await this.seerr.get('/request/count');
 
       points.push(
         this.createDataPoint(
@@ -108,14 +112,14 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
             server: this.config.id,
           },
           {
-            pending: counts.pending,
-            approved: counts.approved,
-            processing: counts.processing,
-            available: counts.available,
-            total: counts.total,
-            movies: counts.movie,
-            tv: counts.tv,
-            declined: counts.declined,
+            pending: counts.pending ?? 0,
+            approved: counts.approved ?? 0,
+            processing: counts.processing ?? 0,
+            available: counts.available ?? 0,
+            total: counts.total ?? 0,
+            movies: counts.movie ?? 0,
+            tv: counts.tv ?? 0,
+            declined: counts.declined ?? 0,
           }
         )
       );
@@ -131,7 +135,7 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
   private async collectIssueCounts(): Promise<DataPoint[]> {
     return this.safeFetch('collect Overseerr issue counts', async () => {
       const points: DataPoint[] = [];
-      const issues = await this.httpGet<OverseerrIssuesCounts>('/api/v1/issue/count');
+      const issues = await this.seerr.get('/issue/count');
 
       points.push(
         this.createDataPoint(
@@ -141,13 +145,13 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
             server: this.config.id,
           },
           {
-            total: issues.total,
-            video: issues.video,
-            audio: issues.audio,
-            subtitles: issues.subtitles,
-            others: issues.others,
-            open: issues.open,
-            closed: issues.closed,
+            total: issues.total ?? 0,
+            video: issues.video ?? 0,
+            audio: issues.audio ?? 0,
+            subtitles: issues.subtitles ?? 0,
+            others: issues.others ?? 0,
+            open: issues.open ?? 0,
+            closed: issues.closed ?? 0,
           }
         )
       );
@@ -164,65 +168,46 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
     return this.safeFetch('collect Overseerr latest requests', async () => {
       const points: DataPoint[] = [];
       const count = this.config.latestRequests.count || 10;
-      const response = await this.httpGet<OverseerrRequestsResponse>(
-        `/api/v1/request?take=${count}&filter=all&sort=added`
-      );
+      const response = await this.seerr.get('/request', {
+        query: { take: count, filter: 'all', sort: 'added' },
+      });
 
       if (!response?.results || response.results.length === 0) {
         this.logger.debug('No requests found in Overseerr');
         return points;
       }
 
-      const validRequests = response.results.filter((r) => r.media?.tmdbId);
-
       const results = await Promise.all(
-        validRequests.map(async (request) => {
+        response.results.map(async (request) => {
+          const tmdbId = request.media?.tmdbId;
+          if (!tmdbId) {
+            return null;
+          }
           try {
-            let mediaInfo: OverseerrMediaDetails | null = null;
-            let title = '';
-            let requestType: number;
-
-            if (request.type === 'tv') {
-              requestType = REQUEST_TYPE.TV;
-              mediaInfo = await this.httpGet<OverseerrMediaDetails>(
-                `/api/v1/tv/${request.media.tmdbId}`
-              );
-              title = mediaInfo?.name || '';
-            } else {
-              requestType = REQUEST_TYPE.MOVIE;
-              mediaInfo = await this.httpGet<OverseerrMediaDetails>(
-                `/api/v1/movie/${request.media.tmdbId}`
-              );
-              title = mediaInfo?.title || '';
-            }
-
-            if (!mediaInfo || !title) {
-              this.logger.debug(`Could not fetch media info for tmdbId ${request.media.tmdbId}`);
+            const details = await this.fetchMediaDetails(request.type, tmdbId);
+            if (!details.title) {
+              this.logger.debug(`Could not fetch media info for tmdbId ${tmdbId}`);
               return null;
             }
 
-            const hashId = this.hashit(`${mediaInfo.id}${title}`);
-            const requestedBy =
-              mediaInfo.mediaInfo?.requests?.[0]?.requestedBy?.displayName || 'Unknown';
-            const requestedDate = mediaInfo.mediaInfo?.requests?.[0]?.createdAt || '';
-
+            const firstRequest = details.mediaInfo?.requests?.[0];
             return this.createDataPoint(
               'Overseerr',
               {
                 type: 'Requests',
                 server: this.config.id,
-                request_type: requestType,
-                status: mediaInfo.mediaInfo?.status || 0,
-                title,
-                requested_user: requestedBy,
-                requested_date: requestedDate,
+                request_type: details.requestType,
+                status: details.mediaInfo?.status || 0,
+                title: details.title,
+                requested_user: firstRequest?.requestedBy?.displayName || 'Unknown',
+                requested_date: firstRequest?.createdAt || '',
               },
               {
-                hash: hashId,
+                hash: this.hashit(`${details.id}${details.title}`),
               }
             );
           } catch (error) {
-            this.logger.debug(`Failed to fetch details for request tmdbId=${request.media?.tmdbId}: ${error instanceof Error ? error.message : String(error)}`);
+            this.logger.debug(`Failed to fetch details for request tmdbId=${tmdbId}: ${error instanceof Error ? error.message : String(error)}`);
             return null;
           }
         })
@@ -233,5 +218,14 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
       this.logger.info(`Collected ${points.length} latest requests from Overseerr`);
       return points;
     });
+  }
+
+  private async fetchMediaDetails(type: components['schemas']['MediaRequest']['type'], tmdbId: number): Promise<MediaDetails> {
+    if (type === 'tv') {
+      const tv = await this.seerr.get('/tv/{tvId}', { path: { tvId: tmdbId } });
+      return { requestType: REQUEST_TYPE.TV, id: tv?.id, title: tv?.name ?? '', mediaInfo: tv?.mediaInfo };
+    }
+    const movie = await this.seerr.get('/movie/{movieId}', { path: { movieId: tmdbId } });
+    return { requestType: REQUEST_TYPE.MOVIE, id: movie?.id, title: movie?.title ?? '', mediaInfo: movie?.mediaInfo };
   }
 }

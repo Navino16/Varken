@@ -1,0 +1,10 @@
+{
+  "patches": [],
+  "formats": [
+    {
+      "name": "uuid",
+      "pattern": "^[0-9a-f]{32}$",
+      "why": "https://github.com/jellyfin/jellyfin/blob/v12.4/src/Jellyfin.Extensions/Json/Converters/JsonGuidConverter.cs#L27-L28 — Jellyfin writes every Guid with ToString(\"N\") (32 hex digits, no dashes); the spec declares format uuid"
+    }
+  ]
+}

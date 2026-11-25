@@ -1,0 +1,105 @@
+{
+  "data": [
+    {
+      "title": "Heat",
+      "radarrId": 1,
+      "path": null,
+      "action": 1,
+      "timestamp": "2 hours ago",
+      "description": "English subtitles downloaded from opensubtitlescom with a score of 92.5%.",
+      "monitored": true,
+      "language": {
+        "name": "English",
+        "code2": "en",
+        "code3": "eng",
+        "forced": false,
+        "hi": false
+      },
+      "tags": [
+        "hd"
+      ],
+      "score": "92.5%",
+      "subs_id": "opensubtitlescom:1955012",
+      "provider": "opensubtitlescom",
+      "subtitles_path": "/movies/Heat (1995)/Heat (1995).en.srt",
+      "upgradable": false,
+      "parsed_timestamp": "11/20/26 14:05:09",
+      "blacklisted": false,
+      "matches": [
+        "hash",
+        "title",
+        "year"
+      ],
+      "dont_matches": [
+        "release_group"
+      ]
+    },
+    {
+      "title": "Arrival",
+      "radarrId": 2,
+      "path": null,
+      "action": 3,
+      "timestamp": "a day ago",
+      "description": "English subtitles upgraded from podnapisi with a score of 88.33%.",
+      "monitored": true,
+      "language": {
+        "name": "English",
+        "code2": "en",
+        "code3": "eng",
+        "forced": false,
+        "hi": false
+      },
+      "tags": [
+        "4k"
+      ],
+      "score": "88.33%",
+      "subs_id": "podnapisi:8Rnq",
+      "provider": "podnapisi",
+      "subtitles_path": "/movies/Arrival (2016)/Arrival (2016).en.srt",
+      "upgradable": true,
+      "parsed_timestamp": "11/19/26 09:30:00",
+      "blacklisted": false,
+      "matches": [
+        "hash",
+        "title",
+        "year"
+      ],
+      "dont_matches": [
+        "release_group"
+      ]
+    },
+    {
+      "title": "Tenet",
+      "radarrId": 3,
+      "path": null,
+      "action": 2,
+      "timestamp": "3 days ago",
+      "description": "Subtitles file deleted.",
+      "monitored": false,
+      "language": {
+        "name": null,
+        "code2": null,
+        "code3": null,
+        "forced": null,
+        "hi": null
+      },
+      "tags": [
+        "hd"
+      ],
+      "score": null,
+      "subs_id": null,
+      "provider": null,
+      "subtitles_path": null,
+      "upgradable": false,
+      "parsed_timestamp": "11/17/26 21:12:45",
+      "blacklisted": false,
+      "matches": [
+        "title"
+      ],
+      "dont_matches": [
+        "year"
+      ]
+    }
+  ],
+  "total": 3
+}

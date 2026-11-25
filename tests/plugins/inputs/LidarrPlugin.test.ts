@@ -1,69 +1,51 @@
-import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
-import { LidarrPlugin } from '../../../src/plugins/inputs/LidarrPlugin';
-import { LidarrConfig } from '../../../src/types/inputs/lidarr.types';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import axios from 'axios';
+import { LidarrPlugin } from '../../../src/plugins/inputs/LidarrPlugin';
+import { PROTOCOL_ID } from '../../../src/plugins/inputs/constants';
+import type { LidarrConfig } from '../../../src/types/inputs/lidarr.types';
+import type { components } from '../../../src/types/generated/lidarr';
+import type { DataPoint } from '../../../src/types/plugin.types';
+import { createContractHttpClient, type ContractHttpClient } from '../../fixtures/contract-http';
+import { loadFixture } from '../../contracts/registry';
 
-// Mock the logger
-vi.mock('../../../src/core/Logger', () => ({
-  createLogger: () => ({
-    info: vi.fn(),
-    debug: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  }),
-  withContext: (logger: unknown) => logger,
-}));
+vi.mock('../../../src/core/Logger', async () => {
+  const { loggerMock } = await import('../../fixtures/logger');
+  return loggerMock();
+});
 
-// Mock axios
-vi.mock('axios', () => ({
-  default: {
-    create: vi.fn(() => ({
-      get: vi.fn(),
-      defaults: {
-        headers: {
-          common: {},
-        },
-      },
-    })),
-  },
-}));
+vi.mock('axios', () => ({ default: { create: vi.fn() } }));
+
+type QueuePage = components['schemas']['QueueResourcePagingResource'];
+type QueueRecord = components['schemas']['QueueResource'];
+type AlbumPage = components['schemas']['AlbumResourcePagingResource'];
+
+const queueRecords = (): QueueRecord[] => loadFixture<QueuePage>('lidarr/queue').records ?? [];
+const missingAlbums = (): AlbumPage => loadFixture<AlbumPage>('lidarr/wanted-missing');
+const page = (records: QueueRecord[] | null, totalRecords = records?.length ?? 0): QueuePage => ({
+  page: 1,
+  pageSize: 10,
+  totalRecords,
+  records,
+});
 
 describe('LidarrPlugin', () => {
   let plugin: LidarrPlugin;
-  let mockHttpClient: { get: Mock; defaults: { headers: { common: Record<string, string> } } };
+  let client: ContractHttpClient;
 
   const testConfig: LidarrConfig = {
     id: 1,
     url: 'http://localhost:8686',
     apiKey: 'lidarr-api-key',
     verifySsl: false,
-    queue: {
-      enabled: true,
-      intervalSeconds: 30,
-    },
-    missing: {
-      enabled: true,
-      intervalSeconds: 300,
-    },
+    queue: { enabled: true, intervalSeconds: 30 },
+    missing: { enabled: true, intervalSeconds: 300 },
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
     plugin = new LidarrPlugin();
-
-    mockHttpClient = {
-      get: vi.fn(),
-      defaults: {
-        headers: {
-          common: {},
-        },
-      },
-      interceptors: {
-        response: { use: vi.fn() },
-        request: { use: vi.fn() },
-      },
-    };
-    (axios.create as Mock).mockReturnValue(mockHttpClient);
+    client = createContractHttpClient('lidarr');
+    (axios.create as Mock).mockReturnValue(client);
   });
 
   describe('metadata', () => {
@@ -74,55 +56,46 @@ describe('LidarrPlugin', () => {
     });
   });
 
-  describe('getHealthEndpoint', () => {
+  describe('health', () => {
     it('should return the correct health endpoint', () => {
-      // Access protected method via any cast for testing
       const endpoint = (plugin as unknown as { getHealthEndpoint: () => string }).getHealthEndpoint();
       expect(endpoint).toBe('/api/v1/system/status');
+    });
+
+    it('should pass the health check against the contract route', async () => {
+      await plugin.initialize(testConfig);
+
+      await expect(plugin.healthCheck()).resolves.toBe(true);
     });
   });
 
   describe('initialize', () => {
     it('should initialize with API key header', async () => {
       await plugin.initialize(testConfig);
-      expect(mockHttpClient.defaults.headers.common['X-Api-Key']).toBe('lidarr-api-key');
+      expect(client.defaults.headers.common['X-Api-Key']).toBe('lidarr-api-key');
     });
   });
 
   describe('getSchedules', () => {
     it('should return schedules for enabled collectors', async () => {
       await plugin.initialize(testConfig);
-      const schedules = plugin.getSchedules();
 
-      expect(schedules.length).toBe(2);
-      expect(schedules[0].name).toBe('Lidarr_1_queue');
-      expect(schedules[0].intervalSeconds).toBe(30);
-      expect(schedules[1].name).toBe('Lidarr_1_missing');
-      expect(schedules[1].intervalSeconds).toBe(300);
+      expect(plugin.getSchedules().map((s) => [s.name, s.intervalSeconds])).toEqual([
+        ['Lidarr_1_queue', 30],
+        ['Lidarr_1_missing', 300],
+      ]);
     });
 
     it('should only return queue schedule when missing is disabled', async () => {
-      const configWithoutMissing = {
-        ...testConfig,
-        missing: { ...testConfig.missing, enabled: false },
-      };
-      await plugin.initialize(configWithoutMissing);
-      const schedules = plugin.getSchedules();
+      await plugin.initialize({ ...testConfig, missing: { ...testConfig.missing, enabled: false } });
 
-      expect(schedules.length).toBe(1);
-      expect(schedules[0].name).toBe('Lidarr_1_queue');
+      expect(plugin.getSchedules().map((s) => s.name)).toEqual(['Lidarr_1_queue']);
     });
 
     it('should only return missing schedule when queue is disabled', async () => {
-      const configWithoutQueue = {
-        ...testConfig,
-        queue: { ...testConfig.queue, enabled: false },
-      };
-      await plugin.initialize(configWithoutQueue);
-      const schedules = plugin.getSchedules();
+      await plugin.initialize({ ...testConfig, queue: { ...testConfig.queue, enabled: false } });
 
-      expect(schedules.length).toBe(1);
-      expect(schedules[0].name).toBe('Lidarr_1_missing');
+      expect(plugin.getSchedules().map((s) => s.name)).toEqual(['Lidarr_1_missing']);
     });
   });
 
@@ -131,313 +104,132 @@ describe('LidarrPlugin', () => {
       await plugin.initialize(testConfig);
     });
 
-    it('should collect queue data', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          page: 1,
-          pageSize: 250,
-          totalRecords: 1,
-          records: [
-            {
-              id: 1,
-              albumId: 100,
-              protocol: 'usenet',
-              quality: { quality: { name: 'FLAC' } },
-              album: {
-                title: 'Abbey Road',
-              },
-              artist: {
-                artistName: 'The Beatles',
-              },
-            },
-          ],
-        },
-      });
+    const ofType = async (type: string): Promise<DataPoint[]> =>
+      (await plugin.collect()).filter((p) => p.tags.type === type);
 
-      // Mock empty missing albums
-      mockHttpClient.get.mockResolvedValueOnce({ data: { totalRecords: 0, records: [] } });
+    it('collects queue items from the queue fixture', async () => {
+      const points = await ofType('Queue');
 
-      const points = await plugin.collect();
-
-      expect(points.length).toBeGreaterThan(0);
-      const queuePoint = points.find((p) => p.tags.type === 'Queue');
-      expect(queuePoint).toBeDefined();
-      expect(queuePoint?.tags.name).toBe('Abbey Road - The Beatles');
-      expect(queuePoint?.tags.protocol).toBe('USENET');
-      expect(queuePoint?.tags.quality).toBe('FLAC');
+      expect(points.map((p) => [p.tags.name, p.tags.quality, p.tags.albumId])).toEqual([
+        ['OK Computer - Radiohead', 'FLAC', 11],
+        ['Random Access Memories - Daft Punk', 'MP3-320', 21],
+      ]);
     });
 
-    it('should set protocol_id correctly for usenet', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          totalRecords: 1,
-          records: [
-            {
-              id: 1,
-              albumId: 100,
-              protocol: 'usenet',
-              quality: { quality: { name: 'FLAC' } },
-              album: { title: 'Test Album' },
-              artist: { artistName: 'Test Artist' },
-            },
-          ],
-        },
-      });
-      mockHttpClient.get.mockResolvedValueOnce({ data: { totalRecords: 0, records: [] } });
+    it('maps protocol ids', async () => {
+      const points = await ofType('Queue');
 
-      const points = await plugin.collect();
-      const queuePoint = points.find((p) => p.tags.type === 'Queue');
-      expect(queuePoint?.tags.protocol_id).toBe(1);
+      expect(points.map((p) => [p.tags.protocol, p.tags.protocol_id])).toEqual([
+        ['TORRENT', PROTOCOL_ID.TORRENT],
+        ['USENET', PROTOCOL_ID.USENET],
+      ]);
     });
 
-    it('should set protocol_id correctly for torrent', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          totalRecords: 1,
-          records: [
-            {
-              id: 1,
-              albumId: 100,
-              protocol: 'torrent',
-              quality: { quality: { name: 'MP3-320' } },
-              album: { title: 'Test Album' },
-              artist: { artistName: 'Test Artist' },
-            },
-          ],
-        },
-      });
-      mockHttpClient.get.mockResolvedValueOnce({ data: { totalRecords: 0, records: [] } });
+    it('falls back when the queue artist is missing', async () => {
+      const { artist: _artist, ...withoutArtist } = queueRecords()[0];
+      client.override('/api/v1/queue', page([withoutArtist]));
 
-      const points = await plugin.collect();
-      const queuePoint = points.find((p) => p.tags.type === 'Queue');
-      expect(queuePoint?.tags.protocol_id).toBe(0);
+      expect((await ofType('Queue'))[0].tags.name).toBe('OK Computer - Unknown Artist');
     });
 
-    it('should handle missing artist name', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          totalRecords: 1,
-          records: [
-            {
-              id: 1,
-              albumId: 100,
-              protocol: 'usenet',
-              quality: { quality: { name: 'FLAC' } },
-              album: { title: 'Unknown Album' },
-              artist: null,
-            },
-          ],
-        },
-      });
-      mockHttpClient.get.mockResolvedValueOnce({ data: { totalRecords: 0, records: [] } });
+    it('skips queue items without album data', async () => {
+      const [first, second] = queueRecords();
+      const { album: _album, ...withoutAlbum } = first;
+      client.override('/api/v1/queue', page([withoutAlbum, second]));
 
-      const points = await plugin.collect();
-      const queuePoint = points.find((p) => p.tags.type === 'Queue');
-      expect(queuePoint?.tags.name).toBe('Unknown Album - Unknown Artist');
+      expect((await ofType('Queue')).map((p) => p.tags.name)).toEqual(['Random Access Memories - Daft Punk']);
     });
 
-    it('should collect missing albums', async () => {
-      // Mock empty queue
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { totalRecords: 0, records: [] },
-      });
+    it('falls back when optional queue fields are missing', async () => {
+      const { quality: _quality, protocol: _protocol, ...bare } = queueRecords()[0];
+      client.override('/api/v1/queue', page([bare]));
 
-      // Mock missing albums
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          totalRecords: 2,
-          records: [
-            {
-              id: 1,
-              foreignAlbumId: 'abc123',
-              title: 'Let It Be',
-              artist: {
-                artistName: 'The Beatles',
-              },
-            },
-            {
-              id: 2,
-              foreignAlbumId: 'def456',
-              title: 'Revolver',
-              artist: {
-                artistName: 'The Beatles',
-              },
-            },
-          ],
-        },
-      });
+      const [point] = await ofType('Queue');
 
-      const points = await plugin.collect();
-
-      const missingPoints = points.filter((p) => p.tags.type === 'Missing');
-      expect(missingPoints.length).toBe(2);
-
-      const letItBe = missingPoints.find((p) => p.tags.name === 'Let It Be - The Beatles');
-      expect(letItBe).toBeDefined();
-      expect(letItBe?.tags.foreignAlbumId).toBe('abc123');
-
-      const revolver = missingPoints.find((p) => p.tags.name === 'Revolver - The Beatles');
-      expect(revolver).toBeDefined();
+      expect([point.tags.quality, point.tags.protocol, point.tags.protocol_id]).toEqual([
+        'Unknown',
+        'UNKNOWN',
+        PROTOCOL_ID.TORRENT,
+      ]);
     });
 
-    it('should handle missing artist in missing albums', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { totalRecords: 0, records: [] },
-      });
+    it('handles an empty queue', async () => {
+      client.override('/api/v1/queue', page([]));
 
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          totalRecords: 1,
-          records: [
-            {
-              id: 1,
-              foreignAlbumId: 'xyz789',
-              title: 'Mystery Album',
-              artist: null,
-            },
-          ],
-        },
-      });
-
-      const points = await plugin.collect();
-
-      const missingPoints = points.filter((p) => p.tags.type === 'Missing');
-      expect(missingPoints.length).toBe(1);
-      expect(missingPoints[0].tags.name).toBe('Mystery Album - Unknown Artist');
+      expect(await ofType('Queue')).toEqual([]);
     });
 
-    it('should handle empty queue gracefully', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { totalRecords: 0, records: [] },
-      });
-      mockHttpClient.get.mockResolvedValueOnce({ data: { totalRecords: 0, records: [] } });
+    it('handles null records in a queue page', async () => {
+      client.override('/api/v1/queue', page(null));
 
-      const points = await plugin.collect();
-      expect(points).toEqual([]);
+      expect(await ofType('Queue')).toEqual([]);
     });
 
-    it('should propagate queue API errors for circuit breaker', async () => {
-      mockHttpClient.get.mockRejectedValueOnce(new Error('Queue API Error'));
+    it('paginates through large queues', async () => {
+      const records = queueRecords();
+      client.override('/api/v1/queue', (params) => page([records[Number(params?.page) - 1]], 2));
+
+      expect(await ofType('Queue')).toHaveLength(2);
+      expect(client.get).toHaveBeenCalledWith('/api/v1/queue', { params: expect.objectContaining({ page: 1 }) });
+      expect(client.get).toHaveBeenCalledWith('/api/v1/queue', { params: expect.objectContaining({ page: 2 }) });
+    });
+
+    it('requests missing albums with their artist', async () => {
+      const points = await ofType('Missing');
+
+      expect(client.get).toHaveBeenCalledWith('/api/v1/wanted/missing', {
+        params: expect.objectContaining({ includeArtist: true, monitored: true }),
+      });
+      expect(points.map((p) => p.tags.name)).toEqual([
+        'Flight b741 - King Gizzard & the Lizard Wizard',
+        'Discovery - Daft Punk',
+        'Kid A - Radiohead',
+      ]);
+      expect(points[2].tags).toMatchObject({ albumId: 12, foreignAlbumId: 'b8f5a4d0-6b0c-3d5e-9c7f-6f4a1e2b3c4d' });
+    });
+
+    it('falls back when a missing album has no artist', async () => {
+      const [first] = missingAlbums().records ?? [];
+      const { artist: _artist, ...withoutArtist } = first;
+      client.override('/api/v1/wanted/missing', { ...missingAlbums(), totalRecords: 1, records: [withoutArtist] });
+
+      expect((await ofType('Missing'))[0].tags.name).toBe('Flight b741 - Unknown Artist');
+    });
+
+    it('handles no missing albums', async () => {
+      client.override('/api/v1/wanted/missing', { ...missingAlbums(), totalRecords: 0, records: [] });
+
+      expect(await ofType('Missing')).toEqual([]);
+    });
+
+    it('falls back when a missing album has no title or id', async () => {
+      const [first] = missingAlbums().records ?? [];
+      const { title: _title, foreignAlbumId: _id, ...untitled } = first;
+      client.override('/api/v1/wanted/missing', { ...missingAlbums(), totalRecords: 1, records: [untitled] });
+
+      const [point] = await ofType('Missing');
+
+      expect(point.tags.name).toMatch(/^unknown - /);
+      expect(point.tags.foreignAlbumId).toBe('unknown');
+    });
+
+    it('propagates queue API errors for the circuit breaker', async () => {
+      client.fail('/api/v1/queue', new Error('Queue API Error'));
 
       await expect(plugin.collect()).rejects.toThrow('Queue API Error');
     });
 
-    it('should propagate missing albums API errors for circuit breaker', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { totalRecords: 0, records: [] },
-      });
-      mockHttpClient.get.mockRejectedValueOnce(new Error('Missing API Error'));
+    it('propagates missing albums API errors for the circuit breaker', async () => {
+      client.fail('/api/v1/wanted/missing', new Error('Missing API Error'));
 
       await expect(plugin.collect()).rejects.toThrow('Missing API Error');
     });
 
-    it('should skip queue items without album data', async () => {
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          totalRecords: 2,
-          records: [
-            {
-              id: 1,
-              albumId: 100,
-              protocol: 'usenet',
-              quality: { quality: { name: 'FLAC' } },
-              album: null,
-              artist: { artistName: 'Artist' },
-            },
-            {
-              id: 2,
-              albumId: 101,
-              protocol: 'usenet',
-              quality: { quality: { name: 'FLAC' } },
-              album: { title: 'Valid Album' },
-              artist: { artistName: 'Valid Artist' },
-            },
-          ],
-        },
-      });
-      mockHttpClient.get.mockResolvedValueOnce({ data: { totalRecords: 0, records: [] } });
+    it('generates deterministic hash ids', async () => {
+      const first = (await plugin.collect()).map((p) => p.fields.hash);
+      const second = (await plugin.collect()).map((p) => p.fields.hash);
 
-      const points = await plugin.collect();
-
-      const queuePoints = points.filter((p) => p.tags.type === 'Queue');
-      expect(queuePoints.length).toBe(1);
-      expect(queuePoints[0].tags.name).toBe('Valid Album - Valid Artist');
-    });
-
-    it('should paginate through large queues', async () => {
-      // First page
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          page: 1,
-          pageSize: 250,
-          totalRecords: 2,
-          records: [
-            {
-              id: 1,
-              albumId: 100,
-              protocol: 'torrent',
-              quality: { quality: { name: 'FLAC' } },
-              album: { title: 'Album 1' },
-              artist: { artistName: 'Artist 1' },
-            },
-          ],
-        },
-      });
-
-      // Second page
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: {
-          page: 2,
-          pageSize: 250,
-          totalRecords: 2,
-          records: [
-            {
-              id: 2,
-              albumId: 101,
-              protocol: 'usenet',
-              quality: { quality: { name: 'MP3-320' } },
-              album: { title: 'Album 2' },
-              artist: { artistName: 'Artist 2' },
-            },
-          ],
-        },
-      });
-
-      // Missing albums mock
-      mockHttpClient.get.mockResolvedValueOnce({ data: { totalRecords: 0, records: [] } });
-
-      const points = await plugin.collect();
-
-      const queuePoints = points.filter((p) => p.tags.type === 'Queue');
-      expect(queuePoints.length).toBe(2);
-    });
-
-    it('should generate deterministic hash IDs', async () => {
-      const albumData = {
-        id: 1,
-        albumId: 100,
-        protocol: 'usenet',
-        quality: { quality: { name: 'FLAC' } },
-        album: { title: 'Test Album' },
-        artist: { artistName: 'Test Artist' },
-      };
-
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { totalRecords: 1, records: [albumData] },
-      });
-      mockHttpClient.get.mockResolvedValueOnce({ data: { totalRecords: 0, records: [] } });
-
-      const points1 = await plugin.collect();
-
-      // Collect again with same data
-      mockHttpClient.get.mockResolvedValueOnce({
-        data: { totalRecords: 1, records: [albumData] },
-      });
-      mockHttpClient.get.mockResolvedValueOnce({ data: { totalRecords: 0, records: [] } });
-
-      const points2 = await plugin.collect();
-
-      expect(points1[0].fields.hash).toBe(points2[0].fields.hash);
+      expect(second).toEqual(first);
     });
   });
 

@@ -1,5 +1,5 @@
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import * as yaml from 'yaml';
 import { createLogger } from '../core/Logger';
 import { ConfigMigrator } from './ConfigMigrator';
@@ -248,7 +248,7 @@ inputs:
 
     // Number
     const num = Number(value);
-    if (!isNaN(num) && value.trim() !== '') {return num;}
+    if (!Number.isNaN(num) && value.trim() !== '') {return num;}
 
     // String (default)
     return value;

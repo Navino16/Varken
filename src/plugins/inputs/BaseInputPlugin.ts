@@ -1,11 +1,13 @@
-import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import type { AxiosInstance, AxiosRequestConfig, AxiosResponse, RawAxiosRequestHeaders } from 'axios';
 import axios from 'axios';
-import * as https from 'https';
-import { createHash } from 'crypto';
+import * as https from 'node:https';
+import { createHash } from 'node:crypto';
 import { createLogger, withContext } from '../../core/Logger';
 import { formatHelpfulError } from '../../utils/errors';
 import { RequestCache } from '../../utils/RequestCache';
 import type { GlobalConfig } from '../../config/schemas/config.schema';
+import type { ApiCallOptions, ApiClient } from '../../types/api-contract';
+import { expandPathTemplate } from '../../utils/pathTemplate';
 import type {
   InputPlugin,
   PluginMetadata,
@@ -39,10 +41,10 @@ const DEFAULT_GLOBAL_CONFIG: GlobalConfig = {
  * Interface for paginated API responses
  */
 export interface PaginatedResponse<T> {
-  page: number;
-  pageSize: number;
-  totalRecords: number;
-  records: T[];
+  page?: number;
+  pageSize?: number;
+  totalRecords?: number;
+  records?: T[] | null;
 }
 
 /**
@@ -189,11 +191,11 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
   /**
    * Make an HTTP GET request
    */
-  protected async httpGet<T>(path: string, params?: Record<string, unknown>): Promise<T> {
-    const key = this.cacheKey(path, params);
+  protected async httpGet<T>(path: string, params?: Record<string, unknown>, headers?: Record<string, unknown>): Promise<T> {
+    const key = headers ? `${this.cacheKey(path, params)}#${this.cacheKey('', headers)}` : this.cacheKey(path, params);
     return this.httpCache.getOrFetch(key, async () => {
       try {
-        const response = await this.httpClient.get<T>(path, { params });
+        const response = await this.httpClient.get<T>(path, headers ? { params, headers: headers as RawAxiosRequestHeaders } : { params });
         return response.data;
       } catch (error) {
         this.logger.error(
@@ -238,12 +240,27 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
   }
 
   /**
+   * Typed client bound to a service's generated `paths` (src/types/generated): the compiler rejects
+   * unknown endpoints, unknown or mistyped parameters and undeclared response fields.
+   * `basePath` is prepended when the spec's paths are relative to one (Swagger `basePath`).
+   */
+  protected api<Paths>(basePath = ''): ApiClient<Paths> {
+    return {
+      get: (path: string, options?: ApiCallOptions) =>
+        this.httpGet(basePath + expandPathTemplate(path, options?.path), options?.query, options?.header),
+      getAllPages: (path: string, options?: ApiCallOptions) =>
+        this.fetchAllPages(basePath + expandPathTemplate(path, options?.path), options?.query, options?.header),
+    } as unknown as ApiClient<Paths>;
+  }
+
+  /**
    * Fetch all pages from a paginated API endpoint.
    * Includes safety limit to prevent memory issues with large datasets.
    */
   protected async fetchAllPages<T>(
     endpoint: string,
-    params: Record<string, unknown> = {}
+    params: Record<string, unknown> = {},
+    headers?: Record<string, unknown>
   ): Promise<T[]> {
     const allRecords: T[] = [];
     let page = 1;
@@ -252,14 +269,14 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
     const maxRecords = this.globalConfig.maxPaginationRecords;
 
     do {
-      const response = await this.httpGet<PaginatedResponse<T>>(endpoint, {
-        ...params,
-        pageSize,
-        page,
-      });
+      const response = await this.httpGet<PaginatedResponse<T>>(
+        endpoint,
+        { ...params, pageSize, page },
+        headers
+      );
 
-      totalRecords = response.totalRecords;
-      allRecords.push(...response.records);
+      totalRecords = response.totalRecords ?? 0;
+      allRecords.push(...(response.records ?? []));
       page++;
 
       if (allRecords.length >= maxRecords) {

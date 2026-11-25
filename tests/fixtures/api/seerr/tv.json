@@ -1,0 +1,39 @@
+{
+  "id": 95396,
+  "name": "Severance",
+  "originalName": "Severance",
+  "firstAirDate": "2022-02-17",
+  "numberOfSeason": 2,
+  "status": "Returning Series",
+  "voteAverage": 8.4,
+  "mediaInfo": {
+    "id": 117,
+    "tmdbId": 95396,
+    "status": 4,
+    "createdAt": "2026-11-21T09:30:14.000Z",
+    "updatedAt": "2026-11-23T03:15:27.000Z",
+    "tvdbId": 371980,
+    "requests": [
+      {
+        "id": 40,
+        "status": 2,
+        "type": "tv",
+        "createdAt": "2026-11-21T09:30:14.000Z",
+        "updatedAt": "2026-11-21T09:31:02.000Z",
+        "requestedBy": {
+          "id": 2,
+          "email": "bob@example.com",
+          "username": "bob",
+          "userType": 2,
+          "permissions": 32,
+          "avatar": "/avatarproxy/2",
+          "createdAt": "2025-06-14T10:22:37.000Z",
+          "updatedAt": "2026-11-20T08:12:44.000Z",
+          "requestCount": 4,
+          "displayName": "bob"
+        },
+        "is4k": false
+      }
+    ]
+  }
+}

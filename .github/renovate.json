@@ -8,6 +8,7 @@
     "develop"
   ],
   "schedule": ["before 6am on monday"],
+  "minimumReleaseAge": "1 day",
   "platformAutomerge": false,
   "automergeSchedule": ["at any time"],
   "packageRules": [
@@ -26,8 +27,8 @@
       "automerge": true
     },
     {
-      "description": "Group and auto-merge Dockerfile base image minor and patch updates",
-      "matchManagers": ["dockerfile"],
+      "description": "Group and auto-merge Docker image minor and patch updates (Dockerfile and compose files)",
+      "matchManagers": ["dockerfile", "docker-compose"],
       "matchUpdateTypes": ["minor", "patch"],
       "groupName": "docker-dependencies",
       "automerge": true

@@ -57,7 +57,7 @@ Built with TypeScript, Node.js, and a plugin-based architecture with scheduled d
 ### Deployment
 
 - **Docker ready** — multi-platform images for amd64 and arm64
-- **Lightweight** — Node.js 24 Alpine-based image
+- **Lightweight** — Node.js Alpine-based image
 - **Configurable** — environment variables, YAML, or legacy INI migration
 
 ## Supported Services
@@ -532,17 +532,6 @@ Error messages are annotated with actionable hints where possible. Look for the 
 - Verify InfluxDB connection settings
 - Ensure at least one input is enabled with `enabled: true`
 
-### Integration tests
-
-A separate `npm run test:integration` target runs end-to-end tests against real services. Start the stack first (InfluxDB 2.x on port 8087 by default):
-
-```bash
-docker compose -f docker-compose.test.yaml --profile influxdb2 up -d
-npm run test:integration
-```
-
-Tests skip themselves automatically when a service isn't reachable, so the command is safe to run with or without containers up. Unit tests (`npm test`) are hermetic and never touch the integration folder.
-
 **GeoIP not working:**
 - Ensure `geoip.enabled: true` is set in your Tautulli configuration
 - Verify Tautulli is accessible and the API key is correct
@@ -593,11 +582,45 @@ src/
 
 ### Adding a New Input Plugin
 
-1. Create type definitions in `src/types/inputs/`
-2. Add Zod schema in `src/config/schemas/config.schema.ts`
-3. Create plugin in `src/plugins/inputs/`
-4. Register in `src/plugins/inputs/index.ts`
-5. Add tests in `tests/plugins/inputs/`
+1. Pin the service's API spec in `tests/contracts/specs/` (entry in `manifest.json`) and generate its response types: `npm run contracts:types <service>`
+2. Add the config type in `src/types/inputs/` and its Zod schema in `src/config/schemas/config.schema.ts`
+3. Create the plugin in `src/plugins/inputs/`, calling its API through `this.api<paths>()`
+4. Register it in `src/plugins/inputs/index.ts`
+5. Register each called endpoint with a fixture in `tests/contracts/registry.ts` and write the tests in `tests/plugins/inputs/` with `createContractHttpClient` (see [Contract tests](#contract-tests))
+
+### Integration tests
+
+A separate `npm run test:integration` target runs end-to-end tests against real services. Start the stack first (InfluxDB 2.x on port 8087 by default):
+
+```bash
+docker compose -f docker-compose.test.yaml --profile influxdb2 up -d
+npm run test:integration
+```
+
+Tests skip themselves automatically when a service isn't reachable, so the command is safe to run with or without containers up. Unit tests (`npm test`) are hermetic and never touch the integration folder.
+
+### Contract tests
+
+Input plugins migrated to contract tests (Radarr, Bazarr, Sonarr, Lidarr, Readarr, Prowlarr, Ombi, Overseerr, Plex, Jellyfin, Emby and Tautulli) never hand-write API responses in their tests. Each endpoint such a plugin calls is registered in `tests/contracts/registry.ts` with a JSON fixture (`tests/fixtures/api/<service>/`), and `npm test` checks that:
+
+- the path exists in the service's pinned API spec (`tests/contracts/specs/`, see `manifest.json` for sources and versions);
+- every fixture, and every variant a test builds from it, validates against the spec's response schema, with unknown properties rejected;
+- the response types in `src/types/generated/` match the pinned spec, so plugins can only read fields the API declares;
+- the query parameters and per-call headers actually sent (including pagination) are declared by the spec, with the right types.
+
+Migrated plugins call their API through `this.api<paths>()` (or `this.api<paths>('/api')` when the spec's paths are relative to a base path, as Bazarr's are; `'/api/v1'` for Seerr), typed from the same generated `paths`: an unknown endpoint, an unknown or mistyped parameter, a missing path parameter or an undeclared response field fails `tsc`. `npm run typecheck` (run in CI) also checks `tests/types/`, which pins those compile-time guarantees.
+
+Specs the upstream gets wrong or leaves incomplete are corrected with justified patches in `tests/contracts/overlays/<service>.json`, each linking its evidence. Bazarr publishes no static spec: its Swagger 2.0 document is captured from a running instance (served at `/api/swagger.json`), upgraded to OpenAPI 3.0 when loaded, and its response schemas, which the runtime spec omits, live in the overlay with links to the Bazarr models they come from. Readarr is archived upstream: its spec is pinned on its last release and is not refreshed. Ombi's spec is captured the same way from a running instance (`/swagger/v1/swagger.json`). The Overseerr plugin is checked against the spec of Seerr, Overseerr's successor, pinned as published (YAML, `seerr-api.yml`); its paths are relative to `/api/v1`. Plex's spec is extracted from its developer page (OpenAPI 3.1 embedded in `https://developer.plex.tv/pms/`); Plex paginates with request headers, which typed calls send as `{ header: { 'X-Plex-Container-Size': 0 } }`. Emby's spec is captured from a running server (`/emby/openapi.json`, paths relative to `/emby`). Tautulli publishes no spec: its contract (`tautulli.json`, OpenAPI 3.1) is hand-written from the `@addtoapi` docstrings of `plexpy/webserve.py`, which generate its API reference, and checked against its source, linked from each corrected schema. Every command is its own spec path with a fixed query string (`/api/v2?cmd=get_activity`), so each command gets its own parameter and response types. Overlays can also override how a string format is validated for one service (`formats`), e.g. Jellyfin's GUIDs, serialized without dashes. After changing a spec or an overlay, regenerate the types:
+
+```bash
+npm run contracts:types radarr
+```
+
+#### Refreshing the pinned specs
+
+`npm run contracts:update` (optionally followed by service names) downloads each spec again from the source recorded in `manifest.json`: the published file at the latest GitHub release (Radarr, Sonarr, Lidarr, Prowlarr, Seerr), the published URL (Jellyfin), the developer page (Plex), or a container of the latest image started for the capture (Bazarr, Ombi, Emby; needs Docker). Specs not downloaded as files are stored as sorted JSON, so an unchanged upstream produces no diff. Tautulli's contract is hand-written: the script refreshes the snapshot of the documented commands (`tautulli.docstrings.json`) and asks for a manual review when it changes. Readarr is archived and skipped. The report also lists overlay patches the upstream spec now covers, and types are regenerated when a contract changes.
+
+The `Contracts refresh` workflow also runs on every pull request to `develop` or `main`, read-only: it refreshes the specs against upstream and, when they changed, checks that the pull request's code still compiles and passes the tests with them; a source that cannot be refreshed fails the check. On its weekly schedule it runs every Monday on `develop`. When something changed, it runs `tsc`, the type tests and the test suite, and opens (or updates) a pull request from `contracts/refresh` labelled `dependencies`, with the report and the verification result in its body, since pull requests opened by GitHub Actions do not trigger CI. A run with failures and nothing to commit fails, so the failure is notified. Specs whose content did not change keep their pinned version, so image rebuilds and releases without API change open nothing. When the report asks for a manual review (Tautulli), push the contract update to the `contracts/refresh` branch: the workflow then only comments on the pull request instead of overwriting it. The required checks do not run on a pull request opened by GitHub Actions: close and reopen it to trigger CI before merging. The schedule only runs once the workflow is on the default branch (`main`).
 
 ### Pull Request Guidelines
 

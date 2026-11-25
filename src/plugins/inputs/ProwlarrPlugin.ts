@@ -1,9 +1,7 @@
 import { BaseInputPlugin } from './BaseInputPlugin';
 import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
-import type {
-  ProwlarrConfig,
-  ProwlarrIndexerStatsResponse,
-} from '../../types/inputs/prowlarr.types';
+import type { ProwlarrConfig } from '../../types/inputs/prowlarr.types';
+import type { paths } from '../../types/generated/prowlarr';
 
 /**
  * Prowlarr input plugin
@@ -15,6 +13,8 @@ export class ProwlarrPlugin extends BaseInputPlugin<ProwlarrConfig> {
     version: '1.0.0',
     description: 'Collects indexer statistics from Prowlarr',
   };
+
+  private readonly prowlarr = this.api<paths>();
 
   /**
    * Initialize the plugin and configure the HTTP client with API key header
@@ -71,7 +71,7 @@ export class ProwlarrPlugin extends BaseInputPlugin<ProwlarrConfig> {
   private async collectIndexerStats(): Promise<DataPoint[]> {
     return this.safeFetch('collect Prowlarr indexer stats', async () => {
       const points: DataPoint[] = [];
-      const response = await this.httpGet<ProwlarrIndexerStatsResponse>('/api/v1/indexerstats');
+      const response = await this.prowlarr.get('/api/v1/indexerstats');
       const indexers = response?.indexers;
 
       if (!indexers || indexers.length === 0) {
@@ -87,21 +87,21 @@ export class ProwlarrPlugin extends BaseInputPlugin<ProwlarrConfig> {
             'Prowlarr',
             {
               type: 'IndexerStats',
-              indexerId: indexer.indexerId,
-              indexerName: indexer.indexerName,
+              indexerId: indexer.indexerId ?? 0,
+              indexerName: indexer.indexerName ?? 'unknown',
               server: this.config.id,
             },
             {
               hash: hashId,
-              averageResponseTime: indexer.averageResponseTime,
-              numberOfQueries: indexer.numberOfQueries,
-              numberOfGrabs: indexer.numberOfGrabs,
-              numberOfRssQueries: indexer.numberOfRssQueries,
-              numberOfAuthQueries: indexer.numberOfAuthQueries,
-              numberOfFailedQueries: indexer.numberOfFailedQueries,
-              numberOfFailedGrabs: indexer.numberOfFailedGrabs,
-              numberOfFailedRssQueries: indexer.numberOfFailedRssQueries,
-              numberOfFailedAuthQueries: indexer.numberOfFailedAuthQueries,
+              averageResponseTime: indexer.averageResponseTime ?? 0,
+              numberOfQueries: indexer.numberOfQueries ?? 0,
+              numberOfGrabs: indexer.numberOfGrabs ?? 0,
+              numberOfRssQueries: indexer.numberOfRssQueries ?? 0,
+              numberOfAuthQueries: indexer.numberOfAuthQueries ?? 0,
+              numberOfFailedQueries: indexer.numberOfFailedQueries ?? 0,
+              numberOfFailedGrabs: indexer.numberOfFailedGrabs ?? 0,
+              numberOfFailedRssQueries: indexer.numberOfFailedRssQueries ?? 0,
+              numberOfFailedAuthQueries: indexer.numberOfFailedAuthQueries ?? 0,
             }
           )
         );

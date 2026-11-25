@@ -81,10 +81,6 @@ export class PluginManager {
   private dryRun = false;
   private metrics: Metrics | null = null;
 
-  constructor() {
-    // No longer needs GeoIP handler - handled by TautulliPlugin via Tautulli API
-  }
-
   /**
    * Enable or disable dry-run mode.
    * In dry-run mode, output plugins are not invoked; data points are logged instead.
@@ -592,7 +588,7 @@ export class PluginManager {
         logger.warn(`[${scheduleName}] Filtered out data point "${point.measurement}" with no fields`);
         return false;
       }
-      if (!(point.timestamp instanceof Date) || isNaN(point.timestamp.getTime())) {
+      if (!(point.timestamp instanceof Date) || Number.isNaN(point.timestamp.getTime())) {
         logger.warn(`[${scheduleName}] Filtered out data point "${point.measurement}" with invalid timestamp`);
         return false;
       }

@@ -1,0 +1,16 @@
+{
+  "LocalAddress": "http://192.168.1.10:8096",
+  "ServerName": "media-box",
+  "Version": "12.4.0",
+  "ProductName": "Jellyfin Server",
+  "Id": "4f2c8e1a9b3d4c7e8f0a1b2c3d4e5f60",
+  "StartupWizardCompleted": true,
+  "HasPendingRestart": false,
+  "IsShuttingDown": false,
+  "SupportsLibraryMonitor": true,
+  "WebSocketPortNumber": 8096,
+  "CanSelfRestart": true,
+  "CanLaunchWebBrowser": false,
+  "HasUpdateAvailable": false,
+  "SystemArchitecture": "X64"
+}

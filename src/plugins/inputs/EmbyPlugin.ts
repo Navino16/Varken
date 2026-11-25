@@ -1,11 +1,10 @@
 import { BaseInputPlugin } from './BaseInputPlugin';
 import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
-import type {
-  EmbyConfig,
-  EmbySession,
-  EmbyLibrary,
-  EmbyItemCounts,
-} from '../../types/inputs/emby.types';
+import type { EmbyConfig } from '../../types/inputs/emby.types';
+import type { components, paths } from '../../types/generated/emby';
+
+type EmbySession = components['schemas']['Session.SessionInfo'];
+type EmbyItemCounts = components['schemas']['ItemCounts'];
 
 const PLAYER_STATE = { PLAYING: 0, PAUSED: 1, BUFFERING: 3 } as const;
 
@@ -25,6 +24,8 @@ export class EmbyPlugin extends BaseInputPlugin<EmbyConfig> {
     version: '1.0.0',
     description: 'Collects sessions and library stats from Emby',
   };
+
+  private readonly emby = this.api<paths>('/emby');
 
   async initialize(
     ...args: Parameters<BaseInputPlugin<EmbyConfig>['initialize']>
@@ -72,8 +73,8 @@ export class EmbyPlugin extends BaseInputPlugin<EmbyConfig> {
   private async collectSessions(): Promise<DataPoint[]> {
     return this.safeFetch('collect Emby sessions', async () => {
       const points: DataPoint[] = [];
-      const sessions = await this.httpGet<EmbySession[]>('/emby/Sessions');
-      const active = (sessions ?? []).filter((s) => s.NowPlayingItem !== undefined);
+      const sessions = await this.emby.get('/Sessions');
+      const active = (sessions ?? []).filter((s) => s.NowPlayingItem);
 
       for (const session of active) {
         points.push(this.processSession(session));
@@ -88,7 +89,7 @@ export class EmbyPlugin extends BaseInputPlugin<EmbyConfig> {
           },
           {
             stream_count: active.length,
-            transcode_streams: active.filter((s) => s.TranscodingInfo !== undefined).length,
+            transcode_streams: active.filter((s) => s.TranscodingInfo).length,
           }
         )
       );
@@ -103,7 +104,7 @@ export class EmbyPlugin extends BaseInputPlugin<EmbyConfig> {
       const points: DataPoint[] = [];
 
       const [libraries, counts] = await Promise.all([
-        this.httpGet<EmbyLibrary[]>('/emby/Library/VirtualFolders'),
+        this.emby.get('/Library/VirtualFolders'),
         this.fetchItemCounts(),
       ]);
 
@@ -114,13 +115,13 @@ export class EmbyPlugin extends BaseInputPlugin<EmbyConfig> {
             {
               type: 'library_stats',
               server: this.config.id,
-              section_name: library.Name,
+              section_name: library.Name ?? 'unknown',
               section_type: library.CollectionType || 'unknown',
-              name: library.Name,
+              name: library.Name ?? 'unknown',
             },
             {
               locations: library.Locations?.length ?? 0,
-              libraries: library.Name,
+              libraries: library.Name ?? 'unknown',
             }
           )
         );
@@ -135,15 +136,15 @@ export class EmbyPlugin extends BaseInputPlugin<EmbyConfig> {
               server: this.config.id,
             },
             {
-              movies: counts.MovieCount,
-              series: counts.SeriesCount,
-              episodes: counts.EpisodeCount,
-              artists: counts.ArtistCount,
-              albums: counts.AlbumCount,
-              songs: counts.SongCount,
-              books: counts.BookCount,
-              box_sets: counts.BoxSetCount,
-              total: counts.ItemCount,
+              movies: counts.MovieCount ?? 0,
+              series: counts.SeriesCount ?? 0,
+              episodes: counts.EpisodeCount ?? 0,
+              artists: counts.ArtistCount ?? 0,
+              albums: counts.AlbumCount ?? 0,
+              songs: counts.SongCount ?? 0,
+              books: counts.BookCount ?? 0,
+              box_sets: counts.BoxSetCount ?? 0,
+              total: counts.ItemCount ?? 0,
             }
           )
         );
@@ -156,7 +157,7 @@ export class EmbyPlugin extends BaseInputPlugin<EmbyConfig> {
 
   private async fetchItemCounts(): Promise<EmbyItemCounts | null> {
     try {
-      return await this.httpGet<EmbyItemCounts>('/emby/Items/Counts');
+      return await this.emby.get('/Items/Counts');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       this.logger.debug(`Could not fetch Emby item counts: ${message}`);
@@ -185,7 +186,7 @@ export class EmbyPlugin extends BaseInputPlugin<EmbyConfig> {
       'Emby',
       {
         type: 'Session',
-        session_id: session.Id,
+        session_id: session.Id ?? 'unknown',
         ip_address: session.RemoteEndPoint || 'unknown',
         username: session.UserName || 'unknown',
         title: fullTitle,

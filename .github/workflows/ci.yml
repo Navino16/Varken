@@ -22,13 +22,13 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: '24'
+          node-version-file: '.nvmrc'
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Run ESLint
+      - name: Run Biome lint
         run: npm run lint
 
   build:
@@ -41,7 +41,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: '24'
+          node-version-file: '.nvmrc'
           cache: 'npm'
 
       - name: Install dependencies
@@ -49,6 +49,9 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Type-check API contracts
+        run: npm run typecheck
 
   test:
     name: Test
@@ -60,7 +63,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: '24'
+          node-version-file: '.nvmrc'
           cache: 'npm'
 
       - name: Install dependencies
