@@ -179,6 +179,7 @@ inputs:
     indexerstats: 'indexerStats',
     serverinfo: 'serverInfo',
     livetv: 'liveTv',
+    librarymedia: 'libraryMedia',
     localcoordinates: 'localCoordinates',
     httptimeoutms: 'httpTimeoutMs',
     healthchecktimeoutms: 'healthCheckTimeoutMs',

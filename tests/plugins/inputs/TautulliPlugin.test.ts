@@ -58,6 +58,9 @@ describe('TautulliPlugin', () => {
     stats: { enabled: true, intervalSeconds: 300 },
     geoip: { enabled: true },
     serverInfo: { enabled: false, intervalSeconds: 300 },
+    history: { enabled: false, intervalSeconds: 300 },
+    users: { enabled: false, intervalSeconds: 3600 },
+    libraryMedia: { enabled: false, intervalDays: 1 },
   };
 
   const withSessions = (...list: Session[]): void => {

@@ -247,6 +247,7 @@ inputs:
   #     libraries:
   #       enabled: true
   #       intervalDays: 1
+  #     # Library counts, home stats, play graphs and recently added items
   #     stats:
   #       enabled: true
   #       intervalSeconds: 300
@@ -259,6 +260,18 @@ inputs:
   #     serverInfo:
   #       enabled: true
   #       intervalSeconds: 300
+  #     # One point per play
+  #     history:
+  #       enabled: true
+  #       intervalSeconds: 300
+  #     # Users table and per-user watch time
+  #     users:
+  #       enabled: true
+  #       intervalSeconds: 3600
+  #     # Per-library watch time and media info (file sizes, resolutions, codecs)
+  #     libraryMedia:
+  #       enabled: true
+  #       intervalDays: 1
 
   # Plex - Direct Plex monitoring
   # plex:

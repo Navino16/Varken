@@ -38,6 +38,18 @@ export interface TautulliConfig {
     enabled: boolean;
     intervalSeconds: number;
   };
+  history: {
+    enabled: boolean;
+    intervalSeconds: number;
+  };
+  users: {
+    enabled: boolean;
+    intervalSeconds: number;
+  };
+  libraryMedia: {
+    enabled: boolean;
+    intervalDays: number;
+  };
 }
 
 // GeoIP information (used internally by Varken)

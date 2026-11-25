@@ -226,6 +226,14 @@ Plex, Jellyfin and Emby also accept these collectors, all disabled by default:
 | `inventory` | 3600s | Users and devices |
 | `liveTv` | 300s | Live TV sessions (Plex), recordings and timers |
 
+Tautulli's `stats` collector (300s suggested) writes library counts, home stats (top items, users, platforms, most concurrent streams), play graphs and recently added items. Tautulli also accepts these collectors, all disabled by default:
+
+| Key | Default interval | What it writes |
+|-----|------------------|----------------|
+| `history` | 300s | One point per play |
+| `users` | 3600s | Users with plays, last seen and watch time (1, 7, 30 days, all time) |
+| `libraryMedia` | 1 day (`intervalDays`) | Per-library plays and watch time, media info (file size, items per resolution and codec) |
+
 ### Output Configuration
 
 Varken supports multiple output backends. You can configure one or several simultaneously — each data point is written to every configured output.
