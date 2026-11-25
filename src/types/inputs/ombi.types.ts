@@ -16,4 +16,8 @@ export interface OmbiConfig {
     enabled: boolean;
     intervalSeconds: number;
   };
+  serverInfo: {
+    enabled: boolean;
+    intervalSeconds: number;
+  };
 }

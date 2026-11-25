@@ -194,6 +194,14 @@ inputs:
         intervalSeconds: 30
 ```
 
+Every input also accepts a `serverInfo` collector (disabled by default, every 300s), which writes the service version, update availability, pending restart, uptime and health-issue counts where the service exposes them. See [docs/data-reference.md](docs/data-reference.md) for each service.
+
+```yaml
+      serverInfo:
+        enabled: true
+        intervalSeconds: 300
+```
+
 ### Output Configuration
 
 Varken supports multiple output backends. You can configure one or several simultaneously — each data point is written to every configured output.

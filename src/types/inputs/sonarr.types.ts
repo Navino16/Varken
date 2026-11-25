@@ -18,4 +18,8 @@ export interface SonarrConfig {
     missingDays: number;
     intervalSeconds: number;
   };
+  serverInfo: {
+    enabled: boolean;
+    intervalSeconds: number;
+  };
 }

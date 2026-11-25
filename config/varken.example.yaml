@@ -93,6 +93,9 @@ inputs:
   #       futureDays: 7
   #       missingDays: 30
   #       intervalSeconds: 300
+  #     serverInfo:
+  #       enabled: true
+  #       intervalSeconds: 300
 
   # Radarr - Movie management
   # radarr:
@@ -104,6 +107,9 @@ inputs:
   #       enabled: true
   #       intervalSeconds: 30
   #     missing:
+  #       enabled: true
+  #       intervalSeconds: 300
+  #     serverInfo:
   #       enabled: true
   #       intervalSeconds: 300
 
@@ -119,6 +125,9 @@ inputs:
   #     missing:
   #       enabled: true
   #       intervalSeconds: 300
+  #     serverInfo:
+  #       enabled: true
+  #       intervalSeconds: 300
 
   # Lidarr - Music management
   # lidarr:
@@ -132,6 +141,9 @@ inputs:
   #     missing:
   #       enabled: true
   #       intervalSeconds: 300
+  #     serverInfo:
+  #       enabled: true
+  #       intervalSeconds: 300
 
   # Prowlarr - Indexer management
   # prowlarr:
@@ -140,6 +152,9 @@ inputs:
   #     apiKey: "your-api-key"
   #     verifySsl: false
   #     indexerStats:
+  #       enabled: true
+  #       intervalSeconds: 300
+  #     serverInfo:
   #       enabled: true
   #       intervalSeconds: 300
 
@@ -153,6 +168,9 @@ inputs:
   #       enabled: true
   #       intervalSeconds: 300
   #     history:
+  #       enabled: true
+  #       intervalSeconds: 300
+  #     serverInfo:
   #       enabled: true
   #       intervalSeconds: 300
 
@@ -181,6 +199,9 @@ inputs:
   #       localCoordinates:
   #         latitude: 48.8566
   #         longitude: 2.3522
+  #     serverInfo:
+  #       enabled: true
+  #       intervalSeconds: 300
 
   # Plex - Direct Plex monitoring
   # plex:
@@ -194,6 +215,9 @@ inputs:
   #     libraries:
   #       enabled: true
   #       intervalSeconds: 3600
+  #     serverInfo:
+  #       enabled: true
+  #       intervalSeconds: 300
 
   # Jellyfin
   # jellyfin:
@@ -207,6 +231,9 @@ inputs:
   #     libraries:
   #       enabled: true
   #       intervalSeconds: 3600
+  #     serverInfo:
+  #       enabled: true
+  #       intervalSeconds: 300
 
   # Emby
   # emby:
@@ -220,6 +247,9 @@ inputs:
   #     libraries:
   #       enabled: true
   #       intervalSeconds: 3600
+  #     serverInfo:
+  #       enabled: true
+  #       intervalSeconds: 300
 
   # ---------------------------------------------------------------------------
   # Request Management
@@ -237,6 +267,9 @@ inputs:
   #     issueCounts:
   #       enabled: true
   #       intervalSeconds: 300
+  #     serverInfo:
+  #       enabled: true
+  #       intervalSeconds: 300
 
   # Overseerr
   # overseerr:
@@ -250,6 +283,9 @@ inputs:
   #     latestRequests:
   #       enabled: true
   #       count: 10
+  #       intervalSeconds: 300
+  #     serverInfo:
+  #       enabled: true
   #       intervalSeconds: 300
 
 # =============================================================================

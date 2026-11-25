@@ -16,4 +16,8 @@ export interface RadarrConfig {
     enabled: boolean;
     intervalSeconds: number;
   };
+  serverInfo: {
+    enabled: boolean;
+    intervalSeconds: number;
+  };
 }

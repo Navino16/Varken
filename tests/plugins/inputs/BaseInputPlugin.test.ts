@@ -62,6 +62,10 @@ class TestInputPlugin extends BaseInputPlugin<TestConfig> {
     return this.createDataPoint(measurement, tags, fields);
   }
 
+  public testCreateServerInfoPoint(tags: Record<string, string | number>, fields: Record<string, number>): DataPoint {
+    return this.createServerInfoPoint(tags, fields);
+  }
+
   public testCreateSchedule(
     name: string,
     intervalSeconds: number,
@@ -159,6 +163,18 @@ describe('BaseInputPlugin', () => {
       await plugin.initialize(testConfig);
       const point = plugin.testCreateDataPoint('test', { server: 1 }, { value: 1 });
       expect(point.tags).toEqual({ server: 1 });
+    });
+  });
+
+  describe('createServerInfoPoint', () => {
+    it('writes a ServerInfo point under the plugin measurement', async () => {
+      await plugin.initialize(testConfig);
+
+      const point = plugin.testCreateServerInfoPoint({ version: '4.0.20' }, { update_available: 1 });
+
+      expect(point.measurement).toBe('TestInput');
+      expect(point.tags).toEqual({ type: 'ServerInfo', server: 1, version: '4.0.20' });
+      expect(point.fields).toEqual({ update_available: 1 });
     });
   });
 

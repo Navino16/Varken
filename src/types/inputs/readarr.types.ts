@@ -16,4 +16,8 @@ export interface ReadarrConfig {
     enabled: boolean;
     intervalSeconds: number;
   };
+  serverInfo: {
+    enabled: boolean;
+    intervalSeconds: number;
+  };
 }

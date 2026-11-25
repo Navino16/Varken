@@ -12,4 +12,8 @@ export interface ProwlarrConfig {
     enabled: boolean;
     intervalSeconds: number;
   };
+  serverInfo: {
+    enabled: boolean;
+    intervalSeconds: number;
+  };
 }

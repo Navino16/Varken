@@ -17,4 +17,8 @@ export interface OverseerrConfig {
     count: number;
     intervalSeconds: number;
   };
+  serverInfo: {
+    enabled: boolean;
+    intervalSeconds: number;
+  };
 }

@@ -310,6 +310,11 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
     };
   }
 
+  /** Point of the `serverInfo` collector: version and state of the monitored service. */
+  protected createServerInfoPoint(tags: Record<string, string | number>, fields: Record<string, number>): DataPoint {
+    return this.createDataPoint(this.metadata.name, { type: 'ServerInfo', server: this.config.id, ...tags }, fields);
+  }
+
   /**
    * Wrap a collector operation with standardized error logging.
    * Logs the error with operation context, then re-throws so the PluginManager's
