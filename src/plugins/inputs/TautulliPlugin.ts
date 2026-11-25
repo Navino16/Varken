@@ -9,13 +9,15 @@ import type { GetPath } from '../../types/api-contract';
 import { booleanFlags } from './utils/flags';
 import { numberOf } from './utils/numbers';
 import { eventTimestamp } from './utils/events';
-import { completedBuckets, graphSnapshotPoints, homeStatPoints, watchTimeFields, type GraphBucket } from './utils/tautulliStats';
+import { completedBuckets, graphSnapshotPoints, homeStatPoints, mediaInfoPoints, watchTimeFields, type GraphBucket } from './utils/tautulliStats';
 import { ageSeconds } from './utils/time';
 
 type TautulliSession = components['schemas']['Session'];
 type RecentlyAddedItem = components['schemas']['RecentlyAddedItem'];
 type HistoryRow = components['schemas']['HistoryRow'];
 type UserTableRow = components['schemas']['UserTableRow'];
+type LibraryTableRow = components['schemas']['LibraryTableRow'];
+type MediaInfoTable = components['schemas']['MediaInfoTable'];
 
 const SERVER_INFO_PATH: GetPath<paths> = '/api/v2?cmd=get_server_info';
 
@@ -26,6 +28,7 @@ const SERVER_INFO_PATH: GetPath<paths> = '/api/v2?cmd=get_server_info';
 
 const WATCH_TIME_DAYS = '1,7,30,0';
 const DAY_SECONDS = 24 * 60 * 60;
+const MEDIA_INFO_SECTION_TYPES = new Set(['movie', 'show', 'artist', 'photo']);
 
 const PLAYER_STATE = { PLAYING: 0, PAUSED: 1, BUFFERING: 3 } as const;
 
@@ -112,6 +115,10 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
       points.push(...(await this.collectUsers()));
     }
 
+    if (this.config.libraryMedia.enabled) {
+      points.push(...(await this.collectLibraryMedia()));
+    }
+
     return points;
   }
 
@@ -156,6 +163,10 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
 
     if (this.config.users.enabled) {
       schedules.push(this.createSchedule('users', this.config.users.intervalSeconds, true, this.collectUsers));
+    }
+
+    if (this.config.libraryMedia.enabled) {
+      schedules.push(this.createSchedule('libraryMedia', this.config.libraryMedia.intervalDays * DAY_SECONDS, true, this.collectLibraryMedia));
     }
 
     return schedules;
@@ -674,6 +685,75 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
       if (typeof value === 'number') {
         fields[key] = value;
       }
+    }
+    return fields;
+  }
+
+  /** Per-library watch time and media info (file sizes, resolutions, codecs). */
+  private async collectLibraryMedia(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Tautulli library media', async () => {
+      const tautulli = this.api<paths>();
+      const query = { apikey: this.config.apiKey };
+      const table = await tautulli.get('/api/v2?cmd=get_libraries_table', { query: { ...query, length: 10000 } });
+      const sections = table.response.data.data ?? [];
+      const details = await Promise.all(
+        sections.map(async (section) => {
+          const sectionId = String(section.section_id);
+          const [watchTime, media] = await Promise.all([
+            tautulli.get('/api/v2?cmd=get_library_watch_time_stats', { query: { ...query, section_id: sectionId, query_days: WATCH_TIME_DAYS } }),
+            MEDIA_INFO_SECTION_TYPES.has(section.section_type ?? '')
+              ? tautulli.get('/api/v2?cmd=get_library_media_info', { query: { ...query, section_id: sectionId, length: 100000 } })
+              : undefined,
+          ]);
+          return { watchTime: watchTime.response.data, media: media?.response.data };
+        })
+      );
+      const now = new Date();
+      const specs: PointSpec[] = [];
+      for (const [index, section] of sections.entries()) {
+        const { watchTime, media } = details[index];
+        const tags = { section_id: section.section_id ?? 'unknown', section_name: section.section_name || 'unknown', section_type: section.section_type || 'unknown' };
+        specs.push({ tags: { type: 'Library', ...tags }, fields: { ...this.libraryFields(section, now), ...watchTimeFields(watchTime), ...this.mediaTotals(media, now) } });
+        if (media?.last_refreshed !== null && media?.last_refreshed !== undefined) {
+          specs.push(...mediaInfoPoints(tags, media.data ?? []));
+        }
+      }
+      return this.createPoints(specs);
+    });
+  }
+
+  private libraryFields(section: LibraryTableRow, now: Date): Record<string, number> {
+    const fields: Record<string, number> = {};
+    const values: Record<string, number | null | undefined> = {
+      plays: section.plays,
+      duration_seconds: section.duration,
+      last_accessed_age_seconds: ageSeconds(typeof section.last_accessed === 'number' ? section.last_accessed * 1000 : undefined, now),
+      is_active: section.is_active,
+      keep_history: section.keep_history,
+    };
+    for (const [key, value] of Object.entries(values)) {
+      if (typeof value === 'number') {
+        fields[key] = value;
+      }
+    }
+    return fields;
+  }
+
+  /** Tautulli has never built the media info of a library while `last_refreshed` is null. */
+  private mediaTotals(media: MediaInfoTable | undefined, now: Date): Record<string, number> {
+    if (media?.last_refreshed === null || media?.last_refreshed === undefined) {
+      return {};
+    }
+    const fields: Record<string, number> = {};
+    const age = ageSeconds(media.last_refreshed * 1000, now);
+    if (age !== undefined) {
+      fields.media_info_age_seconds = age;
+    }
+    if (media.recordsTotal !== undefined) {
+      fields.media_items = media.recordsTotal;
+    }
+    if (media.total_file_size !== undefined) {
+      fields.file_size = media.total_file_size;
     }
     return fields;
   }

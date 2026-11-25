@@ -332,4 +332,79 @@ describe('TautulliPlugin collectors', () => {
       expect(plugin.getSchedules().map((s) => [s.name, s.intervalSeconds])).toEqual([['Tautulli_1_users', 300]]);
     });
   });
+  describe('libraryMedia', () => {
+    beforeEach(async () => {
+      await plugin.initialize(config({ libraryMedia: true }));
+    });
+
+    it('collects library watch time and media totals', async () => {
+      const libraries = ofType(await plugin.collect(), 'Library');
+
+      expect(libraries.map((p) => p.tags)).toEqual([
+        { type: 'Library', server: 1, section_id: 1, section_name: 'Movies', section_type: 'movie' },
+        { type: 'Library', server: 1, section_id: 2, section_name: 'TV Shows', section_type: 'show' },
+        { type: 'Library', server: 1, section_id: 999999, section_name: 'Live TV', section_type: 'live' },
+      ]);
+      expect(libraries[0].fields).toEqual({
+        plays: 120,
+        duration_seconds: 864000,
+        last_accessed_age_seconds: 3600,
+        is_active: 1,
+        keep_history: 1,
+        plays_1d: 2,
+        watch_seconds_1d: 7200,
+        plays_7d: 9,
+        watch_seconds_7d: 30600,
+        plays_30d: 31,
+        watch_seconds_30d: 111600,
+        plays_all: 120,
+        watch_seconds_all: 864000,
+        media_items: 3,
+        file_size: 74000000000,
+        media_info_age_seconds: 21600,
+      });
+      expect(queryOf(client, cmd('get_library_watch_time_stats')).map((q) => [q.section_id, q.query_days])).toEqual([
+        ['1', '1,7,30,0'],
+        ['2', '1,7,30,0'],
+        ['999999', '1,7,30,0'],
+      ]);
+    });
+
+    it('groups media info by resolution and codec', async () => {
+      const media = ofType(await plugin.collect(), 'MediaInfo').filter((p) => p.tags.section_id === 1);
+
+      expect(media.map((p) => [p.tags.video_resolution, p.tags.video_codec, p.fields])).toEqual([
+        ['1080', 'h264', { items: 2, file_size: 22000000000 }],
+        ['4k', 'hevc', { items: 1, file_size: 52000000000 }],
+      ]);
+      expect(queryOf(client, cmd('get_library_media_info'))[0]).toMatchObject({ section_id: '1', length: 100000 });
+    });
+
+    it('skips media info for live sections', async () => {
+      const points = await plugin.collect();
+
+      expect(queryOf(client, cmd('get_library_media_info')).map((q) => q.section_id)).toEqual(['1', '2']);
+      expect(ofType(points, 'MediaInfo').some((p) => p.tags.section_id === 999999)).toBe(false);
+      expect(ofType(points, 'Library')[2].fields).not.toHaveProperty('media_items');
+    });
+
+    it('keeps the library point when media info was never built', async () => {
+      client.overrideUnchecked(cmd('get_library_media_info'), {
+        response: {
+          result: 'success',
+          message: null,
+          data: { draw: 0, recordsTotal: 0, recordsFiltered: 0, filtered_file_size: 0, total_file_size: 0, last_refreshed: null, data: [] },
+        },
+      });
+      const points = await plugin.collect();
+
+      expect(ofType(points, 'Library')[0].fields).not.toHaveProperty('media_items');
+      expect(ofType(points, 'Library')[0].fields).toHaveProperty('plays', 120);
+      expect(ofType(points, 'MediaInfo')).toEqual([]);
+    });
+
+    it('schedules the libraryMedia collector in days', () => {
+      expect(plugin.getSchedules().map((s) => [s.name, s.intervalSeconds])).toEqual([['Tautulli_1_libraryMedia', 86400]]);
+    });
+  });
 });
