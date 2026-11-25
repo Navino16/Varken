@@ -2,6 +2,7 @@
 
 Every input plugin writes DataPoints whose measurement is the service name (`Sonarr`, `Tautulli`, ...). Every point carries a `server` tag (the instance `id` from the config) and a `type` tag that distinguishes the kinds of points a plugin writes; both are omitted from the tables below.
 Numbers meant for graphing are fields; tags hold labels and identifiers. The `hash` field is a deduplication key (MD5) and is not meant to be graphed.
+Decimal fields (`score_percent`, `lat`, `lon`) are always written as floats, even for whole values, so their column type stays stable.
 Points are timestamped with the collection time (`createDataPoint` default) unless stated otherwise in a section.
 
 ## Sonarr
@@ -188,7 +189,7 @@ Config: `inputs.tautulli[].activity` (`enabled`, `intervalSeconds`), `inputs.tau
 | `secure` | tag | string or number | Secure connection flag as returned by Tautulli, `'0'` when absent |
 | `hash` | field | string | MD5 of session id + session key + username + full title |
 | `progress` | field | number | Progress percent (`0` when not numeric) |
-| `lat` | field | number | Latitude; only written for local streams with `geoip.localCoordinates` or remote streams with a GeoIP result |
+| `lat` | field | number | Latitude; only written for local streams with `geoip.localCoordinates`, or remote streams whose GeoIP result has both coordinates |
 | `lon` | field | number | Longitude; same condition as `lat` |
 
 A stream is local when Tautulli reports `local = 1` or the IP is private/loopback/link-local.
@@ -493,7 +494,7 @@ Config: `inputs.overseerr[].latestRequests` (`enabled`, `count`, `intervalSecond
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
 | `request_type` | tag | number | `0` TV, `1` movie |
-| `status` | tag | number | Request status: `1` pending approval, `2` approved, `3` declined (`0` when absent) |
+| `status` | tag | number | Request status: `1` pending approval, `2` approved, `3` declined (pinned spec); Seerr also uses `4` failed, `5` completed |
 | `media_status` | tag | number | Media availability: `1` unknown, `2` pending, `3` processing, `4` partially available, `5` available, `6` deleted (`0` when absent) |
 | `title` | tag | string | Media title from TV/movie details |
 | `requested_user` | tag | string | Requester display name (`Unknown` when absent) |

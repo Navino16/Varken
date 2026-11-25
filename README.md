@@ -512,6 +512,8 @@ A few keys were wrong or could not be graphed. They were fixed in a way that bre
 | Bazarr | string field `score` (`"92.5%"`) | numeric field `score_percent` (`92.5`) |
 | Overseerr | tag `status` = media availability; `requested_user` / `requested_date` from the title's first request | tag `status` = request status, new tag `media_status` = media availability; `requested_user` / `requested_date` from the request itself |
 
+The full current schema is in [docs/data-reference.md](docs/data-reference.md).
+
 ## Migration from Python Version
 
 If you're upgrading from the legacy Python version of Varken:

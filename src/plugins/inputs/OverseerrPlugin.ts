@@ -195,7 +195,7 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
                 type: 'Requests',
                 server: this.config.id,
                 request_type: details.requestType,
-                status: request.status ?? 0,
+                status: request.status,
                 media_status: request.media?.status ?? 0,
                 title: details.title,
                 requested_user: request.requestedBy?.displayName || 'Unknown',
