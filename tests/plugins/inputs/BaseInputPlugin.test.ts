@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { BaseInputPlugin, BaseInputConfig, PaginatedResponse } from '../../../src/plugins/inputs/BaseInputPlugin';
-import { DataPoint, PluginMetadata, ScheduleConfig } from '../../../src/types/plugin.types';
+import { DataPoint, PluginMetadata, PointSpec, ScheduleConfig } from '../../../src/types/plugin.types';
 import type { GlobalConfig } from '../../../src/config/schemas/config.schema';
 import type { ApiClient } from '../../../src/types/api-contract';
 import { getEventStateStore, useEventStateFolder } from '../../../src/utils/EventStateStore';
@@ -65,6 +65,10 @@ class TestInputPlugin extends BaseInputPlugin<TestConfig> {
 
   public testCreateServerInfoPoint(tags: Record<string, string | number>, fields: Record<string, number>): DataPoint {
     return this.createServerInfoPoint(tags, fields);
+  }
+
+  public testCreatePoints(specs: readonly PointSpec[]): DataPoint[] {
+    return this.createPoints(specs);
   }
 
   public testCreateSchedule(
@@ -184,6 +188,25 @@ describe('BaseInputPlugin', () => {
       expect(point.measurement).toBe('TestInput');
       expect(point.tags).toEqual({ type: 'ServerInfo', server: 1, version: '4.0.20' });
       expect(point.fields).toEqual({ reachable: 1, update_available: 1 });
+    });
+  });
+
+  describe('createPoints', () => {
+    it('writes specs under the plugin measurement with the server tag', async () => {
+      await plugin.initialize(testConfig);
+      const at = new Date('2026-11-25T10:00:00Z');
+
+      const [point, timed] = plugin.testCreatePoints([
+        { tags: { type: 'Health' }, fields: { errors: 1 } },
+        { tags: { type: 'History' }, fields: { hash: 'x' }, timestamp: at, floatFields: ['ratio'] },
+      ]);
+
+      expect(point.measurement).toBe('TestInput');
+      expect(point.tags).toEqual({ type: 'Health', server: 1 });
+      expect(point.fields).toEqual({ errors: 1 });
+      expect(point.floatFields).toBeUndefined();
+      expect(timed.timestamp).toBe(at);
+      expect(timed.floatFields).toEqual(['ratio']);
     });
   });
 

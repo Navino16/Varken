@@ -46,6 +46,10 @@ describe('SonarrPlugin', () => {
     queue: { enabled: true, intervalSeconds: 30 },
     calendar: { enabled: true, intervalSeconds: 60, missingDays: 7, futureDays: 7 },
     serverInfo: { enabled: false, intervalSeconds: 300 },
+    status: { enabled: false, intervalSeconds: 300 },
+    totals: { enabled: false, intervalSeconds: 900 },
+    history: { enabled: false, intervalSeconds: 300 },
+    library: { enabled: false, intervalDays: 1 },
   };
 
   beforeEach(() => {

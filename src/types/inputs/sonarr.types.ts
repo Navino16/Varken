@@ -22,4 +22,20 @@ export interface SonarrConfig {
     enabled: boolean;
     intervalSeconds: number;
   };
+  status: {
+    enabled: boolean;
+    intervalSeconds: number;
+  };
+  totals: {
+    enabled: boolean;
+    intervalSeconds: number;
+  };
+  history: {
+    enabled: boolean;
+    intervalSeconds: number;
+  };
+  library: {
+    enabled: boolean;
+    intervalDays: number;
+  };
 }

@@ -203,6 +203,17 @@ Every input also accepts a `serverInfo` collector (disabled by default, every 30
         intervalSeconds: 300
 ```
 
+Sonarr, Radarr, Lidarr and Readarr also accept these collectors, all disabled by default:
+
+| Key | Default interval | What it writes |
+|-----|------------------|----------------|
+| `status` | 300s | Health issues, disk space, root folders, queue status, scheduled tasks |
+| `totals` | 900s | Wanted missing / cutoff-unmet and blocklist totals |
+| `history` | 300s | One point per history event (grab, import, failure, ...) |
+| `library` | 1 day (`intervalDays`) | Library statistics (per series / artist / author, Radarr collections) |
+
+Prowlarr accepts `status` (300s: health, indexer status, tasks), `history` (300s: one point per release grab) and `inventory` (3600s: indexers and applications).
+
 ### Output Configuration
 
 Varken supports multiple output backends. You can configure one or several simultaneously — each data point is written to every configured output.

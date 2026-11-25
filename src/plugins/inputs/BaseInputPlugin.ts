@@ -13,6 +13,7 @@ import type {
   InputPlugin,
   PluginMetadata,
   DataPoint,
+  PointSpec,
   ScheduleConfig,
 } from '../../types/plugin.types';
 
@@ -311,6 +312,13 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
       ...(floatFields ? { floatFields } : {}),
       timestamp: timestamp || new Date(),
     };
+  }
+
+  /** Points under the plugin measurement, tagged with this instance's `server` id. */
+  protected createPoints(specs: readonly PointSpec[]): DataPoint[] {
+    return specs.map((spec) =>
+      this.createDataPoint(this.metadata.name, { ...spec.tags, server: this.config.id }, spec.fields, spec.timestamp, spec.floatFields)
+    );
   }
 
   /**

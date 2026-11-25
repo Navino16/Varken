@@ -22,6 +22,9 @@ describe('ProwlarrPlugin', () => {
     verifySsl: false,
     indexerStats: { enabled: true, intervalSeconds: 300 },
     serverInfo: { enabled: false, intervalSeconds: 300 },
+    status: { enabled: false, intervalSeconds: 300 },
+    history: { enabled: false, intervalSeconds: 300 },
+    inventory: { enabled: false, intervalSeconds: 3600 },
   };
   const disabled: ProwlarrConfig = { ...testConfig, indexerStats: { ...testConfig.indexerStats, enabled: false } };
 

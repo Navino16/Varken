@@ -38,6 +38,10 @@ describe('RadarrPlugin', () => {
     queue: { enabled: true, intervalSeconds: 30 },
     missing: { enabled: true, intervalSeconds: 300 },
     serverInfo: { enabled: false, intervalSeconds: 300 },
+    status: { enabled: false, intervalSeconds: 300 },
+    totals: { enabled: false, intervalSeconds: 900 },
+    history: { enabled: false, intervalSeconds: 300 },
+    library: { enabled: false, intervalDays: 1 },
   };
 
   beforeEach(() => {
