@@ -183,7 +183,7 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
             },
             {
               hash: hashId,
-              score: item.score || '',
+              ...this.scoreField(item.score),
             },
             this.parseHistoryTimestamp(item.parsed_timestamp)
           )
@@ -219,7 +219,7 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
             },
             {
               hash: hashId,
-              score: item.score || '',
+              ...this.scoreField(item.score),
             },
             this.parseHistoryTimestamp(item.parsed_timestamp)
           )
@@ -234,6 +234,12 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
   /** Bazarr marshals a missing language as an object whose fields are all null. */
   private languageTags(language: components['schemas']['SubtitleLanguage']): { language: string; languageCode: string } {
     return { language: language.name ?? 'unknown', languageCode: language.code3 ?? 'unknown' };
+  }
+
+  /** Bazarr sends scores as `"92.5%"`; unparsable or null scores are omitted. */
+  private scoreField(score: string | null | undefined): { score_percent?: number } {
+    const value = Number.parseFloat((score ?? '').replace('%', ''));
+    return Number.isFinite(value) ? { score_percent: value } : {};
   }
 
   /**

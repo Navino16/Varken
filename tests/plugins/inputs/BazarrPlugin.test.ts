@@ -142,7 +142,8 @@ describe('BazarrPlugin', () => {
 
       expect(points).toHaveLength(3);
       expect(points[0].tags).toMatchObject({ name: 'Heat - English', provider: 'opensubtitlescom', action: 1 });
-      expect(points[0].fields.score).toBe('92.5%');
+      expect(points[0].fields.score_percent).toBe(92.5);
+      expect(points[0].fields.score).toBeUndefined();
       expect(points[0].timestamp).toEqual(new Date(2026, 10, 20, 14, 5, 9));
     });
 
@@ -151,6 +152,7 @@ describe('BazarrPlugin', () => {
 
       expect(points.map((p) => p.tags.name)).toEqual(['Severance - 1x1 - English', 'Severance - 2x3 - French']);
       expect(points[1].timestamp).toEqual(new Date(2026, 10, 20, 11, 0, 0));
+      expect(points.map((p) => p.fields.score_percent)).toEqual([92.5, 71.25]);
     });
 
     it('should fall back for null history fields', async () => {
@@ -162,7 +164,17 @@ describe('BazarrPlugin', () => {
         languageCode: 'unknown',
         provider: 'unknown',
       });
-      expect(tenet.fields.score).toBe('');
+      expect(tenet.fields).not.toHaveProperty('score_percent');
+      expect(tenet.fields).not.toHaveProperty('score');
+    });
+
+    it('omits an unparsable history score', async () => {
+      const [heat] = movieHistory();
+      client.override('/api/movies/history', { data: [{ ...heat, score: 'n/a' }], total: 1 });
+
+      const [point] = ofKind(await plugin.collect(), 'History', 'movie');
+
+      expect(point.fields).not.toHaveProperty('score_percent');
     });
 
     it('should fall back to collection time when parsed_timestamp is not parseable', async () => {
