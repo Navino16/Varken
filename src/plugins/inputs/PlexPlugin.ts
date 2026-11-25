@@ -3,6 +3,7 @@ import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plug
 import type { PlexConfig } from '../../types/inputs/plex.types';
 import type { paths } from '../../types/generated/plex';
 import { booleanFlags } from './utils/flags';
+import { resolutionLabel } from './utils/mediaStreams';
 
 type Sessions = paths['/status/sessions']['get']['responses'][200]['content']['application/json'];
 type PlexSession = NonNullable<NonNullable<Sessions['MediaContainer']>['Metadata']>[number];
@@ -26,14 +27,6 @@ function networkOf(session: PlexSession): 'lan' | 'wan' | 'unknown' {
     return local ? 'lan' : 'wan';
   }
   return 'unknown';
-}
-
-/** `1080` → `1080p`; labels such as `4k` or `sd` are upper-cased. */
-function resolutionLabel(resolution: string): string {
-  if (!resolution) {
-    return 'unknown';
-  }
-  return /^\d+$/.test(resolution) ? `${resolution}p` : resolution.toUpperCase();
 }
 
 function streamKind(session: PlexSession): 'direct play' | 'direct stream' | 'transcode' {

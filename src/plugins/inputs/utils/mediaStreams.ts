@@ -37,3 +37,11 @@ export function isTranscoding(transcode: TranscodeLike | null | undefined): bool
   }
   return !(transcode.IsVideoDirect === true && transcode.IsAudioDirect === true);
 }
+
+/** `1080` → `1080p`; labels such as `4k` or `sd` are upper-cased. */
+export function resolutionLabel(resolution: string | null | undefined): string {
+  if (!resolution) {
+    return 'unknown';
+  }
+  return /^\d+$/.test(resolution) ? `${resolution}p` : resolution.toUpperCase();
+}

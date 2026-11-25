@@ -45,6 +45,7 @@ export interface GeoIPInfo {
   city: string;
   region: string;
   country: string;
+  code: string;
   latitude: number | null;
   longitude: number | null;
 }

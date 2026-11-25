@@ -285,7 +285,7 @@ describe('TautulliPlugin', () => {
     it('declares the coordinates as float fields', async () => {
       const point = await onlySession(sessions().remote);
 
-      expect(point?.floatFields).toEqual(['lat', 'lon']);
+      expect(point?.floatFields).toEqual(expect.arrayContaining(['lat', 'lon']));
     });
 
     it('drops a lone coordinate', async () => {
@@ -408,15 +408,17 @@ describe('TautulliPlugin', () => {
       const libraryPoints = points.filter((p) => p.tags.type === 'library_stats');
 
       expect(libraryPoints.length).toBe(3);
-      expect(libraryPoints.find((p) => p.tags.section_name === 'Movies')?.fields).toEqual({ total: 1342, libraries: 'Movies' });
+      expect(libraryPoints.find((p) => p.tags.section_name === 'Movies')?.fields).toEqual({ total: 1342, is_active: 1, libraries: 'Movies' });
       expect(libraryPoints.find((p) => p.tags.section_name === 'TV Shows')?.fields).toEqual({
         total: 214,
+        is_active: 1,
         seasons: 687,
         episodes: 9815,
         libraries: 'TV Shows',
       });
       expect(libraryPoints.find((p) => p.tags.section_name === 'Music')?.fields).toEqual({
         total: 388,
+        is_active: 1,
         artists: 388,
         albums: 1702,
         tracks: 21034,
@@ -434,6 +436,7 @@ describe('TautulliPlugin', () => {
 
       expect(points.find((p) => p.tags.type === 'library_stats')?.fields).toEqual({
         total: 214,
+        is_active: 1,
         seasons: 0,
         episodes: 0,
         libraries: 'TV Shows',
@@ -536,6 +539,92 @@ describe('TautulliPlugin', () => {
       const points = await plugin.collect();
 
       expect(points).toEqual([]);
+    });
+  });
+
+  describe('session details', () => {
+    beforeEach(async () => {
+      await plugin.initialize(testConfig);
+    });
+
+    it('enriches sessions', async () => {
+      const { local, remote } = sessions();
+
+      const localPoint = await onlySession(local);
+      expect(localPoint?.tags).toMatchObject({
+        network: 'lan',
+        live: 0,
+        audio_decision: 'Direct play',
+        subtitle_decision: 'unknown',
+        container_decision: 'Direct play',
+        video_codec: 'H264',
+        stream_video_codec: 'H264',
+        video_resolution: '1080p',
+        stream_video_resolution: '1080p',
+        video_dynamic_range: 'SDR',
+        stream_video_dynamic_range: 'SDR',
+        year: 2025,
+        genre: 'Drama',
+        library_name: 'TV Shows',
+        section_id: '2',
+        user_id: 284113,
+        device: 'OSX',
+        country: 'unknown',
+        country_code: 'unknown',
+      });
+      expect(localPoint?.fields).toEqual({
+        hash: expect.any(String),
+        progress: expect.any(Number),
+        bandwidth: 25318,
+        stream_bitrate: 10617,
+        source_bitrate: 10617,
+        duration_seconds: 2998,
+        view_offset_seconds: 1259,
+      });
+
+      const remotePoint = await onlySession(remote);
+      expect(remotePoint?.tags).toMatchObject({
+        network: 'wan',
+        audio_decision: 'Transcode',
+        container_decision: 'Transcode',
+        video_codec: 'HEVC',
+        stream_video_codec: 'H264',
+        video_resolution: '4K',
+        stream_video_resolution: '1080p',
+        video_dynamic_range: 'HDR',
+        stream_video_dynamic_range: 'SDR',
+        genre: 'Science Fiction',
+        country: 'France',
+        country_code: 'FR',
+      });
+      expect(remotePoint?.fields).toMatchObject({
+        bandwidth: 9120,
+        stream_bitrate: 8000,
+        source_bitrate: 45000,
+        duration_seconds: 9960,
+        view_offset_seconds: 3685,
+        transcode_speed: 2.4,
+        transcode_progress: 61,
+        transcode_throttled: 0,
+        transcode_hw_full_pipeline: 0,
+      });
+      expect(remotePoint?.floatFields).toEqual(expect.arrayContaining(['transcode_speed', 'transcode_progress']));
+    });
+
+    it('omits numeric fields Tautulli leaves empty', async () => {
+      const point = await onlySession({ ...sessions().remote, bandwidth: '', stream_bitrate: 'n/a', transcode_speed: '', duration: '' });
+
+      expect(point?.fields).not.toHaveProperty('bandwidth');
+      expect(point?.fields).not.toHaveProperty('stream_bitrate');
+      expect(point?.fields).not.toHaveProperty('transcode_speed');
+      expect(point?.fields).not.toHaveProperty('duration_seconds');
+      expect(point?.fields.source_bitrate).toBe(45000);
+    });
+
+    it('reports whether a library is active', async () => {
+      const libraries = (await plugin.collect()).filter((p) => p.tags.type === 'library_stats');
+
+      expect(libraries.map((p) => p.fields.is_active)).toEqual([1, 1, 1]);
     });
   });
 
