@@ -7,6 +7,7 @@ import type { TautulliConfig, GeoIPInfo } from '../../types/inputs/tautulli.type
 import type { components, paths } from '../../types/generated/tautulli';
 import type { GetPath } from '../../types/api-contract';
 import { booleanFlags } from './utils/flags';
+import { numberOf } from './utils/numbers';
 
 type TautulliSession = components['schemas']['Session'];
 
@@ -18,15 +19,6 @@ const SERVER_INFO_PATH: GetPath<paths> = '/api/v2?cmd=get_server_info';
  */
 
 const PLAYER_STATE = { PLAYING: 0, PAUSED: 1, BUFFERING: 3 } as const;
-
-/** Tautulli sends most numbers as strings: empty or non-numeric values are undefined. */
-function numberOf(value: string | number | null | undefined): number | undefined {
-  if (value === null || value === undefined || value === '') {
-    return undefined;
-  }
-  const n = Number(value);
-  return Number.isFinite(n) ? n : undefined;
-}
 
 export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
   private static readonly GEOIP_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
