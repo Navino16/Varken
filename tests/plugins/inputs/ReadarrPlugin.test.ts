@@ -267,6 +267,80 @@ describe('ReadarrPlugin', () => {
     });
   });
 
+  describe('library', () => {
+    beforeEach(async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-11-24T10:00:00Z'));
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    const only = (keys: Partial<ReadarrConfig>): ReadarrConfig => ({
+      ...testConfig,
+      queue: { enabled: false, intervalSeconds: 30 },
+      missing: { enabled: false, intervalSeconds: 30 },
+      ...keys,
+    });
+
+    it('collects library statistics', async () => {
+      await plugin.initialize(only({ library: { enabled: true, intervalDays: 2 } }));
+
+      const points = await plugin.collect();
+      const authors = points.filter((p) => p.tags.type === 'Author');
+
+      expect(authors.map((p) => p.tags)).toEqual([
+        { type: 'Author', server: 1, authorId: 1, name: 'Frank Herbert', status: 'ended', ended: 1 },
+        { type: 'Author', server: 1, authorId: 2, name: 'Ted Chiang', status: 'continuing', ended: 0 },
+      ]);
+      expect(authors[0].fields).toEqual({
+        monitored: 1,
+        book_file_count: 5,
+        book_count: 6,
+        available_book_count: 6,
+        total_book_count: 10,
+        size_on_disk: 52428800,
+        percent_of_books: 83.33333333333333,
+      });
+      expect(authors[0].floatFields).toEqual(['percent_of_books']);
+      expect(points.find((p) => p.tags.type === 'Library')?.fields).toEqual({
+        authors: 2,
+        authors_monitored: 2,
+        books: 8,
+        book_files: 7,
+        total_books: 12,
+        size_on_disk: 62914560,
+      });
+      expect(plugin.getSchedules().find((s) => s.name === 'Readarr_1_library')?.intervalSeconds).toBe(172800);
+    });
+
+    it('enriches missing points with release age and statistics', async () => {
+      await plugin.initialize(only({ missing: { enabled: true, intervalSeconds: 300 } }));
+
+      const [point] = await plugin.collect();
+
+      expect(point.fields).toEqual({
+        hash: expect.any(String),
+        release_age_days: 2758,
+        book_file_count: 0,
+        book_count: 1,
+        total_book_count: 1,
+        size_on_disk: 0,
+        percent_of_books: 0,
+      });
+      expect(point.floatFields).toEqual(['percent_of_books']);
+    });
+
+    it('omits statistics a missing book does not carry', async () => {
+      await plugin.initialize(only({ missing: { enabled: true, intervalSeconds: 300 } }));
+
+      const dune = (await plugin.collect()).find((p) => p.tags.bookId === 22);
+
+      expect(Object.keys(dune?.fields ?? {})).toEqual(['hash', 'release_age_days']);
+    });
+  });
+
   describe('server info', () => {
     const serverInfoOnly = (): ReadarrConfig => ({
       ...testConfig,

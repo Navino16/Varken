@@ -4,6 +4,8 @@ import {
   historyPoint,
   parseTimeSpan,
   pickNumbers,
+  releaseAgeDays,
+  sumFields,
   queueEnrichment,
   servarrTime,
   statusPoints,
@@ -244,5 +246,35 @@ describe('historyPoint', () => {
 
   it('returns undefined on a bad date', () => {
     expect(historyPoint({ ...record, date: 'garbage' }, {}, 'abc')).toBeUndefined();
+  });
+});
+
+describe('releaseAgeDays', () => {
+  it('counts whole days since an old release', () => {
+    expect(releaseAgeDays('1969-03-01T00:00:00Z', now)).toBe(21088);
+    expect(releaseAgeDays('2026-11-24T10:00:01Z', now)).toBe(0);
+  });
+
+  it('is undefined for a missing, unparsable, future or DateTime.MinValue date', () => {
+    expect(releaseAgeDays(null, now)).toBeUndefined();
+    expect(releaseAgeDays('garbage', now)).toBeUndefined();
+    expect(releaseAgeDays('2027-01-01T00:00:00Z', now)).toBeUndefined();
+    expect(releaseAgeDays('0001-01-01T00:00:00Z', now)).toBeUndefined();
+  });
+});
+
+describe('sumFields', () => {
+  it('sums item fields into summary fields', () => {
+    const specs = [
+      { tags: {}, fields: { size_on_disk: 10, monitored: 1 } },
+      { tags: {}, fields: { size_on_disk: 5, monitored: 0, name: 'x' } },
+      { tags: {}, fields: {} },
+    ];
+
+    expect(sumFields(specs, { size_on_disk: 'size_on_disk', monitored: 'monitored_count', absent: 'nothing' })).toEqual({
+      size_on_disk: 15,
+      monitored_count: 1,
+      nothing: 0,
+    });
   });
 });

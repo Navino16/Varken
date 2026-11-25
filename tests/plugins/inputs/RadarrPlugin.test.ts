@@ -201,6 +201,37 @@ describe('RadarrPlugin', () => {
     });
   });
 
+  describe('library', () => {
+    beforeEach(async () => {
+      await plugin.initialize({
+        ...testConfig,
+        queue: { enabled: false, intervalSeconds: 30 },
+        missing: { enabled: false, intervalSeconds: 30 },
+        library: { enabled: true, intervalDays: 2 },
+      });
+    });
+
+    it('collects library statistics', async () => {
+      const points = await plugin.collect();
+
+      expect(points.find((p) => p.tags.type === 'Library')?.fields).toEqual({
+        movies: 4,
+        movies_monitored: 3,
+        movies_with_file: 1,
+        size_on_disk: 8589934592,
+        collections: 2,
+      });
+      expect(points.filter((p) => p.tags.type === 'Collection').map((p) => [p.tags, p.fields])).toEqual([
+        [{ type: 'Collection', server: 1, collectionId: 726871, name: 'Dune Collection' }, { monitored: 1, movies: 3, movies_in_library: 2, missing: 1 }],
+        [{ type: 'Collection', server: 1, collectionId: 1000001, name: 'Heat Collection' }, { monitored: 0, movies: 1, movies_in_library: 1, missing: 0 }],
+      ]);
+    });
+
+    it('schedules library every intervalDays', () => {
+      expect(plugin.getSchedules().find((s) => s.name === 'Radarr_1_library')?.intervalSeconds).toBe(172800);
+    });
+  });
+
   describe('server info', () => {
     const serverInfoOnly = (): RadarrConfig => ({
       ...testConfig,

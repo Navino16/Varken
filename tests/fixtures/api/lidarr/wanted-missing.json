@@ -50,6 +50,13 @@
           1
         ],
         "added": "2024-02-01T10:00:00Z"
+      },
+      "statistics": {
+        "trackFileCount": 3,
+        "trackCount": 10,
+        "totalTrackCount": 12,
+        "sizeOnDisk": 104857600,
+        "percentOfTracks": 30
       }
     },
     {
@@ -68,7 +75,7 @@
         "Studio"
       ],
       "mediumCount": 1,
-      "releaseDate": "2001-03-12T00:00:00Z",
+      "releaseDate": null,
       "genres": [
         "Rock"
       ],

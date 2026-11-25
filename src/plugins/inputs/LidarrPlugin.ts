@@ -1,10 +1,11 @@
 import { BaseInputPlugin } from './BaseInputPlugin';
 import { PROTOCOL_ID } from './constants';
-import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
+import type { PluginMetadata, DataPoint, PointSpec, ScheduleConfig } from '../../types/plugin.types';
 import type { LidarrConfig } from '../../types/inputs/lidarr.types';
 import type { paths } from '../../types/generated/lidarr';
 import { servarrServerInfo } from './utils/servarrServerInfo';
-import { queueEnrichment, statusPoints, totalsPoint, historyPoint } from './utils/servarr';
+import { queueEnrichment, statusPoints, totalsPoint, historyPoint, pickNumbers, releaseAgeDays, sumFields } from './utils/servarr';
+import { booleanFlags } from './utils/flags';
 
 /**
  * Lidarr input plugin
@@ -62,6 +63,10 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
       points.push(...(await this.collectHistory()));
     }
 
+    if (this.config.library.enabled) {
+      points.push(...(await this.collectLibrary()));
+    }
+
     if (this.config.serverInfo.enabled) {
       points.push(...(await this.collectServerInfo()));
     }
@@ -97,6 +102,10 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
 
     if (this.config.history.enabled) {
       schedules.push(this.createSchedule('history', this.config.history.intervalSeconds, true, this.collectHistory));
+    }
+
+    if (this.config.library.enabled) {
+      schedules.push(this.createSchedule('library', this.config.library.intervalDays * 24 * 60 * 60, true, this.collectLibrary));
     }
 
     if (this.config.serverInfo.enabled) {
@@ -178,6 +187,7 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
         return points;
       }
 
+      const now = new Date();
       for (const album of albums) {
         const artistName = album.artist?.artistName || 'Unknown Artist';
         const albumName = `${album.title ?? 'unknown'} - ${artistName}`;
@@ -185,6 +195,7 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
 
         const hashId = this.hashit(`${this.config.id}${albumName}${foreignAlbumId}`);
 
+        const age = releaseAgeDays(album.releaseDate, now);
         points.push(
           this.createDataPoint(
             'Lidarr',
@@ -194,10 +205,21 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
               foreignAlbumId,
               server: this.config.id,
               name: albumName,
+              album_type: album.albumType || 'unknown',
             },
             {
               hash: hashId,
-            }
+              ...(age === undefined ? {} : { release_age_days: age }),
+              ...pickNumbers(album.statistics, {
+                trackFileCount: 'track_file_count',
+                trackCount: 'track_count',
+                totalTrackCount: 'total_track_count',
+                sizeOnDisk: 'size_on_disk',
+                percentOfTracks: 'percent_of_tracks',
+              }),
+            },
+            undefined,
+            ['percent_of_tracks']
           )
         );
       }
@@ -254,6 +276,39 @@ export class LidarrPlugin extends BaseInputPlugin<LidarrConfig> {
       return this.createPoints(
         fresh.flatMap((r) => historyPoint(r, { artistId: r.artistId ?? 0, albumId: r.albumId ?? 0 }, this.hashit(`${this.config.id}${r.id}`)) ?? [])
       );
+    });
+  }
+
+  private async collectLibrary(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Lidarr library', async () => {
+      const artists = await this.lidarr.get('/api/v1/artist');
+      const items: PointSpec[] = artists.map((a) => ({
+        tags: { type: 'Artist', artistId: a.id ?? 0, name: a.artistName ?? 'unknown', status: a.status ?? 'unknown', ended: a.ended ? 1 : 0 },
+        fields: {
+          ...booleanFlags({ monitored: a.monitored }),
+          ...pickNumbers(a.statistics, {
+            albumCount: 'album_count',
+            trackFileCount: 'track_file_count',
+            trackCount: 'track_count',
+            totalTrackCount: 'total_track_count',
+            sizeOnDisk: 'size_on_disk',
+            percentOfTracks: 'percent_of_tracks',
+          }),
+        },
+        floatFields: ['percent_of_tracks'],
+      }));
+      const summary = {
+        artists: items.length,
+        ...sumFields(items, {
+          monitored: 'artists_monitored',
+          album_count: 'albums',
+          track_count: 'tracks',
+          track_file_count: 'track_files',
+          total_track_count: 'total_tracks',
+          size_on_disk: 'size_on_disk',
+        }),
+      };
+      return this.createPoints([{ tags: { type: 'Library' }, fields: summary }, ...items]);
     });
   }
 }

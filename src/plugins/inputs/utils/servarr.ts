@@ -237,3 +237,23 @@ export function historyPoint(record: ServarrHistoryLike, idTags: Record<string, 
     timestamp: new Date(time),
   };
 }
+
+const MIN_RELEASE_TIME = Date.UTC(1000, 0, 1);
+
+/** Whole days since a release date; undefined when absent, unparsable, in the future or .NET `DateTime.MinValue`. */
+export function releaseAgeDays(date: string | null | undefined, now: Date): number | undefined {
+  const time = Date.parse(date ?? '');
+  if (!Number.isFinite(time) || time < MIN_RELEASE_TIME || time > now.getTime()) {
+    return undefined;
+  }
+  return Math.floor((now.getTime() - time) / 86_400_000);
+}
+
+/** `{ itemField: summaryField }` → summary fields summing the numeric item fields (0 when no item has one). */
+export function sumFields(specs: readonly PointSpec[], keys: Record<string, string>): Record<string, number> {
+  const sums: Record<string, number> = {};
+  for (const [key, field] of Object.entries(keys)) {
+    sums[field] = specs.reduce((total, spec) => total + (isNumber(spec.fields[key]) ? (spec.fields[key] as number) : 0), 0);
+  }
+  return sums;
+}
