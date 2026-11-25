@@ -1,0 +1,57 @@
+{
+  "page": 1,
+  "pageSize": 1,
+  "sortKey": "episodes.airDateUtc",
+  "sortDirection": "descending",
+  "totalRecords": 7,
+  "records": [
+    {
+      "id": 401,
+      "seriesId": 11,
+      "tvdbId": 401000,
+      "episodeFileId": 0,
+      "seasonNumber": 4,
+      "episodeNumber": 1,
+      "title": "Groundhog",
+      "airDate": "2026-11-27",
+      "airDateUtc": "2026-11-28T04:00:00Z",
+      "runtime": 50,
+      "overview": "Groundhog overview.",
+      "hasFile": false,
+      "monitored": true,
+      "unverifiedSceneNumbering": false,
+      "series": {
+        "id": 11,
+        "title": "The Bear",
+        "sortTitle": "the bear",
+        "status": "continuing",
+        "ended": false,
+        "overview": "The Bear overview.",
+        "network": "FX",
+        "airTime": "21:00",
+        "year": 2022,
+        "path": "/tv/The Bear",
+        "qualityProfileId": 1,
+        "seasonFolder": true,
+        "monitored": true,
+        "useSceneNumbering": false,
+        "runtime": 50,
+        "tvdbId": 403245,
+        "imdbId": "tt14452776",
+        "firstAired": "2022-02-18T00:00:00Z",
+        "seriesType": "standard",
+        "cleanTitle": "thebear",
+        "titleSlug": "the-bear",
+        "rootFolderPath": "/tv/",
+        "certification": "TV-MA",
+        "genres": [
+          "Drama"
+        ],
+        "tags": [
+          1
+        ],
+        "added": "2024-01-10T08:00:00Z"
+      }
+    }
+  ]
+}

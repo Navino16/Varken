@@ -1,0 +1,29 @@
+{
+  "page": 1,
+  "pageSize": 1,
+  "sortKey": "date",
+  "sortDirection": "descending",
+  "totalRecords": 1,
+  "records": [
+    {
+      "id": 1,
+      "movieId": 1,
+      "sourceTitle": "Heat.1995.1080p.BluRay",
+      "quality": {
+        "quality": {
+          "id": 7,
+          "name": "Bluray-1080p"
+        },
+        "revision": {
+          "version": 1,
+          "real": 0,
+          "isRepack": false
+        }
+      },
+      "date": "2026-11-20T10:00:00Z",
+      "protocol": "usenet",
+      "indexer": "Indexer",
+      "message": "Download failed"
+    }
+  ]
+}

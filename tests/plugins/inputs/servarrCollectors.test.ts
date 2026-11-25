@@ -23,10 +23,10 @@ vi.mock('axios', () => ({ default: { create: vi.fn() } }));
 
 /** Collectors whose behaviour is identical across Sonarr, Radarr, Lidarr and Readarr. */
 const services = [
-  { name: 'Sonarr', service: 'sonarr', prefix: '/api/v3', create: () => new SonarrPlugin(), schema: SonarrConfigSchema },
-  { name: 'Radarr', service: 'radarr', prefix: '/api/v3', create: () => new RadarrPlugin(), schema: RadarrConfigSchema },
-  { name: 'Lidarr', service: 'lidarr', prefix: '/api/v1', create: () => new LidarrPlugin(), schema: LidarrConfigSchema },
-  { name: 'Readarr', service: 'readarr', prefix: '/api/v1', create: () => new ReadarrPlugin(), schema: ReadarrConfigSchema },
+  { name: 'Sonarr', service: 'sonarr', prefix: '/api/v3', create: () => new SonarrPlugin(), schema: SonarrConfigSchema, totals: [42, 7, 2] },
+  { name: 'Radarr', service: 'radarr', prefix: '/api/v3', create: () => new RadarrPlugin(), schema: RadarrConfigSchema, totals: [12, 3, 1] },
+  { name: 'Lidarr', service: 'lidarr', prefix: '/api/v1', create: () => new LidarrPlugin(), schema: LidarrConfigSchema, totals: [3, 5, 6] },
+  { name: 'Readarr', service: 'readarr', prefix: '/api/v1', create: () => new ReadarrPlugin(), schema: ReadarrConfigSchema, totals: [3, 4, 8] },
 ] as const;
 
 type Service = (typeof services)[number];
@@ -120,6 +120,39 @@ describe.each(services)('$name shared Servarr collectors', (svc) => {
       client.fail(`${svc.prefix}/diskspace`, new Error('boom'));
 
       await expect(plugin.collect()).rejects.toThrow('boom');
+    });
+  });
+
+  describe('totals', () => {
+    beforeEach(async () => {
+      await init({ totals: { enabled: true, intervalSeconds: 900 } });
+    });
+
+    it('collects wanted and blocklist totals', async () => {
+      const [missing, cutoffUnmet, blocklist] = svc.totals;
+
+      expect(ofType(await plugin.collect(), 'Totals')).toEqual([
+        expect.objectContaining({ fields: { missing, cutoff_unmet: cutoffUnmet, blocklist } }),
+      ]);
+    });
+
+    it('requests a single record per total', async () => {
+      await plugin.collect();
+
+      for (const path of ['wanted/missing', 'wanted/cutoff']) {
+        expect(client.get).toHaveBeenCalledWith(`${svc.prefix}/${path}`, { params: { page: 1, pageSize: 1, monitored: true } });
+      }
+      expect(client.get).toHaveBeenCalledWith(`${svc.prefix}/blocklist`, { params: { page: 1, pageSize: 1 } });
+    });
+
+    it('omits a total the response lacks', async () => {
+      client.override(`${svc.prefix}/blocklist`, { page: 1, pageSize: 1, records: null });
+
+      expect(ofType(await plugin.collect(), 'Totals')[0].fields).not.toHaveProperty('blocklist');
+    });
+
+    it('schedules totals when enabled', () => {
+      expect(plugin.getSchedules().find((s) => s.name === `${svc.name}_1_totals`)?.intervalSeconds).toBe(900);
     });
   });
 });

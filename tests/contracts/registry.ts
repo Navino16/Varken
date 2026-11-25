@@ -92,6 +92,16 @@ export const contractRoutes: ContractRoute[] = [
   { service: 'readarr', method: 'get', path: '/api/v1/rootfolder', fixture: 'readarr/rootfolder' },
   { service: 'readarr', method: 'get', path: '/api/v1/queue/status', fixture: 'readarr/queue-status' },
   { service: 'readarr', method: 'get', path: '/api/v1/system/task', fixture: 'readarr/system-task' },
+  { service: 'sonarr', method: 'get', path: '/api/v3/wanted/missing', fixture: 'sonarr/wanted-missing' },
+  { service: 'sonarr', method: 'get', path: '/api/v3/wanted/cutoff', fixture: 'sonarr/wanted-cutoff' },
+  { service: 'sonarr', method: 'get', path: '/api/v3/blocklist', fixture: 'sonarr/blocklist' },
+  { service: 'radarr', method: 'get', path: '/api/v3/wanted/missing', fixture: 'radarr/wanted-missing' },
+  { service: 'radarr', method: 'get', path: '/api/v3/wanted/cutoff', fixture: 'radarr/wanted-cutoff' },
+  { service: 'radarr', method: 'get', path: '/api/v3/blocklist', fixture: 'radarr/blocklist' },
+  { service: 'lidarr', method: 'get', path: '/api/v1/wanted/cutoff', fixture: 'lidarr/wanted-cutoff' },
+  { service: 'lidarr', method: 'get', path: '/api/v1/blocklist', fixture: 'lidarr/blocklist' },
+  { service: 'readarr', method: 'get', path: '/api/v1/wanted/cutoff', fixture: 'readarr/wanted-cutoff' },
+  { service: 'readarr', method: 'get', path: '/api/v1/blocklist', fixture: 'readarr/blocklist' },
 ];
 
 const fixturesDir = path.resolve(__dirname, '../fixtures/api');

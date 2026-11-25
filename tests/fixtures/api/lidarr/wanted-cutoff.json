@@ -1,0 +1,56 @@
+{
+  "page": 1,
+  "pageSize": 1,
+  "sortKey": "releaseDate",
+  "sortDirection": "descending",
+  "totalRecords": 5,
+  "records": [
+    {
+      "id": 31,
+      "title": "Flight b741",
+      "disambiguation": "",
+      "overview": "Flight b741 overview.",
+      "artistId": 3,
+      "foreignAlbumId": "8c3b4f0a-8a4f-4b1e-9f5e-1d2c3b4a5f60",
+      "monitored": true,
+      "anyReleaseOk": true,
+      "profileId": 1,
+      "duration": 2940000,
+      "albumType": "Album",
+      "secondaryTypes": [
+        "Studio"
+      ],
+      "mediumCount": 1,
+      "releaseDate": "2024-08-09T00:00:00Z",
+      "genres": [
+        "Rock"
+      ],
+      "artist": {
+        "id": 3,
+        "status": "continuing",
+        "ended": false,
+        "artistName": "King Gizzard & the Lizard Wizard",
+        "foreignArtistId": "f58384a4-2ad2-4f24-89c5-c7b74ae1cce7",
+        "mbId": "f58384a4-2ad2-4f24-89c5-c7b74ae1cce7",
+        "overview": "King Gizzard & the Lizard Wizard overview.",
+        "artistType": "Group",
+        "disambiguation": "",
+        "path": "/music/King Gizzard",
+        "qualityProfileId": 1,
+        "metadataProfileId": 1,
+        "monitored": true,
+        "monitorNewItems": "all",
+        "rootFolderPath": "/music",
+        "genres": [
+          "Rock"
+        ],
+        "cleanName": "kinggizzard",
+        "sortName": "king gizzard & the lizard wizard",
+        "tags": [
+          1
+        ],
+        "added": "2024-02-01T10:00:00Z"
+      }
+    }
+  ]
+}

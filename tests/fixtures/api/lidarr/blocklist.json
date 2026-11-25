@@ -1,0 +1,32 @@
+{
+  "page": 1,
+  "pageSize": 1,
+  "sortKey": "date",
+  "sortDirection": "descending",
+  "totalRecords": 6,
+  "records": [
+    {
+      "id": 1,
+      "artistId": 1,
+      "albumIds": [
+        1
+      ],
+      "sourceTitle": "Radiohead - OK Computer (1997) FLAC",
+      "quality": {
+        "quality": {
+          "id": 6,
+          "name": "FLAC"
+        },
+        "revision": {
+          "version": 1,
+          "real": 0,
+          "isRepack": false
+        }
+      },
+      "date": "2026-11-20T10:00:00Z",
+      "protocol": "torrent",
+      "indexer": "Redacted",
+      "message": "Download failed"
+    }
+  ]
+}

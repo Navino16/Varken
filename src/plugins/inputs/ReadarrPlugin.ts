@@ -4,7 +4,7 @@ import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plug
 import type { ReadarrConfig } from '../../types/inputs/readarr.types';
 import type { paths } from '../../types/generated/readarr';
 import { servarrServerInfo } from './utils/servarrServerInfo';
-import { queueEnrichment, statusPoints } from './utils/servarr';
+import { queueEnrichment, statusPoints, totalsPoint } from './utils/servarr';
 
 /**
  * Readarr input plugin
@@ -55,6 +55,10 @@ export class ReadarrPlugin extends BaseInputPlugin<ReadarrConfig> {
       points.push(...(await this.collectStatus()));
     }
 
+    if (this.config.totals.enabled) {
+      points.push(...(await this.collectTotals()));
+    }
+
     if (this.config.serverInfo.enabled) {
       points.push(...(await this.collectServerInfo()));
     }
@@ -82,6 +86,10 @@ export class ReadarrPlugin extends BaseInputPlugin<ReadarrConfig> {
 
     if (this.config.status.enabled) {
       schedules.push(this.createSchedule('status', this.config.status.intervalSeconds, true, this.collectStatus));
+    }
+
+    if (this.config.totals.enabled) {
+      schedules.push(this.createSchedule('totals', this.config.totals.intervalSeconds, true, this.collectTotals));
     }
 
     if (this.config.serverInfo.enabled) {
@@ -216,6 +224,20 @@ export class ReadarrPlugin extends BaseInputPlugin<ReadarrConfig> {
         this.readarr.get('/api/v1/system/task'),
       ]);
       return this.createPoints(statusPoints({ health, disks, roots, queue, tasks }, new Date(), (s) => this.hashit(s)));
+    });
+  }
+
+  private async collectTotals(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Readarr totals', async () => {
+      const wanted = { page: 1, pageSize: 1, monitored: true };
+      const [missing, cutoff, blocklist] = await Promise.all([
+        this.readarr.get('/api/v1/wanted/missing', { query: wanted }),
+        this.readarr.get('/api/v1/wanted/cutoff', { query: wanted }),
+        this.readarr.get('/api/v1/blocklist', { query: { page: 1, pageSize: 1 } }),
+      ]);
+      return this.createPoints([
+        totalsPoint({ missing: missing.totalRecords, cutoff_unmet: cutoff.totalRecords, blocklist: blocklist.totalRecords }),
+      ]);
     });
   }
 }
