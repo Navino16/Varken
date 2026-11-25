@@ -181,6 +181,50 @@ describe('EmbyPlugin', () => {
       expect(points[0].tags.audio_codec).toBe('AAC');
     });
 
+    it('reports the source audio codec on direct play', async () => {
+      const [, bob] = sessions();
+      client.override('/emby/Sessions', [
+        {
+          ...bob,
+          NowPlayingItem: {
+            ...bob.NowPlayingItem,
+            MediaStreams: [
+              { Type: 'Video', Index: 0, Codec: 'hevc' },
+              { Type: 'Audio', Index: 1, Codec: 'truehd' },
+            ],
+          },
+          PlayState: { ...bob.PlayState, AudioStreamIndex: 1 },
+        },
+      ]);
+
+      const [point] = sessionPoints(await plugin.collect());
+
+      expect(point.tags.audio_codec).toBe('TRUEHD');
+    });
+
+    it('reports the source audio codec while transcoding', async () => {
+      const [alice] = sessions();
+      client.override('/emby/Sessions', [
+        { ...alice, NowPlayingItem: { ...alice.NowPlayingItem, MediaStreams: [{ Type: 'Audio', Index: 1, Codec: 'eac3' }] } },
+      ]);
+
+      const [point] = sessionPoints(await plugin.collect());
+
+      expect(point.tags.audio_codec).toBe('EAC3');
+    });
+
+    it('does not count a remux as a transcode', async () => {
+      const [alice, bob] = sessions();
+      client.override('/emby/Sessions', [
+        { ...alice, TranscodingInfo: { ...alice.TranscodingInfo, IsVideoDirect: true, IsAudioDirect: true } },
+        bob,
+      ]);
+
+      const summary = (await plugin.collect()).find((p) => p.tags.type === 'current_stream_stats');
+
+      expect(summary?.fields).toEqual({ stream_count: 2, transcode_streams: 0 });
+    });
+
     it('emits only an empty summary when the sessions payload is null', async () => {
       client.overrideUnchecked('/emby/Sessions', null);
 

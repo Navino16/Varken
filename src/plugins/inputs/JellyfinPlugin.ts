@@ -2,6 +2,7 @@ import { BaseInputPlugin } from './BaseInputPlugin';
 import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
 import type { JellyfinConfig } from '../../types/inputs/jellyfin.types';
 import type { components, paths } from '../../types/generated/jellyfin';
+import { isTranscoding, sourceAudioCodec } from './utils/mediaStreams';
 
 type JellyfinSession = components['schemas']['SessionInfoDto'];
 type JellyfinItemCounts = components['schemas']['ItemCounts'];
@@ -90,7 +91,7 @@ export class JellyfinPlugin extends BaseInputPlugin<JellyfinConfig> {
           },
           {
             stream_count: active.length,
-            transcode_streams: active.filter((s) => s.TranscodingInfo).length,
+            transcode_streams: active.filter((s) => isTranscoding(s.TranscodingInfo)).length,
           }
         )
       );
@@ -201,7 +202,7 @@ export class JellyfinPlugin extends BaseInputPlugin<JellyfinConfig> {
         quality,
         video_decision: videoDecision,
         media_type: item?.MediaType || item?.Type || 'unknown',
-        audio_codec: (transcode?.AudioCodec || '').toUpperCase() || 'unknown',
+        audio_codec: sourceAudioCodec(item?.MediaStreams, playState?.AudioStreamIndex, transcode),
         player_state: playerState,
         device_type: session.DeviceType || 'unknown',
         play_method: playState?.PlayMethod || 'unknown',
