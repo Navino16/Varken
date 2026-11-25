@@ -56,6 +56,7 @@ Config: `inputs.sonarr[].serverInfo` (`enabled`, `intervalSeconds`, default disa
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
+| `reachable` | field | number | Always `1`: keeps the point when the service reports nothing else |
 | `version` | tag | string | Service version (`unknown` when absent) |
 | `branch` | tag | string | Update branch (`unknown` when absent) |
 | `update_available` | field | number | `1` when a release is installable and not installed, else `0` |
@@ -98,6 +99,7 @@ Config: `inputs.radarr[].serverInfo` (`enabled`, `intervalSeconds`, default disa
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
+| `reachable` | field | number | Always `1`: keeps the point when the service reports nothing else |
 | `version` | tag | string | Service version (`unknown` when absent) |
 | `branch` | tag | string | Update branch (`unknown` when absent) |
 | `update_available` | field | number | `1` when a release is installable and not installed, else `0` |
@@ -140,6 +142,7 @@ Config: `inputs.readarr[].serverInfo` (`enabled`, `intervalSeconds`, default dis
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
+| `reachable` | field | number | Always `1`: keeps the point when the service reports nothing else |
 | `version` | tag | string | Service version (`unknown` when absent) |
 | `branch` | tag | string | Update branch (`unknown` when absent) |
 | `update_available` | field | number | `1` when a release is installable and not installed, else `0` |
@@ -180,6 +183,7 @@ Config: `inputs.lidarr[].serverInfo` (`enabled`, `intervalSeconds`, default disa
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
+| `reachable` | field | number | Always `1`: keeps the point when the service reports nothing else |
 | `version` | tag | string | Service version (`unknown` when absent) |
 | `branch` | tag | string | Update branch (`unknown` when absent) |
 | `update_available` | field | number | `1` when a release is installable and not installed, else `0` |
@@ -217,6 +221,7 @@ Config: `inputs.prowlarr[].serverInfo` (`enabled`, `intervalSeconds`, default di
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
+| `reachable` | field | number | Always `1`: keeps the point when the service reports nothing else |
 | `version` | tag | string | Service version (`unknown` when absent) |
 | `branch` | tag | string | Update branch (`unknown` when absent) |
 | `update_available` | field | number | `1` when a release is installable and not installed, else `0` |
@@ -299,13 +304,14 @@ Config: `inputs.tautulli[].stats` (`enabled`, `intervalSeconds`) and `inputs.tau
 
 ### type = ServerInfo
 
-Config: `inputs.tautulli[].serverInfo` (`enabled`, `intervalSeconds`, default disabled, 300) · Source: `get_tautulli_info`, `get_server_info`, `get_pms_update`, `update_check` (a failing `update_check`, e.g. HTTP 400 for an unknown version, only omits `update_available`)
+Config: `inputs.tautulli[].serverInfo` (`enabled`, `intervalSeconds`, default disabled, 300) · Source: `get_tautulli_info`, `get_server_info`, `get_pms_update`, `update_check` (`update_check` makes Tautulli query GitHub, so it runs at most every 6 hours and its last answer is reused in between; a failing `update_check`, e.g. HTTP 400 for an unknown version, only omits `update_available`)
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
-| `version` | tag | string | Tautulli version |
-| `branch` | tag | string | Tautulli branch |
-| `pms_version` | tag | string | Plex Media Server version |
+| `reachable` | field | number | Always `1`: keeps the point when the service reports nothing else |
+| `version` | tag | string | Tautulli version (`unknown` when absent) |
+| `branch` | tag | string | Tautulli branch (`unknown` when absent) |
+| `pms_version` | tag | string | Plex Media Server version (`unknown` when absent) |
 | `update_available` | field | number | Tautulli update available: `1` yes, `0` no; omitted when the service does not report it |
 | `pms_update_available` | field | number | Plex Media Server update available: `1` yes, `0` no; omitted when the service does not report it |
 | `pms_plexpass` | field | number | `1` when the server has Plex Pass |
@@ -362,11 +368,12 @@ Config: `inputs.plex[].serverInfo` (`enabled`, `intervalSeconds`, default disabl
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
-| `version` | tag | string | Server version |
-| `platform` | tag | string | Host platform |
+| `reachable` | field | number | Always `1`: keeps the point when the service reports nothing else |
+| `version` | tag | string | Server version (`unknown` when absent) |
+| `platform` | tag | string | Host platform (`unknown` when absent) |
 | `remote_access` | tag | string | `myPlexMappingState` (e.g. `mapped`; `unknown` when absent) |
 | `update_available` | field | number | `1` when the updater lists a release, else `0` |
-| `active_transcodes` | field | number | `transcoderActiveVideoSessions` |
+| `active_transcodes` | field | number | `transcoderActiveVideoSessions`; omitted when Plex does not report it |
 
 ## Jellyfin
 
@@ -434,12 +441,12 @@ All fields default to `0` when absent.
 
 ### type = ServerInfo
 
-Config: `inputs.jellyfin[].serverInfo` (`enabled`, `intervalSeconds`, default disabled, 300) · Source: `/System/Info`
+Config: `inputs.jellyfin[].serverInfo` (`enabled`, `intervalSeconds`, default disabled, 300) · Source: `/System/Info` (its deprecated `HasUpdateAvailable` is always `false`, so no `update_available` is written)
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
-| `version` | tag | string | Server version |
-| `update_available` | field | number | Update available: `1` yes, `0` no; omitted when the service does not report it |
+| `reachable` | field | number | Always `1`: keeps the point when the service reports nothing else |
+| `version` | tag | string | Server version (`unknown` when absent) |
 | `restart_pending` | field | number | Restart pending: `1` yes, `0` no; omitted when the service does not report it |
 | `shutting_down` | field | number | Server shutting down: `1` yes, `0` no; omitted when the service does not report it |
 
@@ -515,7 +522,8 @@ Config: `inputs.emby[].serverInfo` (`enabled`, `intervalSeconds`, default disabl
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
-| `version` | tag | string | Server version |
+| `reachable` | field | number | Always `1`: keeps the point when the service reports nothing else |
+| `version` | tag | string | Server version (`unknown` when absent) |
 | `update_available` | field | number | Update available: `1` yes, `0` no; omitted when the service does not report it |
 | `restart_pending` | field | number | Restart pending: `1` yes, `0` no; omitted when the service does not report it |
 | `shutting_down` | field | number | Server shutting down: `1` yes, `0` no; omitted when the service does not report it |
@@ -576,8 +584,9 @@ Config: `inputs.ombi[].serverInfo` (`enabled`, `intervalSeconds`, default disabl
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
-| `version` | tag | string | Ombi version |
-| `branch` | tag | string | Ombi branch |
+| `reachable` | field | number | Always `1`: keeps the point when the service reports nothing else |
+| `version` | tag | string | Ombi version (`unknown` when absent) |
+| `branch` | tag | string | Ombi branch (`unknown` when absent) |
 | `update_available` | field | number | Update available: `1` yes, `0` no; omitted when the service does not report it |
 
 ## Overseerr
@@ -635,7 +644,8 @@ Config: `inputs.overseerr[].serverInfo` (`enabled`, `intervalSeconds`, default d
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
-| `version` | tag | string | Seerr version |
+| `reachable` | field | number | Always `1`: keeps the point when the service reports nothing else |
+| `version` | tag | string | Seerr version (`unknown` when absent) |
 | `update_available` | field | number | Update available: `1` yes, `0` no; omitted when the service does not report it |
 | `commits_behind` | field | number | Commits behind the latest version; omitted when Seerr skips the version check |
 | `restart_pending` | field | number | Restart required: `1` yes, `0` no; omitted when the service does not report it |
@@ -689,8 +699,9 @@ Config: `inputs.bazarr[].serverInfo` (`enabled`, `intervalSeconds`, default disa
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
-| `version` | tag | string | Bazarr version |
-| `sonarr_version` | tag | string | Version of the connected Sonarr |
-| `radarr_version` | tag | string | Version of the connected Radarr |
+| `reachable` | field | number | Always `1`: keeps the point when the service reports nothing else |
+| `version` | tag | string | Bazarr version (`unknown` when absent) |
+| `sonarr_version` | tag | string | Version of the connected Sonarr (`unknown` when absent) |
+| `radarr_version` | tag | string | Version of the connected Radarr (`unknown` when absent) |
 | `uptime_seconds` | field | number | Seconds since `start_time`; omitted when unknown |
 | `health_issues` | field | number | Number of health issues |
