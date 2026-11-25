@@ -1,4 +1,5 @@
 import { BaseInputPlugin } from './BaseInputPlugin';
+import { isPrivateIp } from './utils/network';
 import { RequestCache } from '../../utils/RequestCache';
 import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
 import type { TautulliConfig, GeoIPInfo } from '../../types/inputs/tautulli.types';
@@ -18,24 +19,6 @@ const SERVER_INFO_PATH: GetPath<paths> = '/api/v2?cmd=get_server_info';
 const PLAYER_STATE = { PLAYING: 0, PAUSED: 1, BUFFERING: 3 } as const;
 
 export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
-  private static readonly PRIVATE_IPV4_RANGES = [
-    /^10\./, // 10.0.0.0/8
-    /^172\.(1[6-9]|2[0-9]|3[0-1])\./, // 172.16.0.0/12
-    /^192\.168\./, // 192.168.0.0/16
-    /^127\./, // Loopback
-    /^0\./, // Zero network
-    /^169\.254\./, // Link-local
-    /^224\./, // Multicast
-    /^255\./, // Broadcast
-  ];
-
-  private static readonly PRIVATE_IPV6_RANGES = [
-    /^::1$/, // Loopback
-    /^fe80:/i, // Link-local
-    /^fc00:/i, // Unique local
-    /^fd00:/i, // Unique local
-  ];
-
   private static readonly GEOIP_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
   private static readonly GEOIP_CACHE_MAX_SIZE = 1000;
   /** update_check makes Tautulli query GitHub uncached (up to 3 unauthenticated calls); Tautulli itself checks every few hours. */
@@ -239,31 +222,12 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
   }
 
   /**
-   * Check if an IP address is private/local (RFC 1918, loopback, link-local, etc.)
-   */
-  private isPrivateIP(ip: string): boolean {
-    for (const range of TautulliPlugin.PRIVATE_IPV4_RANGES) {
-      if (range.test(ip)) {
-        return true;
-      }
-    }
-
-    for (const range of TautulliPlugin.PRIVATE_IPV6_RANGES) {
-      if (range.test(ip)) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  /**
    * Process a single Tautulli session into a DataPoint
    */
   private async processSession(session: TautulliSession): Promise<DataPoint | null> {
     const tautulliSaysLocal = session.local === 1;
     const ip = session.ip_address_public || session.ip_address;
-    const ipIsPrivate = ip ? this.isPrivateIP(ip) : false;
+    const ipIsPrivate = ip ? isPrivateIp(ip) : false;
 
     // Determine if stream is local: either Tautulli says so, or IP is private
     const isLocal = tautulliSaysLocal || ipIsPrivate;
