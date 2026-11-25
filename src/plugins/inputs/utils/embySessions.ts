@@ -1,5 +1,6 @@
 import { isTranscoding, sourceAudioCodec, sourceVideoCodec, type StreamLike, type TranscodeLike } from './mediaStreams';
 import { networkOf } from './network';
+import { isNumber } from './numbers';
 
 export interface EmbyItemLike {
   Height?: number | null;
@@ -38,8 +39,6 @@ export interface EmbySessionLike {
 }
 
 const TICKS_PER_SECOND = 10_000_000;
-
-const isNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
 
 export function qualityOf(item: EmbyItemLike | null | undefined): string {
   if (item?.Height) {

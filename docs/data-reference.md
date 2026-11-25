@@ -488,7 +488,7 @@ Config: `inputs.tautulli[].activity` (`enabled`, `intervalSeconds`), `inputs.tau
 | `progress` | field | number | Progress percent (`0` when not numeric) |
 | `lat` | field | number | Latitude; only written for local streams with `geoip.localCoordinates`, or remote streams whose GeoIP result has both coordinates |
 | `lon` | field | number | Longitude; same condition as `lat` |
-| `network` | tag | string | `lan` / `wan` as Tautulli reports it (`location` stays the GeoIP city) |
+| `network` | tag | string | `lan` / `wan` as Tautulli reports it, else `unknown` (`location` stays the GeoIP city) |
 | `live` | tag | number | `1` for Live TV |
 | `audio_decision`, `subtitle_decision`, `container_decision` | tag | string | Stream decisions (`copy` → `Direct stream`, `unknown` when empty) |
 | `video_codec` / `stream_video_codec` | tag | string | Source / streamed video codec, upper-cased |
@@ -581,7 +581,7 @@ Config: `inputs.plex[].sessions` (`enabled`, `intervalSeconds`) · Source: `/sta
 | `subtitle_decision` | tag | string | Subtitle decision (`unknown` without a transcode session) |
 | `video_codec` / `stream_video_codec` | tag | string | Source / streamed video codec, upper-cased (stream = source when not transcoding) |
 | `stream_audio_codec` | tag | string | Streamed audio codec (`audio_codec` is the source) |
-| `video_resolution` / `stream_video_resolution` | tag | string | Source / streamed resolution (`1080p`, `4K`, ...) |
+| `video_resolution` / `stream_video_resolution` | tag | string | Source / streamed resolution (`1080p`, `4K`, ...); the stream one differs only when the video is transcoded, bucketed by its dimensions (`4K`, `1080p`, `720p`, `480p`, `SD`) |
 | `device_name`, `device_model`, `platform_version` | tag | string | Player name, model and OS version |
 | `user_id` | tag | string | Plex user id |
 | `year`, `genre` | tag | number / string | Release year and first genre |
@@ -632,7 +632,7 @@ Config: `inputs.plex[].serverInfo` (`enabled`, `intervalSeconds`, default disabl
 
 ### type = Session
 
-Config: `inputs.jellyfin[].sessions` (`enabled`, `intervalSeconds`) · Source: `/Sessions` (only sessions with a now-playing item).
+Config: `inputs.jellyfin[].sessions` (`enabled`, `intervalSeconds`) · Source: `/Sessions?activeWithinSeconds=960` (only sessions with a now-playing item; the summary also counts idle sessions active in the last 16 minutes).
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
@@ -652,7 +652,7 @@ Config: `inputs.jellyfin[].sessions` (`enabled`, `intervalSeconds`) · Source: `
 | `play_method` | tag | string | Play method (`unknown` when absent) |
 | `hash` | field | string | MD5 of session id + user name + title |
 | `progress_percent` | field | number | Rounded position / runtime in percent (`0` without runtime) |
-| `network` | tag | string | `lan` / `wan` from `RemoteEndPoint` (private ranges, port and IPv4-mapped forms handled) |
+| `network` | tag | string | `lan` / `wan` from `RemoteEndPoint` (RFC 1918, loopback, link-local and IPv6 unique-local ranges; port and IPv4-mapped forms handled), `unknown` without an address |
 | `audio_decision` | tag | string | `direct play` (no transcoding), `direct stream` (audio copied) or `transcode` |
 | `transcode_reasons` | tag | string | Sorted, comma-joined transcode reasons (`none` without transcoding) |
 | `video_codec` / `stream_video_codec` | tag | string | Source / streamed video codec, upper-cased |
@@ -664,7 +664,7 @@ Config: `inputs.jellyfin[].sessions` (`enabled`, `intervalSeconds`) · Source: `
 | `stream_bitrate` | field | number | Transcoded bitrate (kbps), transcoding only |
 | `stream_framerate`, `transcode_progress` | field | float | Transcoded frame rate and progress, transcoding only |
 | `community_rating` | field | float | Community rating |
-| `hw_acceleration` | tag | string | Hardware acceleration type (`none` without transcoding) |
+| `hw_acceleration` | tag | string | Hardware acceleration type (`none` without transcoding, `unknown` when the server does not report it) |
 | `paused_seconds` | field | number | Seconds since `LastPausedDate`, only while paused |
 
 ### type = current_stream_stats
@@ -750,7 +750,7 @@ Config: `inputs.emby[].sessions` (`enabled`, `intervalSeconds`) · Source: `/emb
 | `play_method` | tag | string | Play method (`unknown` when absent) |
 | `hash` | field | string | MD5 of session id + user name + title |
 | `progress_percent` | field | number | Rounded position / runtime in percent (`0` without runtime) |
-| `network` | tag | string | `lan` / `wan` from `RemoteEndPoint` (private ranges, port and IPv4-mapped forms handled) |
+| `network` | tag | string | `lan` / `wan` from `RemoteEndPoint` (RFC 1918, loopback, link-local and IPv6 unique-local ranges; port and IPv4-mapped forms handled), `unknown` without an address |
 | `audio_decision` | tag | string | `direct play` (no transcoding), `direct stream` (audio copied) or `transcode` |
 | `transcode_reasons` | tag | string | Sorted, comma-joined transcode reasons (`none` without transcoding) |
 | `video_codec` / `stream_video_codec` | tag | string | Source / streamed video codec, upper-cased |
@@ -767,7 +767,7 @@ Config: `inputs.emby[].sessions` (`enabled`, `intervalSeconds`) · Source: `/emb
 
 ### type = current_stream_stats
 
-Config: `inputs.emby[].sessions` · Source: `/emby/Sessions`.
+Config: `inputs.emby[].sessions` · Source: `/emby/Sessions`. Emby's `/Sessions` has no activity window, so `connected_*` counts every session the server still holds.
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|

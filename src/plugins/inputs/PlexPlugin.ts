@@ -3,7 +3,8 @@ import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plug
 import type { PlexConfig } from '../../types/inputs/plex.types';
 import type { paths } from '../../types/generated/plex';
 import { booleanFlags } from './utils/flags';
-import { resolutionLabel } from './utils/mediaStreams';
+import { isNumber } from './utils/numbers';
+import { resolutionBucket, resolutionLabel } from './utils/mediaStreams';
 
 type Sessions = paths['/status/sessions']['get']['responses'][200]['content']['application/json'];
 type PlexSession = NonNullable<NonNullable<Sessions['MediaContainer']>['Metadata']>[number];
@@ -36,8 +37,6 @@ function streamKind(session: PlexSession): 'direct play' | 'direct stream' | 'tr
   }
   return transcode.videoDecision === 'transcode' || transcode.audioDecision === 'transcode' ? 'transcode' : 'direct stream';
 }
-
-const isNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
 
 /**
  * Plex input plugin — direct Plex Media Server API (no Tautulli required).
@@ -314,7 +313,7 @@ export class PlexPlugin extends BaseInputPlugin<PlexConfig> {
         stream_video_codec: transcode?.videoCodec ? transcode.videoCodec.toUpperCase() : videoCodec,
         stream_audio_codec: transcode?.audioCodec ? transcode.audioCodec.toUpperCase() : audioCodec,
         video_resolution: resolution,
-        stream_video_resolution: transcode?.height ? `${transcode.height}p` : resolution,
+        stream_video_resolution: transcode?.videoDecision === 'transcode' ? resolutionBucket(transcode.width, transcode.height) : resolution,
         device_name: text(player?.title) || 'unknown',
         device_model: text(player?.model) || 'unknown',
         platform_version: text(player?.platformVersion) || 'unknown',

@@ -45,3 +45,22 @@ export function resolutionLabel(resolution: string | null | undefined): string {
   }
   return /^\d+$/.test(resolution) ? `${resolution}p` : resolution.toUpperCase();
 }
+
+/** Resolution label of a stream from its dimensions; width first, so letterboxed films keep their class. */
+export function resolutionBucket(width: number | null | undefined, height: number | null | undefined): string {
+  const w = width ?? 0;
+  const h = height ?? 0;
+  if (w >= 3200 || h >= 1800) {
+    return '4K';
+  }
+  if (w >= 1700 || h >= 1000) {
+    return '1080p';
+  }
+  if (w >= 1100 || h >= 650) {
+    return '720p';
+  }
+  if (w >= 700 || h >= 450) {
+    return '480p';
+  }
+  return w > 0 || h > 0 ? 'SD' : 'unknown';
+}

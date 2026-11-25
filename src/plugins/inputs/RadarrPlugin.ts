@@ -4,7 +4,8 @@ import type { PluginMetadata, DataPoint, PointSpec, ScheduleConfig } from '../..
 import type { RadarrConfig } from '../../types/inputs/radarr.types';
 import type { paths } from '../../types/generated/radarr';
 import { servarrServerInfo } from './utils/servarrServerInfo';
-import { queueEnrichment, statusPoints, totalsPoint, historyPoint, pickNumbers } from './utils/servarr';
+import { queueEnrichment, statusPoints, totalsPoint, historyPoint } from './utils/servarr';
+import { pickNumbers } from './utils/numbers';
 import { booleanFlags } from './utils/flags';
 
 /**

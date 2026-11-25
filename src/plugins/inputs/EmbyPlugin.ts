@@ -4,7 +4,7 @@ import type { EmbyConfig } from '../../types/inputs/emby.types';
 import type { components, paths } from '../../types/generated/emby';
 import { isTranscoding, sourceAudioCodec } from './utils/mediaStreams';
 import { qualityOf, sessionEnrichment, streamSummary } from './utils/embySessions';
-import { pickNumbers } from './utils/servarr';
+import { pickNumbers } from './utils/numbers';
 import { booleanFlags } from './utils/flags';
 
 type EmbySession = components['schemas']['Session.SessionInfo'];

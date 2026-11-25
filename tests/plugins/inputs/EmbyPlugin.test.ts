@@ -385,6 +385,8 @@ describe('EmbyPlugin', () => {
       expect(episode.fields).toMatchObject({ video_decoder_hw: 1, video_encoder_hw: 0, transcode_cpu_percent: 37.5 });
       expect(episode.floatFields).toContain('transcode_cpu_percent');
       expect(movie.fields).not.toHaveProperty('transcode_cpu_percent');
+      expect(movie.fields).not.toHaveProperty('video_decoder_hw');
+      expect(movie.fields).not.toHaveProperty('video_encoder_hw');
     });
 
   });
@@ -397,7 +399,7 @@ describe('EmbyPlugin', () => {
     it('counts music videos, programs, trailers and games', async () => {
       const counts = (await plugin.collect()).find((p) => p.tags.type === 'item_counts');
 
-      expect(counts?.fields).toMatchObject({ music_videos: 12, programs: 3, trailers: 40, games: 5, game_systems: 1 });
+      expect(counts?.fields).toEqual({ movies: 812, series: 96, episodes: 4370, artists: 214, albums: 487, songs: 6021, books: 15, box_sets: 38, total: 12093, music_videos: 12, programs: 3, trailers: 40, games: 5, game_systems: 1 });
     });
 
     it('reports library refresh state', async () => {

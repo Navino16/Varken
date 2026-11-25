@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isTranscoding, sourceAudioCodec } from '../../../../src/plugins/inputs/utils/mediaStreams';
+import { isTranscoding, resolutionBucket, sourceAudioCodec } from '../../../../src/plugins/inputs/utils/mediaStreams';
 
 const streams = [
   { Type: 'Video', Index: 0, Codec: 'hevc' },
@@ -45,5 +45,22 @@ describe('isTranscoding', () => {
 
   it('keeps counting transcoding info whose direct flags are unknown', () => {
     expect(isTranscoding({})).toBe(true);
+  });
+});
+
+describe('resolutionBucket', () => {
+  it.each([
+    [3840, 1608, '4K'],
+    [1920, 800, '1080p'],
+    [1280, 536, '720p'],
+    [854, 480, '480p'],
+    [640, 360, 'SD'],
+    [undefined, 1080, '1080p'],
+  ])('buckets %sx%s as %s', (width, height, label) => {
+    expect(resolutionBucket(width, height)).toBe(label);
+  });
+
+  it('is unknown without dimensions', () => {
+    expect(resolutionBucket(undefined, undefined)).toBe('unknown');
   });
 });

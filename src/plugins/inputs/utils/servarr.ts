@@ -1,6 +1,7 @@
 import type { PointSpec } from '../../../types/plugin.types';
 import { booleanFlags } from './flags';
 import { eventTimestamp } from './events';
+import { isNumber, pickNumbers } from './numbers';
 
 export interface ServarrQueueLike {
   size?: number;
@@ -74,8 +75,6 @@ const MIN_VALID_TIME = Date.UTC(2000, 0, 1);
 
 const label = (value: string | null | undefined): string => value || 'unknown';
 
-const isNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
-
 /** Epoch ms of a Servarr time; .NET `DateTime.MinValue` (never happened) and unparsable values are undefined. */
 export function servarrTime(value: string | null | undefined): number | undefined {
   const time = Date.parse(value ?? '');
@@ -90,22 +89,6 @@ export function parseTimeSpan(span: string | null | undefined): number | undefin
   }
   const [, days, hours, minutes, seconds, fraction] = match;
   return Number(days ?? 0) * 86400 + Number(hours) * 3600 + Number(minutes) * 60 + Number(seconds) + Number(fraction ?? 0);
-}
-
-/** `{ sourceKey: fieldName }` → fields for the finite numbers of `source`. */
-export function pickNumbers<T extends object>(
-  source: T | null | undefined,
-  keys: Partial<Record<keyof T & string, string>>
-): Record<string, number> {
-  const fields: Record<string, number> = {};
-  const values = (source ?? {}) as Record<string, unknown>;
-  for (const [key, field] of Object.entries(keys) as [string, string][]) {
-    const value = values[key];
-    if (isNumber(value)) {
-      fields[field] = value;
-    }
-  }
-  return fields;
 }
 
 export function queueEnrichment(

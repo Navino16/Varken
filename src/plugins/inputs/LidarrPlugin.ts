@@ -4,7 +4,8 @@ import type { PluginMetadata, DataPoint, PointSpec, ScheduleConfig } from '../..
 import type { LidarrConfig } from '../../types/inputs/lidarr.types';
 import type { paths } from '../../types/generated/lidarr';
 import { servarrServerInfo } from './utils/servarrServerInfo';
-import { queueEnrichment, statusPoints, totalsPoint, historyPoint, pickNumbers, releaseAgeDays, sumFields } from './utils/servarr';
+import { queueEnrichment, statusPoints, totalsPoint, historyPoint, releaseAgeDays, sumFields } from './utils/servarr';
+import { pickNumbers } from './utils/numbers';
 import { booleanFlags } from './utils/flags';
 
 /**

@@ -184,7 +184,7 @@ describe('PlexPlugin', () => {
         stream_video_codec: 'H264',
         stream_audio_codec: 'AAC',
         video_resolution: '4K',
-        stream_video_resolution: '536p',
+        stream_video_resolution: '720p',
         device_name: 'Pixel 9',
         device_model: 'unknown',
         user_id: '2',
@@ -207,6 +207,15 @@ describe('PlexPlugin', () => {
         transcode_hw_encoding: 1,
       });
       expect(movie.floatFields).toEqual(['transcode_speed', 'transcode_progress']);
+    });
+
+    it('keeps the source resolution when the video is not transcoded', async () => {
+      const [, movie] = sessions();
+      client.override('/status/sessions', {
+        MediaContainer: { size: 1, Metadata: [{ ...movie, TranscodeSession: { ...movie.TranscodeSession, videoDecision: 'copy' } }] },
+      });
+
+      expect(sessionPoints(await plugin.collect())[0].tags.stream_video_resolution).toBe('4K');
     });
 
     it('falls back to Player.local without a Session element', async () => {

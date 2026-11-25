@@ -4,7 +4,8 @@ import type { PluginMetadata, DataPoint, PointSpec, ScheduleConfig } from '../..
 import type { SonarrConfig } from '../../types/inputs/sonarr.types';
 import type { paths } from '../../types/generated/sonarr';
 import { servarrServerInfo } from './utils/servarrServerInfo';
-import { queueEnrichment, statusPoints, totalsPoint, historyPoint, pickNumbers, sumFields } from './utils/servarr';
+import { queueEnrichment, statusPoints, totalsPoint, historyPoint, sumFields } from './utils/servarr';
+import { pickNumbers } from './utils/numbers';
 import { booleanFlags } from './utils/flags';
 
 /**

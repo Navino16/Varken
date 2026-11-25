@@ -373,6 +373,20 @@ describe('JellyfinPlugin', () => {
       expect(movie.tags.hw_acceleration).toBe('none');
     });
 
+    it('labels an unreported hardware acceleration unknown', async () => {
+      const [alice, ...rest] = sessions();
+      const { HardwareAccelerationType: _hw, ...transcode } = alice.TranscodingInfo ?? {};
+      client.override('/Sessions', [{ ...alice, TranscodingInfo: transcode }, ...rest]);
+
+      expect(sessionPoints(await plugin.collect())[0].tags.hw_acceleration).toBe('unknown');
+    });
+
+    it('asks only for sessions active in the last 16 minutes', async () => {
+      await plugin.collect();
+
+      expect(client.get).toHaveBeenCalledWith('/Sessions', { params: { activeWithinSeconds: 960 } });
+    });
+
     it('measures paused time', async () => {
       const [episode, movie] = sessionPoints(await plugin.collect());
 
@@ -390,7 +404,7 @@ describe('JellyfinPlugin', () => {
     it('counts music videos, programs and trailers', async () => {
       const counts = (await plugin.collect()).find((p) => p.tags.type === 'item_counts');
 
-      expect(counts?.fields).toMatchObject({ music_videos: 12, programs: 3, trailers: 40 });
+      expect(counts?.fields).toEqual({ movies: 812, series: 96, episodes: 4370, artists: 214, albums: 487, songs: 6021, books: 15, box_sets: 38, total: 12093, music_videos: 12, programs: 3, trailers: 40 });
     });
 
     it('reports library refresh state', async () => {

@@ -8,9 +8,8 @@ const PRIVATE_RANGES = [
   /^224\./, // multicast
   /^255\./, // broadcast
   /^::1$/,
-  /^fe80:/i,
-  /^fc00:/i,
-  /^fd00:/i,
+  /^fe[89ab][0-9a-f]:/i, // fe80::/10 link-local
+  /^f[cd][0-9a-f]{2}:/i, // fc00::/7 unique local
 ];
 
 /** Bare IP of an endpoint as servers report it: IPv4-mapped IPv6, `ip:port` and `[v6]:port` forms. */
@@ -18,7 +17,7 @@ export function normalizeIp(address: string): string {
   const trimmed = address.trim();
   const bracketed = /^\[([^\]]+)\](?::\d+)?$/.exec(trimmed);
   if (bracketed) {
-    return bracketed[1];
+    return normalizeIp(bracketed[1]);
   }
   const ipv4WithPort = /^(\d{1,3}(?:\.\d{1,3}){3}):\d+$/.exec(trimmed);
   if (ipv4WithPort) {

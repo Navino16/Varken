@@ -3,7 +3,8 @@ import type { PluginMetadata, DataPoint, PointSpec, ScheduleConfig } from '../..
 import type { ProwlarrConfig } from '../../types/inputs/prowlarr.types';
 import type { components, paths } from '../../types/generated/prowlarr';
 import { servarrServerInfo } from './utils/servarrServerInfo';
-import { healthPoints, pickNumbers, servarrTime, taskPoints } from './utils/servarr';
+import { healthPoints, servarrTime, taskPoints } from './utils/servarr';
+import { pickNumbers } from './utils/numbers';
 import { eventTimestamp } from './utils/events';
 
 type IndexerStatistics = components['schemas']['IndexerStatistics'];

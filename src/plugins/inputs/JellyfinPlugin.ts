@@ -4,7 +4,7 @@ import type { JellyfinConfig } from '../../types/inputs/jellyfin.types';
 import type { components, paths } from '../../types/generated/jellyfin';
 import { isTranscoding, sourceAudioCodec } from './utils/mediaStreams';
 import { qualityOf, sessionEnrichment, streamSummary } from './utils/embySessions';
-import { pickNumbers } from './utils/servarr';
+import { pickNumbers } from './utils/numbers';
 import { booleanFlags } from './utils/flags';
 
 type JellyfinSession = components['schemas']['SessionInfoDto'];
@@ -86,7 +86,8 @@ export class JellyfinPlugin extends BaseInputPlugin<JellyfinConfig> {
   private async collectSessions(): Promise<DataPoint[]> {
     return this.safeFetch('collect Jellyfin sessions', async () => {
       const points: DataPoint[] = [];
-      const sessions = await this.jellyfin.get('/Sessions');
+      // Same window as Jellyfin's dashboard: older device sessions would inflate the connected counters.
+      const sessions = await this.jellyfin.get('/Sessions', { query: { activeWithinSeconds: 960 } });
       const active = (sessions ?? []).filter((s) => s.NowPlayingItem);
 
       for (const session of active) {
@@ -230,7 +231,7 @@ export class JellyfinPlugin extends BaseInputPlugin<JellyfinConfig> {
         play_method: playState?.PlayMethod || 'unknown',
         server: this.config.id,
         ...enrichment.tags,
-        hw_acceleration: transcode?.HardwareAccelerationType ?? 'none',
+        hw_acceleration: transcode ? (transcode.HardwareAccelerationType ?? 'unknown') : 'none',
       },
       {
         hash: hashId,
