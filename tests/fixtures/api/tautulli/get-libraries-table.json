@@ -1,0 +1,60 @@
+{
+  "response": {
+    "result": "success",
+    "message": null,
+    "data": {
+      "draw": 1,
+      "recordsTotal": 3,
+      "recordsFiltered": 3,
+      "data": [
+        {
+          "row_id": 1,
+          "server_id": "abc123",
+          "section_id": 1,
+          "section_name": "Movies",
+          "section_type": "movie",
+          "count": 450,
+          "plays": 120,
+          "duration": 864000,
+          "last_accessed": 1795599000,
+          "is_active": 1,
+          "is_archived": 0,
+          "keep_history": 1,
+          "deleted_section": 0
+        },
+        {
+          "row_id": 2,
+          "server_id": "abc123",
+          "section_id": 2,
+          "section_name": "TV Shows",
+          "section_type": "show",
+          "count": 80,
+          "plays": 600,
+          "duration": 1296000,
+          "last_accessed": 1795595400,
+          "is_active": 1,
+          "is_archived": 0,
+          "keep_history": 1,
+          "deleted_section": 0,
+          "parent_count": 300,
+          "child_count": 4200
+        },
+        {
+          "row_id": 999999,
+          "server_id": "abc123",
+          "section_id": 999999,
+          "section_name": "Live TV",
+          "section_type": "live",
+          "count": null,
+          "plays": 3,
+          "duration": 5400,
+          "last_accessed": null,
+          "is_active": 1,
+          "is_archived": 0,
+          "keep_history": 0,
+          "deleted_section": 0
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "response": {
+    "result": "success",
+    "message": null,
+    "data": {
+      "categories": [
+        "Sep 2026",
+        "Oct 2026",
+        "Nov 2026"
+      ],
+      "series": [
+        {
+          "name": "TV",
+          "data": [
+            40,
+            52,
+            31
+          ]
+        },
+        {
+          "name": "Movies",
+          "data": [
+            12,
+            9,
+            14
+          ]
+        }
+      ]
+    }
+  }
+}

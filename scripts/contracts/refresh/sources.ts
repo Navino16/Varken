@@ -84,14 +84,17 @@ function escapeRegExp(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+/** A Python argument list, possibly over several lines, that never runs into the next `def`. */
+const SIGNATURE = String.raw`(?:(?!\bdef )[\s\S])*?`;
+
 /** Docstrings of Tautulli API commands: `@addtoapi("<cmd>")` or `@addtoapi()` on `def <cmd>(`. */
 export function extractDocstrings(source: string, commands: string[]): Record<string, string> {
   const docs: Record<string, string> = {};
   for (const command of commands) {
     const name = escapeRegExp(command);
     const match =
-      new RegExp(`@addtoapi\\("${name}"\\)\\s*\\n\\s*def \\w+\\(.*?\\):\\s*\\n\\s*"""([\\s\\S]*?)"""`).exec(source) ??
-      new RegExp(`@addtoapi\\(\\)\\s*\\n\\s*def ${name}\\(.*?\\):\\s*\\n\\s*"""([\\s\\S]*?)"""`).exec(source);
+      new RegExp(`@addtoapi\\("${name}"\\)\\s*\\n\\s*def \\w+\\(${SIGNATURE}\\):\\s*\\n\\s*"""([\\s\\S]*?)"""`).exec(source) ??
+      new RegExp(`@addtoapi\\(\\)\\s*\\n\\s*def ${name}\\(${SIGNATURE}\\):\\s*\\n\\s*"""([\\s\\S]*?)"""`).exec(source);
     if (!match) {
       throw new Error(`no @addtoapi docstring for ${command}`);
     }

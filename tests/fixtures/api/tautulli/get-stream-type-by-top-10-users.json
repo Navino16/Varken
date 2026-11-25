@@ -1,0 +1,35 @@
+{
+  "response": {
+    "result": "success",
+    "message": null,
+    "data": {
+      "categories": [
+        "Jon Snow",
+        "Arya Stark"
+      ],
+      "series": [
+        {
+          "name": "Direct Play",
+          "data": [
+            30,
+            5
+          ]
+        },
+        {
+          "name": "Direct Stream",
+          "data": [
+            6,
+            0
+          ]
+        },
+        {
+          "name": "Transcode",
+          "data": [
+            4,
+            3
+          ]
+        }
+      ]
+    }
+  }
+}
