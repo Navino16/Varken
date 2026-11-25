@@ -5,6 +5,7 @@ import { PlexConfigSchema } from '../../../src/config/schemas/config.schema';
 import type { PlexConfig } from '../../../src/types/inputs/plex.types';
 import { createContractHttpClient, type ContractHttpClient } from '../../fixtures/contract-http';
 import type { DataPoint } from '../../../src/types/plugin.types';
+import { useEventStateFolder } from '../../../src/utils/EventStateStore';
 
 vi.mock('../../../src/core/Logger', async () => {
   const { loggerMock } = await import('../../fixtures/logger');
@@ -36,6 +37,7 @@ describe('PlexPlugin collectors', () => {
 
   beforeEach(() => {
     vi.useFakeTimers({ now: NOW });
+    useEventStateFolder(null);
     plugin = new PlexPlugin();
     client = createContractHttpClient('plex');
     (axios.create as Mock).mockReturnValue(client);
@@ -118,6 +120,98 @@ describe('PlexPlugin collectors', () => {
 
     it('schedules status when enabled', () => {
       expect(plugin.getSchedules().map((s) => [s.name, s.intervalSeconds])).toEqual([['Plex_1_status', 300]]);
+    });
+  });
+
+  describe('bandwidth events', () => {
+    beforeEach(async () => {
+      vi.setSystemTime(new Date('2026-11-25T07:30:00Z'));
+      await plugin.initialize(config({ status: true }));
+      vi.setSystemTime(NOW);
+    });
+
+    const bandwidth = (points: DataPoint[]): DataPoint[] => ofType(points, 'Bandwidth');
+
+    it('emits completed bandwidth hours once', async () => {
+      const first = bandwidth(await plugin.collect());
+
+      expect(first.map((p) => [p.timestamp.toISOString(), p.tags.network, p.tags.username, p.fields.bytes])).toEqual([
+        ['2026-11-25T08:00:00.000Z', 'lan', 'admin', 1073741824],
+        ['2026-11-25T09:00:00.000Z', 'wan', 'alice', 536870912],
+        ['2026-11-25T09:00:00.000Z', 'lan', 'admin', 268435456],
+      ]);
+      expect(first[0].tags).toMatchObject({ account_id: 1, device_id: 11, device_name: 'Living Room TV', platform: 'Android' });
+
+      vi.setSystemTime(new Date('2026-11-25T10:45:00Z'));
+      expect(bandwidth(await plugin.collect())).toEqual([]);
+
+      vi.setSystemTime(new Date('2026-11-25T11:05:00Z'));
+      expect(bandwidth(await plugin.collect()).map((p) => p.timestamp.toISOString())).toEqual(['2026-11-25T10:00:00.000Z']);
+    });
+
+    it('asks hourly bandwidth since the cursor', async () => {
+      await plugin.collect();
+      vi.setSystemTime(new Date('2026-11-25T10:45:00Z'));
+      await plugin.collect();
+
+      const queries = (client.get as Mock).mock.calls.filter(([path]) => path === '/statistics/bandwidth').map(([, options]) => options.params);
+      expect(queries).toEqual([
+        { timespan: 4, 'at>': Date.parse('2026-11-25T06:30:00Z') / 1000 },
+        { timespan: 4, 'at>': Date.parse('2026-11-25T09:00:00Z') / 1000 },
+      ]);
+    });
+
+    it('emits nothing for hours that completed before plugin start', async () => {
+      plugin = new PlexPlugin();
+      await plugin.initialize(config({ status: true }));
+
+      expect(bandwidth(await plugin.collect()).map((p) => p.timestamp.toISOString())).toEqual([]);
+    });
+  });
+
+  describe('history', () => {
+    beforeEach(async () => {
+      vi.setSystemTime(new Date('2026-11-25T07:30:00Z'));
+      await plugin.initialize(config({ history: true }));
+      vi.setSystemTime(NOW);
+    });
+
+    it('emits one Play point per history row', async () => {
+      const plays = ofType(await plugin.collect(), 'Play');
+
+      expect(plays.map((p) => p.timestamp.getTime())).toEqual([1795597954201, 1795597954202, 1795600740203]);
+      expect(plays[0]).toMatchObject({
+        measurement: 'Plex',
+        tags: {
+          media_type: 'movie',
+          library_section_id: '1',
+          rating_key: '501',
+          account_id: 1,
+          username: 'admin',
+          device_id: 11,
+          device_name: 'Living Room TV',
+          platform: 'Android',
+          server: 1,
+        },
+        fields: { title: 'Arrival', hash: expect.any(String) },
+      });
+      expect(client.get).toHaveBeenCalledWith('/status/sessions/history/all', { params: { 'viewedAt>': Date.parse('2026-11-25T07:30:00Z') / 1000 } });
+    });
+
+    it('does not re-emit plays on the next poll', async () => {
+      await plugin.collect();
+
+      expect(ofType(await plugin.collect(), 'Play')).toEqual([]);
+    });
+
+    it('tags unknown accounts and devices as unknown', async () => {
+      const plays = ofType(await plugin.collect(), 'Play');
+
+      expect(plays[2].tags).toMatchObject({ account_id: 3, username: 'unknown', device_id: 99, device_name: 'unknown', platform: 'unknown' });
+    });
+
+    it('schedules history when enabled', () => {
+      expect(plugin.getSchedules().map((s) => [s.name, s.intervalSeconds])).toEqual([['Plex_1_history', 300]]);
     });
   });
 });

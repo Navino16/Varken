@@ -1,11 +1,12 @@
 import { BaseInputPlugin } from './BaseInputPlugin';
-import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
+import type { PluginMetadata, DataPoint, PointSpec, ScheduleConfig } from '../../types/plugin.types';
 import type { PlexConfig } from '../../types/inputs/plex.types';
 import type { paths } from '../../types/generated/plex';
 import { booleanFlags } from './utils/flags';
-import { isNumber } from './utils/numbers';
+import { isNumber, pickNumbers } from './utils/numbers';
 import { resolutionBucket, resolutionLabel } from './utils/mediaStreams';
 import { ageSeconds } from './utils/time';
+import { eventTimestamp } from './utils/events';
 import {
   activityPoints,
   backgroundTranscodePoints,
@@ -19,6 +20,20 @@ type Sessions = paths['/status/sessions']['get']['responses'][200]['content']['a
 type PlexSession = NonNullable<NonNullable<Sessions['MediaContainer']>['Metadata']>[number];
 type Libraries = paths['/library/sections/all']['get']['responses'][200]['content']['application/json'];
 type PlexLibrary = NonNullable<NonNullable<Libraries['MediaContainer']>['Directory']>[number];
+
+type Bandwidth = NonNullable<
+  NonNullable<paths['/statistics/bandwidth']['get']['responses'][200]['content']['application/json']['MediaContainer']>['StatisticsBandwidth']
+>[number];
+type Play = NonNullable<
+  NonNullable<paths['/status/sessions/history/all']['get']['responses'][200]['content']['application/json']['MediaContainer']>['Metadata']
+>[number];
+
+interface PlexDirectory {
+  accounts: Map<number, string>;
+  devices: Map<number, { name: string; platform: string }>;
+}
+
+const HOUR_SECONDS = 3600;
 
 type MediaQuery = NonNullable<paths['/library/sections/{sectionId}/all']['get']['parameters']['query']>['mediaQuery'];
 
@@ -108,6 +123,10 @@ export class PlexPlugin extends BaseInputPlugin<PlexConfig> {
       points.push(...(await this.collectStatus()));
     }
 
+    if (this.config.history.enabled) {
+      points.push(...(await this.collectHistory()));
+    }
+
     return points;
   }
 
@@ -132,6 +151,10 @@ export class PlexPlugin extends BaseInputPlugin<PlexConfig> {
 
     if (this.config.status.enabled) {
       schedules.push(this.createSchedule('status', this.config.status.intervalSeconds, true, this.collectStatus));
+    }
+
+    if (this.config.history.enabled) {
+      schedules.push(this.createSchedule('history', this.config.history.intervalSeconds, true, this.collectHistory));
     }
 
     return schedules;
@@ -416,13 +439,14 @@ export class PlexPlugin extends BaseInputPlugin<PlexConfig> {
 
   private async collectStatus(): Promise<DataPoint[]> {
     return this.safeFetch('collect Plex status', async () => {
-      const [activities, background, butler, updater, resources, transcodes] = await Promise.all([
+      const [activities, background, butler, updater, resources, transcodes, bandwidth] = await Promise.all([
         this.plex.get('/activities'),
         this.plex.get('/status/sessions/background'),
         this.plex.get('/butler'),
         this.plex.get('/updater/status'),
         this.plex.get('/statistics/resources', { query: { timespan: 6 } }),
         this.plex.get('/transcode/sessions'),
+        this.collectBandwidth(),
       ]);
       const now = new Date();
       const resourceUsage = resourcesPoint(resources?.MediaContainer);
@@ -433,7 +457,82 @@ export class PlexPlugin extends BaseInputPlugin<PlexConfig> {
         updaterPoint(updater?.MediaContainer, now),
         ...(resourceUsage ? [resourceUsage] : []),
         transcodeSessionsPoint(transcodes?.MediaContainer),
+        ...bandwidth,
       ]);
     });
+  }
+
+  /**
+   * Hourly bins, each emitted once when its hour has ended: the bin of the current hour keeps growing.
+   * The cursor holds the end of the last emitted hour.
+   */
+  private async collectBandwidth(): Promise<PointSpec[]> {
+    const since = Math.floor((await this.eventCursor('bandwidth')).getTime() / 1000) - HOUR_SECONDS;
+    const [response, directory] = await Promise.all([
+      this.plex.get('/statistics/bandwidth', { query: { timespan: 4, 'at>': since } }),
+      this.plexDirectory(),
+    ]);
+    const now = Date.now();
+    const endOf = (row: Bandwidth): number => (isNumber(row.at) ? (row.at + HOUR_SECONDS) * 1000 : Number.NaN);
+    const completed = (response?.MediaContainer?.StatisticsBandwidth ?? []).filter((row) => endOf(row) <= now);
+    const fresh = await this.takeNewEvents('bandwidth', completed, endOf, (r) => `${r.at}-${r.accountID}-${r.deviceID}-${r.lan}`);
+    return fresh.map((row) => ({
+      tags: {
+        type: 'Bandwidth',
+        network: typeof row.lan === 'boolean' ? (row.lan ? 'lan' : 'wan') : 'unknown',
+        ...this.directoryTags(directory, row.accountID, row.deviceID),
+      },
+      fields: pickNumbers(row, { bytes: 'bytes' }),
+      timestamp: new Date((row.at as number) * 1000),
+    }));
+  }
+
+  private async collectHistory(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Plex history', async () => {
+      const since = Math.floor((await this.eventCursor('history')).getTime() / 1000);
+      const [response, directory] = await Promise.all([
+        this.plex.get('/status/sessions/history/all', { query: { 'viewedAt>': since } }),
+        this.plexDirectory(),
+      ]);
+      const viewedAt = (play: Play): number => (isNumber(play.viewedAt) ? play.viewedAt * 1000 : Number.NaN);
+      const plays = await this.takeNewEvents('history', response?.MediaContainer?.Metadata ?? [], viewedAt, (p) => String(p.historyKey));
+      return this.createPoints(
+        plays.map((play) => ({
+          tags: {
+            type: 'Play',
+            media_type: play.type || 'unknown',
+            library_section_id: play.librarySectionID || 'unknown',
+            rating_key: play.ratingKey || 'unknown',
+            ...this.directoryTags(directory, play.accountID, play.deviceID),
+          },
+          fields: { hash: this.hashit(`${this.config.id}${play.historyKey}`), title: play.title ?? '' },
+          timestamp: eventTimestamp(viewedAt(play), Number(/(\d+)$/.exec(play.historyKey ?? '')?.[1])),
+        }))
+      );
+    });
+  }
+
+  /** Names of the accounts and devices that history and bandwidth rows reference by id. */
+  private async plexDirectory(): Promise<PlexDirectory> {
+    const [accounts, devices] = await Promise.all([this.plex.get('/accounts'), this.plex.get('/devices')]);
+    return {
+      accounts: new Map((accounts?.MediaContainer?.Account ?? []).flatMap((a) => (isNumber(a.id) ? [[a.id, a.name || 'unknown']] : []))),
+      devices: new Map(
+        (devices?.MediaContainer?.Device ?? []).flatMap((d) =>
+          isNumber(d.id) ? [[d.id, { name: d.name || 'unknown', platform: d.platform || 'unknown' }]] : []
+        )
+      ),
+    };
+  }
+
+  private directoryTags(directory: PlexDirectory, accountId: number | undefined, deviceId: number | undefined): Record<string, string | number> {
+    const device = isNumber(deviceId) ? directory.devices.get(deviceId) : undefined;
+    return {
+      account_id: accountId ?? 'unknown',
+      username: (isNumber(accountId) && directory.accounts.get(accountId)) || 'unknown',
+      device_id: deviceId ?? 'unknown',
+      device_name: device?.name ?? 'unknown',
+      platform: device?.platform ?? 'unknown',
+    };
   }
 }

@@ -56,7 +56,7 @@ export function updaterPoint(container: Container<'/updater/status'> | undefined
 
 const RESOURCE_FIELDS = ['host_cpu_percent', 'host_memory_percent', 'process_cpu_percent', 'process_memory_percent'];
 
-/** Most recent sample only: older rows were already written by earlier polls. */
+/** Most recent sample only: the point reports current usage. */
 export function resourcesPoint(container: Container<'/statistics/resources'> | undefined): PointSpec | undefined {
   const latest = (container?.StatisticsResources ?? [])
     .filter((row) => isNumber(row.at))
