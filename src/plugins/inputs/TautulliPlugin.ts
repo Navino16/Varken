@@ -38,6 +38,9 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
 
   private static readonly GEOIP_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
   private static readonly GEOIP_CACHE_MAX_SIZE = 1000;
+  /** update_check makes Tautulli query GitHub uncached (up to 3 unauthenticated calls); Tautulli itself checks every few hours. */
+  private static readonly UPDATE_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
+  private lastUpdateCheck?: { at: number; update: boolean | undefined };
 
   private geoipCache = new RequestCache<GeoIPInfo | null>({
     ttlMs: TautulliPlugin.GEOIP_CACHE_TTL_MS,
@@ -503,12 +506,18 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
 
   /** Tautulli answers HTTP 400 when it cannot tell its own version: the flag is then unknown, not a failure. */
   private async checkTautulliUpdate(): Promise<boolean | undefined> {
+    const now = Date.now();
+    if (this.lastUpdateCheck && now - this.lastUpdateCheck.at < TautulliPlugin.UPDATE_CHECK_INTERVAL_MS) {
+      return this.lastUpdateCheck.update;
+    }
+    let update: boolean | undefined;
     try {
       const response = await this.api<paths>().get('/api/v2?cmd=update_check', { query: { apikey: this.config.apiKey } });
-      return response.response.data.update;
+      update = response.response.data.update;
     } catch (error) {
       this.logger.debug(`Tautulli update check failed: ${error instanceof Error ? error.message : String(error)}`);
-      return undefined;
     }
+    this.lastUpdateCheck = { at: now, update };
+    return update;
   }
 }

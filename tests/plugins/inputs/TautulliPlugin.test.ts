@@ -579,6 +579,23 @@ describe('TautulliPlugin', () => {
       expect(point.fields.pms_plexpass).toBe(1);
     });
 
+    it('checks for Tautulli updates at most every 6 hours', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-11-25T10:00:00Z'));
+      const updateChecks = (): number => client.get.mock.calls.filter((call) => call[0] === UPDATE_CHECK).length;
+
+      await plugin.collect();
+      vi.setSystemTime(new Date('2026-11-25T15:59:00Z'));
+      const [cached] = await plugin.collect();
+      expect(updateChecks()).toBe(1);
+      expect(cached.fields.update_available).toBe(1);
+
+      vi.setSystemTime(new Date('2026-11-25T16:00:00Z'));
+      await plugin.collect();
+      expect(updateChecks()).toBe(2);
+      vi.useRealTimers();
+    });
+
     it('schedules serverInfo when enabled', () => {
       expect(plugin.getSchedules().map((s) => s.name)).toEqual(['Tautulli_1_serverInfo']);
     });
