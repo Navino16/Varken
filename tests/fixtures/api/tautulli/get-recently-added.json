@@ -1,0 +1,34 @@
+{
+  "response": {
+    "result": "success",
+    "message": null,
+    "data": {
+      "recently_added": [
+        {
+          "added_at": "1795595400",
+          "full_title": "Dune: Part Two",
+          "title": "Dune: Part Two",
+          "media_type": "movie",
+          "rating_key": "104",
+          "section_id": "1",
+          "library_name": "Movies",
+          "year": "2024",
+          "genres": [
+            "Science Fiction"
+          ]
+        },
+        {
+          "added_at": "1795509000",
+          "full_title": "Severance - Hello, Ms. Cobel",
+          "title": "Hello, Ms. Cobel",
+          "grandparent_title": "Severance",
+          "media_type": "episode",
+          "rating_key": "2050",
+          "section_id": "2",
+          "library_name": "TV Shows",
+          "year": "2025"
+        }
+      ]
+    }
+  }
+}

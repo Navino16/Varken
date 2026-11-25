@@ -34,6 +34,12 @@ describe('extractDocstrings', () => {
     expect(docs.get_libraries).toContain('[{"section_id": "2"}]');
   });
 
+  it('reads commands whose signature spans several lines', () => {
+    const docs = extractDocstrings(fixture('webserve.py'), ['get_plays_by_date']);
+
+    expect(docs.get_plays_by_date).toBe(' Get graph data by date. ');
+  });
+
   it('throws for an unknown command', () => {
     expect(() => extractDocstrings(fixture('webserve.py'), ['get_users'])).toThrow('no @addtoapi docstring for get_users');
   });

@@ -1,0 +1,28 @@
+{
+  "response": {
+    "result": "success",
+    "message": null,
+    "data": [
+      {
+        "query_days": 1,
+        "total_plays": 2,
+        "total_time": 7200
+      },
+      {
+        "query_days": 7,
+        "total_plays": 9,
+        "total_time": 30600
+      },
+      {
+        "query_days": 30,
+        "total_plays": 31,
+        "total_time": 111600
+      },
+      {
+        "query_days": 0,
+        "total_plays": 120,
+        "total_time": 864000
+      }
+    ]
+  }
+}

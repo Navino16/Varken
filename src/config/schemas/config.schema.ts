@@ -177,6 +177,9 @@ export const TautulliConfigSchema = z.object({
     }).optional(),
   }).default({ enabled: false }),
   serverInfo: ScheduleConfigSchema.default(serverInfoDefault),
+  history: ScheduleConfigSchema.default({ enabled: false, intervalSeconds: 300 }),
+  users: ScheduleConfigSchema.default({ enabled: false, intervalSeconds: 3600 }),
+  libraryMedia: ScheduleConfigDaysSchema.default(scheduleDaysDefault),
 });
 
 export const PlexConfigSchema = z.object({

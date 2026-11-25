@@ -16,3 +16,10 @@ class WebInterface(object):
     def get_activity(self, session_key=None, **kwargs):
         """ Get the current activity on the PMS. """
         return {}
+
+    @cherrypy.expose
+    @addtoapi()
+    def get_plays_by_date(self, time_range='30', user_id=None, y_axis='plays', grouping=None,
+                          include_archived=None, **kwargs):
+        """ Get graph data by date. """
+        return None

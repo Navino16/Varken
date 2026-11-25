@@ -2,9 +2,9 @@
 
 Every input plugin writes DataPoints whose measurement is the service name (`Sonarr`, `Tautulli`, ...). Every point carries a `server` tag (the instance `id` from the config) and a `type` tag that distinguishes the kinds of points a plugin writes; both are omitted from the tables below.
 Numbers meant for graphing are fields; tags hold labels and identifiers. The `hash` field is a deduplication key (MD5) and is not meant to be graphed.
-Decimal fields (`score_percent`, `lat`, `lon`, the Servarr `progress`, `used_percent`, `last_duration_seconds`, `percent_of_*`, and the session `transcode_speed`, `transcode_progress`, `stream_framerate`, `community_rating`, `transcode_cpu_percent`, `refresh_progress`, the Plex `progress`, `speed`, `percent` and `*_cpu_percent` / `*_memory_percent`, the Jellyfin/Emby task `progress`) are always written as floats, even for whole values, so their column type stays stable.
+Decimal fields (`score_percent`, `lat`, `lon`, the Servarr `progress`, `used_percent`, `last_duration_seconds`, `percent_of_*`, and the session `transcode_speed`, `transcode_progress`, `stream_framerate`, `community_rating`, `transcode_cpu_percent`, `refresh_progress`, the Plex `progress`, `speed`, `percent` and `*_cpu_percent` / `*_memory_percent`, the Jellyfin/Emby task `progress`, the Tautulli `watched_status`) are always written as floats, even for whole values, so their column type stays stable.
 Points are timestamped with the collection time (`createDataPoint` default) unless stated otherwise in a section.
-Event points (`type = History`, Plex `Play` and `Bandwidth`, Jellyfin/Emby `Activity`) are timestamped with the event time, plus the record id's last three digits as milliseconds: the APIs report whole seconds, and this keeps same-second events with identical tags as separate points. Each event collector keeps a high-water mark in `DATA_FOLDER/event-state/` and only writes events newer than it, so an event is written once even across restarts. Without a mark (first run, deleted or unreadable file) it starts from the plugin start time: earlier events are not backfilled.
+Event points (`type = History`, Plex and Tautulli `Play`, Plex `Bandwidth`, Jellyfin/Emby `Activity`, Tautulli `RecentlyAdded` and its day/month graph buckets) are timestamped with the event time, plus the record id's last three digits as milliseconds: the APIs report whole seconds, and this keeps same-second events with identical tags as separate points. Each event collector keeps a high-water mark in `DATA_FOLDER/event-state/` and only writes events newer than it, so an event is written once even across restarts. Without a mark (first run, deleted or unreadable file) it starts from the plugin start time: earlier events are not backfilled.
 
 ## Sonarr, Radarr, Lidarr, Readarr: shared points
 
@@ -521,7 +521,7 @@ All fields default to `0` when absent.
 
 ### type = library_stats
 
-Config: `inputs.tautulli[].stats` (`enabled`, `intervalSeconds`) and `inputs.tautulli[].libraries` (`enabled`, `intervalDays`); both run the same collector · Source: `/api/v2?cmd=get_libraries`. One point per library.
+Config: `inputs.tautulli[].stats` (`enabled`, `intervalSeconds`) and `inputs.tautulli[].libraries` (`enabled`, `intervalDays`); both write these points (`stats` also writes the home stats, graphs and recently added items below) · Source: `/api/v2?cmd=get_libraries`. One point per library.
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
@@ -550,6 +550,120 @@ Config: `inputs.tautulli[].serverInfo` (`enabled`, `intervalSeconds`, default di
 | `update_available` | field | number | Tautulli update available: `1` yes, `0` no; omitted when the service does not report it |
 | `pms_update_available` | field | number | Plex Media Server update available: `1` yes, `0` no; omitted when the service does not report it |
 | `pms_plexpass` | field | number | `1` when the server has Plex Pass |
+
+### type = HomeStat
+
+Config: `inputs.tautulli[].stats` · Source: `get_home_stats` (`time_range=30`, `stats_count=5`). Like every point below written by `stats` (graphs, recently added), it is collected at most every 5 minutes, whatever the `stats` interval; `library_stats` follows the interval. One point per row of each home stats card Tautulli is configured to show, over the last 30 days.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `stat_id` | tag | string | Card: `top_movies`, `popular_movies`, `top_tv`, `popular_tv`, `top_music`, `popular_music`, `top_libraries`, `top_users`, `top_platforms`, `last_watched`, `most_concurrent` |
+| `rank` | tag | number | Row position in the card, from `1` |
+| `title` | field | string | Item title; user friendly name (`top_users`), platform name (`top_platforms`), library name (`top_libraries`), or `Concurrent Streams` / `Concurrent Transcodes` / ... (`most_concurrent`) |
+| `plays` | field | number | Plays |
+| `duration_seconds` | field | number | Watch time |
+| `users_watched` | field | number | Distinct users (`popular_*` cards) |
+| `count` | field | number | Concurrent streams (`most_concurrent`) |
+| `last_play_age_seconds` | field | number | Seconds since the last play |
+
+Fields the card does not report are omitted.
+
+### type = PlaysByDayOfWeek / PlaysByHourOfDay / StreamTypeByPlatform / StreamTypeByUser
+
+Config: `inputs.tautulli[].stats` · Source: `get_plays_by_dayofweek`, `get_plays_by_hourofday`, `get_stream_type_by_top_10_platforms`, `get_stream_type_by_top_10_users` (`time_range=30`). A snapshot of the last 30 days: one point per category at each collection.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `day` / `hour` / `platform` / `user` | tag | string | Category: day name (`Monday`, ... in the order Tautulli is set to start the week), hour (`00`-`23`), platform, user friendly name (top 10) |
+| `tv`, `movies`, `music`, `live_tv` | field | number | Plays per media type (`PlaysByDayOfWeek`, `PlaysByHourOfDay`) |
+| `direct_play`, `direct_stream`, `transcode` | field | number | Plays per stream type (`StreamTypeBy*`) |
+
+Tautulli only lists the series of the library types the server has: a server without music or Live TV libraries has no `music` / `live_tv` field.
+
+### type = PlaysByDate / PlaysByStreamType / ConcurrentStreams / PlaysByMonth
+
+Config: `inputs.tautulli[].stats` · Source: `get_plays_by_date`, `get_plays_by_stream_type`, `get_concurrent_streams_by_stream_type` (`time_range=7`), `get_plays_per_month` (`time_range=3`). One point per **completed** day (month), timestamped `00:00 UTC` of Tautulli's local date (the 1st of the month), written once.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `tv`, `movies`, `music`, `live_tv`, `total` | field | number | Plays per media type (`PlaysByDate`, `PlaysByMonth`; `total` on `PlaysByDate` only) |
+| `direct_play`, `direct_stream`, `transcode` | field | number | Plays (`PlaysByStreamType`) or maximum concurrent streams (`ConcurrentStreams`) per stream type |
+| `max_concurrent_streams` | field | number | Maximum concurrent streams of all types (`ConcurrentStreams`) |
+
+A bucket is written one day after it ends (a day appears the day after next): Tautulli counts a play on the day it starts but records it when it stops, so a play still running at midnight is in its day only once it ends, and Tautulli's days are local (UTC-12 to UTC+14) while bucket bounds are UTC. The high-water mark compares buckets by that same settling time, so the day Varken starts on is always written; a day that ended shortly before startup may be written too. Month names are parsed in English (`Nov 2026`); a category that does not parse is skipped and logged at debug level.
+
+### type = RecentlyAdded
+
+Config: `inputs.tautulli[].stats` · Source: `get_recently_added` (`count=50`). One event point per item added to Plex, timestamped with its `added_at`.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `media_type` | tag | string | `movie`, `show`, `season`, `episode`, `artist`, `album`, `track`, ... |
+| `section_id` | tag | string | Library section id |
+| `library_name` | tag | string | Library name |
+| `rating_key` | tag | string | Plex item id |
+| `hash` | field | string | MD5 of server id + rating key + added time |
+| `title` | field | string | Full title |
+| `year` | field | number | Release year; omitted when unknown |
+
+### type = Play
+
+Config: `inputs.tautulli[].history` (`enabled`, `intervalSeconds`, default disabled, 300) · Source: `get_history` (`grouping=0`, `order_column=stopped`, `length=500`). One event point per play, timestamped with the time it stopped: Tautulli records a play when it ends.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `media_type` | tag | string | `movie`, `episode`, `track`, ... |
+| `rating_key` | tag | number | Plex item id |
+| `user_id`, `username` | tag | mixed | Plex user |
+| `platform`, `player`, `product` | tag | string | Client |
+| `transcode_decision` | tag | string | `Direct play`, `Direct stream` (`copy`), `Transcode`, as on `Session` |
+| `network` | tag | string | `lan` / `wan`, else `unknown` |
+| `live` | tag | number | `1` for Live TV |
+| `hash` | field | string | MD5 of server id + history row id |
+| `title` | field | string | Full title |
+| `play_duration_seconds` | field | number | Time played, pauses excluded |
+| `paused_seconds` | field | number | Time paused |
+| `percent_complete` | field | number | Position reached, in percent |
+| `watched_status` | field | float | `0`, `0.25`, `0.5`, `0.75` or `1` (watched), from Tautulli's watched thresholds |
+
+The client IP address is never written. Tags are `unknown` when absent.
+
+### type = User / Users
+
+Config: `inputs.tautulli[].users` (`enabled`, `intervalSeconds`, default disabled, 3600) · Source: `get_users_table`, `get_user_watch_time_stats` (one call per user, `query_days=1,7,30,0`). One point per user and one summary point.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `user_id`, `username`, `friendly_name` | tag | mixed | User (`User`) |
+| `plays`, `duration_seconds` | field | number | All-time plays and watch time (`User`) |
+| `last_seen_age_seconds` | field | number | Seconds since the last play; omitted for a user who never played (`User`) |
+| `is_active`, `allow_guest`, `keep_history` | field | number | `0`/`1` (`User`) |
+| `plays_1d`, `plays_7d`, `plays_30d`, `plays_all` | field | number | Plays over the last 1, 7, 30 days and all time (`User`) |
+| `watch_seconds_1d`, `watch_seconds_7d`, `watch_seconds_30d`, `watch_seconds_all` | field | number | Watch time over the same windows (`User`) |
+| `users` | field | number | Users (`Users`) |
+| `active` | field | number | Users active in Tautulli (`Users`) |
+| `seen_24h`, `seen_30d` | field | number | Users who played within 24 hours / 30 days (`Users`) |
+
+Email and IP addresses are never written.
+
+### type = Library / MediaInfo
+
+Config: `inputs.tautulli[].libraryMedia` (`enabled`, `intervalDays`, default disabled, 1 day) · Source: `get_libraries_table`, then per library `get_library_watch_time_stats` (`query_days=1,7,30,0`) and, for `movie`, `show`, `artist` and `photo` libraries, `get_library_media_info` (all rows). Per-user and per-library calls run 4 at a time. One `Library` point per library, one `MediaInfo` point per library, resolution and codec.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `section_id`, `section_name`, `section_type` | tag | mixed | Library (both types) |
+| `plays`, `duration_seconds` | field | number | All-time plays and watch time (`Library`) |
+| `last_accessed_age_seconds` | field | number | Seconds since the last play; omitted for a library never played (`Library`) |
+| `is_active`, `keep_history` | field | number | `0`/`1` (`Library`) |
+| `plays_1d` ... `plays_all`, `watch_seconds_1d` ... `watch_seconds_all` | field | number | As on `User` (`Library`) |
+| `media_items` | field | number | Items in the media info table: movies, shows, artists or photo albums (`Library`) |
+| `file_size` | field | number | Total size in bytes of the items whose size Tautulli knows (`Library`, `MediaInfo`); omitted when it knows none, e.g. show and artist libraries until their sizes are computed in Tautulli's Media Info tab |
+| `media_info_age_seconds` | field | number | Age of Tautulli's media info cache (`Library`) |
+| `video_resolution`, `video_codec` | tag | string | Group (`MediaInfo`); `unknown` when empty, e.g. for show and artist rows |
+| `items` | field | number | Items in the group (`MediaInfo`) |
+
+Tautulli serves media info from a cache: the first call builds it from Plex (on a large library it can outlast `httpTimeoutMs`, Tautulli then finishes it and the next collection reads it), and only Tautulli's UI refreshes it. Varken refreshes the cache of `movie` libraries when it is older than `intervalDays`, and keeps the cached answer if the refresh fails; it never refreshes show and artist libraries, since a refresh drops the sizes Tautulli's UI computed for them, so their media info is as recent as their last refresh in Tautulli (`media_info_age_seconds`). Media fields and `MediaInfo` points are omitted when the library has no item or Tautulli cannot read it (`last_refreshed` null).
 
 ## Plex
 

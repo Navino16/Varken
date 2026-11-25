@@ -45,6 +45,7 @@ Built with TypeScript, Node.js, and a plugin-based architecture with scheduled d
 - **Session details** — bandwidth, LAN/WAN, direct play / direct stream / transcode decisions, hardware transcoding, source vs streamed format, device and user for Plex, Jellyfin, Emby and Tautulli streams
 - **Media server state** — Plex, Jellyfin and Emby scheduled tasks, plugins, activities, resource use and bandwidth, play / activity history, users and devices, Live TV recordings
 - **Servarr insights** — download progress and state, health, disk space, root folders, scheduled tasks, wanted / blocklist totals, history events and library statistics for Sonarr, Radarr, Lidarr and Readarr; indexer status, grabs, per-app stats and inventory for Prowlarr
+- **Tautulli statistics** — home stats, play graphs by day, hour, month, stream type, platform and user, recently added items, play history, per-user and per-library watch time, library media info (sizes, resolutions, codecs)
 - **Multiple outputs** — InfluxDB 1.x, InfluxDB 2.x, VictoriaMetrics, QuestDB, TimescaleDB
 - **Multi-instance support** — connect multiple instances of each service
 - **GeoIP mapping** — automatic geolocation of streaming sessions via Tautulli API (no external license required)
@@ -225,6 +226,14 @@ Plex, Jellyfin and Emby also accept these collectors, all disabled by default:
 | `history` | 300s | One point per play (Plex) or activity log entry (Jellyfin, Emby) |
 | `inventory` | 3600s | Users and devices |
 | `liveTv` | 300s | Live TV sessions (Plex), recordings and timers |
+
+Tautulli's `stats` collector writes library counts at its interval, and home stats (top items, users, platforms, most concurrent streams), play graphs and recently added items at most every 5 minutes. Tautulli also accepts these collectors, all disabled by default:
+
+| Key | Default interval | What it writes |
+|-----|------------------|----------------|
+| `history` | 300s | One point per play |
+| `users` | 3600s | Users with plays, last seen and watch time (1, 7, 30 days, all time) |
+| `libraryMedia` | 1 day (`intervalDays`) | Per-library plays and watch time, media info (file size, items per resolution and codec) |
 
 ### Output Configuration
 

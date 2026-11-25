@@ -209,6 +209,1311 @@
           }
         }
       }
+    },
+    "/api/v2?cmd=get_home_stats": {
+      "get": {
+        "summary": "Get the homepage watch statistics.",
+        "parameters": [
+          {
+            "name": "apikey",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "API key; the X-Api-Key header alternative only exists since v2.18.0 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L106)"
+          },
+          {
+            "name": "grouping",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "time_range",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "stats_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stats_start",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "stats_count",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "stat_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "section_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "include_archived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HomeStatsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2?cmd=get_plays_by_date": {
+      "get": {
+        "summary": "Get graph data by date.",
+        "parameters": [
+          {
+            "name": "apikey",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "API key; the X-Api-Key header alternative only exists since v2.18.0 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L106)"
+          },
+          {
+            "name": "time_range",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "y_axis",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "grouping",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "include_archived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaysByDateResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2?cmd=get_plays_by_dayofweek": {
+      "get": {
+        "summary": "Get graph data by day of the week.",
+        "parameters": [
+          {
+            "name": "apikey",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "API key; the X-Api-Key header alternative only exists since v2.18.0 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L106)"
+          },
+          {
+            "name": "time_range",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "y_axis",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "grouping",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "include_archived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaysByDayofweekResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2?cmd=get_plays_by_hourofday": {
+      "get": {
+        "summary": "Get graph data by hour of the day.",
+        "parameters": [
+          {
+            "name": "apikey",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "API key; the X-Api-Key header alternative only exists since v2.18.0 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L106)"
+          },
+          {
+            "name": "time_range",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "y_axis",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "grouping",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "include_archived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaysByHourofdayResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2?cmd=get_plays_per_month": {
+      "get": {
+        "summary": "Get graph data by month.",
+        "parameters": [
+          {
+            "name": "apikey",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "API key; the X-Api-Key header alternative only exists since v2.18.0 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L106)"
+          },
+          {
+            "name": "time_range",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "y_axis",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "grouping",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "include_archived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaysPerMonthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2?cmd=get_concurrent_streams_by_stream_type": {
+      "get": {
+        "summary": "Get graph data for concurrent streams by stream type by date.",
+        "parameters": [
+          {
+            "name": "apikey",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "API key; the X-Api-Key header alternative only exists since v2.18.0 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L106)"
+          },
+          {
+            "name": "time_range",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "include_archived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConcurrentStreamsByStreamTypeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2?cmd=get_plays_by_stream_type": {
+      "get": {
+        "summary": "Get graph data by stream type by date.",
+        "parameters": [
+          {
+            "name": "apikey",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "API key; the X-Api-Key header alternative only exists since v2.18.0 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L106)"
+          },
+          {
+            "name": "time_range",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "y_axis",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "grouping",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "include_archived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaysByStreamTypeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2?cmd=get_stream_type_by_top_10_platforms": {
+      "get": {
+        "summary": "Get graph data by stream type by top 10 platforms.",
+        "parameters": [
+          {
+            "name": "apikey",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "API key; the X-Api-Key header alternative only exists since v2.18.0 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L106)"
+          },
+          {
+            "name": "time_range",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "y_axis",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "grouping",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "include_archived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StreamTypeByTop10PlatformsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2?cmd=get_stream_type_by_top_10_users": {
+      "get": {
+        "summary": "Get graph data by stream type by top 10 users.",
+        "parameters": [
+          {
+            "name": "apikey",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "API key; the X-Api-Key header alternative only exists since v2.18.0 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L106)"
+          },
+          {
+            "name": "time_range",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "y_axis",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "grouping",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "include_archived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StreamTypeByTop10UsersResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2?cmd=get_history": {
+      "get": {
+        "summary": "Get the Tautulli history.",
+        "parameters": [
+          {
+            "name": "apikey",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "API key; the X-Api-Key header alternative only exists since v2.18.0 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L106)"
+          },
+          {
+            "name": "grouping",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "include_activity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "include_archived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "user",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "rating_key",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "parent_rating_key",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "grandparent_rating_key",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "start_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "section_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "media_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "transcode_decision",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "guid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "order_column",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "order_dir",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "length",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2?cmd=get_libraries_table": {
+      "get": {
+        "summary": "Get the data on the Tautulli libraries table.",
+        "parameters": [
+          {
+            "name": "apikey",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "API key; the X-Api-Key header alternative only exists since v2.18.0 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L106)"
+          },
+          {
+            "name": "grouping",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "order_column",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "order_dir",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "length",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "include_archived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "include_deleted",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LibrariesTableResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2?cmd=get_library_watch_time_stats": {
+      "get": {
+        "summary": "Get a library's watch time statistics.",
+        "parameters": [
+          {
+            "name": "apikey",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "API key; the X-Api-Key header alternative only exists since v2.18.0 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L106)"
+          },
+          {
+            "name": "section_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "grouping",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "query_days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "include_archived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LibraryWatchTimeStatsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2?cmd=get_users_table": {
+      "get": {
+        "summary": "Get the data on Tautulli users table.",
+        "parameters": [
+          {
+            "name": "apikey",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "API key; the X-Api-Key header alternative only exists since v2.18.0 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L106)"
+          },
+          {
+            "name": "grouping",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "include_archived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "include_deleted",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "order_column",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "order_dir",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "length",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsersTableResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2?cmd=get_user_watch_time_stats": {
+      "get": {
+        "summary": "Get a user's watch time statistics.",
+        "parameters": [
+          {
+            "name": "apikey",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "API key; the X-Api-Key header alternative only exists since v2.18.0 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L106)"
+          },
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "grouping",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "query_days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "include_archived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserWatchTimeStatsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2?cmd=get_library_media_info": {
+      "get": {
+        "summary": "Get the data on the Tautulli media info tables.",
+        "parameters": [
+          {
+            "name": "apikey",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "API key; the X-Api-Key header alternative only exists since v2.18.0 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L106)"
+          },
+          {
+            "name": "section_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required unless rating_key is given"
+          },
+          {
+            "name": "rating_key",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "section_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "order_column",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "order_dir",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "length",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "refresh",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "include_archived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LibraryMediaInfoResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2?cmd=get_recently_added": {
+      "get": {
+        "summary": "Get all items that where recently added to plex.",
+        "parameters": [
+          {
+            "name": "apikey",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "API key; the X-Api-Key header alternative only exists since v2.18.0 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L106)"
+          },
+          {
+            "name": "count",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "media_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "section_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecentlyAddedResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1500,6 +2805,1929 @@
           }
         },
         "description": "https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/webserve.py#L6809-L6838; plextv.PlexTV.get_plex_update"
+      },
+      "Graph": {
+        "type": "object",
+        "properties": {
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "series": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Series are only listed for the library types the server has (TV, Movies, Music, Live TV) (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/graphs.py#L121-L138)"
+      },
+      "HomeStatRow": {
+        "type": "object",
+        "properties": {
+          "art": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "content_rating": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "count": {
+            "type": "integer"
+          },
+          "friendly_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "grandchild_title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "grandparent_rating_key": {
+            "type": [
+              "integer",
+              "string",
+              "null"
+            ]
+          },
+          "grandparent_thumb": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "grandparent_title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "guid": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "last_play": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "last_watch": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "library_art": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "library_thumb": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "live": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "media_index": {
+            "type": [
+              "integer",
+              "string",
+              "null"
+            ]
+          },
+          "media_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "parent_media_index": {
+            "type": [
+              "integer",
+              "string",
+              "null"
+            ]
+          },
+          "platform": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "platform_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "player": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "rating": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "rating_key": {
+            "type": [
+              "integer",
+              "string",
+              "null"
+            ]
+          },
+          "row_id": {
+            "type": [
+              "integer",
+              "string",
+              "null"
+            ]
+          },
+          "section_id": {
+            "type": [
+              "integer",
+              "string",
+              "null"
+            ]
+          },
+          "section_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "section_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "started": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "stopped": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "thumb": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "total_duration": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "total_plays": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "user": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "user_id": {
+            "type": [
+              "integer",
+              "string",
+              "null"
+            ]
+          },
+          "user_thumb": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "users_watched": {
+            "type": [
+              "integer",
+              "string",
+              "null"
+            ]
+          },
+          "year": {
+            "type": [
+              "integer",
+              "string",
+              "null"
+            ]
+          }
+        },
+        "description": "Union of the row dicts of every stat card; unused keys are sent as empty strings, most_concurrent rows only carry title, count, started and stopped (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/datafactory.py#L635)"
+      },
+      "HomeStat": {
+        "type": "object",
+        "properties": {
+          "stat_id": {
+            "type": "string"
+          },
+          "stat_type": {
+            "type": "string"
+          },
+          "stat_title": {
+            "type": "string"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HomeStatRow"
+            }
+          }
+        },
+        "description": "stat_type is absent from popular_* and most_concurrent cards (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/datafactory.py#L635)"
+      },
+      "HistoryRow": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "integer"
+          },
+          "duration": {
+            "type": "integer"
+          },
+          "friendly_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "full_title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "grandparent_rating_key": {
+            "type": [
+              "integer",
+              "string",
+              "null"
+            ]
+          },
+          "grandparent_title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "group_count": {
+            "type": "integer"
+          },
+          "group_ids": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "guid": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "integer"
+          },
+          "ip_address": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "library_is_archived": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "live": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "location": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "machine_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "media_index": {
+            "type": [
+              "integer",
+              "string",
+              "null"
+            ]
+          },
+          "media_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "original_title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "originally_available_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "parent_media_index": {
+            "type": [
+              "integer",
+              "string",
+              "null"
+            ]
+          },
+          "parent_rating_key": {
+            "type": [
+              "integer",
+              "string",
+              "null"
+            ]
+          },
+          "parent_title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "paused_counter": {
+            "type": "integer"
+          },
+          "percent_complete": {
+            "type": "integer"
+          },
+          "platform": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "play_duration": {
+            "type": "integer"
+          },
+          "player": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "product": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "rating_key": {
+            "type": [
+              "integer",
+              "string",
+              "null"
+            ]
+          },
+          "reference_id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "relayed": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "row_id": {
+            "type": "integer"
+          },
+          "secure": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "session_key": {
+            "type": [
+              "integer",
+              "string",
+              "null"
+            ]
+          },
+          "started": {
+            "type": "integer"
+          },
+          "state": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "stopped": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "thumb": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "transcode_decision": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "user": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "user_id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "user_is_archived": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "user_thumb": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "watched_status": {
+            "type": "number"
+          },
+          "year": {
+            "type": [
+              "integer",
+              "string",
+              "null"
+            ]
+          }
+        },
+        "description": "Metadata columns come from a LEFT OUTER JOIN and can be null; watched_status is 0, 0.25, 0.5, 0.75 or 1 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/datafactory.py#L540-L621)"
+      },
+      "HistoryTable": {
+        "type": "object",
+        "properties": {
+          "draw": {
+            "type": "integer"
+          },
+          "recordsTotal": {
+            "type": "integer"
+          },
+          "recordsFiltered": {
+            "type": "integer"
+          },
+          "total_duration": {
+            "type": "string"
+          },
+          "filter_duration": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HistoryRow"
+            }
+          }
+        }
+      },
+      "LibraryTableRow": {
+        "type": "object",
+        "properties": {
+          "child_count": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "content_rating": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "count": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "deleted_section": {
+            "type": "integer"
+          },
+          "duration": {
+            "type": "integer"
+          },
+          "guid": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "history_row_id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "is_active": {
+            "type": "integer"
+          },
+          "is_archived": {
+            "type": "integer"
+          },
+          "keep_history": {
+            "type": "integer"
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "last_accessed": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "last_played": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "library_art": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "library_thumb": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "live": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "media_index": {
+            "type": [
+              "integer",
+              "string",
+              "null"
+            ]
+          },
+          "media_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "originally_available_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "parent_count": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "parent_media_index": {
+            "type": [
+              "integer",
+              "string",
+              "null"
+            ]
+          },
+          "parent_title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "plays": {
+            "type": "integer"
+          },
+          "rating_key": {
+            "type": [
+              "integer",
+              "string",
+              "null"
+            ]
+          },
+          "row_id": {
+            "type": "integer"
+          },
+          "section_id": {
+            "type": "integer"
+          },
+          "section_name": {
+            "type": "string"
+          },
+          "section_type": {
+            "type": "string"
+          },
+          "server_id": {
+            "type": "string"
+          },
+          "thumb": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "year": {
+            "type": [
+              "integer",
+              "string",
+              "null"
+            ]
+          }
+        },
+        "description": "Columns of the last play are null for a library never played (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/libraries.py#L316-L470)"
+      },
+      "LibrariesTable": {
+        "type": "object",
+        "properties": {
+          "draw": {
+            "type": "integer"
+          },
+          "recordsTotal": {
+            "type": "integer"
+          },
+          "recordsFiltered": {
+            "type": "integer"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LibraryTableRow"
+            }
+          }
+        }
+      },
+      "UserTableRow": {
+        "type": "object",
+        "properties": {
+          "allow_guest": {
+            "type": "integer"
+          },
+          "deleted_user": {
+            "type": "integer"
+          },
+          "duration": {
+            "type": "integer"
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "friendly_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "guid": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "history_row_id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "ip_address": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "is_active": {
+            "type": "integer"
+          },
+          "is_archived": {
+            "type": "integer"
+          },
+          "keep_history": {
+            "type": "integer"
+          },
+          "last_played": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "last_seen": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "live": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "media_index": {
+            "type": [
+              "integer",
+              "string",
+              "null"
+            ]
+          },
+          "media_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "originally_available_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "parent_media_index": {
+            "type": [
+              "integer",
+              "string",
+              "null"
+            ]
+          },
+          "parent_title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "platform": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "player": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "plays": {
+            "type": "integer"
+          },
+          "rating_key": {
+            "type": [
+              "integer",
+              "string",
+              "null"
+            ]
+          },
+          "row_id": {
+            "type": "integer"
+          },
+          "thumb": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "transcode_decision": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "user_id": {
+            "type": "integer"
+          },
+          "user_thumb": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "username": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "year": {
+            "type": [
+              "integer",
+              "string",
+              "null"
+            ]
+          }
+        },
+        "description": "last_seen and the columns of the last play are null for a user who never played (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/users.py#L127-L285)"
+      },
+      "UsersTable": {
+        "type": "object",
+        "properties": {
+          "draw": {
+            "type": "integer"
+          },
+          "recordsTotal": {
+            "type": "integer"
+          },
+          "recordsFiltered": {
+            "type": "integer"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserTableRow"
+            }
+          }
+        }
+      },
+      "WatchTimeStat": {
+        "type": "object",
+        "properties": {
+          "query_days": {
+            "type": "integer"
+          },
+          "total_plays": {
+            "type": "integer"
+          },
+          "total_time": {
+            "type": "integer"
+          }
+        },
+        "description": "query_days 0 is all time (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/users.py#L585-L650)"
+      },
+      "MediaInfoRow": {
+        "type": "object",
+        "properties": {
+          "added_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "audio_channels": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "audio_codec": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "bitrate": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "container": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "file_size": {
+            "type": [
+              "integer",
+              "string",
+              "null"
+            ]
+          },
+          "grandparent_rating_key": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "last_played": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "media_index": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "media_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "parent_media_index": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "parent_rating_key": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "play_count": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "rating_key": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "section_id": {
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "section_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sort_title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "thumb": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "video_codec": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "video_framerate": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "video_resolution": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "year": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "description": "file_size is an empty string until known; play_count and last_played are null for an item never played (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/libraries.py#L578-L618)"
+      },
+      "MediaInfoTable": {
+        "type": "object",
+        "properties": {
+          "draw": {
+            "type": "integer"
+          },
+          "last_refreshed": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "recordsTotal": {
+            "type": "integer"
+          },
+          "recordsFiltered": {
+            "type": "integer"
+          },
+          "filtered_file_size": {
+            "type": "integer"
+          },
+          "total_file_size": {
+            "type": "integer"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MediaInfoRow"
+            }
+          }
+        },
+        "description": "last_refreshed is null and data empty when the library has no item or cannot be read (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/libraries.py#L483-L491)"
+      },
+      "RecentlyAddedItem": {
+        "type": "object",
+        "properties": {
+          "actors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "added_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "art": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "audience_rating": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "audience_rating_image": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "banner": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "directors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "duration": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "edition_title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "full_title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "genres": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "grandparent_rating_key": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "grandparent_thumb": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "grandparent_title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "guid": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "last_viewed_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "library_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "media_index": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "media_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "original_title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "originally_available_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "parent_media_index": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "parent_rating_key": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "parent_thumb": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "parent_title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "rating": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "rating_image": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "rating_key": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "section_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sort_title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "studio": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "summary": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tagline": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "thumb": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "user_rating": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "updated_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "writers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "year": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "guids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "RecentlyAdded": {
+        "type": "object",
+        "properties": {
+          "recently_added": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecentlyAddedItem"
+            }
+          }
+        }
+      },
+      "HomeStatsResponse": {
+        "type": "object",
+        "required": [
+          "response"
+        ],
+        "properties": {
+          "response": {
+            "type": "object",
+            "required": [
+              "result",
+              "message",
+              "data"
+            ],
+            "description": "https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L632-L638",
+            "properties": {
+              "result": {
+                "const": "success",
+                "description": "An error result is always sent with HTTP 400 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L777-L783)"
+              },
+              "message": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/HomeStat"
+                }
+              }
+            }
+          }
+        }
+      },
+      "PlaysByDateResponse": {
+        "type": "object",
+        "required": [
+          "response"
+        ],
+        "properties": {
+          "response": {
+            "type": "object",
+            "required": [
+              "result",
+              "message",
+              "data"
+            ],
+            "description": "https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L632-L638",
+            "properties": {
+              "result": {
+                "const": "success",
+                "description": "An error result is always sent with HTTP 400 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L777-L783)"
+              },
+              "message": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "data": {
+                "$ref": "#/components/schemas/Graph"
+              }
+            }
+          }
+        }
+      },
+      "PlaysByDayofweekResponse": {
+        "type": "object",
+        "required": [
+          "response"
+        ],
+        "properties": {
+          "response": {
+            "type": "object",
+            "required": [
+              "result",
+              "message",
+              "data"
+            ],
+            "description": "https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L632-L638",
+            "properties": {
+              "result": {
+                "const": "success",
+                "description": "An error result is always sent with HTTP 400 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L777-L783)"
+              },
+              "message": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "data": {
+                "$ref": "#/components/schemas/Graph"
+              }
+            }
+          }
+        }
+      },
+      "PlaysByHourofdayResponse": {
+        "type": "object",
+        "required": [
+          "response"
+        ],
+        "properties": {
+          "response": {
+            "type": "object",
+            "required": [
+              "result",
+              "message",
+              "data"
+            ],
+            "description": "https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L632-L638",
+            "properties": {
+              "result": {
+                "const": "success",
+                "description": "An error result is always sent with HTTP 400 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L777-L783)"
+              },
+              "message": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "data": {
+                "$ref": "#/components/schemas/Graph"
+              }
+            }
+          }
+        }
+      },
+      "PlaysPerMonthResponse": {
+        "type": "object",
+        "required": [
+          "response"
+        ],
+        "properties": {
+          "response": {
+            "type": "object",
+            "required": [
+              "result",
+              "message",
+              "data"
+            ],
+            "description": "https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L632-L638",
+            "properties": {
+              "result": {
+                "const": "success",
+                "description": "An error result is always sent with HTTP 400 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L777-L783)"
+              },
+              "message": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "data": {
+                "$ref": "#/components/schemas/Graph"
+              }
+            }
+          }
+        }
+      },
+      "ConcurrentStreamsByStreamTypeResponse": {
+        "type": "object",
+        "required": [
+          "response"
+        ],
+        "properties": {
+          "response": {
+            "type": "object",
+            "required": [
+              "result",
+              "message",
+              "data"
+            ],
+            "description": "https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L632-L638",
+            "properties": {
+              "result": {
+                "const": "success",
+                "description": "An error result is always sent with HTTP 400 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L777-L783)"
+              },
+              "message": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "data": {
+                "$ref": "#/components/schemas/Graph"
+              }
+            }
+          }
+        }
+      },
+      "PlaysByStreamTypeResponse": {
+        "type": "object",
+        "required": [
+          "response"
+        ],
+        "properties": {
+          "response": {
+            "type": "object",
+            "required": [
+              "result",
+              "message",
+              "data"
+            ],
+            "description": "https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L632-L638",
+            "properties": {
+              "result": {
+                "const": "success",
+                "description": "An error result is always sent with HTTP 400 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L777-L783)"
+              },
+              "message": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "data": {
+                "$ref": "#/components/schemas/Graph"
+              }
+            }
+          }
+        }
+      },
+      "StreamTypeByTop10PlatformsResponse": {
+        "type": "object",
+        "required": [
+          "response"
+        ],
+        "properties": {
+          "response": {
+            "type": "object",
+            "required": [
+              "result",
+              "message",
+              "data"
+            ],
+            "description": "https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L632-L638",
+            "properties": {
+              "result": {
+                "const": "success",
+                "description": "An error result is always sent with HTTP 400 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L777-L783)"
+              },
+              "message": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "data": {
+                "$ref": "#/components/schemas/Graph"
+              }
+            }
+          }
+        }
+      },
+      "StreamTypeByTop10UsersResponse": {
+        "type": "object",
+        "required": [
+          "response"
+        ],
+        "properties": {
+          "response": {
+            "type": "object",
+            "required": [
+              "result",
+              "message",
+              "data"
+            ],
+            "description": "https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L632-L638",
+            "properties": {
+              "result": {
+                "const": "success",
+                "description": "An error result is always sent with HTTP 400 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L777-L783)"
+              },
+              "message": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "data": {
+                "$ref": "#/components/schemas/Graph"
+              }
+            }
+          }
+        }
+      },
+      "HistoryResponse": {
+        "type": "object",
+        "required": [
+          "response"
+        ],
+        "properties": {
+          "response": {
+            "type": "object",
+            "required": [
+              "result",
+              "message",
+              "data"
+            ],
+            "description": "https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L632-L638",
+            "properties": {
+              "result": {
+                "const": "success",
+                "description": "An error result is always sent with HTTP 400 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L777-L783)"
+              },
+              "message": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "data": {
+                "$ref": "#/components/schemas/HistoryTable"
+              }
+            }
+          }
+        }
+      },
+      "LibrariesTableResponse": {
+        "type": "object",
+        "required": [
+          "response"
+        ],
+        "properties": {
+          "response": {
+            "type": "object",
+            "required": [
+              "result",
+              "message",
+              "data"
+            ],
+            "description": "https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L632-L638",
+            "properties": {
+              "result": {
+                "const": "success",
+                "description": "An error result is always sent with HTTP 400 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L777-L783)"
+              },
+              "message": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "data": {
+                "$ref": "#/components/schemas/LibrariesTable"
+              }
+            }
+          }
+        }
+      },
+      "LibraryWatchTimeStatsResponse": {
+        "type": "object",
+        "required": [
+          "response"
+        ],
+        "properties": {
+          "response": {
+            "type": "object",
+            "required": [
+              "result",
+              "message",
+              "data"
+            ],
+            "description": "https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L632-L638",
+            "properties": {
+              "result": {
+                "const": "success",
+                "description": "An error result is always sent with HTTP 400 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L777-L783)"
+              },
+              "message": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/WatchTimeStat"
+                }
+              }
+            }
+          }
+        }
+      },
+      "UsersTableResponse": {
+        "type": "object",
+        "required": [
+          "response"
+        ],
+        "properties": {
+          "response": {
+            "type": "object",
+            "required": [
+              "result",
+              "message",
+              "data"
+            ],
+            "description": "https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L632-L638",
+            "properties": {
+              "result": {
+                "const": "success",
+                "description": "An error result is always sent with HTTP 400 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L777-L783)"
+              },
+              "message": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "data": {
+                "$ref": "#/components/schemas/UsersTable"
+              }
+            }
+          }
+        }
+      },
+      "UserWatchTimeStatsResponse": {
+        "type": "object",
+        "required": [
+          "response"
+        ],
+        "properties": {
+          "response": {
+            "type": "object",
+            "required": [
+              "result",
+              "message",
+              "data"
+            ],
+            "description": "https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L632-L638",
+            "properties": {
+              "result": {
+                "const": "success",
+                "description": "An error result is always sent with HTTP 400 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L777-L783)"
+              },
+              "message": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/WatchTimeStat"
+                }
+              }
+            }
+          }
+        }
+      },
+      "LibraryMediaInfoResponse": {
+        "type": "object",
+        "required": [
+          "response"
+        ],
+        "properties": {
+          "response": {
+            "type": "object",
+            "required": [
+              "result",
+              "message",
+              "data"
+            ],
+            "description": "https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L632-L638",
+            "properties": {
+              "result": {
+                "const": "success",
+                "description": "An error result is always sent with HTTP 400 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L777-L783)"
+              },
+              "message": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "data": {
+                "$ref": "#/components/schemas/MediaInfoTable"
+              }
+            }
+          }
+        }
+      },
+      "RecentlyAddedResponse": {
+        "type": "object",
+        "required": [
+          "response"
+        ],
+        "properties": {
+          "response": {
+            "type": "object",
+            "required": [
+              "result",
+              "message",
+              "data"
+            ],
+            "description": "https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L632-L638",
+            "properties": {
+              "result": {
+                "const": "success",
+                "description": "An error result is always sent with HTTP 400 (https://github.com/Tautulli/Tautulli/blob/v2.19.1/plexpy/api2.py#L777-L783)"
+              },
+              "message": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "data": {
+                "$ref": "#/components/schemas/RecentlyAdded"
+              }
+            }
+          }
+        }
       }
     }
   }

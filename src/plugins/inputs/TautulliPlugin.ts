@@ -2,13 +2,24 @@ import { BaseInputPlugin } from './BaseInputPlugin';
 import { isPrivateIp } from './utils/network';
 import { resolutionLabel } from './utils/mediaStreams';
 import { RequestCache } from '../../utils/RequestCache';
-import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
+import { mapLimit } from '../../utils/concurrency';
+import type { PluginMetadata, DataPoint, PointSpec, ScheduleConfig } from '../../types/plugin.types';
 import type { TautulliConfig, GeoIPInfo } from '../../types/inputs/tautulli.types';
 import type { components, paths } from '../../types/generated/tautulli';
 import type { GetPath } from '../../types/api-contract';
 import { booleanFlags } from './utils/flags';
+import { numberOf } from './utils/numbers';
+import { eventTimestamp } from './utils/events';
+import { completedBuckets, graphSnapshotPoints, homeStatPoints, mediaInfoPoints, watchTimeFields, type GraphBucket } from './utils/tautulliStats';
+import { ageSeconds } from './utils/time';
 
 type TautulliSession = components['schemas']['Session'];
+type RecentlyAddedItem = components['schemas']['RecentlyAddedItem'];
+type Graph = components['schemas']['Graph'];
+type HistoryRow = components['schemas']['HistoryRow'];
+type UserTableRow = components['schemas']['UserTableRow'];
+type LibraryTableRow = components['schemas']['LibraryTableRow'];
+type MediaInfoTable = components['schemas']['MediaInfoTable'];
 
 const SERVER_INFO_PATH: GetPath<paths> = '/api/v2?cmd=get_server_info';
 
@@ -17,16 +28,12 @@ const SERVER_INFO_PATH: GetPath<paths> = '/api/v2?cmd=get_server_info';
  * Collects activity, libraries, and stats from Tautulli API v2
  */
 
-const PLAYER_STATE = { PLAYING: 0, PAUSED: 1, BUFFERING: 3 } as const;
+const WATCH_TIME_DAYS = '1,7,30,0';
+const DAY_SECONDS = 24 * 60 * 60;
+const BUCKET_GRACE_MS: number = DAY_SECONDS * 1000;
+const MEDIA_INFO_SECTION_TYPES = new Set(['movie', 'show', 'artist', 'photo']);
 
-/** Tautulli sends most numbers as strings: empty or non-numeric values are undefined. */
-function numberOf(value: string | number | null | undefined): number | undefined {
-  if (value === null || value === undefined || value === '') {
-    return undefined;
-  }
-  const n = Number(value);
-  return Number.isFinite(n) ? n : undefined;
-}
+const PLAYER_STATE = { PLAYING: 0, PAUSED: 1, BUFFERING: 3 } as const;
 
 export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
   private static readonly GEOIP_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -34,6 +41,11 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
   /** update_check makes Tautulli query GitHub uncached (up to 3 unauthenticated calls); Tautulli itself checks every few hours. */
   private static readonly UPDATE_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
   private lastUpdateCheck?: { at: number; update: boolean | undefined };
+  /** Home stats and graphs are Tautulli's heaviest queries and barely move between polls. */
+  private static readonly STATS_INTERVAL_MS = 5 * 60 * 1000;
+  private lastStatsAt?: number;
+  /** Per-user and per-library calls each run several SQL queries in Tautulli. */
+  private static readonly FAN_OUT = 4;
 
   private geoipCache = new RequestCache<GeoIPInfo | null>({
     ttlMs: TautulliPlugin.GEOIP_CACHE_TTL_MS,
@@ -93,13 +105,26 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
       points.push(...activityPoints);
     }
 
-    if (this.config.libraries.enabled || this.config.stats.enabled) {
-      const libraryPoints = await this.collectLibraries();
-      points.push(...libraryPoints);
+    if (this.config.stats.enabled) {
+      points.push(...(await this.collectStats()));
+    } else if (this.config.libraries.enabled) {
+      points.push(...(await this.collectLibraries()));
     }
 
     if (this.config.serverInfo.enabled) {
       points.push(...(await this.collectServerInfo()));
+    }
+
+    if (this.config.history.enabled) {
+      points.push(...(await this.collectHistory()));
+    }
+
+    if (this.config.users.enabled) {
+      points.push(...(await this.collectUsers()));
+    }
+
+    if (this.config.libraryMedia.enabled) {
+      points.push(...(await this.collectLibraryMedia()));
     }
 
     return points;
@@ -124,7 +149,7 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
 
     if (this.config.stats.enabled) {
       schedules.push(
-        this.createSchedule('stats', this.config.stats.intervalSeconds, true, this.collectLibraries)
+        this.createSchedule('stats', this.config.stats.intervalSeconds, true, this.collectStats)
       );
     }
 
@@ -138,6 +163,18 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
 
     if (this.config.serverInfo.enabled) {
       schedules.push(this.createSchedule('serverInfo', this.config.serverInfo.intervalSeconds, true, this.collectServerInfo));
+    }
+
+    if (this.config.history.enabled) {
+      schedules.push(this.createSchedule('history', this.config.history.intervalSeconds, true, this.collectHistory));
+    }
+
+    if (this.config.users.enabled) {
+      schedules.push(this.createSchedule('users', this.config.users.intervalSeconds, true, this.collectUsers));
+    }
+
+    if (this.config.libraryMedia.enabled) {
+      schedules.push(this.createSchedule('libraryMedia', this.config.libraryMedia.intervalDays * DAY_SECONDS, true, this.collectLibraryMedia));
     }
 
     return schedules;
@@ -497,6 +534,269 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
       this.logger.info(`Collected ${libraries.length} library stats from Tautulli`);
       return points;
     });
+  }
+
+  /** Library stats, home stats, graphs and recently added items. */
+  private async collectStats(): Promise<DataPoint[]> {
+    const libraries = await this.collectLibraries();
+    if (this.lastStatsAt !== undefined && Date.now() - this.lastStatsAt < TautulliPlugin.STATS_INTERVAL_MS) {
+      return libraries;
+    }
+    const points = await this.safeFetch('collect Tautulli stats', async () => {
+      const tautulli = this.api<paths>();
+      const query = { apikey: this.config.apiKey };
+      const window = { ...query, time_range: 30 };
+      const days = { ...query, time_range: 7 };
+      const [home, dayOfWeek, hourOfDay, platforms, users, byDate, byStreamType, concurrent, byMonth, recent] = await Promise.all([
+        tautulli.get('/api/v2?cmd=get_home_stats', { query: { ...window, stats_count: 5 } }),
+        tautulli.get('/api/v2?cmd=get_plays_by_dayofweek', { query: window }),
+        tautulli.get('/api/v2?cmd=get_plays_by_hourofday', { query: window }),
+        tautulli.get('/api/v2?cmd=get_stream_type_by_top_10_platforms', { query: window }),
+        tautulli.get('/api/v2?cmd=get_stream_type_by_top_10_users', { query: window }),
+        tautulli.get('/api/v2?cmd=get_plays_by_date', { query: days }),
+        tautulli.get('/api/v2?cmd=get_plays_by_stream_type', { query: days }),
+        tautulli.get('/api/v2?cmd=get_concurrent_streams_by_stream_type', { query: days }),
+        tautulli.get('/api/v2?cmd=get_plays_per_month', { query: { ...query, time_range: 3 } }),
+        tautulli.get('/api/v2?cmd=get_recently_added', { query: { ...query, count: '50' } }),
+      ]);
+      const specs: PointSpec[] = [
+        ...homeStatPoints(home.response.data, new Date()),
+        ...graphSnapshotPoints('PlaysByDayOfWeek', 'day', dayOfWeek.response.data),
+        ...graphSnapshotPoints('PlaysByHourOfDay', 'hour', hourOfDay.response.data),
+        ...graphSnapshotPoints('StreamTypeByPlatform', 'platform', platforms.response.data),
+        ...graphSnapshotPoints('StreamTypeByUser', 'user', users.response.data),
+      ];
+      const graphs: [string, string, Graph, 'day' | 'month'][] = [
+        ['plays_by_date', 'PlaysByDate', byDate.response.data, 'day'],
+        ['plays_by_stream_type', 'PlaysByStreamType', byStreamType.response.data, 'day'],
+        ['concurrent_streams', 'ConcurrentStreams', concurrent.response.data, 'day'],
+        ['plays_by_month', 'PlaysByMonth', byMonth.response.data, 'month'],
+      ];
+      for (const [collector, type, graph, unit] of graphs) {
+        specs.push(...(await this.bucketPoints(collector, type, graph, unit)));
+      }
+      specs.push(...(await this.recentlyAddedPoints(recent.response.data.recently_added ?? [])));
+      return this.createPoints(specs);
+    });
+    this.lastStatsAt = Date.now();
+    return [...libraries, ...points];
+  }
+
+  /**
+   * A bucket is written a day after it ends: plays still running at midnight are recorded when they stop,
+   * and the day is Tautulli's local one (UTC-12 to UTC+14) while its bounds are UTC.
+   */
+  private async bucketPoints(collector: string, type: string, graph: Graph, unit: 'day' | 'month'): Promise<PointSpec[]> {
+    const { buckets, skipped } = completedBuckets(graph, unit);
+    if (skipped.length > 0) {
+      this.logger.debug(`Skipped Tautulli ${type} categories that do not parse: ${skipped.join(', ')}`);
+    }
+    const settledAt = (bucket: GraphBucket): number => bucket.end + BUCKET_GRACE_MS;
+    const settled = buckets.filter((bucket) => settledAt(bucket) <= Date.now());
+    const fresh = await this.takeNewEvents(collector, settled, settledAt, (bucket) => bucket.category);
+    return fresh.map((bucket) => ({ tags: { type }, fields: bucket.fields, timestamp: new Date(bucket.start) }));
+  }
+
+  private async recentlyAddedPoints(items: readonly RecentlyAddedItem[]): Promise<PointSpec[]> {
+    const addedAt = (item: RecentlyAddedItem): number => (numberOf(item.added_at) ?? Number.NaN) * 1000;
+    const fresh = await this.takeNewEvents('recently_added', items, addedAt, (item) => String(item.rating_key));
+    return fresh.map((item) => {
+      const fields: Record<string, string | number> = {
+        hash: this.hashit(`${this.config.id}${item.rating_key}${item.added_at}`),
+        title: item.full_title || item.title || 'unknown',
+      };
+      const year = numberOf(item.year);
+      if (year !== undefined) {
+        fields.year = year;
+      }
+      return {
+        tags: {
+          type: 'RecentlyAdded',
+          media_type: item.media_type || 'unknown',
+          section_id: item.section_id || 'unknown',
+          library_name: item.library_name || 'unknown',
+          rating_key: item.rating_key || 'unknown',
+        },
+        fields,
+        timestamp: eventTimestamp(addedAt(item), numberOf(item.rating_key)),
+      };
+    });
+  }
+
+  /** One point per play, once Tautulli has recorded its end. */
+  private async collectHistory(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Tautulli history', async () => {
+      const response = await this.api<paths>().get('/api/v2?cmd=get_history', {
+        query: { apikey: this.config.apiKey, grouping: 0, include_activity: 0, order_column: 'stopped', order_dir: 'desc', length: 500 },
+      });
+      const stoppedAt = (row: HistoryRow): number => (typeof row.stopped === 'number' && row.stopped > 0 ? row.stopped * 1000 : Number.NaN);
+      const plays = await this.takeNewEvents('history', response.response.data.data ?? [], stoppedAt, (row) => String(row.row_id));
+      return this.createPoints(plays.map((row) => this.playPoint(row, stoppedAt(row))));
+    });
+  }
+
+  private playPoint(row: HistoryRow, stoppedAt: number): PointSpec {
+    const fields: Record<string, string | number> = {
+      hash: this.hashit(`${this.config.id}${row.row_id}`),
+      title: row.full_title || row.title || 'unknown',
+    };
+    const put = (key: string, value: number | null | undefined): void => {
+      if (typeof value === 'number' && Number.isFinite(value)) {
+        fields[key] = value;
+      }
+    };
+    put('play_duration_seconds', row.play_duration);
+    put('paused_seconds', row.paused_counter);
+    put('percent_complete', row.percent_complete);
+    put('watched_status', row.watched_status);
+    return {
+      tags: {
+        type: 'Play',
+        media_type: row.media_type || 'unknown',
+        rating_key: row.rating_key ?? 'unknown',
+        user_id: row.user_id ?? 'unknown',
+        username: row.user || 'unknown',
+        platform: row.platform || 'unknown',
+        player: row.player || 'unknown',
+        product: row.product || 'unknown',
+        transcode_decision: this.titleCase(row.transcode_decision === 'copy' ? 'direct stream' : row.transcode_decision || '') || 'unknown',
+        network: row.location === 'lan' || row.location === 'wan' ? row.location : 'unknown',
+        live: row.live ?? 'unknown',
+      },
+      fields,
+      timestamp: eventTimestamp(stoppedAt, row.row_id),
+      floatFields: ['watched_status'],
+    };
+  }
+
+  /** Users table with per-user watch time over 1, 7 and 30 days and all time. */
+  private async collectUsers(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Tautulli users', async () => {
+      const tautulli = this.api<paths>();
+      const table = await tautulli.get('/api/v2?cmd=get_users_table', { query: { apikey: this.config.apiKey, length: 10000 } });
+      const users = table.response.data.data ?? [];
+      const watchTimes = await mapLimit(users, TautulliPlugin.FAN_OUT, (user) =>
+        tautulli.get('/api/v2?cmd=get_user_watch_time_stats', {
+          query: { apikey: this.config.apiKey, user_id: String(user.user_id), query_days: WATCH_TIME_DAYS },
+        })
+      );
+      const now = new Date();
+      const lastSeen = users.map((user) => ageSeconds(typeof user.last_seen === 'number' ? user.last_seen * 1000 : undefined, now));
+      const seenWithin = (seconds: number): number => lastSeen.filter((age) => age !== undefined && age <= seconds).length;
+      const specs: PointSpec[] = users.map((user, index) => ({
+        tags: { type: 'User', user_id: user.user_id ?? 'unknown', username: user.username || 'unknown', friendly_name: user.friendly_name || 'unknown' },
+        fields: { ...this.userFields(user, lastSeen[index]), ...watchTimeFields(watchTimes[index].response.data) },
+      }));
+      specs.push({
+        tags: { type: 'Users' },
+        fields: { users: users.length, active: users.filter((user) => user.is_active === 1).length, seen_24h: seenWithin(DAY_SECONDS), seen_30d: seenWithin(30 * DAY_SECONDS) },
+      });
+      return this.createPoints(specs);
+    });
+  }
+
+  private userFields(user: UserTableRow, lastSeenAge: number | undefined): Record<string, number> {
+    const fields: Record<string, number> = {};
+    const values: Record<string, number | null | undefined> = {
+      plays: user.plays,
+      duration_seconds: user.duration,
+      last_seen_age_seconds: lastSeenAge,
+      is_active: user.is_active,
+      allow_guest: user.allow_guest,
+      keep_history: user.keep_history,
+    };
+    for (const [key, value] of Object.entries(values)) {
+      if (typeof value === 'number') {
+        fields[key] = value;
+      }
+    }
+    return fields;
+  }
+
+  /** Per-library watch time and media info (file sizes, resolutions, codecs). */
+  private async collectLibraryMedia(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Tautulli library media', async () => {
+      const tautulli = this.api<paths>();
+      const query = { apikey: this.config.apiKey };
+      const table = await tautulli.get('/api/v2?cmd=get_libraries_table', { query: { ...query, length: 10000 } });
+      const sections = table.response.data.data ?? [];
+      const now = new Date();
+      const details = await mapLimit(sections, TautulliPlugin.FAN_OUT, async (section) => {
+        const sectionId = String(section.section_id);
+        const [watchTime, media] = await Promise.all([
+          tautulli.get('/api/v2?cmd=get_library_watch_time_stats', { query: { ...query, section_id: sectionId, query_days: WATCH_TIME_DAYS } }),
+          MEDIA_INFO_SECTION_TYPES.has(section.section_type ?? '') ? this.mediaInfo(sectionId, section.section_type === 'movie', now) : undefined,
+        ]);
+        return { watchTime: watchTime.response.data, media };
+      });
+      const specs: PointSpec[] = [];
+      for (const [index, section] of sections.entries()) {
+        const { watchTime, media } = details[index];
+        const tags = { section_id: section.section_id ?? 'unknown', section_name: section.section_name || 'unknown', section_type: section.section_type || 'unknown' };
+        specs.push({ tags: { type: 'Library', ...tags }, fields: { ...this.libraryFields(section, now), ...watchTimeFields(watchTime), ...this.mediaTotals(media, now) } });
+        if (media?.last_refreshed !== null && media?.last_refreshed !== undefined) {
+          specs.push(...mediaInfoPoints(tags, media.data ?? []));
+        }
+      }
+      return this.createPoints(specs);
+    });
+  }
+
+  /**
+   * Tautulli serves media info from a cache only its UI refreshes. A refresh rebuilds rows from Plex, which drops the
+   * show and artist sizes the UI computed, so only movie sections are refreshed; a failed refresh keeps the cached answer.
+   */
+  private async mediaInfo(sectionId: string, refreshable: boolean, now: Date): Promise<MediaInfoTable> {
+    const tautulli = this.api<paths>();
+    const query = { apikey: this.config.apiKey, section_id: sectionId, length: 100000 };
+    const cached = (await tautulli.get('/api/v2?cmd=get_library_media_info', { query })).response.data;
+    const age = ageSeconds(typeof cached.last_refreshed === 'number' ? cached.last_refreshed * 1000 : undefined, now);
+    if (!refreshable || age === undefined || age < this.config.libraryMedia.intervalDays * DAY_SECONDS) {
+      return cached;
+    }
+    try {
+      return (await tautulli.get('/api/v2?cmd=get_library_media_info', { query: { ...query, refresh: 'true' } })).response.data;
+    } catch (error) {
+      this.logger.debug(`Tautulli media info refresh of section ${sectionId} failed, using the cache: ${error instanceof Error ? error.message : String(error)}`);
+      return cached;
+    }
+  }
+
+  private libraryFields(section: LibraryTableRow, now: Date): Record<string, number> {
+    const fields: Record<string, number> = {};
+    const values: Record<string, number | null | undefined> = {
+      plays: section.plays,
+      duration_seconds: section.duration,
+      last_accessed_age_seconds: ageSeconds(typeof section.last_accessed === 'number' ? section.last_accessed * 1000 : undefined, now),
+      is_active: section.is_active,
+      keep_history: section.keep_history,
+    };
+    for (const [key, value] of Object.entries(values)) {
+      if (typeof value === 'number') {
+        fields[key] = value;
+      }
+    }
+    return fields;
+  }
+
+  /** `last_refreshed` is null when the library has no item or Tautulli cannot read it. */
+  private mediaTotals(media: MediaInfoTable | undefined, now: Date): Record<string, number> {
+    if (media?.last_refreshed === null || media?.last_refreshed === undefined) {
+      return {};
+    }
+    const fields: Record<string, number> = {};
+    const age = ageSeconds(media.last_refreshed * 1000, now);
+    if (age !== undefined) {
+      fields.media_info_age_seconds = age;
+    }
+    if (media.recordsTotal !== undefined) {
+      fields.media_items = media.recordsTotal;
+    }
+    const sizes = (media.data ?? []).map((row) => numberOf(row.file_size)).filter((size) => size !== undefined);
+    if (sizes.length > 0) {
+      fields.file_size = sizes.reduce((sum, size) => sum + size, 0);
+    }
+    return fields;
   }
 
   /**

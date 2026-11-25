@@ -1,3 +1,12 @@
+/** Tautulli sends most numbers as strings: empty or non-numeric values are undefined. */
+export function numberOf(value: string | number | null | undefined): number | undefined {
+  if (value === null || value === undefined || value === '') {
+    return undefined;
+  }
+  const n = Number(value);
+  return Number.isFinite(n) ? n : undefined;
+}
+
 export const isNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
 
 /** `{ sourceKey: fieldName }` → fields for the finite numbers of `source`. */
