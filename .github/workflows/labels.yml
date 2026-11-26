@@ -1,0 +1,19 @@
+name: Labels
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [develop]
+    paths:
+      - '.github/workflows/labels.yml'
+
+permissions:
+  issues: write
+
+jobs:
+  sync:
+    name: Sync labels
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync labels
+        uses: Navino16/.github/actions/sync-labels@1.2.0

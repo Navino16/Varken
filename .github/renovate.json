@@ -1,38 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:recommended",
-    ":dependencyDashboard"
-  ],
-  "baseBranchPatterns": [
-    "develop"
-  ],
-  "schedule": ["before 6am on monday"],
-  "minimumReleaseAge": "1 day",
-  "platformAutomerge": false,
-  "automergeSchedule": ["at any time"],
+  "extends": ["github>Navino16/.github#1.2.0"],
   "packageRules": [
-    {
-      "description": "Group and auto-merge npm minor and patch updates",
-      "matchManagers": ["npm"],
-      "matchUpdateTypes": ["minor", "patch"],
-      "groupName": "code-dependencies",
-      "automerge": true
-    },
-    {
-      "description": "Group and auto-merge GitHub Actions minor and patch updates",
-      "matchManagers": ["github-actions"],
-      "matchUpdateTypes": ["minor", "patch"],
-      "groupName": "ci-dependencies",
-      "automerge": true
-    },
-    {
-      "description": "Group and auto-merge Docker image minor and patch updates (Dockerfile and compose files)",
-      "matchManagers": ["dockerfile", "docker-compose"],
-      "matchUpdateTypes": ["minor", "patch"],
-      "groupName": "docker-dependencies",
-      "automerge": true
-    },
     {
       "description": "Never cross InfluxDB majors: the test stack pins a v1 and a v2 image on purpose",
       "matchDatasources": ["docker"],
