@@ -691,7 +691,7 @@ Tests skip themselves automatically when a service isn't reachable, so the comma
 | `DEMO_DAYS` | `30` | Length of the window, ending now |
 | `DEMO_STEP_SECONDS` | `600` | Simulated time between two collection rounds |
 
-The command stops before writing anything if one of the selected databases is down. The integration tests write into the same databases, and QuestDB and TimescaleDB keep duplicates when the same window is seeded twice: reset with `docker compose -f docker-compose.test.yaml down -v` before a clean seed. On an empty volume InfluxDB 2.x can fail its first setup and restart; if `up --wait` reports it unhealthy, run it again.
+The command stops before writing anything if one of the selected databases is down. Every seed, and every `npm run test:integration` run, adds points on top of what the databases already hold (the window always ends now, so runs overlap). For a clean demo, reset first with `docker compose -f docker-compose.test.yaml --profile databases down -v`, which deletes the database and Grafana volumes and keeps those of the test media services. On an empty volume InfluxDB 2.x can fail its first setup and restart; if `up --wait` reports it unhealthy, run it again.
 
 ### Contract tests
 
