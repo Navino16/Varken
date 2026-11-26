@@ -10,6 +10,12 @@ describe('dotnetTime', () => {
     expect(dotnetTime('garbage')).toBeUndefined();
     expect(dotnetTime(null)).toBeUndefined();
   });
+
+  it('reads a time without zone designator as UTC', () => {
+    expect(dotnetTime('2026-11-25T10:00:00')).toBe(now.getTime());
+    expect(dotnetTime('2026-11-25T10:00:00.5')).toBe(now.getTime() + 500);
+    expect(dotnetTime('2026-11-25T11:00:00+01:00')).toBe(now.getTime());
+  });
 });
 
 describe('ageSeconds', () => {

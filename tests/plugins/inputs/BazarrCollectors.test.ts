@@ -144,6 +144,35 @@ describe('BazarrPlugin collectors', () => {
 
       expect(points).toHaveLength(1000);
       expect(queryOf(client, '/api/movies/history')).toHaveLength(10);
+      expect((plugin as unknown as { logger: { info: Mock } }).logger.info).toHaveBeenCalledWith(
+        'Read the last 1000 Bazarr movie history events: older ones since the previous poll are not written'
+      );
+    });
+
+    it('stops paging on a page without a parsable date and warns once', async () => {
+      const unparsable = newer(100).map((item) => ({ ...item, parsed_timestamp: '27.11.26 12:00:00' }));
+      client.override('/api/movies/history', { data: unparsable, total: 500 });
+      const warn = (plugin as unknown as { logger: { warn: Mock } }).logger.warn;
+
+      await history();
+      await history();
+
+      expect(queryOf(client, '/api/movies/history')).toHaveLength(2);
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('date format'));
+    });
+
+    it('reads an event repeated across pages once', async () => {
+      await history();
+      vi.setSystemTime(AFTER_LATER);
+      const items = newer(100);
+      client.override('/api/movies/history', (params) =>
+        Number(params?.start) === 0 ? { data: items, total: 102 } : { data: [items[99], ...movieHistory()], total: 102 }
+      );
+
+      const points = (await history()).filter((p) => p.tags.mediaType === 'movie');
+
+      expect(points).toHaveLength(100);
     });
 
     it('skips history dates it cannot parse', async () => {
@@ -249,8 +278,12 @@ describe('BazarrPlugin collectors', () => {
       const points = await plugin.collect();
       const tasks = ofType(points, 'Task');
 
-      expect(tasks[0].tags).toMatchObject({ task_id: 'wanted_search_missing_subtitles_series', interval: 'every 6 hours' });
-      expect(tasks[0].fields).toEqual({ name: 'Search for Missing Series Subtitles', running: 1 });
+      expect(tasks[0].tags).toMatchObject({
+        task_id: 'wanted_search_missing_subtitles_series',
+        task_name: 'Search for Missing Series Subtitles',
+        interval: 'every 6 hours',
+      });
+      expect(tasks[0].fields).toEqual({ running: 1 });
       expect(tasks[1].fields.running).toBe(0);
       expect(ofType(points, 'Jobs')[0].fields).toEqual({ pending: 1, running: 1, failed: 0, completed: 2 });
     });
@@ -259,7 +292,7 @@ describe('BazarrPlugin collectors', () => {
       const [releases] = ofType(await plugin.collect(), 'Releases');
 
       expect(releases.tags.latest).toBe('v1.6.3');
-      expect(releases.fields).toEqual({ releases_behind: 1 });
+      expect(releases.fields).toEqual({ releases: 3, releases_behind: 1 });
     });
 
     it('omits releases behind on a build not in the list', async () => {
@@ -268,7 +301,7 @@ describe('BazarrPlugin collectors', () => {
 
       const [releases] = ofType(await plugin.collect(), 'Releases');
 
-      expect(releases.fields).not.toHaveProperty('releases_behind');
+      expect(releases.fields).toEqual({ releases: 3 });
     });
 
     it('schedules the status collector', () => {
@@ -291,6 +324,22 @@ describe('BazarrPlugin collectors', () => {
       expect(day.timestamp).toEqual(new Date('2026-11-25T00:00:00Z'));
       expect(ofType(await plugin.collect(), 'HistoryStats')).toEqual([]);
       expect(queryOf(client, '/api/history/stats')[0]).toEqual({ timeFrame: 'week' });
+    });
+
+    it('sums a day Bazarr lists twice', async () => {
+      client.override('/api/history/stats', {
+        series: [
+          { date: '2026-11-25', count: 2 },
+          { date: '2026-11-25', count: 3 },
+        ],
+        movies: [{ date: '2026-11-25', count: 1 }],
+      });
+      await plugin.collect();
+      vi.setSystemTime(new Date('2026-11-27T01:00:00Z'));
+
+      const [day] = ofType(await plugin.collect(), 'HistoryStats');
+
+      expect(day.fields).toEqual({ episodes: 5, movies: 1 });
     });
 
     it('collects languages', async () => {

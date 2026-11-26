@@ -36,7 +36,7 @@
           "tv"
         ]
       },
-      "why": "https://github.com/seerr-team/seerr/blob/v3.5.2/server/entity/Media.ts#L119-L120 — non-null varchar column (MediaType), serialized with every media"
+      "why": "https://github.com/seerr-team/seerr/blob/v3.5.2/server/entity/Media.ts#L120-L121 — non-null varchar column (MediaType), serialized with every media"
     },
     {
       "op": "add",
@@ -46,7 +46,7 @@
         "example": 0,
         "description": "4K availability of the media, same values as `status`"
       },
-      "why": "https://github.com/seerr-team/seerr/blob/v3.5.2/server/entity/Media.ts#L138-L140 — int column, default MediaStatus.UNKNOWN"
+      "why": "https://github.com/seerr-team/seerr/blob/v3.5.2/server/entity/Media.ts#L139-L141 — int column, default MediaStatus.UNKNOWN"
     },
     {
       "op": "add",

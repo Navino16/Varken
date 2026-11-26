@@ -1325,12 +1325,12 @@ Config: `inputs.overseerr[].latestRequests` (`enabled`, `count`, `intervalSecond
 |-----|------|------|---------|
 | `request_type` | tag | number | `0` TV, `1` movie |
 | `status` | tag | number | Request status: `1` pending approval, `2` approved, `3` declined (pinned spec); Seerr also uses `4` failed, `5` completed |
-| `media_status` | tag | number | Media availability: `1` unknown, `2` pending, `3` processing, `4` partially available, `5` available, `6` deleted (`0` when absent) |
+| `media_status` | tag | number | Media availability: `1` unknown, `2` pending, `3` processing, `4` partially available, `5` available, `6` blocklisted, `7` deleted (`0` when absent) |
 | `media_status_4k` | tag | number | 4K media availability, same values as `media_status` (`unknown` when absent) |
 | `media_type` | tag | string | `movie` or `tv` |
 | `is_4k` | tag | number | `1` for a 4K request, else `0` |
 | `title` | tag | string | Media title from TV/movie details (`unknown` when it cannot be fetched) |
-| `requested_user` | tag | string | Requester display name (`Unknown` when absent) |
+| `requested_user` | tag | string | Requester display name, never the e-mail Seerr falls back to (user name, Plex user name, else `user_<id>`); `Unknown` when absent |
 | `requested_date` | tag | string | Request creation date, empty string when absent |
 | `hash` | field | string | MD5 of TMDB id + title |
 | `seasons` | field | number | TV: requested seasons |
@@ -1369,7 +1369,6 @@ Config: `inputs.overseerr[].totals` · Source: `/api/v1/media?filter=…&take=1`
 | `all_available` | field | number | Available or partially available |
 | `processing` | field | number | Processing |
 | `pending` | field | number | Pending |
-| `deleted` | field | number | Deleted |
 
 ### type = Job
 
@@ -1426,7 +1425,7 @@ Config: `inputs.overseerr[].users` (`enabled`, `intervalSeconds`, default disabl
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
 | `user_id` | tag | number | Seerr user id |
-| `display_name` | tag | string | Display name |
+| `display_name` | tag | string | Display name, never the e-mail Seerr falls back to (user name, Plex user name, else `user_<id>`) |
 | `user_type` | tag | number | Seerr user type |
 | `requests` | field | number | Requests made by the user |
 | `movie_quota_limit`, `movie_quota_days` | field | number | Movie quota: requests allowed per number of days; omitted without quota |
@@ -1477,7 +1476,7 @@ Config: `inputs.bazarr[].wanted` · Source: `total` of `/api/movies/wanted` and 
 
 ### type = History
 
-Config: `inputs.bazarr[].history` (`enabled`, `intervalSeconds`) · Source: `/api/movies/history`, `/api/episodes/history` (pages of 100, newest first). Event points: each history entry is written once, when it is newer than the last one written (the mark is kept in `DATA_FOLDER` across restarts; entries made while Varken was stopped are not backfilled). Pages are read until one reaches the mark, up to 10 pages (1000 entries) per poll. Timestamp: `parsed_timestamp` of the entry (Bazarr local time, `MM/DD/YY HH:MM:SS` or 4-digit year), plus milliseconds taken from `hash` so two entries of the same second stay distinct; an entry whose date cannot be parsed is skipped. The tag set depends on `mediaType`.
+Config: `inputs.bazarr[].history` (`enabled`, `intervalSeconds`) · Source: `/api/movies/history`, `/api/episodes/history` (pages of 100, newest first). Event points: each history entry is written once, when it is newer than the last one written (the mark is kept in `DATA_FOLDER` across restarts; entries made while Varken was stopped are not backfilled). Pages are read until one reaches the mark, up to 10 pages (1000 entries) per poll; older entries beyond the cap are not written (logged at info). Timestamp: `parsed_timestamp` of the entry (Bazarr local time, `MM/DD/YY HH:MM:SS` or 4-digit year, the C locale layout), read in Varken's time zone, plus milliseconds taken from `hash` so two entries of the same second stay distinct. Run Varken with the same `TZ` as Bazarr: otherwise times are shifted by the difference, and entries written just after an upgrade can fall below the mark. Entries of the hour repeated when daylight saving time ends are below the mark and are not written. An entry whose date cannot be parsed (another locale) is skipped, with a warning logged once. The tag set depends on `mediaType`.
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
@@ -1543,8 +1542,8 @@ Config: `inputs.bazarr[].status` · Source: `/api/system/tasks`. One point per s
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
 | `task_id` | tag | string | Task id |
+| `task_name` | tag | string | Task name |
 | `interval` | tag | string | Schedule as Bazarr words it (`every 6 hours`, `every day at 4:00`, …) |
-| `name` | field | string | Task name |
 | `running` | field | number | `1` while running, else `0` |
 
 ### type = Jobs
@@ -1561,7 +1560,8 @@ Config: `inputs.bazarr[].status` · Source: `/api/system/releases`.
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
-| `latest` | tag | string | Latest release of Bazarr's branch |
+| `latest` | tag | string | Latest release of Bazarr's branch (`unknown` when Bazarr lists none) |
+| `releases` | field | number | Releases Bazarr lists (the last 5 on `master`) |
 | `releases_behind` | field | number | Releases published after the running one; omitted when the running build is not in the list |
 
 ### type = HistoryStats

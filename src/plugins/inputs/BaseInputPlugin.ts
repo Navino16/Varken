@@ -33,8 +33,6 @@ export interface BaseInputConfig {
 /**
  * Default global configuration values
  */
-const BUCKET_GRACE_MS: number = 24 * 60 * 60 * 1000;
-
 const DEFAULT_GLOBAL_CONFIG: GlobalConfig = {
   httpTimeoutMs: 30000,
   healthCheckTimeoutMs: 5000,
@@ -42,6 +40,8 @@ const DEFAULT_GLOBAL_CONFIG: GlobalConfig = {
   paginationPageSize: 250,
   maxPaginationRecords: 10000,
 };
+
+const BUCKET_GRACE_MS: number = 24 * 60 * 60 * 1000;
 
 /**
  * Interface for paginated API responses

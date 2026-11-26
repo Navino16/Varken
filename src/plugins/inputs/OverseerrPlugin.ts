@@ -25,7 +25,6 @@ const MEDIA_TOTALS: Partial<Record<MediaFilter, string>> = {
   allavailable: 'all_available',
   processing: 'processing',
   pending: 'pending',
-  deleted: 'deleted',
 };
 
 /**
@@ -236,7 +235,7 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
   private requestPoint(request: MediaRequest, title: string): DataPoint {
     const media = request.media;
     const fields: Record<string, string | number> = { hash: this.hashit(`${media?.tmdbId}${title}`) };
-    if (request.seasons) {
+    if (request.type === 'tv' && request.seasons) {
       fields.seasons = request.seasons.length;
     }
     return this.createDataPoint(
@@ -248,7 +247,7 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
         status: request.status,
         media_status: media?.status ?? 0,
         title,
-        requested_user: request.requestedBy?.displayName || 'Unknown',
+        requested_user: request.requestedBy ? this.userName(request.requestedBy) : 'Unknown',
         requested_date: request.createdAt || '',
         is_4k: request.is4k ? 1 : 0,
         media_type: request.type,
@@ -376,7 +375,7 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
       }
       const quotas = await mapLimit(users, QUOTA_CONCURRENCY, (user) => this.seerr.get('/user/{userId}/quota', { path: { userId: user.id } }));
       const specs: PointSpec[] = users.map((user, i) => ({
-        tags: { type: 'User', user_id: user.id, display_name: user.displayName || user.username || 'unknown', user_type: user.userType ?? 'unknown' },
+        tags: { type: 'User', user_id: user.id, display_name: this.userName(user), user_type: user.userType ?? 'unknown' },
         fields: {
           ...pickNumbers(user, { requestCount: 'requests' }),
           ...this.quotaFields('movie', quotas[i]?.movie),
@@ -386,6 +385,12 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
       specs.push({ tags: { type: 'Users' }, fields: { users: total } });
       return this.createPoints(specs);
     });
+  }
+
+  /** Seerr falls back to the e-mail address as display name for local users without user name. */
+  private userName(user: User): string {
+    const name = user.displayName && user.displayName !== user.email ? user.displayName : user.username || user.plexUsername;
+    return name || `user_${user.id}`;
   }
 
   private quotaFields(prefix: string, quota: Quota['movie']): Record<string, number> {

@@ -117,6 +117,25 @@ describe('OverseerrPlugin collectors', () => {
       expect(arrival?.tags).toMatchObject({ is_4k: 1, media_type: 'movie', media_status_4k: 3 });
     });
 
+    it('omits seasons on movie requests', async () => {
+      const page = loadFixture<{ pageInfo: object; results: components['schemas']['MediaRequest'][] }>('seerr/request');
+      client.override('/api/v1/request', { ...page, results: [{ ...page.results[0], seasons: [] }] });
+
+      const [dune] = await requests();
+
+      expect(dune.fields).not.toHaveProperty('seasons');
+    });
+
+    it('never tags a requester with the e-mail Seerr uses as display name', async () => {
+      const page = loadFixture<{ pageInfo: object; results: components['schemas']['MediaRequest'][] }>('seerr/request');
+      const [dune] = page.results;
+      client.override('/api/v1/request', { ...page, results: [{ ...dune, requestedBy: { ...dune.requestedBy!, displayName: 'alice@example.com' } }] });
+
+      const [point] = await requests();
+
+      expect(point.tags.requested_user).toBe('alice');
+    });
+
     it('counts requested seasons', async () => {
       const points = await requests();
 
@@ -162,9 +181,9 @@ describe('OverseerrPlugin collectors', () => {
         all_available: 96,
         processing: 4,
         pending: 3,
-        deleted: 2,
       });
       expect(queryOf(client, '/api/v1/media')).toContainEqual({ filter: 'allavailable', take: 1 });
+      expect(queryOf(client, '/api/v1/media')).not.toContainEqual({ filter: 'deleted', take: 1 });
     });
 
     it('schedules the totals collector', () => {
@@ -275,6 +294,16 @@ describe('OverseerrPlugin collectors', () => {
 
       expect(users).toHaveLength(101);
       expect(queryOf(client, '/api/v1/user').map((q) => q.skip)).toEqual([0, 100]);
+    });
+
+    it('never tags a user with the e-mail Seerr uses as display name', async () => {
+      const page = loadFixture<UserPage>('seerr/user');
+      const { username: _username, plexUsername: _plexUsername, ...alice } = page.results[0];
+      client.override('/api/v1/user', { ...page, results: [{ ...alice, displayName: alice.email }] });
+
+      const [user] = ofType(await plugin.collect(), 'User');
+
+      expect(user.tags.display_name).toBe('user_1');
     });
 
     it('never emits user emails, tokens or avatars', async () => {

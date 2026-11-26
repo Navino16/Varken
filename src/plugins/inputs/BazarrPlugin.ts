@@ -35,6 +35,7 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
   };
 
   private readonly bazarr = this.api<paths>('/api');
+  private warnedUnparsableHistory = false;
 
   /**
    * Initialize the plugin and configure the HTTP client with API key header
@@ -257,36 +258,54 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
     });
   }
 
-  /** History is newest first: pages are read until one reaches the cursor, is short, or the page cap. */
+  /**
+   * History is newest first: pages are read until one reaches the cursor, is short, has no date we can parse,
+   * or the page cap. An event a new entry pushed onto the next page is read once.
+   */
   private async historySince<T extends MovieHistoryItem | EpisodeHistoryItem>(
     kind: string,
     cursor: Date,
     page: (start: number) => Promise<T[]>,
     itemId: (item: T) => number
   ): Promise<HistoryEvent<T>[]> {
-    const events: HistoryEvent<T>[] = [];
+    const events = new Map<string, HistoryEvent<T>>();
     let unparsable = 0;
     for (let index = 0; index < HISTORY_MAX_PAGES; index++) {
       const items = await page(index * HISTORY_PAGE_SIZE);
       let reachedCursor = false;
+      let parsed = 0;
       for (const item of items) {
         const time = this.parseHistoryTimestamp(item.parsed_timestamp);
         if (time === undefined) {
           unparsable += 1;
           continue;
         }
+        parsed += 1;
         reachedCursor ||= time < cursor.getTime();
         const id = [itemId(item), item.action, item.language.code3, item.provider, item.subs_id, item.parsed_timestamp].join('|');
-        events.push({ item, time, id });
+        events.set(id, { item, time, id });
       }
-      if (reachedCursor || items.length < HISTORY_PAGE_SIZE) {
+      if (reachedCursor || parsed === 0 || items.length < HISTORY_PAGE_SIZE) {
         break;
+      }
+      if (index === HISTORY_MAX_PAGES - 1) {
+        this.logger.info(
+          `Read the last ${HISTORY_MAX_PAGES * HISTORY_PAGE_SIZE} Bazarr ${kind} history events: older ones since the previous poll are not written`
+        );
       }
     }
     if (unparsable > 0) {
-      this.logger.debug(`Skipped ${unparsable} Bazarr ${kind} history events with an unparsable date`);
+      this.logUnparsableHistory(kind, unparsable);
     }
-    return events;
+    return [...events.values()];
+  }
+
+  private logUnparsableHistory(kind: string, count: number): void {
+    if (!this.warnedUnparsableHistory) {
+      this.warnedUnparsableHistory = true;
+      this.logger.warn('Bazarr history dates are not in the MM/DD/YY HH:MM:SS date format (C locale): those events are not written');
+    }
+    this.logger.debug(`Skipped ${count} Bazarr ${kind} history events with an unparsable date`);
   }
 
   private historyPoint(
@@ -382,8 +401,8 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
           fields: { throttled: provider.status === 'Good' ? 0 : 1 },
         })),
         ...tasks.data.map((task) => ({
-          tags: { type: 'Task', task_id: task.job_id, interval: task.interval || 'unknown' },
-          fields: { name: task.name, running: task.job_running ? 1 : 0 },
+          tags: { type: 'Task', task_id: task.job_id, task_name: task.name, interval: task.interval || 'unknown' },
+          fields: { running: task.job_running ? 1 : 0 },
         })),
         {
           tags: { type: 'Jobs' },
@@ -391,7 +410,7 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
         },
         {
           tags: { type: 'Releases', latest: releases.data[0]?.name ?? 'unknown' },
-          fields: current >= 0 ? { releases_behind: current } : {},
+          fields: { releases: releases.data.length, ...(current >= 0 ? { releases_behind: current } : {}) },
         },
       ];
       return this.createPoints(specs);
@@ -410,7 +429,7 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
           const range = bucketRange(date, 'day');
           if (range) {
             const bucket = days.get(date) ?? { category: date, ...range, fields: {} };
-            bucket.fields[field] = count;
+            bucket.fields[field] = (bucket.fields[field] ?? 0) + count;
             days.set(date, bucket);
           }
         }
