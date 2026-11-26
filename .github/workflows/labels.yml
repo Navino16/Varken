@@ -16,4 +16,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Sync labels
-        uses: Navino16/.github/actions/sync-labels@1.1.0
+        uses: Navino16/.github/actions/sync-labels@1.2.0

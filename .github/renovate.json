@@ -1,6 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["github>Navino16/.github#1.1.0"],
+  "extends": ["github>Navino16/.github#1.2.0"],
   "packageRules": [
     {
       "description": "Never cross InfluxDB majors: the test stack pins a v1 and a v2 image on purpose",

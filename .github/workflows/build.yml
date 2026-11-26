@@ -19,14 +19,14 @@ permissions: {}
 
 jobs:
   ci:
-    uses: Navino16/.github/.github/workflows/ci.yml@1.1.0
+    uses: Navino16/.github/.github/workflows/ci.yml@1.2.0
     permissions:
       contents: read
     secrets: inherit
 
   build:
     needs: [ci]
-    uses: Navino16/.github/.github/workflows/build.yml@1.1.0
+    uses: Navino16/.github/.github/workflows/build.yml@1.2.0
     permissions:
       contents: write
       packages: write

@@ -1,0 +1,13 @@
+name: Close linked issues
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [develop]
+
+permissions:
+  issues: write
+
+jobs:
+  close:
+    uses: Navino16/.github/.github/workflows/close-issues.yml@1.2.0
