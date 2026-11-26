@@ -76,10 +76,10 @@ Built with TypeScript, Node.js, and a plugin-based architecture with scheduled d
 | **Readarr**   | Queue, missing eBooks                     | ✅          |
 | **Lidarr**    | Queue, missing music                      | ✅          |
 | **Tautulli**  | Activity, libraries, statistics, GeoIP    | ✅          |
-| **Ombi**      | Request counts, issue counts              | ✅          |
-| **Overseerr** | Request counts, latest requests           | ✅          |
+| **Ombi**      | Requests (movie, TV, music, 4K, fulfilment times), issue counts, per-status totals, user quotas | ✅          |
+| **Overseerr** | Request counts, latest requests, filtered totals, jobs and caches, user quotas | ✅          |
 | **Prowlarr**  | Indexer statistics                        | ✅          |
-| **Bazarr**    | Wanted subtitles, history                 | ✅          |
+| **Bazarr**    | Wanted subtitles, history, providers, tasks, daily statistics, library coverage | ✅          |
 | **Plex**      | Sessions, libraries, status, plays, inventory, Live TV | ✅          |
 | **Jellyfin**  | Sessions, libraries, item counts, status, activity log, inventory, Live TV | ✅          |
 | **Emby**      | Sessions, libraries, item counts, status, activity log, inventory, Live TV | ✅          |
