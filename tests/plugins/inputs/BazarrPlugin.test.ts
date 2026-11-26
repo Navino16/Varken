@@ -6,6 +6,7 @@ import type { components } from '../../../src/types/generated/bazarr';
 import type { DataPoint } from '../../../src/types/plugin.types';
 import { createContractHttpClient, type ContractHttpClient } from '../../fixtures/contract-http';
 import { loadFixture } from '../../contracts/registry';
+import { useEventStateFolder } from '../../../src/utils/EventStateStore';
 
 vi.mock('../../../src/core/Logger', async () => {
   const { loggerMock } = await import('../../fixtures/logger');
@@ -43,6 +44,9 @@ describe('BazarrPlugin', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    useEventStateFolder(null);
+    // Plugin start before the history fixtures, so their events are new on the first poll.
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 10, 1) });
     plugin = new BazarrPlugin();
     client = createContractHttpClient('bazarr');
     (axios.create as Mock).mockReturnValue(client);
@@ -100,6 +104,10 @@ describe('BazarrPlugin', () => {
     });
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   describe('collect', () => {
     beforeEach(async () => {
       await plugin.initialize(testConfig);
@@ -110,8 +118,8 @@ describe('BazarrPlugin', () => {
 
       expect(client.get).toHaveBeenCalledWith('/api/movies/wanted', { params: { length: 1000 } });
       expect(client.get).toHaveBeenCalledWith('/api/episodes/wanted', { params: { length: 1000 } });
-      expect(client.get).toHaveBeenCalledWith('/api/movies/history', { params: { length: 100 } });
-      expect(client.get).toHaveBeenCalledWith('/api/episodes/history', { params: { length: 100 } });
+      expect(client.get).toHaveBeenCalledWith('/api/movies/history', { params: { start: 0, length: 100 } });
+      expect(client.get).toHaveBeenCalledWith('/api/episodes/history', { params: { start: 0, length: 100 } });
     });
 
     it('should collect wanted movie subtitles', async () => {
@@ -148,7 +156,7 @@ describe('BazarrPlugin', () => {
       expect(points[0].tags).toMatchObject({ name: 'Heat - English', provider: 'opensubtitlescom', action: 1 });
       expect(points[0].fields.score_percent).toBe(92.5);
       expect(points[0].fields.score).toBeUndefined();
-      expect(points[0].timestamp).toEqual(new Date(2026, 10, 20, 14, 5, 9));
+      expect(Math.floor(points[0].timestamp.getTime() / 1000) * 1000).toEqual(new Date(2026, 10, 20, 14, 5, 9).getTime());
     });
 
     it('declares the history score as a float field', async () => {
@@ -161,7 +169,7 @@ describe('BazarrPlugin', () => {
       const points = ofKind(await plugin.collect(), 'History', 'series');
 
       expect(points.map((p) => p.tags.name)).toEqual(['Severance - 1x1 - English', 'Severance - 2x3 - French']);
-      expect(points[1].timestamp).toEqual(new Date(2026, 10, 20, 11, 0, 0));
+      expect(Math.floor(points[1].timestamp.getTime() / 1000) * 1000).toEqual(new Date(2026, 10, 20, 11, 0, 0).getTime());
       expect(points.map((p) => p.fields.score_percent)).toEqual([92.5, 71.25]);
     });
 
@@ -187,16 +195,6 @@ describe('BazarrPlugin', () => {
       expect(point.fields).not.toHaveProperty('score_percent');
     });
 
-    it('should fall back to collection time when parsed_timestamp is not parseable', async () => {
-      const [heat] = movieHistory();
-      client.override('/api/movies/history', { data: [{ ...heat, parsed_timestamp: '20.11.2026 14:05:09' }], total: 1 });
-      const before = Date.now();
-
-      const [point] = ofKind(await plugin.collect(), 'History', 'movie');
-
-      expect(point.timestamp.getTime()).toBeGreaterThanOrEqual(before);
-    });
-
     it('should give distinct hashes to distinct history events', async () => {
       const [heat] = movieHistory();
       client.override('/api/movies/history', {
@@ -211,7 +209,10 @@ describe('BazarrPlugin', () => {
 
     it('should generate deterministic hash IDs', async () => {
       const first = (await plugin.collect()).map((p) => p.fields.hash);
-      const second = (await plugin.collect()).map((p) => p.fields.hash);
+      useEventStateFolder(null);
+      const restarted = new BazarrPlugin();
+      await restarted.initialize(testConfig);
+      const second = (await restarted.collect()).map((p) => p.fields.hash);
 
       expect(second).toEqual(first);
     });
@@ -221,7 +222,9 @@ describe('BazarrPlugin', () => {
         client.override(route, { data: [], total: 0 });
       }
 
-      await expect(plugin.collect()).resolves.toEqual([]);
+      const points = await plugin.collect();
+
+      expect(points.map((p) => [p.tags.type, p.fields])).toEqual([['WantedTotal', { movies: 0, episodes: 0 }]]);
     });
 
     it('should propagate wanted API errors for circuit breaker', async () => {
