@@ -103,6 +103,64 @@ services:
       - databases
       - all
 
+  victoriametrics:
+    image: victoriametrics/victoria-metrics:v1.157.0
+    container_name: varken-victoriametrics
+    command:
+      - -retentionPeriod=1y
+    ports:
+      - "8428:8428"
+    volumes:
+      - victoriametrics-data:/victoria-metrics-data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8428/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - victoriametrics
+      - databases
+      - all
+
+  questdb:
+    image: questdb/questdb:10.2.0
+    container_name: varken-questdb
+    ports:
+      - "9000:9000"
+      - "8812:8812"
+    volumes:
+      - questdb-data:/var/lib/questdb
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://127.0.0.1:9003/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - questdb
+      - databases
+      - all
+
+  timescaledb:
+    image: timescale/timescaledb:2.32.1-pg18
+    container_name: varken-timescaledb
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_DB=varken
+      - POSTGRES_USER=varken
+      - POSTGRES_PASSWORD=varken
+    volumes:
+      - timescaledb-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "varken", "-d", "varken"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - timescaledb
+      - databases
+      - all
+
   grafana:
     image: grafana/grafana:latest
     container_name: varken-grafana
@@ -275,6 +333,9 @@ services:
 volumes:
   influxdb1-data:
   influxdb2-data:
+  victoriametrics-data:
+  questdb-data:
+  timescaledb-data:
   grafana-data:
   ombi-data:
   sonarr-data:
