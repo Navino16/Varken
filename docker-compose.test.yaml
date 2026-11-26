@@ -82,6 +82,8 @@ services:
   influxdb2:
     image: influxdb:2.10
     container_name: varken-influxdb2
+    # First start on an empty volume can fail its setup with a 503; the entrypoint retries cleanly on restart.
+    restart: on-failure
     ports:
       - "8087:8086"
     environment:
@@ -125,6 +127,11 @@ services:
   questdb:
     image: questdb/questdb:10.2.0
     container_name: varken-questdb
+    environment:
+      # Varken tables are wide and sparse: default 16M pages per column fill gigabytes and stall the shared disk.
+      - QDB_CAIRO_WRITER_DATA_APPEND_PAGE_SIZE=256k
+      - QDB_CAIRO_WRITER_DATA_INDEX_VALUE_APPEND_PAGE_SIZE=256k
+      - QDB_CAIRO_WAL_WRITER_DATA_APPEND_PAGE_SIZE=128k
     ports:
       - "9000:9000"
       - "8812:8812"

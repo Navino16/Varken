@@ -17,6 +17,8 @@ const DAY_MS = 86_400_000;
 /** Consecutive errors after which a demo schedule reports an open circuit (simplified PluginManager breaker). */
 const DEMO_CIRCUIT_ERRORS = 3;
 const HOUR_MS = 3_600_000;
+/** Fewer, larger writes ride out the database fsync stalls; also under PostgreSQL's 65535 parameters (4 per point). */
+const WRITE_BATCH_POINTS = 5000;
 
 export interface SeedOptions {
   outputs: ReadonlyMap<string, OutputPlugin>;
@@ -116,21 +118,10 @@ function snapshotOf(entry: DemoSchedule): SchedulerSnapshot {
   };
 }
 
-async function writeAll(outputs: ReadonlyMap<string, OutputPlugin>, points: DataPoint[], selfMetrics: SelfMetrics): Promise<void> {
-  if (points.length === 0) {
-    return;
+async function writeAll(outputs: ReadonlyMap<string, OutputPlugin>, points: DataPoint[]): Promise<void> {
+  if (points.length > 0) {
+    await Promise.all([...outputs.values()].map((output) => output.write(points)));
   }
-  await Promise.all(
-    [...outputs].map(async ([name, output]) => {
-      try {
-        await output.write(points);
-        selfMetrics.recordWrite(name, points.length, true);
-      } catch (error) {
-        selfMetrics.recordWrite(name, points.length, false);
-        throw error;
-      }
-    })
-  );
 }
 
 /**
@@ -160,6 +151,7 @@ export async function seedDemo(options: SeedOptions): Promise<SeedSummary> {
     );
     const selfMetrics = new SelfMetrics(version, new Date(start));
     let lastSnapshot = start;
+    const pending: DataPoint[] = [];
 
     for (const [step, now] of times.entries()) {
       vi.setSystemTime(now);
@@ -180,7 +172,14 @@ export async function seedDemo(options: SeedOptions): Promise<SeedSummary> {
           numericMeasurements.add(point.measurement);
         }
       }
-      await writeAll(options.outputs, points, selfMetrics);
+      // Counted per step, as production writes once per collection; a failed batch rejects the whole seed.
+      for (const name of options.outputs.keys()) {
+        selfMetrics.recordWrite(name, points.length, true);
+      }
+      pending.push(...points);
+      while (pending.length >= WRITE_BATCH_POINTS || (now === end && pending.length > 0)) {
+        await writeAll(options.outputs, pending.splice(0, WRITE_BATCH_POINTS));
+      }
       written += points.length;
       options.onStep?.(step + 1, times.length);
     }
