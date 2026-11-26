@@ -567,6 +567,7 @@ A few keys were wrong or could not be graphed. They were fixed in a way that bre
 | Overseerr | tag `status` = media availability; `requested_user` / `requested_date` from the title's first request | tag `status` = request status, new tag `media_status` = media availability; `requested_user` / `requested_date` from the request itself |
 | Tautulli, Jellyfin, Emby | tag `media_type`: Tautulli sessions title-cased (`Movie`), Jellyfin/Emby the media kind (`Video`) | lowercase shared vocabulary (`movie`, `episode`, `track`, ...) |
 | Ombi, Overseerr | tag `media_type` `tv` / `music` | `show` / `album`; Ombi `Requests` points gain the `media_type` tag |
+| Bazarr | tag `mediaType` (`movie` / `episode` / `series`); `Library` tag `media_type` `series` | tag `media_type`: `movie` / `episode` (`Wanted`, `History`), `movie` / `show` (`Library`) |
 
 The full current schema is in [docs/data-reference.md](docs/data-reference.md).
 

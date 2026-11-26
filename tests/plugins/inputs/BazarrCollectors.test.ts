@@ -71,12 +71,19 @@ describe('BazarrPlugin collectors', () => {
 
     it('tags wanted subtitles with tags and series type', async () => {
       const wanted = ofType(await plugin.collect(), 'Wanted');
-      const movies = wanted.filter((p) => p.tags.mediaType === 'movie');
-      const episodes = wanted.filter((p) => p.tags.mediaType === 'episode');
+      const movies = wanted.filter((p) => p.tags.media_type === 'movie');
+      const episodes = wanted.filter((p) => p.tags.media_type === 'episode');
 
       expect(movies.map((p) => p.tags.tags)).toEqual(['hd', 'hd', '4k,favorites']);
       expect(episodes.map((p) => p.tags.series_type)).toEqual(['standard', 'anime', 'anime']);
       expect(episodes.map((p) => p.tags.tags)).toEqual(['apple', 'apple', 'apple']);
+    });
+
+    it('writes the media type as media_type only', async () => {
+      const wanted = ofType(await plugin.collect(), 'Wanted');
+
+      expect(wanted.filter((p) => 'mediaType' in p.tags)).toEqual([]);
+      expect(new Set(wanted.map((p) => p.tags.media_type))).toEqual(new Set(['movie', 'episode']));
     });
 
     it('tags wanted subtitles without tags as none', async () => {
@@ -125,7 +132,7 @@ describe('BazarrPlugin collectors', () => {
       );
       client.get.mockClear();
 
-      const points = (await history()).filter((p) => p.tags.mediaType === 'movie');
+      const points = (await history()).filter((p) => p.tags.media_type === 'movie');
 
       expect(points).toHaveLength(120);
       expect(queryOf(client, '/api/movies/history')).toEqual([
@@ -140,7 +147,7 @@ describe('BazarrPlugin collectors', () => {
       client.override('/api/movies/history', (params) => ({ data: newer(100, Number(params?.start)), total: 5000 }));
       client.get.mockClear();
 
-      const points = (await history()).filter((p) => p.tags.mediaType === 'movie');
+      const points = (await history()).filter((p) => p.tags.media_type === 'movie');
 
       expect(points).toHaveLength(1000);
       expect(queryOf(client, '/api/movies/history')).toHaveLength(10);
@@ -170,7 +177,7 @@ describe('BazarrPlugin collectors', () => {
         Number(params?.start) === 0 ? { data: items, total: 102 } : { data: [items[99], ...movieHistory()], total: 102 }
       );
 
-      const points = (await history()).filter((p) => p.tags.mediaType === 'movie');
+      const points = (await history()).filter((p) => p.tags.media_type === 'movie');
 
       expect(points).toHaveLength(100);
     });
@@ -187,7 +194,7 @@ describe('BazarrPlugin collectors', () => {
         total: 2,
       });
 
-      const points = (await history()).filter((p) => p.tags.mediaType === 'movie');
+      const points = (await history()).filter((p) => p.tags.media_type === 'movie');
 
       expect(points).toHaveLength(1);
       expect((plugin as unknown as { logger: { debug: Mock } }).logger.debug).toHaveBeenCalledWith(
@@ -204,7 +211,7 @@ describe('BazarrPlugin collectors', () => {
       });
 
       const points = await history();
-      const heat = points.find((p) => p.tags.mediaType === 'movie');
+      const heat = points.find((p) => p.tags.media_type === 'movie');
       const french = points.find((p) => p.tags.languageCode === 'fra');
 
       expect(heat?.tags).toMatchObject({ forced: 0, hi: 0 });
@@ -217,7 +224,7 @@ describe('BazarrPlugin collectors', () => {
       vi.setSystemTime(AFTER_LATER);
       client.override('/api/movies/history', { data: newer(2), total: 2 });
 
-      const points = (await history()).filter((p) => p.tags.mediaType === 'movie');
+      const points = (await history()).filter((p) => p.tags.media_type === 'movie');
 
       expect(new Set(points.map((p) => p.timestamp.getTime())).size).toBe(2);
     });
@@ -361,7 +368,7 @@ describe('BazarrPlugin collectors', () => {
     it('collects movie and series coverage', async () => {
       const library = ofType(await plugin.collect(), 'Library');
 
-      expect(library.map((p) => p.tags.media_type)).toEqual(['movie', 'series']);
+      expect(library.map((p) => p.tags.media_type)).toEqual(['movie', 'show']);
       expect(library[0].fields).toEqual({ items: 2, monitored: 1, missing_subtitles_items: 2, missing_subtitles: 2, subtitles: 3 });
       expect(library[1].fields).toEqual({ items: 2, monitored: 2, ended: 1, episode_files: 33, episodes_missing_subtitles: 4 });
     });

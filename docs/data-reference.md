@@ -1447,11 +1447,11 @@ Config: `inputs.overseerr[].users` · Source: `/api/v1/user`.
 
 ### type = Wanted
 
-Config: `inputs.bazarr[].wanted` (`enabled`, `intervalSeconds`) · Source: `/api/movies/wanted`, `/api/episodes/wanted` (`length=1000`). One point per missing subtitle language of each item; the tag set depends on `mediaType`.
+Config: `inputs.bazarr[].wanted` (`enabled`, `intervalSeconds`) · Source: `/api/movies/wanted`, `/api/episodes/wanted` (`length=1000`). One point per missing subtitle language of each item; the tag set depends on `media_type`.
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
-| `mediaType` | tag | string | `movie` or `episode` |
+| `media_type` | tag | string | `movie` or `episode` |
 | `radarrId` | tag | number | Radarr movie id; `movie` only |
 | `sonarrSeriesId` | tag | number | Sonarr series id; `episode` only |
 | `sonarrEpisodeId` | tag | number | Sonarr episode id; `episode` only |
@@ -1478,18 +1478,18 @@ Config: `inputs.bazarr[].wanted` · Source: `total` of `/api/movies/wanted` and 
 
 ### type = History
 
-Config: `inputs.bazarr[].history` (`enabled`, `intervalSeconds`) · Source: `/api/movies/history`, `/api/episodes/history` (pages of 100, newest first). Event points: each history entry is written once, when it is newer than the last one written (the mark is kept in `DATA_FOLDER` across restarts; entries made while Varken was stopped are not backfilled). Pages are read until one reaches the mark, up to 10 pages (1000 entries) per poll; older entries beyond the cap are not written (logged at info). Timestamp: `parsed_timestamp` of the entry (Bazarr local time, `MM/DD/YY HH:MM:SS` or 4-digit year, the C locale layout), read in Varken's time zone, plus milliseconds taken from `hash` so two entries of the same second stay distinct. Run Varken with the same `TZ` as Bazarr: otherwise times are shifted by the difference, and entries written just after an upgrade can fall below the mark. Entries of the hour repeated when daylight saving time ends are below the mark and are not written. An entry whose date cannot be parsed (another locale) is skipped, with a warning logged once. The tag set depends on `mediaType`.
+Config: `inputs.bazarr[].history` (`enabled`, `intervalSeconds`) · Source: `/api/movies/history`, `/api/episodes/history` (pages of 100, newest first). Event points: each history entry is written once, when it is newer than the last one written (the mark is kept in `DATA_FOLDER` across restarts; entries made while Varken was stopped are not backfilled). Pages are read until one reaches the mark, up to 10 pages (1000 entries) per poll; older entries beyond the cap are not written (logged at info). Timestamp: `parsed_timestamp` of the entry (Bazarr local time, `MM/DD/YY HH:MM:SS` or 4-digit year, the C locale layout), read in Varken's time zone, plus milliseconds taken from `hash` so two entries of the same second stay distinct. Run Varken with the same `TZ` as Bazarr: otherwise times are shifted by the difference, and entries written just after an upgrade can fall below the mark. Entries of the hour repeated when daylight saving time ends are below the mark and are not written. An entry whose date cannot be parsed (another locale) is skipped, with a warning logged once. The tag set depends on `media_type`.
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
-| `mediaType` | tag | string | `movie` or `series` |
+| `media_type` | tag | string | `movie` or `episode` |
 | `radarrId` | tag | number | Radarr movie id; `movie` only |
-| `sonarrSeriesId` | tag | number | Sonarr series id; `series` only |
-| `sonarrEpisodeId` | tag | number | Sonarr episode id; `series` only |
+| `sonarrSeriesId` | tag | number | Sonarr series id; `episode` only |
+| `sonarrEpisodeId` | tag | number | Sonarr episode id; `episode` only |
 | `name` | tag | string | `Title - Language` for movies, `Series - Episode - Language` for series |
 | `title` | tag | string | Movie title; `movie` only |
-| `seriesTitle` | tag | string | Series title; `series` only |
-| `episodeNumber` | tag | string | Episode number as sent by Bazarr; `series` only |
+| `seriesTitle` | tag | string | Series title; `episode` only |
+| `episodeNumber` | tag | string | Episode number as sent by Bazarr; `episode` only |
 | `language` | tag | string | Language name (`unknown` when absent) |
 | `languageCode` | tag | string | 3-letter language code (`unknown` when absent) |
 | `provider` | tag | string | Subtitle provider (`unknown` when absent) |
@@ -1590,12 +1590,12 @@ Config: `inputs.bazarr[].library` (`enabled`, `intervalDays`, default disabled, 
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
-| `media_type` | tag | string | `movie` or `series` |
+| `media_type` | tag | string | `movie` or `show` |
 | `items` | field | number | Movies or series |
 | `monitored` | field | number | Monitored ones |
 | `missing_subtitles_items` | field | number | `movie`: movies with at least one missing subtitle |
 | `missing_subtitles` | field | number | `movie`: missing subtitles (languages) |
 | `subtitles` | field | number | `movie`: subtitle files |
-| `ended` | field | number | `series`: ended series |
-| `episode_files` | field | number | `series`: episode files |
-| `episodes_missing_subtitles` | field | number | `series`: episodes with missing subtitles |
+| `ended` | field | number | `show`: ended series |
+| `episode_files` | field | number | `show`: episode files |
+| `episodes_missing_subtitles` | field | number | `show`: episodes with missing subtitles |
