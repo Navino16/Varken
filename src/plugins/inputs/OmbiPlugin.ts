@@ -5,6 +5,7 @@ import type { components, paths } from '../../types/generated/ombi';
 import { booleanFlags } from './utils/flags';
 import { pickNumbers } from './utils/numbers';
 import { ageSeconds, dotnetTime } from './utils/time';
+import type { MediaType } from './utils/mediaType';
 
 type OmbiMovieRequest = components['schemas']['Ombi.Store.Entities.Requests.MovieRequests'];
 type OmbiTVRequest = components['schemas']['Ombi.Store.Entities.Requests.TvRequests'];
@@ -17,13 +18,14 @@ type RequestBase = Pick<
 
 const REQUEST_STATUS = { DENIED: 0, APPROVED: 1, COMPLETED: 2, PENDING: 3 } as const;
 const REQUEST_TYPE = { TV: 0, MOVIE: 1, MUSIC: 2 } as const;
+const REQUEST_MEDIA_TYPE: Record<number, MediaType> = { [REQUEST_TYPE.TV]: 'show', [REQUEST_TYPE.MOVIE]: 'movie', [REQUEST_TYPE.MUSIC]: 'album' };
 const STATS_WINDOW_MS: number = 30 * 24 * 60 * 60 * 1000;
 
 type V2TotalPath = Extract<keyof paths, `/api/v2/Requests/${string}/${string}/{count}/{position}/{sort}/{sortOrder}`>;
 type V1TotalPath = '/api/v1/Request/movie/total' | '/api/v1/Request/tv/total' | '/api/v1/request/music/total';
 
 const V2_FIRST_ITEM = { count: 1, position: 0, sort: 'requestedDate', sortOrder: 'desc' };
-const TOTALS: { mediaType: string; total: V1TotalPath; statuses: [string, V2TotalPath][] }[] = [
+const TOTALS: { mediaType: MediaType; total: V1TotalPath; statuses: [string, V2TotalPath][] }[] = [
   {
     mediaType: 'movie',
     total: '/api/v1/Request/movie/total',
@@ -36,7 +38,7 @@ const TOTALS: { mediaType: string; total: V1TotalPath; statuses: [string, V2Tota
     ],
   },
   {
-    mediaType: 'tv',
+    mediaType: 'show',
     total: '/api/v1/Request/tv/total',
     statuses: [
       ['available', '/api/v2/Requests/tv/available/{count}/{position}/{sort}/{sortOrder}'],
@@ -47,7 +49,7 @@ const TOTALS: { mediaType: string; total: V1TotalPath; statuses: [string, V2Tota
     ],
   },
   {
-    mediaType: 'music',
+    mediaType: 'album',
     total: '/api/v1/request/music/total',
     statuses: [
       ['available', '/api/v2/Requests/album/available/{count}/{position}/{sort}/{sortOrder}'],
@@ -356,6 +358,7 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
         type: 'Requests',
         server: this.config.id,
         request_type: requestType,
+        media_type: REQUEST_MEDIA_TYPE[requestType],
         status: getRequestStatus(request.approved, request.available, request.denied),
         title: title || 'unknown',
         requested_user: this.resolveUserName(request.requestedUserId, request.requestedByAlias, userMap),

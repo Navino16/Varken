@@ -1184,6 +1184,7 @@ Config: `inputs.ombi[].requestCounts` (collected on the same schedule as `Reques
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
 | `request_type` | tag | number | `0` TV, `1` movie, `2` music |
+| `media_type` | tag | string | `show`, `movie` or `album` (shared vocabulary) |
 | `status` | tag | number | `0` denied, `1` approved, `2` completed (approved and available), `3` pending |
 | `status_4k` | tag | number/string | Movies only: status of the 4K request, same values as `status`; `none` without 4K request |
 | `source` | tag | number | Ombi request source (`RequestSource`: `0`, `1`); `unknown` when absent |
@@ -1240,7 +1241,7 @@ Config: `inputs.ombi[].totals` (`enabled`, `intervalSeconds`, default disabled, 
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
-| `media_type` | tag | string | `movie`, `tv` (child requests for the per-status totals) or `music` |
+| `media_type` | tag | string | `movie`, `show` (child requests for the per-status totals) or `album` |
 | `total` | field | number | All requests of the type |
 | `available` | field | number | Available requests |
 | `processing` | field | number | Approved, not yet available |
@@ -1328,7 +1329,7 @@ Config: `inputs.overseerr[].latestRequests` (`enabled`, `count`, `intervalSecond
 | `status` | tag | number | Request status: `1` pending approval, `2` approved, `3` declined (pinned spec); Seerr also uses `4` failed, `5` completed |
 | `media_status` | tag | number | Media availability: `1` unknown, `2` pending, `3` processing, `4` partially available, `5` available, `6` blocklisted, `7` deleted (`0` when absent) |
 | `media_status_4k` | tag | number | 4K media availability, same values as `media_status` (`unknown` when absent) |
-| `media_type` | tag | string | `movie` or `tv` |
+| `media_type` | tag | string | `movie` or `show` |
 | `is_4k` | tag | number | `1` for a 4K request, else `0` |
 | `title` | tag | string | Media title from TV/movie details (`unknown` when it cannot be fetched) |
 | `requested_user` | tag | string | Requester display name, never the e-mail Seerr falls back to (user name, Plex user name, else `user_<id>`); `Unknown` when absent |

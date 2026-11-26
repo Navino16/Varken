@@ -81,7 +81,7 @@ describe('OmbiPlugin collectors', () => {
     it('collects music requests', async () => {
       const [album] = byTitle(await requests(), 'Random Access Memories');
 
-      expect(album.tags).toMatchObject({ request_type: 2, status: 2, requested_user: 'Alice', source: 0 });
+      expect(album.tags).toMatchObject({ request_type: 2, media_type: 'album', status: 2, requested_user: 'Alice', source: 0 });
       expect(album.fields).toMatchObject({ approve_seconds: 1800, available_seconds: 52200 });
     });
 
@@ -122,7 +122,7 @@ describe('OmbiPlugin collectors', () => {
     it('collects totals per media type and status', async () => {
       const totals = ofType(await plugin.collect(), 'Totals');
 
-      expect(totals.map((p) => p.tags.media_type)).toEqual(['movie', 'tv', 'music']);
+      expect(totals.map((p) => p.tags.media_type)).toEqual(['movie', 'show', 'album']);
       expect(totals[0].fields).toEqual({ total: 3, available: 3, processing: 3, pending: 3, denied: 3, unavailable: 3 });
       expect(totals[1].fields).toEqual({ total: 2, available: 2, processing: 2, pending: 2, denied: 2, unavailable: 2 });
       expect(totals[2].fields).toEqual({ total: 1, available: 1, processing: 1, pending: 1, denied: 1 });

@@ -129,6 +129,12 @@ describe('OverseerrPlugin collectors', () => {
       expect(arrival?.tags).toMatchObject({ is_4k: 1, media_type: 'movie', media_status_4k: 3 });
     });
 
+    it('writes TV requests with the show media type', async () => {
+      const points = await requests();
+
+      expect(points.filter((p) => p.tags.request_type === 0).map((p) => p.tags.media_type)).toEqual(['show']);
+    });
+
     it('omits seasons on movie requests', async () => {
       const page = loadFixture<{ pageInfo: object; results: components['schemas']['MediaRequest'][] }>('seerr/request');
       client.override('/api/v1/request', { ...page, results: [{ ...page.results[0], seasons: [] }] });
