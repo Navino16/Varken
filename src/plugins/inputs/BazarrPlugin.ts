@@ -144,7 +144,7 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
               'Bazarr',
               {
                 type: 'Wanted',
-                mediaType: 'movie',
+                media_type: 'movie',
                 radarrId: movie.radarrId,
                 server: this.config.id,
                 name,
@@ -179,7 +179,7 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
               'Bazarr',
               {
                 type: 'Wanted',
-                mediaType: 'episode',
+                media_type: 'episode',
                 sonarrSeriesId: episode.sonarrSeriesId,
                 sonarrEpisodeId: episode.sonarrEpisodeId,
                 server: this.config.id,
@@ -235,7 +235,7 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
         ...freshMovies.map(({ item, time, id }) => {
           const { language } = this.languageTags(item.language);
           return this.historyPoint(item, time, id, {
-            mediaType: 'movie',
+            media_type: 'movie',
             radarrId: item.radarrId,
             name: `${item.title} - ${language}`,
             title: item.title,
@@ -244,7 +244,7 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
         ...freshEpisodes.map(({ item, time, id }) => {
           const { language } = this.languageTags(item.language);
           return this.historyPoint(item, time, id, {
-            mediaType: 'series',
+            media_type: 'episode',
             sonarrSeriesId: item.sonarrSeriesId,
             sonarrEpisodeId: item.sonarrEpisodeId,
             name: `${item.seriesTitle} - ${item.episode_number} - ${language}`,
@@ -458,7 +458,7 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
           },
         },
         {
-          tags: { type: 'Library', media_type: 'series' },
+          tags: { type: 'Library', media_type: 'show' },
           fields: {
             items: series.length,
             monitored: series.filter((show) => show.monitored).length,

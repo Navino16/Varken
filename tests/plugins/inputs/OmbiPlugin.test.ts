@@ -129,6 +129,7 @@ describe('OmbiPlugin', () => {
       expect(dune?.tags).toMatchObject({
         server: 1,
         request_type: 1,
+        media_type: 'movie',
         status: 2,
         requested_user: 'Alice',
         requested_date: '2026-11-19T09:12:45.301Z',
@@ -141,6 +142,7 @@ describe('OmbiPlugin', () => {
 
       expect(shogun?.tags).toMatchObject({
         request_type: 0,
+        media_type: 'show',
         status: 3,
         requested_user: 'bob_dupont',
         requested_date: '2026-11-17T20:21:09.554Z',

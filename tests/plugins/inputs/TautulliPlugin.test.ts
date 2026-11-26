@@ -197,7 +197,7 @@ describe('TautulliPlugin', () => {
         player_state: 0,
         transcode_decision: 'Transcode',
         transcode_hw_decoding: 1,
-        media_type: 'Movie',
+        media_type: 'movie',
         audio_codec: 'TRUEHD',
         stream_audio_codec: 'AAC',
         quality: '1080p',
@@ -380,6 +380,18 @@ describe('TautulliPlugin', () => {
       const point = await onlySession(sessions().local);
 
       expect(point?.tags.product_version).toBe('1.108.1.4874');
+    });
+
+    it('should write live TV sessions with the live media type', async () => {
+      const point = await onlySession({ ...sessions().local, live: 1 });
+
+      expect(point?.tags.media_type).toBe('live');
+    });
+
+    it('should write unknown when the session has no media type', async () => {
+      const point = await onlySession({ ...sessions().local, media_type: '' });
+
+      expect(point?.tags.media_type).toBe('unknown');
     });
 
     it('should set video_decision to Music for audio-only sessions', async () => {

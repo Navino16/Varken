@@ -108,7 +108,7 @@ describe('EmbyPlugin', () => {
         product_version: '2.1.07',
         quality: '1080p',
         video_decision: 'transcode',
-        media_type: 'Video',
+        media_type: 'episode',
         audio_codec: 'AAC',
         player_state: 0,
         device_type: 'Tv',
@@ -174,7 +174,27 @@ describe('EmbyPlugin', () => {
 
       const [point] = sessionPoints(await plugin.collect());
 
-      expect(point.tags).toMatchObject({ title: 'Dune: Part Two', quality: 'MKV', media_type: 'Movie' });
+      expect(point.tags).toMatchObject({ title: 'Dune: Part Two', quality: 'MKV', media_type: 'movie' });
+    });
+
+    it('falls back to the media kind when the item has no type', async () => {
+      const [, bob] = sessions();
+      const { Type: _t, ...item } = bob.NowPlayingItem ?? {};
+      client.override('/emby/Sessions', [{ ...bob, NowPlayingItem: { ...item, MediaType: 'Audio' } }]);
+
+      const [point] = sessionPoints(await plugin.collect());
+
+      expect(point.tags.media_type).toBe('track');
+    });
+
+    it('writes unknown when the item has no type and is only known as video', async () => {
+      const [, bob] = sessions();
+      const { Type: _t, ...item } = bob.NowPlayingItem ?? {};
+      client.override('/emby/Sessions', [{ ...bob, NowPlayingItem: { ...item, MediaType: 'Video' } }]);
+
+      const [point] = sessionPoints(await plugin.collect());
+
+      expect(point.tags.media_type).toBe('unknown');
     });
 
     it('reports direct stream and transcode decisions with the audio codec', async () => {

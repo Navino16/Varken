@@ -3,6 +3,7 @@ import type { PluginMetadata, DataPoint, PointSpec, ScheduleConfig } from '../..
 import type { OverseerrConfig } from '../../types/inputs/overseerr.types';
 import type { components, paths } from '../../types/generated/seerr';
 import { booleanFlags } from './utils/flags';
+import { normalizeMediaType } from './utils/mediaType';
 import { isNumber, pickNumbers } from './utils/numbers';
 import { mapLimit } from '../../utils/concurrency';
 
@@ -250,7 +251,7 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
         requested_user: request.requestedBy ? this.userName(request.requestedBy) : 'Unknown',
         requested_date: request.createdAt || '',
         is_4k: request.is4k ? 1 : 0,
-        media_type: request.type,
+        media_type: normalizeMediaType(request.type),
         media_status_4k: media?.status4k ?? 'unknown',
       },
       fields

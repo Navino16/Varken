@@ -23,7 +23,7 @@ const wantedMovies = (): WantedMovie[] => loadFixture<{ data: WantedMovie[] }>('
 const movieHistory = (): MovieHistoryItem[] => loadFixture<{ data: MovieHistoryItem[] }>('bazarr/movies-history').data;
 
 const ofKind = (points: DataPoint[], type: string, mediaType: string): DataPoint[] =>
-  points.filter((p) => p.tags.type === type && p.tags.mediaType === mediaType);
+  points.filter((p) => p.tags.type === type && p.tags.media_type === mediaType);
 
 describe('BazarrPlugin', () => {
   let plugin: BazarrPlugin;
@@ -166,7 +166,7 @@ describe('BazarrPlugin', () => {
     });
 
     it('should collect series history', async () => {
-      const points = ofKind(await plugin.collect(), 'History', 'series');
+      const points = ofKind(await plugin.collect(), 'History', 'episode');
 
       expect(points.map((p) => p.tags.name)).toEqual(['Severance - 1x1 - English', 'Severance - 2x3 - French']);
       expect(Math.floor(points[1].timestamp.getTime() / 1000) * 1000).toEqual(new Date(2026, 10, 20, 11, 0, 0).getTime());

@@ -2,6 +2,7 @@
 
 Every input plugin writes DataPoints whose measurement is the service name (`Sonarr`, `Tautulli`, ...). Every point carries a `server` tag (the instance `id` from the config) and a `type` tag that distinguishes the kinds of points a plugin writes; both are omitted from the tables below.
 Numbers meant for graphing are fields; tags hold labels and identifiers. The `hash` field is a deduplication key (MD5) and is not meant to be graphed.
+Media types are written as a `media_type` tag with one shared vocabulary across plugins: `movie`, `show`, `season`, `episode`, `artist`, `album`, `track`, `clip`, `photo`, `live`, else the source's own type lowercased (`unknown` when absent). `live` marks live TV: Tautulli sessions and plays with `live` = 1, Jellyfin/Emby channels, programs and recordings; Plex sessions and plays read directly do not flag live TV, so they keep the item type.
 Decimal fields (`score_percent`, `lat`, `lon`, the Servarr `progress`, `used_percent`, `last_duration_seconds`, `percent_of_*`, and the session `transcode_speed`, `transcode_progress`, `stream_framerate`, `community_rating`, `transcode_cpu_percent`, `refresh_progress`, the Plex `progress`, `speed`, `percent` and `*_cpu_percent` / `*_memory_percent`, the Jellyfin/Emby task `progress`, the Tautulli `watched_status`) are always written as floats, even for whole values, so their column type stays stable.
 Points are timestamped with the collection time (`createDataPoint` default) unless stated otherwise in a section.
 Event points (`type = History`, Plex and Tautulli `Play`, Plex `Bandwidth`, Jellyfin/Emby `Activity`, Tautulli `RecentlyAdded` and its day/month graph buckets) are timestamped with the event time, plus the record id's last three digits as milliseconds: the APIs report whole seconds, and this keeps same-second events with identical tags as separate points. Each event collector keeps a high-water mark in `DATA_FOLDER/event-state/` and only writes events newer than it, so an event is written once even across restarts. Without a mark (first run, deleted or unreadable file) it starts from the plugin start time: earlier events are not backfilled.
@@ -473,7 +474,7 @@ Config: `inputs.tautulli[].activity` (`enabled`, `intervalSeconds`), `inputs.tau
 | `transcode_decision` | tag | string | Title-cased; defaults to `Direct play`, `copy` becomes `Direct stream` |
 | `transcode_hw_decoding` | tag | number | Hardware decoding flag (`0` when absent) |
 | `transcode_hw_encoding` | tag | number | Hardware encoding flag (`0` when absent) |
-| `media_type` | tag | string | Title-cased media type (`unknown` when absent) |
+| `media_type` | tag | string | Media type, shared vocabulary (see top of page) |
 | `audio_codec` | tag | string | Source audio codec, upper-cased (`unknown` when absent) |
 | `stream_audio_codec` | tag | string | Streamed audio codec, upper-cased (`unknown` when absent) |
 | `quality_profile` | tag | string | Quality profile (`unknown` when absent) |
@@ -598,7 +599,7 @@ Config: `inputs.tautulli[].stats` · Source: `get_recently_added` (`count=50`). 
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
-| `media_type` | tag | string | `movie`, `show`, `season`, `episode`, `artist`, `album`, `track`, ... |
+| `media_type` | tag | string | Media type, shared vocabulary (see top of page) |
 | `section_id` | tag | string | Library section id |
 | `library_name` | tag | string | Library name |
 | `rating_key` | tag | string | Plex item id |
@@ -612,7 +613,7 @@ Config: `inputs.tautulli[].history` (`enabled`, `intervalSeconds`, default disab
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
-| `media_type` | tag | string | `movie`, `episode`, `track`, ... |
+| `media_type` | tag | string | Media type, shared vocabulary (see top of page) |
 | `rating_key` | tag | number | Plex item id |
 | `user_id`, `username` | tag | mixed | Plex user |
 | `platform`, `player`, `product` | tag | string | Client |
@@ -682,7 +683,7 @@ Config: `inputs.plex[].sessions` (`enabled`, `intervalSeconds`) · Source: `/sta
 | `product_version` | tag | string | Player version (`unknown` when absent) |
 | `quality` | tag | string | Upper-cased video resolution, else container (`unknown` when empty) |
 | `video_decision` | tag | string | Transcode video decision; `transcode` if a transcode session has no decision, `direct play` without transcode session |
-| `media_type` | tag | string | Plex item type (`unknown` when absent) |
+| `media_type` | tag | string | Media type, shared vocabulary (see top of page) |
 | `audio_codec` | tag | string | Upper-cased audio codec of the first media (`unknown` when absent) |
 | `player_state` | tag | number | `0` playing, `1` paused, `3` buffering (unknown states map to `0`) |
 | `device_type` | tag | string | Same value as `platform` (`unknown` when absent) |
@@ -837,7 +838,7 @@ Config: `inputs.plex[].history` (`enabled`, `intervalSeconds`, default disabled,
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
-| `media_type` | tag | string | `movie`, `episode`, `track`, ... |
+| `media_type` | tag | string | Media type, shared vocabulary (see top of page) |
 | `library_section_id` | tag | string | Library of the item |
 | `rating_key` | tag | string | Item played |
 | `account_id`, `username` | tag | number, string | Plex account (`unknown` when not in `/accounts`) |
@@ -887,7 +888,7 @@ Config: `inputs.jellyfin[].sessions` (`enabled`, `intervalSeconds`) · Source: `
 | `product_version` | tag | string | Application version (`unknown` when absent) |
 | `quality` | tag | string | `<height>p`, else upper-cased container (`unknown` when empty) |
 | `video_decision` | tag | string | `direct play` without transcoding info, `direct stream` if the video is copied, else `transcode` |
-| `media_type` | tag | string | Media type, else item type (`unknown` when absent) |
+| `media_type` | tag | string | Media type, shared vocabulary (see top of page) |
 | `audio_codec` | tag | string | Upper-cased codec of the played audio stream, else first audio stream, else transcoder audio codec (`unknown` when none) |
 | `player_state` | tag | number | `1` paused, `0` otherwise (buffering is never produced) |
 | `device_type` | tag | string | Device type (`unknown` when absent) |
@@ -985,7 +986,7 @@ Config: `inputs.emby[].sessions` (`enabled`, `intervalSeconds`) · Source: `/emb
 | `product_version` | tag | string | Application version (`unknown` when absent) |
 | `quality` | tag | string | `<height>p`, else upper-cased container (`unknown` when empty) |
 | `video_decision` | tag | string | `direct play` without transcoding info, `direct stream` if the video is copied, else `transcode` |
-| `media_type` | tag | string | Media type, else item type (`unknown` when absent) |
+| `media_type` | tag | string | Media type, shared vocabulary (see top of page) |
 | `audio_codec` | tag | string | Upper-cased codec of the played audio stream, else first audio stream, else transcoder audio codec (`unknown` when none) |
 | `player_state` | tag | number | `1` paused, `0` otherwise (buffering is never produced) |
 | `device_type` | tag | string | Device type (`unknown` when absent) |
@@ -1183,6 +1184,7 @@ Config: `inputs.ombi[].requestCounts` (collected on the same schedule as `Reques
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
 | `request_type` | tag | number | `0` TV, `1` movie, `2` music |
+| `media_type` | tag | string | `show`, `movie` or `album` (shared vocabulary) |
 | `status` | tag | number | `0` denied, `1` approved, `2` completed (approved and available), `3` pending |
 | `status_4k` | tag | number/string | Movies only: status of the 4K request, same values as `status`; `none` without 4K request |
 | `source` | tag | number | Ombi request source (`RequestSource`: `0`, `1`); `unknown` when absent |
@@ -1239,13 +1241,13 @@ Config: `inputs.ombi[].totals` (`enabled`, `intervalSeconds`, default disabled, 
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
-| `media_type` | tag | string | `movie`, `tv` (child requests for the per-status totals) or `music` |
+| `media_type` | tag | string | `movie`, `show` (child requests for the per-status totals) or `album` |
 | `total` | field | number | All requests of the type |
 | `available` | field | number | Available requests |
 | `processing` | field | number | Approved, not yet available |
 | `pending` | field | number | Waiting for approval |
 | `denied` | field | number | Denied requests |
-| `unavailable` | field | number | Requests not available; `movie` and `tv` only |
+| `unavailable` | field | number | Requests not available; `movie` and `show` only |
 
 ### type = Stats
 
@@ -1327,7 +1329,7 @@ Config: `inputs.overseerr[].latestRequests` (`enabled`, `count`, `intervalSecond
 | `status` | tag | number | Request status: `1` pending approval, `2` approved, `3` declined (pinned spec); Seerr also uses `4` failed, `5` completed |
 | `media_status` | tag | number | Media availability: `1` unknown, `2` pending, `3` processing, `4` partially available, `5` available, `6` blocklisted, `7` deleted (`0` when absent) |
 | `media_status_4k` | tag | number | 4K media availability, same values as `media_status` (`unknown` when absent) |
-| `media_type` | tag | string | `movie` or `tv` |
+| `media_type` | tag | string | `movie` or `show` |
 | `is_4k` | tag | number | `1` for a 4K request, else `0` |
 | `title` | tag | string | Media title from TV/movie details (`unknown` when it cannot be fetched) |
 | `requested_user` | tag | string | Requester display name, never the e-mail Seerr falls back to (user name, Plex user name, else `user_<id>`); `Unknown` when absent |
@@ -1445,11 +1447,11 @@ Config: `inputs.overseerr[].users` · Source: `/api/v1/user`.
 
 ### type = Wanted
 
-Config: `inputs.bazarr[].wanted` (`enabled`, `intervalSeconds`) · Source: `/api/movies/wanted`, `/api/episodes/wanted` (`length=1000`). One point per missing subtitle language of each item; the tag set depends on `mediaType`.
+Config: `inputs.bazarr[].wanted` (`enabled`, `intervalSeconds`) · Source: `/api/movies/wanted`, `/api/episodes/wanted` (`length=1000`). One point per missing subtitle language of each item; the tag set depends on `media_type`.
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
-| `mediaType` | tag | string | `movie` or `episode` |
+| `media_type` | tag | string | `movie` or `episode` |
 | `radarrId` | tag | number | Radarr movie id; `movie` only |
 | `sonarrSeriesId` | tag | number | Sonarr series id; `episode` only |
 | `sonarrEpisodeId` | tag | number | Sonarr episode id; `episode` only |
@@ -1476,18 +1478,18 @@ Config: `inputs.bazarr[].wanted` · Source: `total` of `/api/movies/wanted` and 
 
 ### type = History
 
-Config: `inputs.bazarr[].history` (`enabled`, `intervalSeconds`) · Source: `/api/movies/history`, `/api/episodes/history` (pages of 100, newest first). Event points: each history entry is written once, when it is newer than the last one written (the mark is kept in `DATA_FOLDER` across restarts; entries made while Varken was stopped are not backfilled). Pages are read until one reaches the mark, up to 10 pages (1000 entries) per poll; older entries beyond the cap are not written (logged at info). Timestamp: `parsed_timestamp` of the entry (Bazarr local time, `MM/DD/YY HH:MM:SS` or 4-digit year, the C locale layout), read in Varken's time zone, plus milliseconds taken from `hash` so two entries of the same second stay distinct. Run Varken with the same `TZ` as Bazarr: otherwise times are shifted by the difference, and entries written just after an upgrade can fall below the mark. Entries of the hour repeated when daylight saving time ends are below the mark and are not written. An entry whose date cannot be parsed (another locale) is skipped, with a warning logged once. The tag set depends on `mediaType`.
+Config: `inputs.bazarr[].history` (`enabled`, `intervalSeconds`) · Source: `/api/movies/history`, `/api/episodes/history` (pages of 100, newest first). Event points: each history entry is written once, when it is newer than the last one written (the mark is kept in `DATA_FOLDER` across restarts; entries made while Varken was stopped are not backfilled). Pages are read until one reaches the mark, up to 10 pages (1000 entries) per poll; older entries beyond the cap are not written (logged at info). Timestamp: `parsed_timestamp` of the entry (Bazarr local time, `MM/DD/YY HH:MM:SS` or 4-digit year, the C locale layout), read in Varken's time zone, plus milliseconds taken from `hash` so two entries of the same second stay distinct. Run Varken with the same `TZ` as Bazarr: otherwise times are shifted by the difference, and entries written just after an upgrade can fall below the mark. Entries of the hour repeated when daylight saving time ends are below the mark and are not written. An entry whose date cannot be parsed (another locale) is skipped, with a warning logged once. The tag set depends on `media_type`.
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
-| `mediaType` | tag | string | `movie` or `series` |
+| `media_type` | tag | string | `movie` or `episode` |
 | `radarrId` | tag | number | Radarr movie id; `movie` only |
-| `sonarrSeriesId` | tag | number | Sonarr series id; `series` only |
-| `sonarrEpisodeId` | tag | number | Sonarr episode id; `series` only |
+| `sonarrSeriesId` | tag | number | Sonarr series id; `episode` only |
+| `sonarrEpisodeId` | tag | number | Sonarr episode id; `episode` only |
 | `name` | tag | string | `Title - Language` for movies, `Series - Episode - Language` for series |
 | `title` | tag | string | Movie title; `movie` only |
-| `seriesTitle` | tag | string | Series title; `series` only |
-| `episodeNumber` | tag | string | Episode number as sent by Bazarr; `series` only |
+| `seriesTitle` | tag | string | Series title; `episode` only |
+| `episodeNumber` | tag | string | Episode number as sent by Bazarr; `episode` only |
 | `language` | tag | string | Language name (`unknown` when absent) |
 | `languageCode` | tag | string | 3-letter language code (`unknown` when absent) |
 | `provider` | tag | string | Subtitle provider (`unknown` when absent) |
@@ -1588,12 +1590,12 @@ Config: `inputs.bazarr[].library` (`enabled`, `intervalDays`, default disabled, 
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
-| `media_type` | tag | string | `movie` or `series` |
+| `media_type` | tag | string | `movie` or `show` |
 | `items` | field | number | Movies or series |
 | `monitored` | field | number | Monitored ones |
 | `missing_subtitles_items` | field | number | `movie`: movies with at least one missing subtitle |
 | `missing_subtitles` | field | number | `movie`: missing subtitles (languages) |
 | `subtitles` | field | number | `movie`: subtitle files |
-| `ended` | field | number | `series`: ended series |
-| `episode_files` | field | number | `series`: episode files |
-| `episodes_missing_subtitles` | field | number | `series`: episodes with missing subtitles |
+| `ended` | field | number | `show`: ended series |
+| `episode_files` | field | number | `show`: episode files |
+| `episodes_missing_subtitles` | field | number | `show`: episodes with missing subtitles |

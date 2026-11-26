@@ -628,8 +628,7 @@ On startup, if `varken.yaml` doesn't exist:
 ## Backward Compatibility
 
 - **InfluxDB measurement names** unchanged
-- **Tags and fields** unchanged
-- → Existing Grafana dashboards will work without modification
+- **Tags and fields**: unchanged up to 2.4.0; 2.5.0 fixes or renames a few, listed in the README section "Data changes after 2.4.0"
 - **Automatic migration**: INI/ENV → YAML on first launch
 
 ---
