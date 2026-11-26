@@ -16,6 +16,7 @@ import type {
   CircuitBreakerConfig,
 } from '../types/health.types';
 import type { VarkenConfig } from '../config/schemas/config.schema';
+import { validDataPoints } from './dataPoints';
 
 const logger = createLogger('PluginManager');
 
@@ -124,7 +125,7 @@ export class PluginManager {
               collectorTimeout,
               `Collector ${schedule.name} timed out after ${collectorTimeout}ms`
             );
-            results.set(schedule.name, this.validateDataPoints(points, schedule.name));
+            results.set(schedule.name, validDataPoints(points, schedule.name, (message) => logger.warn(message)));
           } catch (error) {
             const message = error instanceof Error ? error.message : 'Unknown error';
             logger.error(`Schedule ${schedule.name} failed during dry-run: ${message}`);
@@ -461,7 +462,7 @@ export class PluginManager {
         `Collector ${schedule.name} timed out after ${collectorTimeout}ms`
       );
 
-      const validPoints = this.validateDataPoints(points, schedule.name);
+      const validPoints = validDataPoints(points, schedule.name, (message) => logger.warn(message));
       this.metrics?.recordDataPointsCollected(schedule.name, validPoints.length);
 
       if (validPoints.length > 0) {
@@ -609,27 +610,6 @@ export class PluginManager {
     logger.info(
       `Schedule ${scheduler.schedule.name} circuit closed, resuming normal operation`
     );
-  }
-
-  /**
-   * Validate data points and filter out invalid ones
-   */
-  private validateDataPoints(points: DataPoint[], scheduleName: string): DataPoint[] {
-    return points.filter((point) => {
-      if (!point.measurement || typeof point.measurement !== 'string') {
-        logger.warn(`[${scheduleName}] Filtered out data point with empty or invalid measurement`);
-        return false;
-      }
-      if (!point.fields || Object.keys(point.fields).length === 0) {
-        logger.warn(`[${scheduleName}] Filtered out data point "${point.measurement}" with no fields`);
-        return false;
-      }
-      if (!(point.timestamp instanceof Date) || Number.isNaN(point.timestamp.getTime())) {
-        logger.warn(`[${scheduleName}] Filtered out data point "${point.measurement}" with invalid timestamp`);
-        return false;
-      }
-      return true;
-    });
   }
 
   /**
