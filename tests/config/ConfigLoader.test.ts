@@ -197,6 +197,38 @@ inputs:
       expect(config.outputs.influxdb1?.ssl).toBe(true);
     });
 
+    describe('global.selfMetrics', () => {
+      const minimalYaml = `
+outputs:
+  influxdb1:
+    url: localhost
+inputs:
+  sonarr:
+    - id: 1
+      url: http://localhost:8989
+      apiKey: test-key
+`;
+
+      it('defaults to enabled every 60 seconds without a global section', () => {
+        fs.writeFileSync(path.join(testConfigFolder, 'varken.yaml'), minimalYaml);
+
+        expect(new ConfigLoader(testConfigFolder).load().global.selfMetrics).toEqual({ enabled: true, intervalSeconds: 60 });
+      });
+
+      it('can be disabled through env overrides', () => {
+        fs.writeFileSync(path.join(testConfigFolder, 'varken.yaml'), minimalYaml);
+        process.env.VARKEN_GLOBAL_SELFMETRICS_ENABLED = 'false';
+
+        expect(new ConfigLoader(testConfigFolder).load().global.selfMetrics?.enabled).toBe(false);
+      });
+
+      it('rejects an interval under 10 seconds', () => {
+        fs.writeFileSync(path.join(testConfigFolder, 'varken.yaml'), `global:\n  selfMetrics:\n    intervalSeconds: 5\n${minimalYaml}`);
+
+        expect(() => new ConfigLoader(testConfigFolder).load()).toThrow();
+      });
+    });
+
     it('should throw error for invalid YAML', () => {
       const yamlContent = `
 outputs:

@@ -23,6 +23,12 @@
 #   # Maximum number of records to fetch from paginated endpoints
 #   # This is a safety limit to prevent OOM on very large datasets
 #   maxPaginationRecords: 10000
+#
+#   # Varken's own health (collectors, circuit breakers, writes) written to the
+#   # outputs as measurement "Varken", one snapshot every intervalSeconds
+#   selfMetrics:
+#     enabled: true
+#     intervalSeconds: 60  # minimum 10
 
 # =============================================================================
 # OUTPUT PLUGINS - Where to send collected data

@@ -193,6 +193,7 @@ inputs:
     cooldownseconds: 'cooldownSeconds',
     recoverysuccesses: 'recoverySuccesses',
     circuitbreaker: 'circuitBreaker',
+    selfmetrics: 'selfMetrics',
   };
 
   /**

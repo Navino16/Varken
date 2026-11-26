@@ -319,6 +319,13 @@ describe('BaseInputPlugin', () => {
       expect(schedule.enabled).toBe(true);
       expect(schedule.collector).toBeDefined();
     });
+
+    it('createSchedule tags the schedule with plugin, server and collector', async () => {
+      await plugin.initialize(testConfig);
+      const schedule = plugin.testCreateSchedule('test', 60, true, async () => []);
+
+      expect(schedule.tags).toEqual({ plugin: 'TestInput', server: 1, collector: 'test' });
+    });
   });
 
   describe('collect', () => {

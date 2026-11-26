@@ -268,6 +268,13 @@ export const GlobalConfigSchema = z.object({
   maxPaginationRecords: z.number().min(1000).default(10000),
   /** TTL for the generic HTTP GET cache in seconds. 0 or omitted = dedup only, no TTL caching. */
   cacheTtlSeconds: z.number().min(0).optional(),
+  /** Varken's own health written to the outputs (measurement `Varken`) */
+  selfMetrics: z
+    .object({
+      enabled: z.boolean().default(true),
+      intervalSeconds: z.number().min(10).default(60),
+    })
+    .default({ enabled: true, intervalSeconds: 60 }),
 });
 
 // =============================================================================
@@ -330,6 +337,7 @@ export const VarkenConfigSchema = z.object({
     collectorTimeoutMs: 60000,
     paginationPageSize: 250,
     maxPaginationRecords: 10000,
+    selfMetrics: { enabled: true, intervalSeconds: 60 },
   }),
   outputs: OutputsConfigSchema,
   inputs: InputsConfigSchema,

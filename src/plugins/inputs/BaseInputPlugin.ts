@@ -39,6 +39,7 @@ const DEFAULT_GLOBAL_CONFIG: GlobalConfig = {
   collectorTimeoutMs: 60000,
   paginationPageSize: 250,
   maxPaginationRecords: 10000,
+  selfMetrics: { enabled: true, intervalSeconds: 60 },
 };
 
 const BUCKET_GRACE_MS: number = 24 * 60 * 60 * 1000;
@@ -432,6 +433,7 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
       intervalSeconds,
       enabled,
       collector: collector.bind(this),
+      tags: { plugin: this.metadata.name, server: this.config.id, collector: name },
     };
   }
 
