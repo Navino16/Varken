@@ -55,6 +55,7 @@ Built with TypeScript, Node.js, and a plugin-based architecture with scheduled d
 - **Circuit breaker** — automatic error recovery with exponential backoff and self-healing
 - **Health checks** — built-in HTTP endpoints for monitoring and orchestration
 - **Prometheus metrics** — `/metrics` endpoint for collection counts, durations, errors, and circuit breaker state
+- **Self-metrics** — the same health written to your database (measurement `Varken`), so Grafana shows it without Prometheus
 - **Config hot-reload** — edit `varken.yaml` and have Varken pick up changes without a restart (opt-in via `CONFIG_WATCH=true`)
 - **Graceful output skipping** — failed output plugins are skipped at startup; Varken continues with the ones that initialized successfully
 - **Easy configuration** — simple YAML config with environment variable overrides
@@ -301,6 +302,9 @@ global:
   paginationPageSize: 250
   maxPaginationRecords: 10000
   cacheTtlSeconds: 0
+  selfMetrics:
+    enabled: true
+    intervalSeconds: 60
 ```
 
 | Setting                | Default | Description                                                      |
@@ -311,6 +315,8 @@ global:
 | `paginationPageSize`   | 250     | Records per page for paginated APIs                              |
 | `maxPaginationRecords` | 10000   | Maximum records to fetch (safety limit)                          |
 | `cacheTtlSeconds`      | 0       | TTL (seconds) for the HTTP GET cache; 0 = dedup only, no caching |
+| `selfMetrics.enabled`  | true    | Write Varken's own health (measurement `Varken`) to the outputs  |
+| `selfMetrics.intervalSeconds` | 60 | Seconds between two health snapshots (minimum 10)         |
 
 > **Note:** `cacheTtlSeconds > 0` caches **all** GET responses, including real-time endpoints (Tautulli activity, *arr queues). A stored response is reused until the TTL expires, so set this well below your shortest poll interval — otherwise those metrics freeze between refreshes. Leave it at `0` unless you have a specific reason; concurrent-request deduplication is always on regardless.
 

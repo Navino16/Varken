@@ -1599,3 +1599,48 @@ Config: `inputs.bazarr[].library` (`enabled`, `intervalDays`, default disabled, 
 | `ended` | field | number | `show`: ended series |
 | `episode_files` | field | number | `show`: episode files |
 | `episodes_missing_subtitles` | field | number | `show`: episodes with missing subtitles |
+
+## Varken
+
+Varken's own health, written to every enabled output (dry-run logs it instead). Config: `global.selfMetrics` (`enabled`, `intervalSeconds`, default enabled, 60). One snapshot per interval, timestamped with the snapshot time. Counts (`runs`, `errors`, `points`, `writes`, `write_errors`) cover the time since the previous snapshot, so they add up over any period; they restart at zero with Varken. The snapshot's own write is not counted. An output that fails cannot receive its own `Output` point; the other outputs do.
+
+### type = Collector
+
+One point per active collector.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `plugin` | tag | string | Input plugin, as its measurement name (`Sonarr`, `Tautulli`, ...) |
+| `server` | tag | number | Input instance `id` |
+| `collector` | tag | string | Collector key (`queue`, `history`, ...) |
+| `runs` | field | number | Runs since the previous snapshot |
+| `errors` | field | number | Failed runs since the previous snapshot |
+| `points` | field | number | Points collected since the previous snapshot |
+| `duration_seconds` | field | float | Duration of the last run, collection and writes included; omitted before the first run |
+| `circuit_state` | field | number | Circuit breaker: `0` closed, `1` half-open, `2` open |
+| `consecutive_errors` | field | number | Consecutive failed runs |
+| `interval_seconds` | field | number | Current interval, backoff included |
+| `last_success_age_seconds` | field | number | Seconds since the last successful run; omitted before the first success |
+
+### type = Output
+
+One point per output. No `server` tag.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `output` | tag | string | Output key (`influxdb2`, `questdb`, ...) |
+| `writes` | field | number | Successful writes since the previous snapshot |
+| `write_errors` | field | number | Failed writes since the previous snapshot |
+| `points` | field | number | Points written since the previous snapshot |
+
+### type = Status
+
+One point per snapshot. No `server` tag.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `version` | tag | string | Varken version |
+| `uptime_seconds` | field | number | Seconds since Varken started |
+| `collectors` | field | number | Active collectors |
+| `collectors_open` | field | number | Collectors whose circuit breaker is open |
+| `outputs` | field | number | Active outputs |
