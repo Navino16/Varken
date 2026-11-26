@@ -4,15 +4,12 @@ import { BaseInputPlugin, BaseInputConfig } from '../../src/plugins/inputs/BaseI
 import { BaseOutputPlugin, BaseOutputConfig } from '../../src/plugins/outputs/BaseOutputPlugin';
 import { DataPoint, PluginMetadata, ScheduleConfig } from '../../src/types/plugin.types';
 import { VarkenConfig } from '../../src/config/schemas/config.schema';
+import { SelfMetrics } from '../../src/core/SelfMetrics';
 
-// Mock the logger
+const loggerMock = vi.hoisted(() => ({ info: vi.fn(), debug: vi.fn(), warn: vi.fn(), error: vi.fn() }));
+
 vi.mock('../../src/core/Logger', () => ({
-  createLogger: () => ({
-    info: vi.fn(),
-    debug: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  }),
+  createLogger: () => loggerMock,
   withContext: (logger: unknown) => logger,
 }));
 
@@ -1695,6 +1692,18 @@ describe('PluginManager', () => {
       await vi.advanceTimersByTimeAsync(5_000);
       await stopping;
       expect(varken(output().writtenPoints, 'Status')).toHaveLength(1);
+    });
+
+    it('logs a failed snapshot and keeps the next one', async () => {
+      const snapshot = vi.spyOn(SelfMetrics.prototype, 'snapshot').mockImplementationOnce(() => {
+        throw new Error('boom');
+      });
+      await start(selfConfig);
+      await vi.advanceTimersByTimeAsync(120_000);
+
+      expect(loggerMock.error).toHaveBeenCalledWith('Self-metrics write failed: boom');
+      expect(varken(output().writtenPoints, 'Status')).toHaveLength(1);
+      snapshot.mockRestore();
     });
 
     it('logs instead of writing in dry-run', async () => {
