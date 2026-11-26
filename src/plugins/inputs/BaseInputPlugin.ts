@@ -432,6 +432,7 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
       intervalSeconds,
       enabled,
       collector: collector.bind(this),
+      tags: { plugin: this.metadata.name, server: this.config.id, collector: name },
     };
   }
 

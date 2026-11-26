@@ -25,11 +25,18 @@ export interface PointSpec {
   floatFields?: readonly string[];
 }
 
+export interface ScheduleTags {
+  plugin: string;
+  server: number;
+  collector: string;
+}
+
 export interface ScheduleConfig {
   name: string;
   intervalSeconds: number;
   enabled: boolean;
   collector: () => Promise<DataPoint[]>;
+  tags?: ScheduleTags;
 }
 
 import type { GlobalConfig } from '../config/schemas/config.schema';
