@@ -1581,4 +1581,95 @@ describe('PluginManager', () => {
       expect(output).toMatch(/varken_active_plugins\{[^}]*kind="output"[^}]*\} 1/);
     });
   });
+
+  describe('self-metrics', () => {
+    const selfConfig: VarkenConfig = {
+      ...minimalConfig,
+      global: { ...minimalConfig.global, selfMetrics: { enabled: true, intervalSeconds: 60 } },
+    };
+    const twoOutputs: VarkenConfig = {
+      ...selfConfig,
+      outputs: { ...selfConfig.outputs, influxdb2: { url: 'localhost', port: 8086, token: 't', org: 'o', bucket: 'b', ssl: false, verifySsl: false } },
+    };
+
+    class PointInput extends MockInputPlugin {
+      async collect(): Promise<DataPoint[]> {
+        this.collectCalled++;
+        return [{ measurement: 'Mock', tags: { type: 'Test' }, fields: { value: 1 }, timestamp: new Date() }];
+      }
+    }
+
+    class BrokenOutput extends MockOutputPlugin {
+      async write(): Promise<void> {
+        throw new Error('down');
+      }
+    }
+
+    const output = (type = 'influxdb1'): MockOutputPlugin =>
+      (pluginManager as unknown as { outputPlugins: Map<string, MockOutputPlugin> }).outputPlugins.get(type) as MockOutputPlugin;
+    const varken = (points: DataPoint[], type?: string): DataPoint[] =>
+      points.filter((p) => p.measurement === 'Varken' && (type === undefined || p.tags.type === type));
+
+    const start = async (config: VarkenConfig, outputs: Record<string, typeof MockOutputPlugin> = { influxdb1: MockOutputPlugin }): Promise<void> => {
+      pluginManager.registerInputPlugin('sonarr', PointInput);
+      for (const [type, plugin] of Object.entries(outputs)) {
+        pluginManager.registerOutputPlugin(type, plugin);
+      }
+      await pluginManager.initializeFromConfig(config);
+      await pluginManager.startSchedulers();
+    };
+
+    it('writes a Varken snapshot to outputs every interval', async () => {
+      await start(selfConfig);
+      await vi.advanceTimersByTimeAsync(60_000);
+
+      const points = varken(output().writtenPoints);
+      expect(points.map((p) => p.tags.type)).toEqual(['Collector', 'Output', 'Status']);
+      expect(points[0].tags).toEqual({ type: 'Collector', plugin: 'MockInput', server: 1, collector: 'mock' });
+    });
+
+    it('does not count its own write', async () => {
+      await start(selfConfig);
+      await vi.advanceTimersByTimeAsync(60_000);
+      const firstSnapshotAt = output().writtenPoints.length;
+      await vi.advanceTimersByTimeAsync(60_000);
+
+      const window = output().writtenPoints.slice(firstSnapshotAt);
+      const [outputPoint] = varken(window, 'Output');
+      const collected = window.filter((p) => p.measurement === 'Mock').length;
+      expect(outputPoint.fields.points).toBe(collected);
+    });
+
+    it("routes a failing output's errors to the other outputs", async () => {
+      await start(twoOutputs, { influxdb1: MockOutputPlugin, influxdb2: BrokenOutput });
+      await vi.advanceTimersByTimeAsync(60_000);
+
+      const broken = varken(output('influxdb1').writtenPoints, 'Output').find((p) => p.tags.output === 'influxdb2');
+      expect(broken?.fields.write_errors).toBeGreaterThan(0);
+    });
+
+    it('keeps one timer across reload', async () => {
+      await start(selfConfig);
+      await vi.advanceTimersByTimeAsync(30_000);
+      await pluginManager.reload(selfConfig);
+      await vi.advanceTimersByTimeAsync(60_000);
+
+      expect(varken(output().writtenPoints, 'Status')).toHaveLength(1);
+    });
+
+    it('logs instead of writing in dry-run', async () => {
+      pluginManager.setDryRun(true);
+      await start(selfConfig);
+      await vi.advanceTimersByTimeAsync(60_000);
+
+      expect(varken(output().writtenPoints)).toEqual([]);
+    });
+
+    it('stays off when selfMetrics is absent', async () => {
+      await start(minimalConfig);
+      await vi.advanceTimersByTimeAsync(120_000);
+
+      expect(varken(output().writtenPoints)).toEqual([]);
+    });
+  });
 });

@@ -1,5 +1,7 @@
 import { createLogger } from './Logger';
 import type { Metrics } from './Metrics';
+import { SelfMetrics } from './SelfMetrics';
+import { version } from '../../package.json';
 import { withTimeout } from '../utils/http';
 import type {
   InputPlugin,
@@ -80,6 +82,8 @@ export class PluginManager {
   private config?: VarkenConfig;
   private dryRun = false;
   private metrics: Metrics | null = null;
+  private selfMetrics = new SelfMetrics(version);
+  private selfMetricsTimer: NodeJS.Timeout | null = null;
 
   /**
    * Enable or disable dry-run mode.
@@ -301,7 +305,34 @@ export class PluginManager {
       }
     }
 
+    this.startSelfMetrics();
     logger.info(`Started ${this.schedulers.size} schedulers`);
+  }
+
+  private startSelfMetrics(): void {
+    const settings = this.config?.global?.selfMetrics;
+    if (!settings?.enabled) {
+      return;
+    }
+    this.selfMetricsTimer = setInterval(() => {
+      this.writeSelfMetrics().catch((error) => {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        logger.error(`Self-metrics write failed: ${message}`);
+      });
+    }, settings.intervalSeconds * 1000);
+  }
+
+  private async writeSelfMetrics(): Promise<void> {
+    const schedulers = Array.from(this.schedulers.values()).map((s) => ({
+      name: s.schedule.name,
+      tags: s.schedule.tags,
+      circuitState: s.circuitState,
+      consecutiveErrors: s.consecutiveErrors,
+      intervalSeconds: s.currentIntervalMs / 1000,
+      lastSuccessAt: s.lastRunAt,
+    }));
+    const points = this.selfMetrics.snapshot(schedulers, Array.from(this.outputPlugins.keys()), new Date());
+    await this.writeToOutputs(points, false);
   }
 
   /**
@@ -444,6 +475,7 @@ export class PluginManager {
 
       // Handle success
       this.metrics?.recordCollection(schedule.name, (Date.now() - startTime) / 1000, true);
+      this.selfMetrics.recordCollection(schedule.name, (Date.now() - startTime) / 1000, validPoints.length, true);
       this.handleScheduleSuccess(scheduler);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
@@ -451,6 +483,7 @@ export class PluginManager {
 
       // Handle failure
       this.metrics?.recordCollection(schedule.name, (Date.now() - startTime) / 1000, false);
+      this.selfMetrics.recordCollection(schedule.name, (Date.now() - startTime) / 1000, 0, false);
       this.handleScheduleFailure(scheduler, message);
     } finally {
       scheduler.isRunning = false;
@@ -599,7 +632,7 @@ export class PluginManager {
   /**
    * Write data points to all output plugins
    */
-  private async writeToOutputs(points: DataPoint[]): Promise<void> {
+  private async writeToOutputs(points: DataPoint[], record = true): Promise<void> {
     if (this.dryRun) {
       logger.info(
         `[DRY-RUN] Would write ${points.length} point(s) to ${this.outputPlugins.size} output(s): ${Array.from(this.outputPlugins.keys()).join(', ')}`
@@ -612,11 +645,17 @@ export class PluginManager {
       async ([type, plugin]) => {
         try {
           await plugin.write(points);
-          this.metrics?.recordWrite(type, points.length, true);
+          if (record) {
+            this.metrics?.recordWrite(type, points.length, true);
+            this.selfMetrics.recordWrite(type, points.length, true);
+          }
           logger.debug(`Wrote ${points.length} points to ${type}`);
         } catch (error) {
           failureCount++;
-          this.metrics?.recordWrite(type, points.length, false);
+          if (record) {
+            this.metrics?.recordWrite(type, points.length, false);
+            this.selfMetrics.recordWrite(type, points.length, false);
+          }
           const message = error instanceof Error ? error.message : 'Unknown error';
           logger.error(`Failed to write to output ${type}: ${message}`);
           // Don't throw - continue with other outputs
@@ -683,6 +722,11 @@ export class PluginManager {
     }
 
     logger.info('Stopping schedulers...');
+
+    if (this.selfMetricsTimer) {
+      clearInterval(this.selfMetricsTimer);
+      this.selfMetricsTimer = null;
+    }
 
     // Clear all timers
     for (const [name, scheduler] of this.schedulers) {
