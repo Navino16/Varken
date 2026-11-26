@@ -28,15 +28,18 @@ export interface DemoEvent {
   index: number;
 }
 
-/** Events of a route in (from, to], the same whatever window asks for them. */
+/**
+ * Events of a route in (from, to], the same whatever window asks for them. Whole seconds like the APIs, and
+ * `at + 999 <= to` since eventTimestamp adds up to 999 ms of id: a point after the clock would push the event mark ahead.
+ */
 export function eventsIn(route: string, from: number, to: number, perHour: number): DemoEvent[] {
   const events: DemoEvent[] = [];
   for (let slot = Math.floor(from / HOUR) * HOUR; slot <= to; slot += HOUR) {
     const hour = slot / HOUR;
     const count = Math.floor(perHour * activity(slot) + random(`${route}|${slot}`));
     for (let i = 0; i < count; i++) {
-      const at = slot + Math.floor(random(`${route}|${slot}|${i}`) * HOUR);
-      if (at > from && at <= to) {
+      const at = slot + Math.floor(random(`${route}|${slot}|${i}`) * 3600) * 1000;
+      if (at > from && at + 999 <= to) {
         events.push({ at, id: hour * 100 + i, index: hour + i });
       }
     }

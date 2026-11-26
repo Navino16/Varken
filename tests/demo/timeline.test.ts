@@ -40,6 +40,14 @@ describe('eventsIn', () => {
     }
   });
 
+  it('dates events in whole seconds, leaving room for the id milliseconds eventTimestamp adds', () => {
+    const events = eventsIn('r', from, to, 4);
+    for (const event of events) {
+      expect(event.at % 1000).toBe(0);
+      expect(event.at + 999).toBeLessThanOrEqual(to);
+    }
+  });
+
   it('gives unique ids sorted by time', () => {
     const events = eventsIn('r', from, to, 4);
     expect(new Set(events.map((e) => e.id)).size).toBe(events.length);

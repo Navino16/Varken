@@ -1,13 +1,17 @@
+import type { JsonResponse } from '../../../src/types/api-contract';
+import type { paths } from '../../../src/types/generated/jellyfin';
 import type { ContractHttpClient } from '../../fixtures/contract-http';
 import { cycle, fixtureOf, liveCount, recentEvents } from './fixtures';
 
-type Item = Record<string, unknown>;
+// Jellyfin's schemas stand for Emby's too: the session and activity-log fields rewritten here are common to both.
+type Sessions = JsonResponse<paths, '/Sessions'>;
+type ActivityLog = JsonResponse<paths, '/System/ActivityLog/Entries'>;
 
 export function jellyfinEmbyVariants(service: 'jellyfin' | 'emby', client: ContractHttpClient): void {
   const prefix = service === 'emby' ? '/emby' : '';
   const sessionsPath = `${prefix}/Sessions`;
   client.override(sessionsPath, () => {
-    const sessions = fixtureOf<Item[]>(service, sessionsPath);
+    const sessions = fixtureOf<Sessions>(service, sessionsPath);
     const active = sessions.filter((session) => session.NowPlayingItem);
     const idle = sessions.filter((session) => !session.NowPlayingItem);
     const playing = cycle(active, liveCount(service, 4), (session, k) => {
@@ -18,8 +22,8 @@ export function jellyfinEmbyVariants(service: 'jellyfin' | 'emby', client: Contr
 
   const logPath = `${prefix}/System/ActivityLog/Entries`;
   client.override(logPath, () => {
-    const log = fixtureOf<Item & { Items: Item[] }>(service, logPath);
-    const items = log.Items;
+    const log = fixtureOf<ActivityLog>(service, logPath);
+    const items = log.Items ?? [];
     log.Items = recentEvents(`${service}|history`, 2).map((event) => ({
       ...items[event.index % items.length],
       Id: event.id,

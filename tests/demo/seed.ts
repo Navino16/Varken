@@ -34,7 +34,7 @@ export interface SeedSummary {
   steps: number;
   points: number;
   measurements: string[];
-  /** Measurements with at least one numeric field: what VictoriaMetrics keeps. */
+  /** Measurements with at least one numeric or boolean field: what VictoriaMetrics keeps. */
   numericMeasurements: string[];
 }
 
@@ -68,10 +68,10 @@ function simulateReadarrOutage(client: ContractHttpClient, end: number): void {
   });
 }
 
-async function startPlugins(end: number): Promise<InputPlugin[]> {
+/** Fills `plugins` and `clients` as it goes, so the caller can shut down those started before a failure. */
+async function startPlugins(end: number, plugins: InputPlugin[], clients: ContractHttpClient[]): Promise<void> {
   const registry = getInputPluginRegistry();
   const globalConfig = GlobalConfigSchema.parse({});
-  const plugins: InputPlugin[] = [];
   for (const [key, configs] of Object.entries(demoInputs())) {
     const Plugin = registry.get(key);
     if (!Plugin || !configs) {
@@ -80,16 +80,16 @@ async function startPlugins(end: number): Promise<InputPlugin[]> {
     for (const config of configs) {
       const plugin = new Plugin();
       const client = createContractHttpClient(serviceOf(key));
+      clients.push(client);
       applyDemoVariants(serviceOf(key), client);
       if (key === 'readarr') {
         simulateReadarrOutage(client, end);
       }
       vi.spyOn(plugin as unknown as { createHttpClient(): AxiosInstance }, 'createHttpClient').mockReturnValue(client as unknown as AxiosInstance);
-      await plugin.initialize(config, globalConfig);
       plugins.push(plugin);
+      await plugin.initialize(config, globalConfig);
     }
   }
-  return plugins;
 }
 
 async function runSchedule(entry: DemoSchedule, now: number, selfMetrics: SelfMetrics): Promise<DataPoint[]> {
@@ -136,16 +136,18 @@ export async function seedDemo(options: SeedOptions): Promise<SeedSummary> {
   const snapshotEveryMs = Math.max(60_000, stepMs);
   const times = stepTimes(start, end, stepMs);
 
+  const timezone = process.env.TZ;
   process.env.TZ = 'UTC';
   useEventStateFolder(null);
   vi.useFakeTimers({ toFake: ['Date'] });
   const measurements = new Set<string>();
   const numericMeasurements = new Set<string>();
   let written = 0;
-  let plugins: InputPlugin[] = [];
+  const plugins: InputPlugin[] = [];
+  const clients: ContractHttpClient[] = [];
   try {
     vi.setSystemTime(start);
-    plugins = await startPlugins(end);
+    await startPlugins(end, plugins, clients);
     const schedules: DemoSchedule[] = plugins.flatMap((plugin) =>
       plugin.getSchedules().filter((schedule) => schedule.enabled).map((schedule) => ({ schedule, consecutiveErrors: 0 }))
     );
@@ -159,23 +161,32 @@ export async function seedDemo(options: SeedOptions): Promise<SeedSummary> {
       for (const entry of schedules) {
         if (entry.lastRun === undefined || now - entry.lastRun >= entry.schedule.intervalSeconds * 1000) {
           entry.lastRun = now;
-          points.push(...(await runSchedule(entry, now, selfMetrics)));
+          const collected = await runSchedule(entry, now, selfMetrics);
+          // Logical writes as PluginManager records them (one per run with points); physical writes are batched below.
+          for (const name of collected.length > 0 ? options.outputs.keys() : []) {
+            selfMetrics.recordWrite(name, collected.length, true);
+          }
+          points.push(...collected);
         }
+      }
+      // The spies keep every call; cleared each step or a month-long seed holds gigabytes of responses.
+      for (const client of clients) {
+        client.get.mockClear();
       }
       if (now - lastSnapshot >= snapshotEveryMs || now === end) {
         lastSnapshot = now;
         points.push(...selfMetrics.snapshot(schedules.map(snapshotOf), [...options.outputs.keys()], new Date(now)));
       }
       for (const point of points) {
+        if (point.timestamp.getTime() > now) {
+          throw new Error(`${point.measurement} ${String(point.tags.type)} point dated after the simulated time: a variant returns a future event`);
+        }
         measurements.add(point.measurement);
-        if (Object.values(point.fields).some((value) => typeof value === 'number')) {
+        if (Object.values(point.fields).some((value) => typeof value !== 'string')) {
           numericMeasurements.add(point.measurement);
         }
       }
-      // Counted per step, as production writes once per collection; a failed batch rejects the whole seed.
-      for (const name of options.outputs.keys()) {
-        selfMetrics.recordWrite(name, points.length, true);
-      }
+      // A failed batch rejects the whole seed: a partial demo is useless.
       pending.push(...points);
       while (pending.length >= WRITE_BATCH_POINTS || (now === end && pending.length > 0)) {
         await writeAll(options.outputs, pending.splice(0, WRITE_BATCH_POINTS));
@@ -184,8 +195,13 @@ export async function seedDemo(options: SeedOptions): Promise<SeedSummary> {
       options.onStep?.(step + 1, times.length);
     }
   } finally {
-    await Promise.all(plugins.map((plugin) => plugin.shutdown()));
     vi.useRealTimers();
+    if (timezone === undefined) {
+      delete process.env.TZ;
+    } else {
+      process.env.TZ = timezone;
+    }
+    await Promise.all(plugins.map((plugin) => plugin.shutdown()));
   }
 
   return {

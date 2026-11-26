@@ -12,7 +12,10 @@ function selectedOutputs(): OutputType[] {
   if (!raw) {
     return [...OUTPUT_TYPES];
   }
-  const types = raw.split(',').map((type) => type.trim());
+  const types = raw
+    .split(',')
+    .map((type) => type.trim())
+    .filter((type) => type !== '');
   const unknown = types.filter((type) => !OUTPUT_TYPES.includes(type as OutputType));
   if (unknown.length > 0) {
     throw new Error(`Unknown DEMO_OUTPUTS: ${unknown.join(', ')} (expected ${OUTPUT_TYPES.join(', ')})`);

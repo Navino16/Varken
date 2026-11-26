@@ -114,7 +114,7 @@ export async function createOutputs(types: readonly OutputType[]): Promise<Map<O
   }
   if (down.length > 0) {
     await Promise.all([...outputs.values()].map((plugin) => plugin.shutdown()));
-    throw new Error(`Outputs not ready: ${down.join(', ')}. Start them with: docker compose -f docker-compose.test.yaml --profile databases up -d`);
+    throw new Error(`Outputs not ready: ${down.join(', ')}. Start them with: docker compose -f docker-compose.test.yaml --profile databases up -d --wait`);
   }
   return outputs;
 }
