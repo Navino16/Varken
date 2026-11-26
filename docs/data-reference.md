@@ -1602,7 +1602,7 @@ Config: `inputs.bazarr[].library` (`enabled`, `intervalDays`, default disabled, 
 
 ## Varken
 
-Varken's own health, written to every enabled output (dry-run logs it instead). Config: `global.selfMetrics` (`enabled`, `intervalSeconds`, default enabled, 60). One snapshot per interval, timestamped with the snapshot time. Counts (`runs`, `errors`, `points`, `writes`, `write_errors`) cover the time since the previous snapshot, so they add up over any period; they restart at zero with Varken. The snapshot's own write is not counted. An output that fails cannot receive its own `Output` point; the other outputs do.
+Varken's own health, written to every enabled output while the collectors run (never in dry-run, which collects once and stops). Config: `global.selfMetrics` (`enabled`, `intervalSeconds`, default enabled, 60). One snapshot per interval, timestamped with the snapshot time. Counts (`runs`, `errors`, `points`, `writes`, `write_errors`) cover the time since the previous snapshot, so they add up over any period; they restart at zero with Varken. The snapshot's own write is not counted. An output that fails cannot receive its own `Output` point; the other outputs do.
 
 ### type = Collector
 
@@ -1619,7 +1619,7 @@ One point per active collector.
 | `duration_seconds` | field | float | Duration of the last run, collection and writes included; omitted before the first run |
 | `circuit_state` | field | number | Circuit breaker: `0` closed, `1` half-open, `2` open |
 | `consecutive_errors` | field | number | Consecutive failed runs |
-| `interval_seconds` | field | number | Current interval, backoff included |
+| `interval_seconds` | field | float | Current interval, backoff included |
 | `last_success_age_seconds` | field | number | Seconds since the last successful run; omitted before the first success |
 
 ### type = Output

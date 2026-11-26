@@ -49,6 +49,7 @@ interface ActiveScheduler {
   timer: NodeJS.Timeout | null;
   isRunning: boolean;
   lastRunAt?: Date;
+  lastSuccessAt?: Date;
   lastError?: string;
   consecutiveErrors: number;
   /** Circuit breaker state */
@@ -84,6 +85,7 @@ export class PluginManager {
   private metrics: Metrics | null = null;
   private selfMetrics = new SelfMetrics(version);
   private selfMetricsTimer: NodeJS.Timeout | null = null;
+  private selfMetricsWrite: Promise<void> = Promise.resolve();
 
   /**
    * Enable or disable dry-run mode.
@@ -315,7 +317,7 @@ export class PluginManager {
       return;
     }
     this.selfMetricsTimer = setInterval(() => {
-      this.writeSelfMetrics().catch((error) => {
+      this.selfMetricsWrite = this.writeSelfMetrics().catch((error) => {
         const message = error instanceof Error ? error.message : 'Unknown error';
         logger.error(`Self-metrics write failed: ${message}`);
       });
@@ -329,7 +331,7 @@ export class PluginManager {
       circuitState: s.circuitState,
       consecutiveErrors: s.consecutiveErrors,
       intervalSeconds: s.currentIntervalMs / 1000,
-      lastSuccessAt: s.lastRunAt,
+      lastSuccessAt: s.lastSuccessAt,
     }));
     const points = this.selfMetrics.snapshot(schedulers, Array.from(this.outputPlugins.keys()), new Date());
     await this.writeToOutputs(points, false);
@@ -495,6 +497,7 @@ export class PluginManager {
    */
   private handleScheduleSuccess(scheduler: ActiveScheduler): void {
     scheduler.lastRunAt = new Date();
+    scheduler.lastSuccessAt = scheduler.lastRunAt;
     scheduler.lastError = undefined;
 
     if (scheduler.circuitState === 'half-open') {
@@ -727,6 +730,7 @@ export class PluginManager {
       clearInterval(this.selfMetricsTimer);
       this.selfMetricsTimer = null;
     }
+    await this.selfMetricsWrite;
 
     // Clear all timers
     for (const [name, scheduler] of this.schedulers) {

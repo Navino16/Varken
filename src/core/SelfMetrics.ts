@@ -96,12 +96,12 @@ export class SelfMetrics {
     if (scheduler.lastSuccessAt) {
       fields.last_success_age_seconds = Math.round((now.getTime() - scheduler.lastSuccessAt.getTime()) / 1000);
     }
-    const { plugin, server, collector } = scheduler.tags ?? { plugin: 'unknown', server: 'unknown', collector: scheduler.name };
+    const tags = scheduler.tags ?? { plugin: 'unknown', collector: scheduler.name };
     return {
       measurement: MEASUREMENT,
-      tags: { type: 'Collector', plugin, server, collector },
+      tags: { type: 'Collector', ...tags },
       fields,
-      floatFields: ['duration_seconds'],
+      floatFields: ['duration_seconds', 'interval_seconds'],
       timestamp: now,
     };
   }

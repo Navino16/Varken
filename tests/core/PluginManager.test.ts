@@ -1657,6 +1657,46 @@ describe('PluginManager', () => {
       expect(varken(output().writtenPoints, 'Status')).toHaveLength(1);
     });
 
+    it('omits the success age of a collector that never succeeded', async () => {
+      class FailingInput extends MockInputPlugin {
+        async collect(): Promise<DataPoint[]> {
+          throw new Error('down');
+        }
+      }
+      pluginManager.registerInputPlugin('sonarr', FailingInput);
+      pluginManager.registerOutputPlugin('influxdb1', MockOutputPlugin);
+      await pluginManager.initializeFromConfig(selfConfig);
+      await pluginManager.startSchedulers();
+      await vi.advanceTimersByTimeAsync(60_000);
+
+      const [collector] = varken(output().writtenPoints, 'Collector');
+      expect(collector.fields.errors).toBeGreaterThan(0);
+      expect(collector.fields).not.toHaveProperty('last_success_age_seconds');
+    });
+
+    it('waits for an in-flight snapshot write before stopping', async () => {
+      class SlowOutput extends MockOutputPlugin {
+        async write(points: DataPoint[]): Promise<void> {
+          if (points.some((p) => p.measurement === 'Varken')) {
+            await new Promise((resolve) => setTimeout(resolve, 5_000));
+          }
+          await super.write(points);
+        }
+      }
+      await start(selfConfig, { influxdb1: SlowOutput });
+      await vi.advanceTimersByTimeAsync(60_000);
+
+      let stopped = false;
+      const stopping = pluginManager.stopSchedulers().then(() => {
+        stopped = true;
+      });
+      await vi.advanceTimersByTimeAsync(1_000);
+      expect(stopped).toBe(false);
+      await vi.advanceTimersByTimeAsync(5_000);
+      await stopping;
+      expect(varken(output().writtenPoints, 'Status')).toHaveLength(1);
+    });
+
     it('logs instead of writing in dry-run', async () => {
       pluginManager.setDryRun(true);
       await start(selfConfig);

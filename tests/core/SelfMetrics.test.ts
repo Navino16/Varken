@@ -44,7 +44,7 @@ describe('SelfMetrics', () => {
         interval_seconds: 60,
         last_success_age_seconds: 60,
       },
-      floatFields: ['duration_seconds'],
+      floatFields: ['duration_seconds', 'interval_seconds'],
       timestamp: now,
     });
   });
@@ -59,7 +59,7 @@ describe('SelfMetrics', () => {
     const { tags: _tags, ...untagged } = calendar;
     const [point] = ofType(new SelfMetrics('2.5.0', startedAt).snapshot([{ ...untagged, name: 'Custom_job' }], [], now), 'Collector');
 
-    expect(point.tags).toEqual({ type: 'Collector', plugin: 'unknown', server: 'unknown', collector: 'Custom_job' });
+    expect(point.tags).toEqual({ type: 'Collector', plugin: 'unknown', collector: 'Custom_job' });
   });
 
   it('emits one Output point per output with write deltas', () => {
