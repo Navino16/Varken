@@ -18,7 +18,8 @@ type RequestBase = Pick<
 
 const REQUEST_STATUS = { DENIED: 0, APPROVED: 1, COMPLETED: 2, PENDING: 3 } as const;
 const REQUEST_TYPE = { TV: 0, MOVIE: 1, MUSIC: 2 } as const;
-const REQUEST_MEDIA_TYPE: Record<number, MediaType> = { [REQUEST_TYPE.TV]: 'show', [REQUEST_TYPE.MOVIE]: 'movie', [REQUEST_TYPE.MUSIC]: 'album' };
+type RequestType = (typeof REQUEST_TYPE)[keyof typeof REQUEST_TYPE];
+const REQUEST_MEDIA_TYPE: Record<RequestType, MediaType> = { [REQUEST_TYPE.TV]: 'show', [REQUEST_TYPE.MOVIE]: 'movie', [REQUEST_TYPE.MUSIC]: 'album' };
 const STATS_WINDOW_MS: number = 30 * 24 * 60 * 60 * 1000;
 
 type V2TotalPath = Extract<keyof paths, `/api/v2/Requests/${string}/${string}/{count}/{position}/{sort}/{sortOrder}`>;
@@ -344,7 +345,7 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
   }
 
   private requestPoint(
-    requestType: number,
+    requestType: RequestType,
     title: string | null | undefined,
     request: RequestBase,
     userMap: Map<string, string>,

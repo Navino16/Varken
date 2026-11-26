@@ -187,6 +187,16 @@ describe('EmbyPlugin', () => {
       expect(point.tags.media_type).toBe('track');
     });
 
+    it('writes unknown when the item has no type and is only known as video', async () => {
+      const [, bob] = sessions();
+      const { Type: _t, ...item } = bob.NowPlayingItem ?? {};
+      client.override('/emby/Sessions', [{ ...bob, NowPlayingItem: { ...item, MediaType: 'Video' } }]);
+
+      const [point] = sessionPoints(await plugin.collect());
+
+      expect(point.tags.media_type).toBe('unknown');
+    });
+
     it('reports direct stream and transcode decisions with the audio codec', async () => {
       const [alice] = sessions();
       client.override('/emby/Sessions', [{ ...alice, TranscodingInfo: { ...alice.TranscodingInfo, IsVideoDirect: true } }, alice]);

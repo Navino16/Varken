@@ -315,6 +315,14 @@ describe('TautulliPlugin collectors', () => {
       expect(ofType(await plugin.collect(), 'Play').map((p) => p.fields.title)).toEqual(['Game of Thrones - Winter Is Coming']);
     });
 
+    it('writes live TV plays with the live media type', async () => {
+      const body = loadFixture('tautulli/get-history') as { response: { data: { data: { live: number }[] } } };
+      body.response.data.data[0].live = 1;
+      client.override(cmd('get_history'), body as never);
+
+      expect(ofType(await plugin.collect(), 'Play').map((p) => p.tags.media_type)).toEqual(['live', 'episode']);
+    });
+
     it('never emits history IP addresses', async () => {
       expect(valuesOf(await plugin.collect())).not.toContain('203.0.113.9');
     });

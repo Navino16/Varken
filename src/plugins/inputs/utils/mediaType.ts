@@ -37,11 +37,19 @@ const VOCABULARY: Record<string, MediaType> = {
   recording: 'live',
 };
 
-/** Maps a source's media or item type to the shared vocabulary; unmapped values are kept, lowercased. */
+/** Unmapped values are kept so new upstream types stay visible. */
 export function normalizeMediaType(value: string | null | undefined): string {
   const key = value?.trim().toLowerCase();
   if (!key) {
     return 'unknown';
   }
   return VOCABULARY[key] ?? key;
+}
+
+/** Jellyfin/Emby: the item type tells movie from episode; the media kind alone (`Video`) does not. */
+export function itemMediaType(item: { Type?: string | null; MediaType?: string | null } | null | undefined): string {
+  if (item?.Type) {
+    return normalizeMediaType(item.Type);
+  }
+  return item?.MediaType?.toLowerCase() === 'video' ? 'unknown' : normalizeMediaType(item?.MediaType);
 }

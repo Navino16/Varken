@@ -382,6 +382,12 @@ describe('TautulliPlugin', () => {
       expect(point?.tags.product_version).toBe('1.108.1.4874');
     });
 
+    it('should write live TV sessions with the live media type', async () => {
+      const point = await onlySession({ ...sessions().local, live: 1 });
+
+      expect(point?.tags.media_type).toBe('live');
+    });
+
     it('should write unknown when the session has no media type', async () => {
       const point = await onlySession({ ...sessions().local, media_type: '' });
 

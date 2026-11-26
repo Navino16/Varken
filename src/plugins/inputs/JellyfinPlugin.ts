@@ -1,5 +1,5 @@
 import { BaseInputPlugin } from './BaseInputPlugin';
-import { normalizeMediaType } from './utils/mediaType';
+import { itemMediaType } from './utils/mediaType';
 import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
 import type { JellyfinConfig } from '../../types/inputs/jellyfin.types';
 import type { components, paths } from '../../types/generated/jellyfin';
@@ -259,7 +259,7 @@ export class JellyfinPlugin extends BaseInputPlugin<JellyfinConfig> {
         product_version: session.ApplicationVersion || 'unknown',
         quality,
         video_decision: videoDecision,
-        media_type: normalizeMediaType(item?.Type || item?.MediaType),
+        media_type: itemMediaType(item),
         audio_codec: sourceAudioCodec(item?.MediaStreams, playState?.AudioStreamIndex, transcode),
         player_state: playerState,
         device_type: session.DeviceType || 'unknown',

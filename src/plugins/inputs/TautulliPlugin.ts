@@ -394,7 +394,7 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
       transcode_decision: this.titleCase(transcodeDecision) || 'unknown',
       transcode_hw_decoding: session.transcode_hw_decoding || 0,
       transcode_hw_encoding: session.transcode_hw_encoding || 0,
-      media_type: normalizeMediaType(session.media_type),
+      media_type: Number(session.live) === 1 ? 'live' : normalizeMediaType(session.media_type),
       audio_codec: (session.audio_codec || '').toUpperCase() || 'unknown',
       stream_audio_codec: (session.stream_audio_codec || '').toUpperCase() || 'unknown',
       quality_profile: session.quality_profile || 'unknown',
@@ -646,7 +646,7 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
     return {
       tags: {
         type: 'Play',
-        media_type: normalizeMediaType(row.media_type),
+        media_type: Number(row.live) === 1 ? 'live' : normalizeMediaType(row.media_type),
         rating_key: row.rating_key ?? 'unknown',
         user_id: row.user_id ?? 'unknown',
         username: row.user || 'unknown',

@@ -2,7 +2,7 @@
 
 Every input plugin writes DataPoints whose measurement is the service name (`Sonarr`, `Tautulli`, ...). Every point carries a `server` tag (the instance `id` from the config) and a `type` tag that distinguishes the kinds of points a plugin writes; both are omitted from the tables below.
 Numbers meant for graphing are fields; tags hold labels and identifiers. The `hash` field is a deduplication key (MD5) and is not meant to be graphed.
-Media types are written as a `media_type` tag with one shared vocabulary across plugins: `movie`, `show`, `season`, `episode`, `artist`, `album`, `track`, `clip`, `photo`, `live`, else the source's own type lowercased (`unknown` when absent).
+Media types are written as a `media_type` tag with one shared vocabulary across plugins: `movie`, `show`, `season`, `episode`, `artist`, `album`, `track`, `clip`, `photo`, `live`, else the source's own type lowercased (`unknown` when absent). `live` marks live TV: Tautulli sessions and plays with `live` = 1, Jellyfin/Emby channels, programs and recordings; Plex sessions and plays read directly do not flag live TV, so they keep the item type.
 Decimal fields (`score_percent`, `lat`, `lon`, the Servarr `progress`, `used_percent`, `last_duration_seconds`, `percent_of_*`, and the session `transcode_speed`, `transcode_progress`, `stream_framerate`, `community_rating`, `transcode_cpu_percent`, `refresh_progress`, the Plex `progress`, `speed`, `percent` and `*_cpu_percent` / `*_memory_percent`, the Jellyfin/Emby task `progress`, the Tautulli `watched_status`) are always written as floats, even for whole values, so their column type stays stable.
 Points are timestamped with the collection time (`createDataPoint` default) unless stated otherwise in a section.
 Event points (`type = History`, Plex and Tautulli `Play`, Plex `Bandwidth`, Jellyfin/Emby `Activity`, Tautulli `RecentlyAdded` and its day/month graph buckets) are timestamped with the event time, plus the record id's last three digits as milliseconds: the APIs report whole seconds, and this keeps same-second events with identical tags as separate points. Each event collector keeps a high-water mark in `DATA_FOLDER/event-state/` and only writes events newer than it, so an event is written once even across restarts. Without a mark (first run, deleted or unreadable file) it starts from the plugin start time: earlier events are not backfilled.
@@ -1247,7 +1247,7 @@ Config: `inputs.ombi[].totals` (`enabled`, `intervalSeconds`, default disabled, 
 | `processing` | field | number | Approved, not yet available |
 | `pending` | field | number | Waiting for approval |
 | `denied` | field | number | Denied requests |
-| `unavailable` | field | number | Requests not available; `movie` and `tv` only |
+| `unavailable` | field | number | Requests not available; `movie` and `show` only |
 
 ### type = Stats
 
