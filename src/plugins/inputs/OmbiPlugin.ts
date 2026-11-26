@@ -1,10 +1,10 @@
 import { BaseInputPlugin } from './BaseInputPlugin';
-import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
+import type { PluginMetadata, DataPoint, PointSpec, ScheduleConfig } from '../../types/plugin.types';
 import type { OmbiConfig } from '../../types/inputs/ombi.types';
 import type { components, paths } from '../../types/generated/ombi';
 import { booleanFlags } from './utils/flags';
 import { pickNumbers } from './utils/numbers';
-import { dotnetTime } from './utils/time';
+import { ageSeconds, dotnetTime } from './utils/time';
 
 type OmbiMovieRequest = components['schemas']['Ombi.Store.Entities.Requests.MovieRequests'];
 type OmbiTVRequest = components['schemas']['Ombi.Store.Entities.Requests.TvRequests'];
@@ -17,6 +17,46 @@ type RequestBase = Pick<
 
 const REQUEST_STATUS = { DENIED: 0, APPROVED: 1, COMPLETED: 2, PENDING: 3 } as const;
 const REQUEST_TYPE = { TV: 0, MOVIE: 1, MUSIC: 2 } as const;
+const STATS_WINDOW_MS: number = 30 * 24 * 60 * 60 * 1000;
+
+type V2TotalPath = Extract<keyof paths, `/api/v2/Requests/${string}/${string}/{count}/{position}/{sort}/{sortOrder}`>;
+type V1TotalPath = '/api/v1/Request/movie/total' | '/api/v1/Request/tv/total' | '/api/v1/request/music/total';
+
+const V2_FIRST_ITEM = { count: 1, position: 0, sort: 'requestedDate', sortOrder: 'desc' };
+const TOTALS: { mediaType: string; total: V1TotalPath; statuses: [string, V2TotalPath][] }[] = [
+  {
+    mediaType: 'movie',
+    total: '/api/v1/Request/movie/total',
+    statuses: [
+      ['available', '/api/v2/Requests/movie/available/{count}/{position}/{sort}/{sortOrder}'],
+      ['processing', '/api/v2/Requests/movie/processing/{count}/{position}/{sort}/{sortOrder}'],
+      ['pending', '/api/v2/Requests/movie/pending/{count}/{position}/{sort}/{sortOrder}'],
+      ['denied', '/api/v2/Requests/movie/denied/{count}/{position}/{sort}/{sortOrder}'],
+      ['unavailable', '/api/v2/Requests/movie/unavailable/{count}/{position}/{sort}/{sortOrder}'],
+    ],
+  },
+  {
+    mediaType: 'tv',
+    total: '/api/v1/Request/tv/total',
+    statuses: [
+      ['available', '/api/v2/Requests/tv/available/{count}/{position}/{sort}/{sortOrder}'],
+      ['processing', '/api/v2/Requests/tv/processing/{count}/{position}/{sort}/{sortOrder}'],
+      ['pending', '/api/v2/Requests/tv/pending/{count}/{position}/{sort}/{sortOrder}'],
+      ['denied', '/api/v2/Requests/tv/denied/{count}/{position}/{sort}/{sortOrder}'],
+      ['unavailable', '/api/v2/Requests/tv/unavailable/{count}/{position}/{sort}/{sortOrder}'],
+    ],
+  },
+  {
+    mediaType: 'music',
+    total: '/api/v1/request/music/total',
+    statuses: [
+      ['available', '/api/v2/Requests/album/available/{count}/{position}/{sort}/{sortOrder}'],
+      ['processing', '/api/v2/Requests/album/processing/{count}/{position}/{sort}/{sortOrder}'],
+      ['pending', '/api/v2/Requests/album/pending/{count}/{position}/{sort}/{sortOrder}'],
+      ['denied', '/api/v2/Requests/album/denied/{count}/{position}/{sort}/{sortOrder}'],
+    ],
+  },
+];
 
 function getRequestStatus(approved = false, available = false, denied: boolean | null = false): number {
   if (denied) {
@@ -81,6 +121,14 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
       points.push(...(await this.collectServerInfo()));
     }
 
+    if (this.config.totals.enabled) {
+      points.push(...(await this.collectTotals()));
+    }
+
+    if (this.config.users.enabled) {
+      points.push(...(await this.collectUsers()));
+    }
+
     return points;
   }
 
@@ -118,6 +166,14 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
 
     if (this.config.serverInfo.enabled) {
       schedules.push(this.createSchedule('serverInfo', this.config.serverInfo.intervalSeconds, true, this.collectServerInfo));
+    }
+
+    if (this.config.totals.enabled) {
+      schedules.push(this.createSchedule('totals', this.config.totals.intervalSeconds, true, this.collectTotals));
+    }
+
+    if (this.config.users.enabled) {
+      schedules.push(this.createSchedule('users', this.config.users.intervalSeconds, true, this.collectUsers));
     }
 
     return schedules;
@@ -326,6 +382,72 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
       fields.available_seconds = available;
     }
     return fields;
+  }
+
+  private async collectTotals(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Ombi totals', async () => {
+      const now = Date.now();
+      const [totals, stats] = await Promise.all([
+        Promise.all(
+          TOTALS.map(async ({ mediaType, total, statuses }) => {
+            const [all, ...byStatus] = await Promise.all([
+              this.ombi.get(total),
+              ...statuses.map(async ([, path]) => (await this.ombi.get(path, { path: V2_FIRST_ITEM }))?.total),
+            ]);
+            const fields: Record<string, number> = pickNumbers({ all }, { all: 'total' });
+            for (const [i, [status]] of statuses.entries()) {
+              Object.assign(fields, pickNumbers({ value: byStatus[i] }, { value: status }));
+            }
+            return { tags: { type: 'Totals', media_type: mediaType }, fields };
+          })
+        ),
+        // Ombi throws (500) when the window holds no request of a type: UserStatsEngine.GetSummary, v4.53.10.
+        this.optionalFetch('Ombi 30-day stats', [500], () =>
+          this.ombi.get('/api/v1/Stats', { query: { from: new Date(now - STATS_WINDOW_MS).toISOString(), to: new Date(now).toISOString() } })
+        ),
+      ]);
+      const specs: PointSpec[] = [...totals];
+      if (stats) {
+        specs.push({
+          tags: { type: 'Stats' },
+          fields: pickNumbers(stats, { totalMovieRequests: 'movie_requests_30d', totalTvRequests: 'tv_requests_30d', completedRequestsTv: 'completed_tv_30d' }),
+        });
+      }
+      return this.createPoints(specs);
+    });
+  }
+
+  private async collectUsers(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Ombi users', async () => {
+      const users = await this.ombi.get('/api/v1/Identity/Users');
+      const now = new Date();
+      const specs: PointSpec[] = users.map((user) => {
+        const fields: Record<string, number> = booleanFlags({ has_logged_in: user.hasLoggedIn });
+        const age = ageSeconds(dotnetTime(user.lastLoggedIn), now);
+        if (age !== undefined) {
+          fields.last_login_age_seconds = age;
+        }
+        for (const [prefix, quota] of [
+          ['movie', user.movieRequestQuota],
+          ['episode', user.episodeRequestQuota],
+          ['music', user.musicRequestQuota],
+        ] as const) {
+          if (quota?.hasLimit) {
+            Object.assign(fields, pickNumbers(quota, { limit: `${prefix}_quota_limit`, remaining: `${prefix}_quota_remaining` }));
+          }
+        }
+        return {
+          tags: { type: 'User', user_id: user.id || 'unknown', username: user.alias || user.userName || 'unknown', user_type: user.userType ?? 'unknown' },
+          fields,
+        };
+      });
+      const loggedInSince = now.getTime() - STATS_WINDOW_MS;
+      specs.push({
+        tags: { type: 'Users' },
+        fields: { users: users.length, logged_in_30d: users.filter((user) => (dotnetTime(user.lastLoggedIn) ?? 0) >= loggedInSince).length },
+      });
+      return this.createPoints(specs);
+    });
   }
 
   private async collectServerInfo(): Promise<DataPoint[]> {

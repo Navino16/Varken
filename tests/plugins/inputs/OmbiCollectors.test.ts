@@ -113,4 +113,71 @@ describe('OmbiPlugin collectors', () => {
       expect(valuesOf(await plugin.collect())).not.toContain('Not available in my region');
     });
   });
+
+  describe('totals', () => {
+    beforeEach(async () => {
+      await plugin.initialize(config({ totals: true }));
+    });
+
+    it('collects totals per media type and status', async () => {
+      const totals = ofType(await plugin.collect(), 'Totals');
+
+      expect(totals.map((p) => p.tags.media_type)).toEqual(['movie', 'tv', 'music']);
+      expect(totals[0].fields).toEqual({ total: 3, available: 3, processing: 3, pending: 3, denied: 3, unavailable: 3 });
+      expect(totals[1].fields).toEqual({ total: 2, available: 2, processing: 2, pending: 2, denied: 2, unavailable: 2 });
+      expect(totals[2].fields).toEqual({ total: 1, available: 1, processing: 1, pending: 1, denied: 1 });
+      expect(client.get).toHaveBeenCalledWith('/api/v2/Requests/album/denied/1/0/requestedDate/desc', { params: undefined });
+    });
+
+    it('asks stats for the last 30 days', async () => {
+      const [stats] = ofType(await plugin.collect(), 'Stats');
+
+      expect(stats.fields).toEqual({ movie_requests_30d: 4, tv_requests_30d: 2, completed_tv_30d: 1 });
+      expect(queryOf(client, '/api/v1/Stats')).toEqual([{ from: '2026-10-27T10:30:00.000Z', to: '2026-11-26T10:30:00.000Z' }]);
+    });
+
+    it('keeps totals when stats answer 500', async () => {
+      client.fail('/api/v1/Stats', Object.assign(new Error('Request failed with status code 500'), { response: { status: 500 } }));
+
+      const points = await plugin.collect();
+
+      expect(ofType(points, 'Stats')).toEqual([]);
+      expect(ofType(points, 'Totals')).toHaveLength(3);
+    });
+
+    it('schedules the totals collector', () => {
+      expect(plugin.getSchedules().map((s) => s.name)).toEqual(['Ombi_1_totals']);
+    });
+  });
+
+  describe('users', () => {
+    beforeEach(async () => {
+      await plugin.initialize(config({ users: true }));
+    });
+
+    it('collects users with quotas and last login', async () => {
+      const points = await plugin.collect();
+      const users = ofType(points, 'User');
+
+      expect(users.map((p) => p.tags.username)).toEqual(['Alice', 'bob_dupont']);
+      expect(users[0].tags).toMatchObject({ user_id: '3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f', user_type: 1 });
+      expect(users[0].fields).toEqual({ has_logged_in: 1, last_login_age_seconds: 226069, movie_quota_limit: 5, movie_quota_remaining: 2 });
+      expect(users[1].fields).toEqual({ has_logged_in: 1, last_login_age_seconds: 440666 });
+      expect(ofType(points, 'Users')[0].fields).toEqual({ users: 2, logged_in_30d: 2 });
+    });
+
+    it('never emits user emails or passwords', async () => {
+      const values = valuesOf(await plugin.collect());
+
+      expect(values).not.toContain('alice@example.com');
+      expect(values).not.toContain('hunter2');
+    });
+
+    it('schedules the users collector', () => {
+      const [schedule] = plugin.getSchedules();
+
+      expect(schedule.name).toBe('Ombi_1_users');
+      expect(schedule.intervalSeconds).toBe(300);
+    });
+  });
 });
