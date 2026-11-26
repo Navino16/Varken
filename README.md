@@ -672,14 +672,26 @@ src/
 
 ### Integration tests
 
-A separate `npm run test:integration` target runs end-to-end tests against real services. Start the stack first (InfluxDB 2.x on port 8087 by default):
+A separate `npm run test:integration` target runs end-to-end tests against real services. Start the databases first: InfluxDB 1.x (port 8086), InfluxDB 2.x (8087), VictoriaMetrics (8428), QuestDB (9000) and TimescaleDB (5433):
 
 ```bash
-docker compose -f docker-compose.test.yaml --profile influxdb2 up -d
+docker compose -f docker-compose.test.yaml --profile databases up -d --wait
 npm run test:integration
 ```
 
 Tests skip themselves automatically when a service isn't reachable, so the command is safe to run with or without containers up. Unit tests (`npm test`) are hermetic and never touch the integration folder.
+
+### Demo dataset
+
+`npm run demo:seed` fills those databases with 30 days of plausible data, for dashboard work and screenshots. The data comes from the real input plugins running on the contract fixtures under a simulated clock, and is written by the real output plugins, so it has the exact shape production writes. Every input plugin is enabled, and Readarr is unreachable for a few hours the day before the end so health panels have something to show.
+
+| Variable | Default | Effect |
+|----------|---------|--------|
+| `DEMO_OUTPUTS` | all five | Comma-separated output types to fill (`influxdb1,influxdb2,victoriametrics,questdb,timescaledb`) |
+| `DEMO_DAYS` | `30` | Length of the window, ending now |
+| `DEMO_STEP_SECONDS` | `600` | Simulated time between two collection rounds |
+
+The command stops before writing anything if one of the selected databases is down. Every seed, and every `npm run test:integration` run, adds points on top of what the databases already hold (the window always ends now, so runs overlap). For a clean demo, reset first with `docker compose -f docker-compose.test.yaml --profile databases down -v`, which deletes the database and Grafana volumes and keeps those of the test media services. On an empty volume InfluxDB 2.x can fail its first setup and restart; if `up --wait` reports it unhealthy, run it again.
 
 ### Contract tests
 
