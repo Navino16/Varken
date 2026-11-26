@@ -1,4 +1,5 @@
 import { BaseInputPlugin } from './BaseInputPlugin';
+import { normalizeMediaType } from './utils/mediaType';
 import type { PluginMetadata, DataPoint, PointSpec, ScheduleConfig } from '../../types/plugin.types';
 import type { PlexConfig } from '../../types/inputs/plex.types';
 import type { paths } from '../../types/generated/plex';
@@ -355,7 +356,7 @@ export class PlexPlugin extends BaseInputPlugin<PlexConfig> {
         product_version: player?.version || 'unknown',
         quality: quality || 'unknown',
         video_decision: videoDecision,
-        media_type: text(session.type) || 'unknown',
+        media_type: normalizeMediaType(text(session.type)),
         audio_codec: text(media?.audioCodec).toUpperCase() || 'unknown',
         player_state: playerState,
         device_type: player?.platform || 'unknown',
@@ -522,7 +523,7 @@ export class PlexPlugin extends BaseInputPlugin<PlexConfig> {
         plays.map((play) => ({
           tags: {
             type: 'Play',
-            media_type: play.type || 'unknown',
+            media_type: normalizeMediaType(play.type),
             library_section_id: play.librarySectionID || 'unknown',
             rating_key: play.ratingKey || 'unknown',
             ...this.directoryTags(directory, play.accountID, play.deviceID),

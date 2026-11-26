@@ -1,4 +1,5 @@
 import { BaseInputPlugin } from './BaseInputPlugin';
+import { normalizeMediaType } from './utils/mediaType';
 import { isPrivateIp } from './utils/network';
 import { resolutionLabel } from './utils/mediaStreams';
 import { RequestCache } from '../../utils/RequestCache';
@@ -393,7 +394,7 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
       transcode_decision: this.titleCase(transcodeDecision) || 'unknown',
       transcode_hw_decoding: session.transcode_hw_decoding || 0,
       transcode_hw_encoding: session.transcode_hw_encoding || 0,
-      media_type: this.titleCase(session.media_type || '') || 'unknown',
+      media_type: normalizeMediaType(session.media_type),
       audio_codec: (session.audio_codec || '').toUpperCase() || 'unknown',
       stream_audio_codec: (session.stream_audio_codec || '').toUpperCase() || 'unknown',
       quality_profile: session.quality_profile || 'unknown',
@@ -605,7 +606,7 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
       return {
         tags: {
           type: 'RecentlyAdded',
-          media_type: item.media_type || 'unknown',
+          media_type: normalizeMediaType(item.media_type),
           section_id: item.section_id || 'unknown',
           library_name: item.library_name || 'unknown',
           rating_key: item.rating_key || 'unknown',
@@ -645,7 +646,7 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
     return {
       tags: {
         type: 'Play',
-        media_type: row.media_type || 'unknown',
+        media_type: normalizeMediaType(row.media_type),
         rating_key: row.rating_key ?? 'unknown',
         user_id: row.user_id ?? 'unknown',
         username: row.user || 'unknown',

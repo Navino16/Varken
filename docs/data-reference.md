@@ -2,6 +2,7 @@
 
 Every input plugin writes DataPoints whose measurement is the service name (`Sonarr`, `Tautulli`, ...). Every point carries a `server` tag (the instance `id` from the config) and a `type` tag that distinguishes the kinds of points a plugin writes; both are omitted from the tables below.
 Numbers meant for graphing are fields; tags hold labels and identifiers. The `hash` field is a deduplication key (MD5) and is not meant to be graphed.
+Media types are written as a `media_type` tag with one shared vocabulary across plugins: `movie`, `show`, `season`, `episode`, `artist`, `album`, `track`, `clip`, `photo`, `live`, else the source's own type lowercased (`unknown` when absent).
 Decimal fields (`score_percent`, `lat`, `lon`, the Servarr `progress`, `used_percent`, `last_duration_seconds`, `percent_of_*`, and the session `transcode_speed`, `transcode_progress`, `stream_framerate`, `community_rating`, `transcode_cpu_percent`, `refresh_progress`, the Plex `progress`, `speed`, `percent` and `*_cpu_percent` / `*_memory_percent`, the Jellyfin/Emby task `progress`, the Tautulli `watched_status`) are always written as floats, even for whole values, so their column type stays stable.
 Points are timestamped with the collection time (`createDataPoint` default) unless stated otherwise in a section.
 Event points (`type = History`, Plex and Tautulli `Play`, Plex `Bandwidth`, Jellyfin/Emby `Activity`, Tautulli `RecentlyAdded` and its day/month graph buckets) are timestamped with the event time, plus the record id's last three digits as milliseconds: the APIs report whole seconds, and this keeps same-second events with identical tags as separate points. Each event collector keeps a high-water mark in `DATA_FOLDER/event-state/` and only writes events newer than it, so an event is written once even across restarts. Without a mark (first run, deleted or unreadable file) it starts from the plugin start time: earlier events are not backfilled.
@@ -473,7 +474,7 @@ Config: `inputs.tautulli[].activity` (`enabled`, `intervalSeconds`), `inputs.tau
 | `transcode_decision` | tag | string | Title-cased; defaults to `Direct play`, `copy` becomes `Direct stream` |
 | `transcode_hw_decoding` | tag | number | Hardware decoding flag (`0` when absent) |
 | `transcode_hw_encoding` | tag | number | Hardware encoding flag (`0` when absent) |
-| `media_type` | tag | string | Title-cased media type (`unknown` when absent) |
+| `media_type` | tag | string | Media type, shared vocabulary (see top of page) |
 | `audio_codec` | tag | string | Source audio codec, upper-cased (`unknown` when absent) |
 | `stream_audio_codec` | tag | string | Streamed audio codec, upper-cased (`unknown` when absent) |
 | `quality_profile` | tag | string | Quality profile (`unknown` when absent) |
@@ -598,7 +599,7 @@ Config: `inputs.tautulli[].stats` · Source: `get_recently_added` (`count=50`). 
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
-| `media_type` | tag | string | `movie`, `show`, `season`, `episode`, `artist`, `album`, `track`, ... |
+| `media_type` | tag | string | Media type, shared vocabulary (see top of page) |
 | `section_id` | tag | string | Library section id |
 | `library_name` | tag | string | Library name |
 | `rating_key` | tag | string | Plex item id |
@@ -612,7 +613,7 @@ Config: `inputs.tautulli[].history` (`enabled`, `intervalSeconds`, default disab
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
-| `media_type` | tag | string | `movie`, `episode`, `track`, ... |
+| `media_type` | tag | string | Media type, shared vocabulary (see top of page) |
 | `rating_key` | tag | number | Plex item id |
 | `user_id`, `username` | tag | mixed | Plex user |
 | `platform`, `player`, `product` | tag | string | Client |
@@ -682,7 +683,7 @@ Config: `inputs.plex[].sessions` (`enabled`, `intervalSeconds`) · Source: `/sta
 | `product_version` | tag | string | Player version (`unknown` when absent) |
 | `quality` | tag | string | Upper-cased video resolution, else container (`unknown` when empty) |
 | `video_decision` | tag | string | Transcode video decision; `transcode` if a transcode session has no decision, `direct play` without transcode session |
-| `media_type` | tag | string | Plex item type (`unknown` when absent) |
+| `media_type` | tag | string | Media type, shared vocabulary (see top of page) |
 | `audio_codec` | tag | string | Upper-cased audio codec of the first media (`unknown` when absent) |
 | `player_state` | tag | number | `0` playing, `1` paused, `3` buffering (unknown states map to `0`) |
 | `device_type` | tag | string | Same value as `platform` (`unknown` when absent) |
@@ -837,7 +838,7 @@ Config: `inputs.plex[].history` (`enabled`, `intervalSeconds`, default disabled,
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
-| `media_type` | tag | string | `movie`, `episode`, `track`, ... |
+| `media_type` | tag | string | Media type, shared vocabulary (see top of page) |
 | `library_section_id` | tag | string | Library of the item |
 | `rating_key` | tag | string | Item played |
 | `account_id`, `username` | tag | number, string | Plex account (`unknown` when not in `/accounts`) |
@@ -887,7 +888,7 @@ Config: `inputs.jellyfin[].sessions` (`enabled`, `intervalSeconds`) · Source: `
 | `product_version` | tag | string | Application version (`unknown` when absent) |
 | `quality` | tag | string | `<height>p`, else upper-cased container (`unknown` when empty) |
 | `video_decision` | tag | string | `direct play` without transcoding info, `direct stream` if the video is copied, else `transcode` |
-| `media_type` | tag | string | Media type, else item type (`unknown` when absent) |
+| `media_type` | tag | string | Media type, shared vocabulary (see top of page) |
 | `audio_codec` | tag | string | Upper-cased codec of the played audio stream, else first audio stream, else transcoder audio codec (`unknown` when none) |
 | `player_state` | tag | number | `1` paused, `0` otherwise (buffering is never produced) |
 | `device_type` | tag | string | Device type (`unknown` when absent) |
@@ -985,7 +986,7 @@ Config: `inputs.emby[].sessions` (`enabled`, `intervalSeconds`) · Source: `/emb
 | `product_version` | tag | string | Application version (`unknown` when absent) |
 | `quality` | tag | string | `<height>p`, else upper-cased container (`unknown` when empty) |
 | `video_decision` | tag | string | `direct play` without transcoding info, `direct stream` if the video is copied, else `transcode` |
-| `media_type` | tag | string | Media type, else item type (`unknown` when absent) |
+| `media_type` | tag | string | Media type, shared vocabulary (see top of page) |
 | `audio_codec` | tag | string | Upper-cased codec of the played audio stream, else first audio stream, else transcoder audio codec (`unknown` when none) |
 | `player_state` | tag | number | `1` paused, `0` otherwise (buffering is never produced) |
 | `device_type` | tag | string | Device type (`unknown` when absent) |
