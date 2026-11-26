@@ -59,4 +59,50 @@ describe('seedDemo', () => {
 
     expect(stable(second.points)).toEqual(stable(first.points));
   });
+
+  it('emits events from every event collector', async () => {
+    const { points } = await seed();
+    const types = new Set(points.map((p) => `${p.measurement}/${p.tags.type}`));
+    const expected = [
+      ...['Sonarr', 'Radarr', 'Lidarr', 'Readarr', 'Prowlarr', 'Bazarr'].map((m) => `${m}/History`),
+      'Jellyfin/Activity',
+      'Emby/Activity',
+      'Plex/Play',
+      'Plex/Bandwidth',
+      ...['Play', 'RecentlyAdded', 'PlaysByDate', 'PlaysByStreamType', 'ConcurrentStreams', 'PlaysByMonth'].map((t) => `Tautulli/${t}`),
+      'Bazarr/HistoryStats',
+    ];
+
+    expect(expected.filter((type) => !types.has(type))).toEqual([]);
+  });
+
+  it('dates events inside the simulated window', async () => {
+    const { summary, points } = await seed();
+    const isEvent = (p: DataPoint): boolean => ['History', 'Play'].includes(String(p.tags.type)) || (p.tags.type === 'Activity' && p.measurement !== 'Plex');
+    const events = points.filter(isEvent);
+
+    expect(events.length).toBeGreaterThan(0);
+    for (const event of events) {
+      expect(event.timestamp.getTime()).toBeGreaterThan(summary.start.getTime());
+      expect(event.timestamp.getTime()).toBeLessThanOrEqual(END.getTime());
+    }
+  });
+
+  it('varies live sessions with the hour', async () => {
+    const { points } = await seed();
+    const counts = new Set(points.filter((p) => p.measurement === 'Tautulli' && 'stream_count' in p.fields).map((p) => p.fields.stream_count));
+
+    expect(counts.size).toBeGreaterThanOrEqual(3);
+    expect(counts.has(0)).toBe(true);
+  });
+
+  it('records the Readarr outage', async () => {
+    const { points } = await seed();
+    const readarr = points.filter((p) => p.measurement === 'Varken' && p.tags.type === 'Collector' && p.tags.plugin === 'Readarr');
+    const last = Math.max(...readarr.map((p) => p.timestamp.getTime()));
+
+    expect(readarr.some((p) => Number(p.fields.errors) > 0)).toBe(true);
+    expect(readarr.some((p) => p.fields.circuit_state === 2)).toBe(true);
+    expect(readarr.filter((p) => p.timestamp.getTime() === last).every((p) => p.fields.circuit_state === 0)).toBe(true);
+  });
 });

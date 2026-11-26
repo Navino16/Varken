@@ -9,12 +9,14 @@ import { getInputPluginRegistry } from '../../src/plugins/inputs';
 import type { DataPoint, InputPlugin, OutputPlugin, ScheduleConfig } from '../../src/types/plugin.types';
 import { useEventStateFolder } from '../../src/utils/EventStateStore';
 import type { ServiceId } from '../contracts/lib/spec';
-import { createContractHttpClient } from '../fixtures/contract-http';
+import { createContractHttpClient, type ContractHttpClient } from '../fixtures/contract-http';
 import { demoInputs } from './config';
+import { applyDemoVariants } from './variants';
 
 const DAY_MS = 86_400_000;
 /** Consecutive errors after which a demo schedule reports an open circuit (simplified PluginManager breaker). */
 const DEMO_CIRCUIT_ERRORS = 3;
+const HOUR_MS = 3_600_000;
 
 export interface SeedOptions {
   outputs: ReadonlyMap<string, OutputPlugin>;
@@ -52,7 +54,19 @@ function stepTimes(start: number, end: number, stepMs: number): number[] {
   return times;
 }
 
-async function startPlugins(): Promise<InputPlugin[]> {
+/** Readarr is unreachable from `end - 30 h` to `end - 26 h`, so health panels have an incident to show. */
+function simulateReadarrOutage(client: ContractHttpClient, end: number): void {
+  const get = client.get.getMockImplementation();
+  client.get.mockImplementation(async (...args: Parameters<typeof client.get>) => {
+    const now = Date.now();
+    if (now >= end - 30 * HOUR_MS && now < end - 26 * HOUR_MS) {
+      throw Object.assign(new Error('connect ECONNREFUSED readarr.demo:80'), { code: 'ECONNREFUSED' });
+    }
+    return get?.(...args);
+  });
+}
+
+async function startPlugins(end: number): Promise<InputPlugin[]> {
   const registry = getInputPluginRegistry();
   const globalConfig = GlobalConfigSchema.parse({});
   const plugins: InputPlugin[] = [];
@@ -64,6 +78,10 @@ async function startPlugins(): Promise<InputPlugin[]> {
     for (const config of configs) {
       const plugin = new Plugin();
       const client = createContractHttpClient(serviceOf(key));
+      applyDemoVariants(serviceOf(key), client);
+      if (key === 'readarr') {
+        simulateReadarrOutage(client, end);
+      }
       vi.spyOn(plugin as unknown as { createHttpClient(): AxiosInstance }, 'createHttpClient').mockReturnValue(client as unknown as AxiosInstance);
       await plugin.initialize(config, globalConfig);
       plugins.push(plugin);
@@ -136,7 +154,7 @@ export async function seedDemo(options: SeedOptions): Promise<SeedSummary> {
   let plugins: InputPlugin[] = [];
   try {
     vi.setSystemTime(start);
-    plugins = await startPlugins();
+    plugins = await startPlugins(end);
     const schedules: DemoSchedule[] = plugins.flatMap((plugin) =>
       plugin.getSchedules().filter((schedule) => schedule.enabled).map((schedule) => ({ schedule, consecutiveErrors: 0 }))
     );
