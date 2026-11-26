@@ -77,6 +77,18 @@ describe('OverseerrPlugin collectors', () => {
       expect(callsTo(client, '/api/v1/tv/95396')).toBe(1);
     });
 
+    it('empties the title cache once it holds 1000 titles', async () => {
+      const titles = (plugin as unknown as { titles: Map<string, string> }).titles;
+      for (let i = 0; i < 1000; i++) {
+        titles.set(`movie:${i}`, `Title ${i}`);
+      }
+
+      await requests();
+
+      expect(titles.size).toBe(3);
+      expect(titles.has('movie:0')).toBe(false);
+    });
+
     it('keeps a request whose title lookup fails', async () => {
       const tv = loadFixture<components['schemas']['TvDetails']>('seerr/tv');
       let calls = 0;
