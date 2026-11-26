@@ -235,6 +235,19 @@ Tautulli's `stats` collector writes library counts at its interval, and home sta
 | `users` | 3600s | Users with plays, last seen and watch time (1, 7, 30 days, all time) |
 | `libraryMedia` | 1 day (`intervalDays`) | Per-library plays and watch time, media info (file size, items per resolution and codec) |
 
+Overseerr, Ombi and Bazarr also accept these collectors, all disabled by default:
+
+| Plugin | Key | Default interval | What it writes |
+|--------|-----|------------------|----------------|
+| Overseerr | `status` | 300s | Jobs (running, time to next run), image, DNS and API caches, request and media totals, appdata state |
+| Overseerr | `totals` | 300s | Failed, unavailable and deleted requests; media by availability |
+| Overseerr | `users` | 3600s | Requests per user and movie/TV quotas |
+| Ombi | `totals` | 300s | Movie, TV and music requests per status; requests of the last 30 days |
+| Ombi | `users` | 3600s | Last login and request quotas per user |
+| Bazarr | `status` | 300s | Badges (wanted, throttled providers, health, announcements, Sonarr/Radarr SignalR), providers, tasks, job queue, releases behind |
+| Bazarr | `stats` | 3600s | Subtitles downloaded per day, languages |
+| Bazarr | `library` | 1 day (`intervalDays`) | Movie and series subtitle coverage |
+
 ### Output Configuration
 
 Varken supports multiple output backends. You can configure one or several simultaneously — each data point is written to every configured output.

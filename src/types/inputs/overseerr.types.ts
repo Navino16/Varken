@@ -21,4 +21,16 @@ export interface OverseerrConfig {
     enabled: boolean;
     intervalSeconds: number;
   };
+  status: {
+    enabled: boolean;
+    intervalSeconds: number;
+  };
+  totals: {
+    enabled: boolean;
+    intervalSeconds: number;
+  };
+  users: {
+    enabled: boolean;
+    intervalSeconds: number;
+  };
 }

@@ -20,4 +20,16 @@ export interface BazarrConfig {
     enabled: boolean;
     intervalSeconds: number;
   };
+  status: {
+    enabled: boolean;
+    intervalSeconds: number;
+  };
+  stats: {
+    enabled: boolean;
+    intervalSeconds: number;
+  };
+  library: {
+    enabled: boolean;
+    intervalDays: number;
+  };
 }

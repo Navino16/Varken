@@ -36,6 +36,9 @@ describe('BazarrPlugin', () => {
     wanted: { enabled: true, intervalSeconds: 300 },
     history: { enabled: true, intervalSeconds: 600 },
     serverInfo: { enabled: false, intervalSeconds: 300 },
+    status: { enabled: false, intervalSeconds: 300 },
+    stats: { enabled: false, intervalSeconds: 3600 },
+    library: { enabled: false, intervalDays: 1 },
   };
 
   beforeEach(() => {

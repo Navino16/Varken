@@ -51,6 +51,9 @@ describe('OverseerrPlugin', () => {
     requestCounts: { enabled: true, intervalSeconds: 300 },
     latestRequests: { enabled: true, intervalSeconds: 60, count: 10 },
     serverInfo: { enabled: false, intervalSeconds: 300 },
+    status: { enabled: false, intervalSeconds: 300 },
+    totals: { enabled: false, intervalSeconds: 300 },
+    users: { enabled: false, intervalSeconds: 3600 },
   };
 
   beforeEach(() => {

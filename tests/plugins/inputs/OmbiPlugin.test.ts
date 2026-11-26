@@ -41,6 +41,8 @@ describe('OmbiPlugin', () => {
     requestCounts: { enabled: true, intervalSeconds: 300 },
     issueCounts: { enabled: true, intervalSeconds: 300 },
     serverInfo: { enabled: false, intervalSeconds: 300 },
+    totals: { enabled: false, intervalSeconds: 300 },
+    users: { enabled: false, intervalSeconds: 3600 },
   };
 
   beforeEach(async () => {

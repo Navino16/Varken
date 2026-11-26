@@ -20,4 +20,12 @@ export interface OmbiConfig {
     enabled: boolean;
     intervalSeconds: number;
   };
+  totals: {
+    enabled: boolean;
+    intervalSeconds: number;
+  };
+  users: {
+    enabled: boolean;
+    intervalSeconds: number;
+  };
 }
