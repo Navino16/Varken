@@ -38,6 +38,90 @@
         "source": 0,
         "canApprove": false,
         "id": 8
+      },
+      {
+        "parentRequestId": 5,
+        "issueId": null,
+        "seriesType": 0,
+        "subscribed": false,
+        "showSubscribe": false,
+        "releaseYear": "2022-02-18T00:00:00Z",
+        "requestStatus": "Common.Denied",
+        "requestedUserPlayedProgress": 40,
+        "title": "Severance",
+        "approved": false,
+        "markedAsApproved": "0001-01-01T00:00:00Z",
+        "requestedDate": "2026-11-24T08:30:12.000Z",
+        "available": false,
+        "markedAsAvailable": null,
+        "requestedUserId": "8d4e2f6a-1c3b-4a5d-8e9f-0a1b2c3d4e5f",
+        "denied": true,
+        "markedAsDenied": "2026-11-24T09:00:00Z",
+        "deniedReason": "Not available in my region",
+        "requestType": 0,
+        "requestedByAlias": null,
+        "source": 0,
+        "canApprove": true,
+        "id": 9,
+        "seasonRequests": [
+          {
+            "id": 21,
+            "seasonNumber": 1,
+            "overview": "Season 1",
+            "childRequestId": 9,
+            "seasonAvailable": false,
+            "episodes": [
+              {
+                "id": 301,
+                "episodeNumber": 1,
+                "title": "Good News About Hell",
+                "airDate": "2022-02-18T00:00:00Z",
+                "url": null,
+                "requested": true,
+                "approved": false,
+                "available": false,
+                "denied": true,
+                "deniedReason": null,
+                "seasonId": 21
+              },
+              {
+                "id": 302,
+                "episodeNumber": 2,
+                "title": "Half Loop",
+                "airDate": "2022-02-18T00:00:00Z",
+                "url": null,
+                "requested": true,
+                "approved": false,
+                "available": false,
+                "denied": true,
+                "deniedReason": null,
+                "seasonId": 21
+              }
+            ]
+          },
+          {
+            "id": 22,
+            "seasonNumber": 2,
+            "overview": "Season 2",
+            "childRequestId": 9,
+            "seasonAvailable": false,
+            "episodes": [
+              {
+                "id": 303,
+                "episodeNumber": 1,
+                "title": "Hello, Ms. Cobel",
+                "airDate": "2025-01-17T00:00:00Z",
+                "url": null,
+                "requested": true,
+                "approved": false,
+                "available": false,
+                "denied": true,
+                "deniedReason": null,
+                "seasonId": 22
+              }
+            ]
+          }
+        ]
       }
     ],
     "id": 5

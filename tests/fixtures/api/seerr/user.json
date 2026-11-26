@@ -1,0 +1,38 @@
+{
+  "pageInfo": {
+    "page": 1,
+    "pages": 1,
+    "results": 2
+  },
+  "results": [
+    {
+      "id": 1,
+      "email": "alice@example.com",
+      "username": "alice",
+      "plexUsername": "alice",
+      "plexToken": "plex-token-alice",
+      "userType": 1,
+      "permissions": 32,
+      "avatar": "/avatarproxy/1",
+      "createdAt": "2025-03-02T19:04:11.000Z",
+      "updatedAt": "2026-11-20T08:12:44.000Z",
+      "requestCount": 12,
+      "displayName": "alice"
+    },
+    {
+      "id": 2,
+      "email": "bob@example.com",
+      "username": "bob",
+      "plexUsername": "bob",
+      "plexToken": "plex-token-bob",
+      "userType": 1,
+      "permissions": 32,
+      "avatar": "/avatarproxy/2",
+      "createdAt": "2025-03-02T19:04:11.000Z",
+      "updatedAt": "2026-11-20T08:12:44.000Z",
+      "requestCount": 4,
+      "displayName": "bob",
+      "jellyfinAuthToken": "jellyfin-token-bob"
+    }
+  ]
+}

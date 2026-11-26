@@ -14,7 +14,9 @@
         "tmdbId": 693134,
         "status": 5,
         "createdAt": "2026-11-22T18:03:51.000Z",
-        "updatedAt": "2026-11-23T03:15:27.000Z"
+        "updatedAt": "2026-11-23T03:15:27.000Z",
+        "mediaType": "movie",
+        "status4k": 1
       },
       "createdAt": "2026-11-22T18:03:51.000Z",
       "updatedAt": "2026-11-22T18:05:10.000Z",
@@ -57,7 +59,9 @@
         "status": 4,
         "createdAt": "2026-11-21T09:30:14.000Z",
         "updatedAt": "2026-11-23T03:15:27.000Z",
-        "tvdbId": 371980
+        "tvdbId": 371980,
+        "mediaType": "tv",
+        "status4k": 1
       },
       "createdAt": "2026-11-21T09:30:14.000Z",
       "updatedAt": "2026-11-21T09:31:02.000Z",
@@ -88,7 +92,23 @@
       "is4k": false,
       "serverId": 0,
       "profileId": 6,
-      "rootFolder": "/tv"
+      "rootFolder": "/tv",
+      "seasons": [
+        {
+          "id": 71,
+          "seasonNumber": 1,
+          "status": 2,
+          "createdAt": "2026-11-21T09:30:14.000Z",
+          "updatedAt": "2026-11-21T09:31:02.000Z"
+        },
+        {
+          "id": 72,
+          "seasonNumber": 2,
+          "status": 2,
+          "createdAt": "2026-11-21T09:30:14.000Z",
+          "updatedAt": "2026-11-21T09:31:02.000Z"
+        }
+      ]
     },
     {
       "id": 39,
@@ -99,7 +119,9 @@
         "tmdbId": 329865,
         "status": 2,
         "createdAt": "2026-11-20T20:12:45.000Z",
-        "updatedAt": "2026-11-23T03:15:27.000Z"
+        "updatedAt": "2026-11-23T03:15:27.000Z",
+        "mediaType": "movie",
+        "status4k": 3
       },
       "createdAt": "2026-11-20T20:12:45.000Z",
       "updatedAt": "2026-11-20T20:12:45.000Z",
@@ -116,7 +138,7 @@
         "displayName": "bob"
       },
       "modifiedBy": null,
-      "is4k": false,
+      "is4k": true,
       "serverId": 0,
       "profileId": 4,
       "rootFolder": "/movies"
