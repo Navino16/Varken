@@ -37,6 +37,7 @@ function config(keys: Partial<Record<Key, boolean>>): OverseerrConfig {
 
 const ofType = (points: DataPoint[], type: string): DataPoint[] => points.filter((p) => p.tags.type === type);
 const callsTo = (client: ContractHttpClient, path: string): number => client.get.mock.calls.filter((call) => call[0] === path).length;
+const valuesOf = (points: DataPoint[]): unknown[] => points.flatMap((p) => [...Object.values(p.tags), ...Object.values(p.fields)]);
 const queryOf = (client: ContractHttpClient, path: string): Record<string, unknown>[] =>
   client.get.mock.calls.filter((call) => call[0] === path).map((call) => (call[1] as { params: Record<string, unknown> }).params);
 
@@ -171,6 +172,124 @@ describe('OverseerrPlugin collectors', () => {
 
       expect(schedules.map((s) => s.name)).toEqual(['Overseerr_1_totals']);
       expect(schedules[0].intervalSeconds).toBe(300);
+    });
+  });
+
+  describe('status', () => {
+    beforeEach(async () => {
+      await plugin.initialize(config({ status: true }));
+    });
+
+    it('collects jobs with time to next run', async () => {
+      const jobs = ofType(await plugin.collect(), 'Job');
+
+      expect(jobs).toHaveLength(3);
+      expect(jobs[0].tags).toMatchObject({ job_id: 'plex-recently-added-scan', job_type: 'process', interval: 'short' });
+      expect(jobs[0].fields).toEqual({ name: 'Plex Recently Added Scan', running: 0, next_run_seconds: 600 });
+      expect(jobs[1].fields.running).toBe(1);
+    });
+
+    it('collects image, DNS and API cache stats', async () => {
+      const points = await plugin.collect();
+      const [cache] = ofType(points, 'Cache');
+      const apiCaches = ofType(points, 'ApiCache');
+
+      expect(cache.fields).toEqual({
+        tmdb_image_size: 184467200,
+        tmdb_images: 1840,
+        avatar_image_size: 2097152,
+        avatar_images: 12,
+        dns_size: 9,
+        dns_max_size: 500,
+        dns_hits: 1921,
+        dns_misses: 101,
+        dns_failures: 0,
+        dns_ipv4_fallbacks: 2,
+        dns_hit_rate: 0.95,
+      });
+      expect(cache.floatFields).toEqual(['dns_hit_rate']);
+      expect(apiCaches.map((p) => p.tags.cache_id)).toEqual(['tmdb', 'radarr']);
+      expect(apiCaches[0].fields).toEqual({ name: 'TMDb API', hits: 1520, misses: 310, keys: 284, key_size: 11360, value_size: 2390112 });
+    });
+
+    it('collects request and media totals with appdata state', async () => {
+      const [status] = ofType(await plugin.collect(), 'Status');
+
+      expect(status.fields).toEqual({ total_requests: 42, total_media_items: 118, appdata: 1, appdata_permissions: 1 });
+    });
+
+    it('never emits the appdata path', async () => {
+      expect(valuesOf(await plugin.collect())).not.toContain('/app/config');
+    });
+
+    it('schedules the status collector', () => {
+      expect(plugin.getSchedules().map((s) => s.name)).toEqual(['Overseerr_1_status']);
+    });
+  });
+
+  describe('users', () => {
+    type UserPage = { pageInfo: { page: number; pages: number; results: number }; results: components['schemas']['User'][] };
+
+    beforeEach(async () => {
+      await plugin.initialize(config({ users: true }));
+    });
+
+    it('collects users with quotas', async () => {
+      const points = await plugin.collect();
+      const users = ofType(points, 'User');
+
+      expect(users.map((p) => p.tags)).toEqual([
+        { type: 'User', server: 1, user_id: 1, display_name: 'alice', user_type: 1 },
+        { type: 'User', server: 1, user_id: 2, display_name: 'bob', user_type: 1 },
+      ]);
+      expect(users[0].fields).toEqual({
+        requests: 12,
+        movie_quota_limit: 10,
+        movie_quota_days: 7,
+        movie_quota_used: 6,
+        movie_quota_remaining: 4,
+        movie_quota_restricted: 0,
+        tv_quota_used: 3,
+        tv_quota_restricted: 0,
+      });
+      expect(ofType(points, 'Users')[0].fields).toEqual({ users: 2 });
+      expect(queryOf(client, '/api/v1/user')).toEqual([{ sort: 'requests', take: 100, skip: 0 }]);
+    });
+
+    it('omits quota fields the service does not limit', async () => {
+      const [alice] = ofType(await plugin.collect(), 'User');
+
+      expect(alice.fields).not.toHaveProperty('tv_quota_limit');
+      expect(alice.fields).not.toHaveProperty('tv_quota_remaining');
+    });
+
+    it('pages through users', async () => {
+      const page = loadFixture<UserPage>('seerr/user');
+      const many = Array.from({ length: 101 }, (_, i) => ({ ...page.results[0], id: i + 1, displayName: `user${i + 1}` }));
+      client.override('/api/v1/user', (params) => {
+        const skip = Number(params?.skip);
+        return { pageInfo: { page: skip / 100 + 1, pages: 2, results: 101 }, results: many.slice(skip, skip + 100) };
+      });
+
+      const users = ofType(await plugin.collect(), 'User');
+
+      expect(users).toHaveLength(101);
+      expect(queryOf(client, '/api/v1/user').map((q) => q.skip)).toEqual([0, 100]);
+    });
+
+    it('never emits user emails, tokens or avatars', async () => {
+      const values = valuesOf(await plugin.collect());
+
+      for (const secret of ['alice@example.com', 'plex-token-alice', 'jellyfin-token-bob', '/avatarproxy/1']) {
+        expect(values).not.toContain(secret);
+      }
+    });
+
+    it('schedules the users collector', () => {
+      const [schedule] = plugin.getSchedules();
+
+      expect(schedule.name).toBe('Overseerr_1_users');
+      expect(schedule.intervalSeconds).toBe(300);
     });
   });
 });

@@ -1,14 +1,19 @@
 import { BaseInputPlugin } from './BaseInputPlugin';
-import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
+import type { PluginMetadata, DataPoint, PointSpec, ScheduleConfig } from '../../types/plugin.types';
 import type { OverseerrConfig } from '../../types/inputs/overseerr.types';
 import type { components, paths } from '../../types/generated/seerr';
 import { booleanFlags } from './utils/flags';
 import { isNumber, pickNumbers } from './utils/numbers';
+import { mapLimit } from '../../utils/concurrency';
 
 const REQUEST_TYPE = { TV: 0, MOVIE: 1 } as const;
 const TITLE_CACHE_SIZE = 1000;
+const USER_PAGE_SIZE = 100;
+const QUOTA_CONCURRENCY = 4;
 
 type MediaRequest = components['schemas']['MediaRequest'];
+type Quota = paths['/user/{userId}/quota']['get']['responses'][200]['content']['application/json'];
+type User = components['schemas']['User'];
 type RequestFilter = NonNullable<NonNullable<paths['/request']['get']['parameters']['query']>['filter']>;
 type MediaFilter = NonNullable<NonNullable<paths['/media']['get']['parameters']['query']>['filter']>;
 
@@ -78,6 +83,14 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
       points.push(...(await this.collectTotals()));
     }
 
+    if (this.config.status.enabled) {
+      points.push(...(await this.collectStatus()));
+    }
+
+    if (this.config.users.enabled) {
+      points.push(...(await this.collectUsers()));
+    }
+
     return points;
   }
 
@@ -119,6 +132,14 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
 
     if (this.config.totals.enabled) {
       schedules.push(this.createSchedule('totals', this.config.totals.intervalSeconds, true, this.collectTotals));
+    }
+
+    if (this.config.status.enabled) {
+      schedules.push(this.createSchedule('status', this.config.status.intervalSeconds, true, this.collectStatus));
+    }
+
+    if (this.config.users.enabled) {
+      schedules.push(this.createSchedule('users', this.config.users.intervalSeconds, true, this.collectUsers));
     }
 
     return schedules;
@@ -283,6 +304,95 @@ export class OverseerrPlugin extends BaseInputPlugin<OverseerrConfig> {
         { tags: { type: 'MediaTotals' }, fields: fieldsOf(mediaFilters, media) },
       ]);
     });
+  }
+
+  private async collectStatus(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Overseerr status', async () => {
+      const [jobs, cache, about, appdata] = await Promise.all([
+        this.seerr.get('/settings/jobs'),
+        this.seerr.get('/settings/cache'),
+        this.seerr.get('/settings/about'),
+        this.seerr.get('/status/appdata'),
+      ]);
+      const now = Date.now();
+      const specs: PointSpec[] = (jobs ?? []).map((job) => {
+        const fields: Record<string, string | number> = { name: job.name ?? 'unknown', ...booleanFlags({ running: job.running }) };
+        const next = Date.parse(job.nextExecutionTime ?? '');
+        if (Number.isFinite(next)) {
+          fields.next_run_seconds = Math.floor((next - now) / 1000);
+        }
+        return { tags: { type: 'Job', job_id: job.id ?? 'unknown', job_type: job.type ?? 'unknown', interval: job.interval ?? 'unknown' }, fields };
+      });
+      const dns = cache?.dnsCache?.stats;
+      specs.push(
+        {
+          tags: { type: 'Cache' },
+          fields: {
+            ...pickNumbers(cache?.imageCache?.tmdb, { size: 'tmdb_image_size', imageCount: 'tmdb_images' }),
+            ...pickNumbers(cache?.imageCache?.avatar, { size: 'avatar_image_size', imageCount: 'avatar_images' }),
+            ...pickNumbers(dns, {
+              size: 'dns_size',
+              maxSize: 'dns_max_size',
+              hits: 'dns_hits',
+              misses: 'dns_misses',
+              failures: 'dns_failures',
+              ipv4Fallbacks: 'dns_ipv4_fallbacks',
+              hitRate: 'dns_hit_rate',
+            }),
+          },
+          floatFields: ['dns_hit_rate'],
+        },
+        ...(cache?.apiCaches ?? []).map((apiCache) => ({
+          tags: { type: 'ApiCache', cache_id: apiCache.id ?? 'unknown' },
+          fields: {
+            name: apiCache.name ?? 'unknown',
+            ...pickNumbers(apiCache.stats, { hits: 'hits', misses: 'misses', keys: 'keys', ksize: 'key_size', vsize: 'value_size' }),
+          },
+        })),
+        {
+          tags: { type: 'Status' },
+          fields: {
+            ...pickNumbers(about, { totalRequests: 'total_requests', totalMediaItems: 'total_media_items' }),
+            ...booleanFlags({ appdata: appdata?.appData, appdata_permissions: appdata?.appDataPermissions }),
+          },
+        }
+      );
+      return this.createPoints(specs);
+    });
+  }
+
+  private async collectUsers(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Overseerr users', async () => {
+      const users: User[] = [];
+      let total = 0;
+      for (let skip = 0; ; skip += USER_PAGE_SIZE) {
+        const page = await this.seerr.get('/user', { query: { sort: 'requests', take: USER_PAGE_SIZE, skip } });
+        const results = page?.results ?? [];
+        total = page?.pageInfo?.results ?? users.length + results.length;
+        users.push(...results);
+        if (results.length < USER_PAGE_SIZE || users.length >= total) {
+          break;
+        }
+      }
+      const quotas = await mapLimit(users, QUOTA_CONCURRENCY, (user) => this.seerr.get('/user/{userId}/quota', { path: { userId: user.id } }));
+      const specs: PointSpec[] = users.map((user, i) => ({
+        tags: { type: 'User', user_id: user.id, display_name: user.displayName || user.username || 'unknown', user_type: user.userType ?? 'unknown' },
+        fields: {
+          ...pickNumbers(user, { requestCount: 'requests' }),
+          ...this.quotaFields('movie', quotas[i]?.movie),
+          ...this.quotaFields('tv', quotas[i]?.tv),
+        },
+      }));
+      specs.push({ tags: { type: 'Users' }, fields: { users: total } });
+      return this.createPoints(specs);
+    });
+  }
+
+  private quotaFields(prefix: string, quota: Quota['movie']): Record<string, number> {
+    return {
+      ...pickNumbers(quota, { limit: `${prefix}_quota_limit`, days: `${prefix}_quota_days`, used: `${prefix}_quota_used`, remaining: `${prefix}_quota_remaining` }),
+      ...booleanFlags({ [`${prefix}_quota_restricted`]: quota?.restricted }),
+    };
   }
 
   private async collectServerInfo(): Promise<DataPoint[]> {
