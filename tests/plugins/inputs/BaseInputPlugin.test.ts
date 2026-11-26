@@ -4,6 +4,7 @@ import { DataPoint, PluginMetadata, PointSpec, ScheduleConfig } from '../../../s
 import type { GlobalConfig } from '../../../src/config/schemas/config.schema';
 import type { ApiClient } from '../../../src/types/api-contract';
 import { getEventStateStore, useEventStateFolder } from '../../../src/utils/EventStateStore';
+import type { Bucket } from '../../../src/plugins/inputs/utils/buckets';
 
 // Mock the logger
 vi.mock('../../../src/core/Logger', () => ({
@@ -118,6 +119,10 @@ class TestInputPlugin extends BaseInputPlugin<TestConfig> {
 
   public testEventCursor(collector: string): Promise<Date> {
     return this.eventCursor(collector);
+  }
+
+  public testTakeSettledBuckets(collector: string, buckets: readonly Bucket[]): Promise<Bucket[]> {
+    return this.takeSettledBuckets(collector, buckets);
   }
 
   public testTakeNewEvents(collector: string, events: readonly { id: number; date: string }[]): Promise<{ id: number; date: string }[]> {
@@ -274,6 +279,26 @@ describe('BaseInputPlugin', () => {
 
       await expect(restarted.testEventCursor('history')).resolves.toEqual(new Date(T));
       expect((await restarted.testTakeNewEvents('history', [ev(1, T), ev(2, '2026-11-25T10:30:00Z')])).map((e) => e.id)).toEqual([2]);
+    });
+
+    describe('settled buckets', () => {
+      const day = (date: string): Bucket => ({ category: date, start: Date.parse(`${date}T00:00:00Z`), end: Date.parse(`${date}T00:00:00Z`) + 86_400_000, fields: { count: 1 } });
+
+      it('returns buckets settled after startup once the day after their end has passed', async () => {
+        const buckets = [day('2026-11-23'), day('2026-11-24'), day('2026-11-25')];
+
+        expect(await plugin.testTakeSettledBuckets('stats', buckets)).toEqual([]);
+        vi.setSystemTime(new Date('2026-11-27T00:00:00Z'));
+        expect((await plugin.testTakeSettledBuckets('stats', buckets)).map((b) => b.category)).toEqual(['2026-11-24', '2026-11-25']);
+      });
+
+      it('never returns a bucket twice', async () => {
+        vi.setSystemTime(new Date('2026-11-27T00:00:00Z'));
+        const buckets = [day('2026-11-25')];
+
+        expect(await plugin.testTakeSettledBuckets('stats', buckets)).toHaveLength(1);
+        expect(await plugin.testTakeSettledBuckets('stats', buckets)).toEqual([]);
+      });
     });
 
     it('keeps separate marks per collector', async () => {

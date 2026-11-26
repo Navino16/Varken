@@ -10,6 +10,7 @@ import type { ApiCallOptions, ApiClient } from '../../types/api-contract';
 import { expandPathTemplate } from '../../utils/pathTemplate';
 import { responseStatus, serializeQuery } from '../../utils/http';
 import { getEventStateStore, type EventMark } from '../../utils/EventStateStore';
+import type { Bucket } from './utils/buckets';
 import type {
   InputPlugin,
   PluginMetadata,
@@ -32,6 +33,8 @@ export interface BaseInputConfig {
 /**
  * Default global configuration values
  */
+const BUCKET_GRACE_MS: number = 24 * 60 * 60 * 1000;
+
 const DEFAULT_GLOBAL_CONFIG: GlobalConfig = {
   httpTimeoutMs: 30000,
   healthCheckTimeoutMs: 5000,
@@ -364,6 +367,16 @@ export abstract class BaseInputPlugin<TConfig extends BaseInputConfig = BaseInpu
     const ids = fresh.filter((e) => timeOf(e) === newest).map(idOf);
     await store.set(key, { time: newest, ids: newest === mark.time ? [...mark.ids, ...ids] : ids });
     return fresh;
+  }
+
+  /**
+   * Buckets not yet emitted, each once a day after it ends: events still running at midnight are recorded when
+   * they stop, and the day is the service's local one (UTC-12 to UTC+14) while bucket bounds are UTC.
+   */
+  protected async takeSettledBuckets<T extends Bucket>(collector: string, buckets: readonly T[]): Promise<T[]> {
+    const settledAt = (bucket: T): number => bucket.end + BUCKET_GRACE_MS;
+    const settled = buckets.filter((bucket) => settledAt(bucket) <= Date.now());
+    return this.takeNewEvents(collector, settled, settledAt, (bucket) => bucket.category);
   }
 
   private async eventMark(collector: string): Promise<EventMark> {
