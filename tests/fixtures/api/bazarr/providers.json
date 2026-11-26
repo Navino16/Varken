@@ -1,0 +1,14 @@
+{
+  "data": [
+    {
+      "name": "addic7ed",
+      "status": "TooManyRequests",
+      "retry": "in 12 minutes"
+    },
+    {
+      "name": "opensubtitlescom",
+      "status": "Good",
+      "retry": "-"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "data": [
+    {
+      "interval": "every 6 hours",
+      "job_id": "wanted_search_missing_subtitles_series",
+      "job_running": true,
+      "name": "Search for Missing Series Subtitles",
+      "next_run_in": "in 5 hours",
+      "next_run_time": "in 5 hours"
+    },
+    {
+      "interval": "every day at 4:00",
+      "job_id": "cache_cleanup",
+      "job_running": false,
+      "name": "Cache Cleanup",
+      "next_run_in": "in 17 hours",
+      "next_run_time": "in 17 hours"
+    }
+  ]
+}
