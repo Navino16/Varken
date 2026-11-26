@@ -216,4 +216,112 @@ describe('BazarrPlugin collectors', () => {
       expect(plugin.getSchedules().map((s) => s.name)).toEqual(['Bazarr_1_history']);
     });
   });
+
+  describe('status', () => {
+    beforeEach(async () => {
+      await plugin.initialize(config({ status: true }));
+    });
+
+    it('collects badges with signalr state', async () => {
+      const [badges] = ofType(await plugin.collect(), 'Badges');
+
+      expect(badges.fields).toEqual({
+        wanted_episodes: 14,
+        wanted_movies: 3,
+        throttled_providers: 1,
+        health_issues: 2,
+        announcements: 1,
+        sonarr_signalr: 1,
+        radarr_signalr: 0,
+      });
+    });
+
+    it('collects provider throttling', async () => {
+      const providers = ofType(await plugin.collect(), 'Provider');
+
+      expect(providers.map((p) => [p.tags.provider, p.tags.status, p.fields.throttled])).toEqual([
+        ['addic7ed', 'TooManyRequests', 1],
+        ['opensubtitlescom', 'Good', 0],
+      ]);
+    });
+
+    it('collects tasks and job queue counts', async () => {
+      const points = await plugin.collect();
+      const tasks = ofType(points, 'Task');
+
+      expect(tasks[0].tags).toMatchObject({ task_id: 'wanted_search_missing_subtitles_series', interval: 'every 6 hours' });
+      expect(tasks[0].fields).toEqual({ name: 'Search for Missing Series Subtitles', running: 1 });
+      expect(tasks[1].fields.running).toBe(0);
+      expect(ofType(points, 'Jobs')[0].fields).toEqual({ pending: 1, running: 1, failed: 0, completed: 2 });
+    });
+
+    it('counts releases behind the running one', async () => {
+      const [releases] = ofType(await plugin.collect(), 'Releases');
+
+      expect(releases.tags.latest).toBe('v1.6.3');
+      expect(releases.fields).toEqual({ releases_behind: 1 });
+    });
+
+    it('omits releases behind on a build not in the list', async () => {
+      const { data } = loadFixture<{ data: components['schemas']['BazarrRelease'][] }>('bazarr/system-releases');
+      client.override('/api/system/releases', { data: data.map((release) => ({ ...release, current: false })) });
+
+      const [releases] = ofType(await plugin.collect(), 'Releases');
+
+      expect(releases.fields).not.toHaveProperty('releases_behind');
+    });
+
+    it('schedules the status collector', () => {
+      expect(plugin.getSchedules().map((s) => s.name)).toEqual(['Bazarr_1_status']);
+    });
+  });
+
+  describe('stats', () => {
+    beforeEach(async () => {
+      await plugin.initialize(config({ stats: true }));
+    });
+
+    it('emits a completed history day once', async () => {
+      expect(ofType(await plugin.collect(), 'HistoryStats')).toEqual([]);
+      vi.setSystemTime(new Date('2026-11-27T01:00:00Z'));
+
+      const [day] = ofType(await plugin.collect(), 'HistoryStats');
+
+      expect(day.fields).toEqual({ episodes: 2, movies: 0 });
+      expect(day.timestamp).toEqual(new Date('2026-11-25T00:00:00Z'));
+      expect(ofType(await plugin.collect(), 'HistoryStats')).toEqual([]);
+      expect(queryOf(client, '/api/history/stats')[0]).toEqual({ timeFrame: 'week' });
+    });
+
+    it('collects languages', async () => {
+      const [languages] = ofType(await plugin.collect(), 'Languages');
+
+      expect(languages.fields).toEqual({ enabled: 2, total: 3 });
+    });
+
+    it('schedules the stats collector', () => {
+      expect(plugin.getSchedules().map((s) => s.name)).toEqual(['Bazarr_1_stats']);
+    });
+  });
+
+  describe('library', () => {
+    beforeEach(async () => {
+      await plugin.initialize(config({ library: true }));
+    });
+
+    it('collects movie and series coverage', async () => {
+      const library = ofType(await plugin.collect(), 'Library');
+
+      expect(library.map((p) => p.tags.media_type)).toEqual(['movie', 'series']);
+      expect(library[0].fields).toEqual({ items: 2, monitored: 1, missing_subtitles_items: 2, missing_subtitles: 2, subtitles: 3 });
+      expect(library[1].fields).toEqual({ items: 2, monitored: 2, ended: 1, episode_files: 33, episodes_missing_subtitles: 4 });
+    });
+
+    it('schedules the library collector in days', () => {
+      const [schedule] = plugin.getSchedules();
+
+      expect(schedule.name).toBe('Bazarr_1_library');
+      expect(schedule.intervalSeconds).toBe(86400);
+    });
+  });
 });

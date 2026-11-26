@@ -1,15 +1,18 @@
 import { BaseInputPlugin } from './BaseInputPlugin';
-import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plugin.types';
+import type { PluginMetadata, DataPoint, PointSpec, ScheduleConfig } from '../../types/plugin.types';
 import type { BazarrConfig } from '../../types/inputs/bazarr.types';
 import type { components, paths } from '../../types/generated/bazarr';
 import { uptimeSeconds } from './utils/uptime';
 import { booleanFlags } from './utils/flags';
 import { pickNumbers } from './utils/numbers';
 import { eventTimestamp } from './utils/events';
+import { bucketRange, type Bucket } from './utils/buckets';
 
 const SCORE_FLOAT_FIELDS = ['score_percent'];
 const HISTORY_PAGE_SIZE = 100;
 const HISTORY_MAX_PAGES = 10;
+const DAY_SECONDS = 24 * 60 * 60;
+const JOB_STATUSES = ['pending', 'running', 'failed', 'completed'];
 
 type MovieHistoryItem = components['schemas']['MovieHistoryItem'];
 type EpisodeHistoryItem = components['schemas']['EpisodeHistoryItem'];
@@ -68,6 +71,18 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
       points.push(...(await this.collectServerInfo()));
     }
 
+    if (this.config.status.enabled) {
+      points.push(...(await this.collectStatus()));
+    }
+
+    if (this.config.stats.enabled) {
+      points.push(...(await this.collectStats()));
+    }
+
+    if (this.config.library.enabled) {
+      points.push(...(await this.collectLibrary()));
+    }
+
     return points;
   }
 
@@ -91,6 +106,18 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
 
     if (this.config.serverInfo.enabled) {
       schedules.push(this.createSchedule('serverInfo', this.config.serverInfo.intervalSeconds, true, this.collectServerInfo));
+    }
+
+    if (this.config.status.enabled) {
+      schedules.push(this.createSchedule('status', this.config.status.intervalSeconds, true, this.collectStatus));
+    }
+
+    if (this.config.stats.enabled) {
+      schedules.push(this.createSchedule('stats', this.config.stats.intervalSeconds, true, this.collectStats));
+    }
+
+    if (this.config.library.enabled) {
+      schedules.push(this.createSchedule('library', this.config.library.intervalDays * DAY_SECONDS, true, this.collectLibrary));
     }
 
     return schedules;
@@ -322,6 +349,107 @@ export class BazarrPlugin extends BaseInputPlugin<BazarrConfig> {
     const [, month, day, year, hours, minutes, seconds] = match.map(Number);
     const fullYear = year < 100 ? 2000 + year : year;
     return new Date(fullYear, month - 1, day, hours, minutes, seconds).getTime();
+  }
+
+  private async collectStatus(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Bazarr status', async () => {
+      const [badges, providers, tasks, jobs, releases] = await Promise.all([
+        this.bazarr.get('/badges'),
+        this.bazarr.get('/providers'),
+        this.bazarr.get('/system/tasks'),
+        this.bazarr.get('/system/jobs'),
+        this.bazarr.get('/system/releases'),
+      ]);
+      const current = releases.data.findIndex((release) => release.current);
+      const specs: PointSpec[] = [
+        {
+          tags: { type: 'Badges' },
+          fields: {
+            ...pickNumbers(badges, {
+              episodes: 'wanted_episodes',
+              movies: 'wanted_movies',
+              providers: 'throttled_providers',
+              status: 'health_issues',
+              announcements: 'announcements',
+            }),
+            // "LIVE" or "" (live badge hidden) when connected, "DOWN" otherwise: api/badges/badges.py.
+            sonarr_signalr: badges.sonarr_signalr === 'DOWN' ? 0 : 1,
+            radarr_signalr: badges.radarr_signalr === 'DOWN' ? 0 : 1,
+          },
+        },
+        ...providers.data.map((provider) => ({
+          tags: { type: 'Provider', provider: provider.name, status: provider.status },
+          fields: { throttled: provider.status === 'Good' ? 0 : 1 },
+        })),
+        ...tasks.data.map((task) => ({
+          tags: { type: 'Task', task_id: task.job_id, interval: task.interval || 'unknown' },
+          fields: { name: task.name, running: task.job_running ? 1 : 0 },
+        })),
+        {
+          tags: { type: 'Jobs' },
+          fields: Object.fromEntries(JOB_STATUSES.map((status) => [status, jobs.data.filter((job) => job.status === status).length])),
+        },
+        {
+          tags: { type: 'Releases', latest: releases.data[0]?.name ?? 'unknown' },
+          fields: current >= 0 ? { releases_behind: current } : {},
+        },
+      ];
+      return this.createPoints(specs);
+    });
+  }
+
+  private async collectStats(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Bazarr stats', async () => {
+      const [stats, languages] = await Promise.all([this.bazarr.get('/history/stats', { query: { timeFrame: 'week' } }), this.bazarr.get('/system/languages')]);
+      const days = new Map<string, Bucket>();
+      for (const [field, counts] of [
+        ['episodes', stats.series],
+        ['movies', stats.movies],
+      ] as const) {
+        for (const { date, count } of counts) {
+          const range = bucketRange(date, 'day');
+          if (range) {
+            const bucket = days.get(date) ?? { category: date, ...range, fields: {} };
+            bucket.fields[field] = count;
+            days.set(date, bucket);
+          }
+        }
+      }
+      const fresh = await this.takeSettledBuckets('history_stats', [...days.values()]);
+      return this.createPoints([
+        ...fresh.map((bucket) => ({ tags: { type: 'HistoryStats' }, fields: bucket.fields, timestamp: new Date(bucket.start) })),
+        { tags: { type: 'Languages' }, fields: { enabled: languages.filter((language) => language.enabled).length, total: languages.length } },
+      ]);
+    });
+  }
+
+  private async collectLibrary(): Promise<DataPoint[]> {
+    return this.safeFetch('collect Bazarr library', async () => {
+      const [{ data: movies }, { data: series }] = await Promise.all([this.bazarr.get('/movies'), this.bazarr.get('/series')]);
+      const sum = <T>(items: readonly T[], value: (item: T) => number): number => items.reduce((total, item) => total + value(item), 0);
+      return this.createPoints([
+        {
+          tags: { type: 'Library', media_type: 'movie' },
+          fields: {
+            items: movies.length,
+            monitored: movies.filter((movie) => movie.monitored).length,
+            missing_subtitles_items: movies.filter((movie) => movie.missing_subtitles.length > 0).length,
+            missing_subtitles: sum(movies, (movie) => movie.missing_subtitles.length),
+            subtitles: sum(movies, (movie) => movie.subtitles.length),
+          },
+        },
+        {
+          tags: { type: 'Library', media_type: 'series' },
+          fields: {
+            items: series.length,
+            monitored: series.filter((show) => show.monitored).length,
+            ended: series.filter((show) => show.ended).length,
+            episode_files: sum(series, (show) => show.episodeFileCount),
+            episodes_missing_subtitles: sum(series, (show) => show.episodeMissingCount),
+          },
+        },
+      ]);
+    });
   }
 
   private async collectServerInfo(): Promise<DataPoint[]> {
