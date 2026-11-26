@@ -1,0 +1,48 @@
+{
+  "data": [
+    {
+      "job_id": 41,
+      "job_name": "Updating Announcements File",
+      "status": "pending",
+      "last_run_time": null,
+      "is_progress": false,
+      "is_signalr": false,
+      "progress_value": 0,
+      "progress_max": 0,
+      "progress_message": ""
+    },
+    {
+      "job_id": 40,
+      "job_name": "Searching missing subtitles",
+      "status": "running",
+      "last_run_time": "2026-11-26 10:25:00",
+      "is_progress": false,
+      "is_signalr": false,
+      "progress_value": 0,
+      "progress_max": 0,
+      "progress_message": ""
+    },
+    {
+      "job_id": 39,
+      "job_name": "Syncing Radarr movies",
+      "status": "completed",
+      "last_run_time": "2026-11-26 09:00:00",
+      "is_progress": false,
+      "is_signalr": false,
+      "progress_value": 0,
+      "progress_max": 0,
+      "progress_message": ""
+    },
+    {
+      "job_id": 38,
+      "job_name": "Syncing Sonarr series",
+      "status": "completed",
+      "last_run_time": "2026-11-26 09:00:00",
+      "is_progress": false,
+      "is_signalr": false,
+      "progress_value": 0,
+      "progress_max": 0,
+      "progress_message": ""
+    }
+  ]
+}

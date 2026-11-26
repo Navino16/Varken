@@ -1,0 +1,18 @@
+{
+  "pageInfo": {
+    "page": 1,
+    "pages": 42,
+    "results": 42
+  },
+  "results": [
+    {
+      "id": 118,
+      "mediaType": "movie",
+      "tmdbId": 693134,
+      "status": 5,
+      "status4k": 1,
+      "createdAt": "2026-11-22T18:03:51.000Z",
+      "updatedAt": "2026-11-23T03:15:27.000Z"
+    }
+  ]
+}

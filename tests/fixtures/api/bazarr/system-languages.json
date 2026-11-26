@@ -1,0 +1,20 @@
+[
+  {
+    "name": "English",
+    "code2": "en",
+    "code3": "eng",
+    "enabled": true
+  },
+  {
+    "name": "French",
+    "code2": "fr",
+    "code3": "fra",
+    "enabled": true
+  },
+  {
+    "name": "German",
+    "code2": "de",
+    "code3": "deu",
+    "enabled": false
+  }
+]

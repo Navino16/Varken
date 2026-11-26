@@ -1,0 +1,69 @@
+{
+  "data": [
+    {
+      "alternativeTitles": [
+        "Severance"
+      ],
+      "audio_language": [
+        {
+          "name": "English",
+          "code2": "en",
+          "code3": "eng"
+        }
+      ],
+      "created_at_timestamp": "2025-04-01 10:00:00",
+      "episodeFileCount": 19,
+      "ended": false,
+      "episodeMissingCount": 4,
+      "fanart": "/images/series/1/fanart.jpg",
+      "imdbId": "tt101",
+      "lastAired": "2026-11-20",
+      "monitored": true,
+      "overview": "Severance overview.",
+      "path": "/tv/Severance",
+      "poster": "/images/series/1/poster.jpg",
+      "profileId": 1,
+      "seriesType": "standard",
+      "sonarrSeriesId": 1,
+      "tags": [
+        "apple"
+      ],
+      "title": "Severance",
+      "tvdbId": 371981,
+      "year": "2022"
+    },
+    {
+      "alternativeTitles": [
+        "Firefly"
+      ],
+      "audio_language": [
+        {
+          "name": "English",
+          "code2": "en",
+          "code3": "eng"
+        }
+      ],
+      "created_at_timestamp": "2025-04-01 10:00:00",
+      "episodeFileCount": 14,
+      "ended": true,
+      "episodeMissingCount": 0,
+      "fanart": "/images/series/2/fanart.jpg",
+      "imdbId": "tt102",
+      "lastAired": "2026-11-20",
+      "monitored": true,
+      "overview": "Firefly overview.",
+      "path": "/tv/Firefly",
+      "poster": "/images/series/2/poster.jpg",
+      "profileId": 1,
+      "seriesType": "standard",
+      "sonarrSeriesId": 2,
+      "tags": [
+        "apple"
+      ],
+      "title": "Firefly",
+      "tvdbId": 371982,
+      "year": "2022"
+    }
+  ],
+  "total": 2
+}

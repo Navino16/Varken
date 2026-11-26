@@ -570,6 +570,753 @@
         }
       },
       "why": "https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/api/system/status.py — 200 declared without schema; the handler returns data: system_status"
+    },
+    {
+      "op": "add",
+      "path": "/components/schemas/Badges",
+      "value": {
+        "type": "object",
+        "required": [
+          "announcements",
+          "episodes",
+          "movies",
+          "providers",
+          "radarr_signalr",
+          "sonarr_signalr",
+          "status"
+        ],
+        "properties": {
+          "episodes": {
+            "type": "integer"
+          },
+          "movies": {
+            "type": "integer"
+          },
+          "providers": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "sonarr_signalr": {
+            "type": "string"
+          },
+          "radarr_signalr": {
+            "type": "string"
+          },
+          "announcements": {
+            "type": "integer"
+          }
+        }
+      },
+      "why": "https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/api/badges/badges.py#L25-L33 — BadgesGet; every key is computed by the handler"
+    },
+    {
+      "op": "add",
+      "path": "/components/schemas/ProviderStatus",
+      "value": {
+        "type": "object",
+        "required": [
+          "name",
+          "retry",
+          "status"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "retry": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "why": "https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/api/providers/providers.py#L19-L23 — status falls back to \"Good\" (L60), retry is pretty.date(until)"
+    },
+    {
+      "op": "add",
+      "path": "/components/schemas/SystemTask",
+      "value": {
+        "type": "object",
+        "required": [
+          "interval",
+          "job_id",
+          "job_running",
+          "name",
+          "next_run_in",
+          "next_run_time"
+        ],
+        "properties": {
+          "interval": {
+            "type": "string"
+          },
+          "job_id": {
+            "type": "string"
+          },
+          "job_running": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "next_run_in": {
+            "type": "string"
+          },
+          "next_run_time": {
+            "type": "string"
+          }
+        }
+      },
+      "why": "https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/api/system/tasks.py#L14-L21 — dicts of app/scheduler.py get_task_list()"
+    },
+    {
+      "op": "add",
+      "path": "/components/schemas/QueueJob",
+      "value": {
+        "type": "object",
+        "required": [
+          "is_progress",
+          "is_signalr",
+          "job_id",
+          "job_name",
+          "last_run_time",
+          "progress_max",
+          "progress_message",
+          "progress_value",
+          "status"
+        ],
+        "properties": {
+          "job_id": {
+            "type": "integer"
+          },
+          "job_name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "last_run_time": {
+            "type": "string",
+            "nullable": true
+          },
+          "is_progress": {
+            "type": "boolean"
+          },
+          "is_signalr": {
+            "type": "boolean"
+          },
+          "progress_value": {
+            "type": "integer",
+            "nullable": true
+          },
+          "progress_max": {
+            "type": "integer",
+            "nullable": true
+          },
+          "progress_message": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "why": "https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/api/system/jobs.py#L14-L24 — vars(Job) of app/jobs_queue.py; last_run_time starts as None"
+    },
+    {
+      "op": "add",
+      "path": "/components/schemas/BazarrRelease",
+      "value": {
+        "type": "object",
+        "required": [
+          "body",
+          "current",
+          "date",
+          "name",
+          "prerelease"
+        ],
+        "properties": {
+          "body": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "name": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "prerelease": {
+            "type": "boolean"
+          },
+          "current": {
+            "type": "boolean"
+          }
+        }
+      },
+      "why": "https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/api/system/releases.py#L20-L26 — filtered releases.txt entries (L53-L57)"
+    },
+    {
+      "op": "add",
+      "path": "/components/schemas/DayCount",
+      "value": {
+        "type": "object",
+        "required": [
+          "count",
+          "date"
+        ],
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer"
+          }
+        }
+      },
+      "why": "https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/api/history/stats.py#L28-L36 — one entry per %Y-%m-%d day of the time frame"
+    },
+    {
+      "op": "add",
+      "path": "/components/schemas/BazarrLanguage",
+      "value": {
+        "type": "object",
+        "required": [
+          "code2",
+          "code3",
+          "enabled",
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "code2": {
+            "type": "string",
+            "nullable": true
+          },
+          "code3": {
+            "type": "string",
+            "nullable": true
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "why": "https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/api/system/languages.py#L58-L72 — plain dicts, sorted by name, no envelope"
+    },
+    {
+      "op": "add",
+      "path": "/components/schemas/AudioLanguage",
+      "value": {
+        "type": "object",
+        "required": [
+          "code2",
+          "code3",
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "code2": {
+            "type": "string",
+            "nullable": true
+          },
+          "code3": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "why": "https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/api/swaggerui.py — audio_language_model"
+    },
+    {
+      "op": "add",
+      "path": "/components/schemas/SubtitleFile",
+      "value": {
+        "type": "object",
+        "required": [
+          "code2",
+          "code3",
+          "embedded_track_id",
+          "file_size",
+          "forced",
+          "hi",
+          "id",
+          "name",
+          "path"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "code2": {
+            "type": "string",
+            "nullable": true
+          },
+          "code3": {
+            "type": "string",
+            "nullable": true
+          },
+          "path": {
+            "type": "string",
+            "nullable": true
+          },
+          "forced": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "hi": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "file_size": {
+            "type": "integer",
+            "nullable": true
+          },
+          "embedded_track_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "id": {
+            "type": "integer",
+            "nullable": true
+          }
+        }
+      },
+      "why": "https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/api/swaggerui.py — subtitles_model"
+    },
+    {
+      "op": "add",
+      "path": "/components/schemas/BazarrMovie",
+      "value": {
+        "type": "object",
+        "required": [
+          "alternativeTitles",
+          "audio_language",
+          "created_at_timestamp",
+          "fanart",
+          "imdbId",
+          "missing_subtitles",
+          "monitored",
+          "overview",
+          "path",
+          "poster",
+          "profileId",
+          "radarrId",
+          "sceneName",
+          "subtitles",
+          "tags",
+          "title",
+          "year"
+        ],
+        "properties": {
+          "alternativeTitles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "audio_language": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AudioLanguage"
+            }
+          },
+          "created_at_timestamp": {
+            "type": "string",
+            "nullable": true
+          },
+          "fanart": {
+            "type": "string",
+            "nullable": true
+          },
+          "imdbId": {
+            "type": "string",
+            "nullable": true
+          },
+          "missing_subtitles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubtitleLanguage"
+            }
+          },
+          "monitored": {
+            "type": "boolean"
+          },
+          "overview": {
+            "type": "string",
+            "nullable": true
+          },
+          "path": {
+            "type": "string"
+          },
+          "poster": {
+            "type": "string",
+            "nullable": true
+          },
+          "profileId": {
+            "type": "integer",
+            "nullable": true
+          },
+          "radarrId": {
+            "type": "integer"
+          },
+          "sceneName": {
+            "type": "string",
+            "nullable": true
+          },
+          "subtitles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubtitleFile"
+            }
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "title": {
+            "type": "string"
+          },
+          "year": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "why": "https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/api/movies/movies.py#L34-L52 — movies_data_model"
+    },
+    {
+      "op": "add",
+      "path": "/components/schemas/BazarrSeries",
+      "value": {
+        "type": "object",
+        "required": [
+          "alternativeTitles",
+          "audio_language",
+          "created_at_timestamp",
+          "ended",
+          "episodeFileCount",
+          "episodeMissingCount",
+          "fanart",
+          "imdbId",
+          "lastAired",
+          "monitored",
+          "overview",
+          "path",
+          "poster",
+          "profileId",
+          "seriesType",
+          "sonarrSeriesId",
+          "tags",
+          "title",
+          "tvdbId",
+          "year"
+        ],
+        "properties": {
+          "alternativeTitles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "audio_language": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AudioLanguage"
+            }
+          },
+          "created_at_timestamp": {
+            "type": "string",
+            "nullable": true
+          },
+          "episodeFileCount": {
+            "type": "integer"
+          },
+          "ended": {
+            "type": "boolean"
+          },
+          "episodeMissingCount": {
+            "type": "integer"
+          },
+          "fanart": {
+            "type": "string",
+            "nullable": true
+          },
+          "imdbId": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastAired": {
+            "type": "string",
+            "nullable": true
+          },
+          "monitored": {
+            "type": "boolean"
+          },
+          "overview": {
+            "type": "string",
+            "nullable": true
+          },
+          "path": {
+            "type": "string"
+          },
+          "poster": {
+            "type": "string",
+            "nullable": true
+          },
+          "profileId": {
+            "type": "integer",
+            "nullable": true
+          },
+          "seriesType": {
+            "type": "string"
+          },
+          "sonarrSeriesId": {
+            "type": "integer"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "title": {
+            "type": "string"
+          },
+          "tvdbId": {
+            "type": "integer",
+            "nullable": true
+          },
+          "year": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "why": "https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/api/series/series.py#L36-L57 — series_data_model; episodeFileCount and episodeMissingCount default to 0"
+    },
+    {
+      "op": "add",
+      "path": "/paths/~1badges/get/responses/200",
+      "value": {
+        "description": "Success",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Badges"
+            }
+          }
+        }
+      },
+      "why": "https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/api/badges/badges.py#L80 — only 401 is declared; the 200 body is marshal(result, BadgesGet)"
+    },
+    {
+      "op": "add",
+      "path": "/paths/~1providers/get/responses/200/content",
+      "value": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ProviderStatus"
+                }
+              }
+            }
+          }
+        }
+      },
+      "why": "https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/api/providers/providers.py#L63 — 200 declared without schema; marshal(..., envelope='data')"
+    },
+    {
+      "op": "add",
+      "path": "/paths/~1system~1tasks/get/responses/200/content",
+      "value": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/SystemTask"
+                }
+              }
+            }
+          }
+        }
+      },
+      "why": "https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/api/system/tasks.py#L43 — 200 declared without schema; marshal(task_list, envelope='data')"
+    },
+    {
+      "op": "add",
+      "path": "/paths/~1system~1jobs/get/responses/200",
+      "value": {
+        "description": "Success",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": [
+                "data"
+              ],
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/QueueJob"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "why": "https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/api/system/jobs.py#L40-L41 — 204 is declared but the list is returned with 200: marshal(..., envelope='data')"
+    },
+    {
+      "op": "add",
+      "path": "/paths/~1system~1releases/get/responses/200/content",
+      "value": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/BazarrRelease"
+                }
+              }
+            }
+          }
+        }
+      },
+      "why": "https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/api/system/releases.py#L63 — 200 declared without schema; marshal(filtered_releases, envelope='data')"
+    },
+    {
+      "op": "add",
+      "path": "/paths/~1history~1stats/get/responses/200",
+      "value": {
+        "description": "Success",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": [
+                "movies",
+                "series"
+              ],
+              "properties": {
+                "series": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DayCount"
+                  }
+                },
+                "movies": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DayCount"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "why": "https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/api/history/stats.py#L123 — only 401 is declared; marshal(HistoryStatsGetResponse)"
+    },
+    {
+      "op": "add",
+      "path": "/paths/~1system~1languages/get/responses/200/content",
+      "value": {
+        "application/json": {
+          "schema": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BazarrLanguage"
+            }
+          }
+        }
+      },
+      "why": "https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/api/system/languages.py#L72 — 200 declared without schema; a bare sorted list"
+    },
+    {
+      "op": "add",
+      "path": "/paths/~1movies/get/responses/200/content",
+      "value": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "required": [
+              "data",
+              "total"
+            ],
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/BazarrMovie"
+                }
+              },
+              "total": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      },
+      "why": "https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/api/movies/movies.py#L155 — 200 declared without schema; marshal(MoviesGetResponse)"
+    },
+    {
+      "op": "add",
+      "path": "/paths/~1series/get/responses/200/content",
+      "value": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "required": [
+              "data",
+              "total"
+            ],
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/BazarrSeries"
+                }
+              },
+              "total": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      },
+      "why": "https://github.com/morpheus65535/bazarr/blob/v1.6.2/bazarr/api/series/series.py#L190 — 200 declared without schema; marshal(SeriesGetResponse)"
     }
   ]
 }

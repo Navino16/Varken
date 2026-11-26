@@ -25,6 +25,70 @@
         "type": "string"
       },
       "why": "https://github.com/seerr-team/seerr/blob/v3.5.2/server/entity/User.ts#L279-L283 — set on every load by @AfterLoad setDisplayName(); nested users are serialized by toJSON() (L178-L186), which drops only settings"
+    },
+    {
+      "op": "add",
+      "path": "/components/schemas/MediaInfo/properties/mediaType",
+      "value": {
+        "type": "string",
+        "enum": [
+          "movie",
+          "tv"
+        ]
+      },
+      "why": "https://github.com/seerr-team/seerr/blob/v3.5.2/server/entity/Media.ts#L120-L121 — non-null varchar column (MediaType), serialized with every media"
+    },
+    {
+      "op": "add",
+      "path": "/components/schemas/MediaInfo/properties/status4k",
+      "value": {
+        "type": "number",
+        "example": 0,
+        "description": "4K availability of the media, same values as `status`"
+      },
+      "why": "https://github.com/seerr-team/seerr/blob/v3.5.2/server/entity/Media.ts#L139-L141 — int column, default MediaStatus.UNKNOWN"
+    },
+    {
+      "op": "add",
+      "path": "/components/schemas/SeasonRequest",
+      "value": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "seasonNumber": {
+            "type": "number"
+          },
+          "status": {
+            "type": "number",
+            "description": "Status of the season request, same values as `MediaRequest.status`"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "seasonNumber",
+          "status"
+        ]
+      },
+      "why": "https://github.com/seerr-team/seerr/blob/v3.5.2/server/entity/SeasonRequest.ts#L13-L36 — entity columns (request is the owning side, not serialized back)"
+    },
+    {
+      "op": "add",
+      "path": "/components/schemas/MediaRequest/properties/seasons",
+      "value": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/SeasonRequest"
+        }
+      },
+      "why": "https://github.com/seerr-team/seerr/blob/v3.5.2/server/entity/MediaRequest.ts#L562-L566 — eager OneToMany relation, loaded and serialized with every request"
     }
   ]
 }

@@ -151,6 +151,9 @@ export const BazarrConfigSchema = z.object({
   wanted: ScheduleConfigSchema.default(scheduleDefault),
   history: ScheduleConfigSchema.default(scheduleDefault),
   serverInfo: ScheduleConfigSchema.default(serverInfoDefault),
+  status: ScheduleConfigSchema.default({ enabled: false, intervalSeconds: 300 }),
+  stats: ScheduleConfigSchema.default({ enabled: false, intervalSeconds: 3600 }),
+  library: ScheduleConfigDaysSchema.default(scheduleDaysDefault),
 });
 
 // =============================================================================
@@ -227,6 +230,8 @@ export const OmbiConfigSchema = z.object({
   requestCounts: ScheduleConfigSchema.default(scheduleDefault),
   issueCounts: ScheduleConfigSchema.default(scheduleDefault),
   serverInfo: ScheduleConfigSchema.default(serverInfoDefault),
+  totals: ScheduleConfigSchema.default({ enabled: false, intervalSeconds: 300 }),
+  users: ScheduleConfigSchema.default({ enabled: false, intervalSeconds: 3600 }),
 });
 
 export const OverseerrConfigSchema = z.object({
@@ -241,6 +246,9 @@ export const OverseerrConfigSchema = z.object({
     intervalSeconds: z.number().default(300),
   }).default({ enabled: false, count: 10, intervalSeconds: 300 }),
   serverInfo: ScheduleConfigSchema.default(serverInfoDefault),
+  status: ScheduleConfigSchema.default({ enabled: false, intervalSeconds: 300 }),
+  totals: ScheduleConfigSchema.default({ enabled: false, intervalSeconds: 300 }),
+  users: ScheduleConfigSchema.default({ enabled: false, intervalSeconds: 3600 }),
 });
 
 // =============================================================================

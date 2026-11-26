@@ -132,6 +132,32 @@ inputs:
       expect(config.inputs.sonarr?.[0].serverInfo.enabled).toBe(true);
     });
 
+    it('maps VARKEN_INPUTS_BAZARR_0_LIBRARY_INTERVALDAYS to library.intervalDays', () => {
+      const yamlContent = `
+outputs:
+  influxdb1:
+    url: localhost
+    port: 8086
+    username: root
+    password: root
+    database: varken
+    ssl: false
+    verifySsl: false
+
+inputs:
+  bazarr:
+    - id: 1
+      url: http://localhost:6767
+      apiKey: test-key
+`;
+      fs.writeFileSync(path.join(testConfigFolder, 'varken.yaml'), yamlContent);
+      process.env.VARKEN_INPUTS_BAZARR_0_LIBRARY_INTERVALDAYS = '3';
+
+      const config = new ConfigLoader(testConfigFolder).load();
+
+      expect(config.inputs.bazarr?.[0].library).toEqual({ enabled: false, intervalDays: 3 });
+    });
+
     it('maps every camelCase config key for env overrides', () => {
       const schemaSource = fs.readFileSync(path.join(__dirname, '../../src/config/schemas/config.schema.ts'), 'utf8');
       const camelKeys = new Set([...schemaSource.matchAll(/^\s+([a-z]+[A-Z][A-Za-z]*):/gm)].map((m) => m[1]));

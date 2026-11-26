@@ -1,0 +1,114 @@
+{
+  "data": [
+    {
+      "alternativeTitles": [
+        "Heat"
+      ],
+      "audio_language": [
+        {
+          "name": "English",
+          "code2": "en",
+          "code3": "eng"
+        }
+      ],
+      "created_at_timestamp": "2025-04-01 10:00:00",
+      "fanart": "/images/movies/1/fanart.jpg",
+      "imdbId": "tt001",
+      "missing_subtitles": [
+        {
+          "name": "French",
+          "code2": "fr",
+          "code3": "fra",
+          "forced": false,
+          "hi": false
+        }
+      ],
+      "monitored": true,
+      "overview": "Heat overview.",
+      "path": "/movies/Heat (1995)",
+      "poster": "/images/movies/1/poster.jpg",
+      "profileId": 1,
+      "radarrId": 1,
+      "sceneName": null,
+      "subtitles": [
+        {
+          "name": "English",
+          "code2": "en",
+          "code3": "eng",
+          "path": "/movies/Heat (1995)/Heat (1995).en.srt",
+          "forced": false,
+          "hi": false,
+          "file_size": 40213,
+          "embedded_track_id": null,
+          "id": 11
+        }
+      ],
+      "tags": [
+        "hd"
+      ],
+      "title": "Heat",
+      "year": "1995"
+    },
+    {
+      "alternativeTitles": [
+        "Ronin"
+      ],
+      "audio_language": [
+        {
+          "name": "English",
+          "code2": "en",
+          "code3": "eng"
+        }
+      ],
+      "created_at_timestamp": "2025-04-01 10:00:00",
+      "fanart": "/images/movies/2/fanart.jpg",
+      "imdbId": "tt002",
+      "monitored": false,
+      "overview": "Ronin overview.",
+      "path": "/movies/Ronin (1998)",
+      "poster": "/images/movies/2/poster.jpg",
+      "profileId": 1,
+      "radarrId": 2,
+      "sceneName": null,
+      "subtitles": [
+        {
+          "name": "English",
+          "code2": "en",
+          "code3": "eng",
+          "path": "/movies/Ronin (1998)/Ronin (1998).en.srt",
+          "forced": false,
+          "hi": false,
+          "file_size": 40213,
+          "embedded_track_id": null,
+          "id": 12
+        },
+        {
+          "name": "French",
+          "code2": "fr",
+          "code3": "fra",
+          "path": "/movies/Ronin (1998)/Ronin (1998).fr.srt",
+          "forced": false,
+          "hi": false,
+          "file_size": 40213,
+          "embedded_track_id": null,
+          "id": 13
+        }
+      ],
+      "tags": [
+        "hd"
+      ],
+      "title": "Ronin",
+      "year": "1998",
+      "missing_subtitles": [
+        {
+          "name": "German",
+          "code2": "de",
+          "code3": "deu",
+          "forced": true,
+          "hi": false
+        }
+      ]
+    }
+  ],
+  "total": 2
+}

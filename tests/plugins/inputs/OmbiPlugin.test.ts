@@ -41,6 +41,8 @@ describe('OmbiPlugin', () => {
     requestCounts: { enabled: true, intervalSeconds: 300 },
     issueCounts: { enabled: true, intervalSeconds: 300 },
     serverInfo: { enabled: false, intervalSeconds: 300 },
+    totals: { enabled: false, intervalSeconds: 300 },
+    users: { enabled: false, intervalSeconds: 3600 },
   };
 
   beforeEach(async () => {
@@ -112,7 +114,7 @@ describe('OmbiPlugin', () => {
     it('should collect request counts', async () => {
       const point = (await plugin.collect()).find((p) => p.tags.type === 'Request_Counts');
 
-      expect(point?.fields).toEqual({ pending: 2, approved: 1, available: 1 });
+      expect(point?.fields).toEqual({ pending: 2, approved: 1, available: 1, denied: 1 });
     });
 
     it('should collect issue counts', async () => {
@@ -148,7 +150,7 @@ describe('OmbiPlugin', () => {
     it('should create Request_Total summary', async () => {
       const total = (await plugin.collect()).find((p) => p.tags.type === 'Request_Total');
 
-      expect(total?.fields).toEqual({ total: 5, movies: 3, tv_shows: 2 });
+      expect(total?.fields).toEqual({ total: 5, movies: 3, tv_shows: 2, tv_requests: 3, music: 1 });
     });
 
     it('should handle denied requests', async () => {
@@ -182,11 +184,12 @@ describe('OmbiPlugin', () => {
     it('should handle empty request lists', async () => {
       client.override('/api/v1/Request/movie', []);
       client.override('/api/v1/Request/tv', []);
+      client.override('/api/v1/request/music', []);
 
       const points = await plugin.collect();
 
       expect(points.filter((p) => p.tags.type === 'Requests')).toEqual([]);
-      expect(points.find((p) => p.tags.type === 'Request_Total')?.fields).toEqual({ total: 0, movies: 0, tv_shows: 0 });
+      expect(points.find((p) => p.tags.type === 'Request_Total')?.fields).toEqual({ total: 0, movies: 0, tv_shows: 0, tv_requests: 0, music: 0 });
     });
 
     it('should propagate API errors for circuit breaker', async () => {
@@ -258,8 +261,8 @@ describe('OmbiPlugin', () => {
 
       const first = await hashes();
 
-      expect(first).toHaveLength(5);
-      expect(new Set(first).size).toBe(5);
+      expect(first).toHaveLength(7);
+      expect(new Set(first).size).toBe(7);
       expect(await hashes()).toEqual(first);
     });
   });

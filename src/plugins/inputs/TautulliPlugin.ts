@@ -10,7 +10,7 @@ import type { GetPath } from '../../types/api-contract';
 import { booleanFlags } from './utils/flags';
 import { numberOf } from './utils/numbers';
 import { eventTimestamp } from './utils/events';
-import { completedBuckets, graphSnapshotPoints, homeStatPoints, mediaInfoPoints, watchTimeFields, type GraphBucket } from './utils/tautulliStats';
+import { completedBuckets, graphSnapshotPoints, homeStatPoints, mediaInfoPoints, watchTimeFields } from './utils/tautulliStats';
 import { ageSeconds } from './utils/time';
 
 type TautulliSession = components['schemas']['Session'];
@@ -30,7 +30,6 @@ const SERVER_INFO_PATH: GetPath<paths> = '/api/v2?cmd=get_server_info';
 
 const WATCH_TIME_DAYS = '1,7,30,0';
 const DAY_SECONDS = 24 * 60 * 60;
-const BUCKET_GRACE_MS: number = DAY_SECONDS * 1000;
 const MEDIA_INFO_SECTION_TYPES = new Set(['movie', 'show', 'artist', 'photo']);
 
 const PLAYER_STATE = { PLAYING: 0, PAUSED: 1, BUFFERING: 3 } as const;
@@ -582,18 +581,12 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
     return [...libraries, ...points];
   }
 
-  /**
-   * A bucket is written a day after it ends: plays still running at midnight are recorded when they stop,
-   * and the day is Tautulli's local one (UTC-12 to UTC+14) while its bounds are UTC.
-   */
   private async bucketPoints(collector: string, type: string, graph: Graph, unit: 'day' | 'month'): Promise<PointSpec[]> {
     const { buckets, skipped } = completedBuckets(graph, unit);
     if (skipped.length > 0) {
       this.logger.debug(`Skipped Tautulli ${type} categories that do not parse: ${skipped.join(', ')}`);
     }
-    const settledAt = (bucket: GraphBucket): number => bucket.end + BUCKET_GRACE_MS;
-    const settled = buckets.filter((bucket) => settledAt(bucket) <= Date.now());
-    const fresh = await this.takeNewEvents(collector, settled, settledAt, (bucket) => bucket.category);
+    const fresh = await this.takeSettledBuckets(collector, buckets);
     return fresh.map((bucket) => ({ tags: { type }, fields: bucket.fields, timestamp: new Date(bucket.start) }));
   }
 

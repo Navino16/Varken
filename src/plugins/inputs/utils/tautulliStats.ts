@@ -2,21 +2,12 @@ import type { PointSpec } from '../../../types/plugin.types';
 import type { components } from '../../../types/generated/tautulli';
 import { numberOf } from './numbers';
 import { ageSeconds } from './time';
+import { bucketRange, type Bucket } from './buckets';
 
 type Graph = components['schemas']['Graph'];
 type HomeStat = components['schemas']['HomeStat'];
 type WatchTimeStat = components['schemas']['WatchTimeStat'];
 type MediaInfoRow = components['schemas']['MediaInfoRow'];
-
-export interface GraphBucket {
-  category: string;
-  /** Epoch ms, UTC. */
-  start: number;
-  end: number;
-  fields: Record<string, number>;
-}
-
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export function seriesKey(name: string): string {
   return name
@@ -47,33 +38,10 @@ export function graphSnapshotPoints(type: string, categoryTag: string, graph: Gr
   return points;
 }
 
-function bucketRange(category: string, unit: 'day' | 'month'): { start: number; end: number } | undefined {
-  if (unit === 'day') {
-    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(category);
-    if (!match) {
-      return undefined;
-    }
-    const [year, month, day] = [Number(match[1]), Number(match[2]) - 1, Number(match[3])];
-    const start = Date.UTC(year, month, day);
-    const date = new Date(start);
-    if (date.getUTCMonth() !== month || date.getUTCDate() !== day) {
-      return undefined;
-    }
-    return { start, end: Date.UTC(year, month, day + 1) };
-  }
-  const match = /^([A-Za-z]{3}) (\d{4})$/.exec(category);
-  const month = match ? MONTHS.indexOf(match[1]) : -1;
-  if (!match || month < 0) {
-    return undefined;
-  }
-  const year = Number(match[2]);
-  return { start: Date.UTC(year, month, 1), end: Date.UTC(year, month + 1, 1) };
-}
-
 /** Tautulli's last category is its current day or month, still in progress; `skipped` lists categories that do not parse. */
-export function completedBuckets(graph: Graph, unit: 'day' | 'month'): { buckets: GraphBucket[]; skipped: string[] } {
+export function completedBuckets(graph: Graph, unit: 'day' | 'month'): { buckets: Bucket[]; skipped: string[] } {
   const categories = graph.categories ?? [];
-  const buckets: GraphBucket[] = [];
+  const buckets: Bucket[] = [];
   const skipped: string[] = [];
   for (const [index, category] of categories.slice(0, -1).entries()) {
     const fields = seriesFields(graph, index);

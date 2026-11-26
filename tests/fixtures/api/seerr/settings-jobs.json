@@ -1,0 +1,26 @@
+[
+  {
+    "id": "plex-recently-added-scan",
+    "type": "process",
+    "interval": "short",
+    "name": "Plex Recently Added Scan",
+    "nextExecutionTime": "2026-11-26T10:40:00.000Z",
+    "running": false
+  },
+  {
+    "id": "plex-full-scan",
+    "type": "process",
+    "interval": "long",
+    "name": "Plex Full Library Scan",
+    "nextExecutionTime": "2026-11-27T03:00:00.000Z",
+    "running": true
+  },
+  {
+    "id": "image-cache-cleanup",
+    "type": "process",
+    "interval": "fixed",
+    "name": "Image Cache Cleanup",
+    "nextExecutionTime": "2026-11-27T05:00:00.000Z",
+    "running": false
+  }
+]

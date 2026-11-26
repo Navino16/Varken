@@ -1172,21 +1172,31 @@ Config: `inputs.ombi[].requestCounts` (`enabled`, `intervalSeconds`) · Source: 
 | `pending` | field | number | Pending requests |
 | `approved` | field | number | Approved requests |
 | `available` | field | number | Available requests |
+| `denied` | field | number | Denied requests; omitted when Ombi does not report it |
 
-All fields default to `0` when absent.
+`pending`, `approved` and `available` default to `0` when absent.
 
 ### type = Requests
 
-Config: `inputs.ombi[].requestCounts` (collected on the same schedule as `Request_Counts`) · Source: `/api/v1/Request/tv`, `/api/v1/Request/movie`, `/api/v1/Identity/Users` (user names). One point per request; TV requests use their first child request and are skipped if they have none.
+Config: `inputs.ombi[].requestCounts` (collected on the same schedule as `Request_Counts`) · Source: `/api/v1/Request/tv`, `/api/v1/Request/movie`, `/api/v1/request/music`, `/api/v1/Identity/Users` (user names). One point per movie request, per TV child request (a user's request for some seasons of a show) and per album request. Denial reasons are free text and are not written.
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
-| `request_type` | tag | number | `0` TV, `1` movie |
+| `request_type` | tag | number | `0` TV, `1` movie, `2` music |
 | `status` | tag | number | `0` denied, `1` approved, `2` completed (approved and available), `3` pending |
+| `status_4k` | tag | number/string | Movies only: status of the 4K request, same values as `status`; `none` without 4K request |
+| `source` | tag | number | Ombi request source (`RequestSource`: `0`, `1`); `unknown` when absent |
 | `title` | tag | string | Request title (`unknown` when absent) |
 | `requested_user` | tag | string | Alias/user name resolved from the Ombi user list, then the request alias, then `Unknown` |
 | `requested_date` | tag | string | Request date, empty string when absent |
-| `hash` | field | string | MD5 of request id + TVDB/TMDB id + title |
+| `hash` | field | string | MD5 of request id (+ child request id for TV) + TVDB/TMDB/album id + title |
+| `approve_seconds` | field | number | Seconds from the request to its approval; omitted when not approved |
+| `available_seconds` | field | number | Seconds from the request to availability; omitted when not available |
+| `played_by_users` | field | number | Movies: users who played it |
+| `watched_by_requester` | field | number | Movies: `1` if the requester watched it, else `0` |
+| `requester_progress` | field | number | TV: requester's played progress |
+| `seasons` | field | number | TV: requested seasons; omitted when Ombi does not list them |
+| `episodes` | field | number | TV: requested episodes over those seasons |
 
 ### type = Request_Total
 
@@ -1194,9 +1204,11 @@ Config: `inputs.ombi[].requestCounts` · Source: `/api/v1/Request/tv`, `/api/v1/
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
-| `total` | field | number | TV plus movie requests |
+| `total` | field | number | TV shows plus movie requests |
 | `movies` | field | number | Movie requests |
-| `tv_shows` | field | number | TV requests |
+| `tv_shows` | field | number | TV shows requested |
+| `tv_requests` | field | number | TV child requests (one per user request for some seasons) |
+| `music` | field | number | Album requests |
 
 ### type = Issues_Counts
 
@@ -1221,6 +1233,54 @@ Config: `inputs.ombi[].serverInfo` (`enabled`, `intervalSeconds`, default disabl
 | `branch` | tag | string | Ombi branch (`unknown` when absent) |
 | `update_available` | field | number | Update available: `1` yes, `0` no; omitted when the service does not report it |
 
+### type = Totals
+
+Config: `inputs.ombi[].totals` (`enabled`, `intervalSeconds`, default disabled, 300) · Source: `/api/v1/Request/{movie,tv}/total`, `/api/v1/request/music/total`, `/api/v2/Requests/{movie,tv,album}/{status}/1/0/requestedDate/desc` (`total` of the response). One point per media type.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `media_type` | tag | string | `movie`, `tv` (child requests for the per-status totals) or `music` |
+| `total` | field | number | All requests of the type |
+| `available` | field | number | Available requests |
+| `processing` | field | number | Approved, not yet available |
+| `pending` | field | number | Waiting for approval |
+| `denied` | field | number | Denied requests |
+| `unavailable` | field | number | Requests not available; `movie` and `tv` only |
+
+### type = Stats
+
+Config: `inputs.ombi[].totals` · Source: `/api/v1/Stats` over the last 30 days. Not written when Ombi fails on a window without requests. `completedRequestsMovies` is not written: Ombi counts every movie request of the window there.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `movie_requests_30d` | field | number | Movie requests of the last 30 days |
+| `tv_requests_30d` | field | number | TV child requests of the last 30 days |
+| `completed_tv_30d` | field | number | Of those, TV requests made available in the window |
+
+### type = User
+
+Config: `inputs.ombi[].users` (`enabled`, `intervalSeconds`, default disabled, 3600) · Source: `/api/v1/Identity/Users`. One point per user; e-mail addresses and passwords are never written.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `user_id` | tag | string | Ombi user id |
+| `username` | tag | string | Alias, else user name |
+| `user_type` | tag | number | Ombi user type |
+| `has_logged_in` | field | number | `1` if the user ever logged in, else `0` |
+| `last_login_age_seconds` | field | number | Seconds since the last login; omitted when never |
+| `movie_quota_limit`, `movie_quota_remaining` | field | number | Movie request quota and what is left; only for users with a movie limit |
+| `episode_quota_limit`, `episode_quota_remaining` | field | number | Same for episodes |
+| `music_quota_limit`, `music_quota_remaining` | field | number | Same for albums |
+
+### type = Users
+
+Config: `inputs.ombi[].users` · Source: `/api/v1/Identity/Users`.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `users` | field | number | Users |
+| `logged_in_30d` | field | number | Users who logged in within 30 days |
+
 ## Overseerr
 
 ### type = Request_Counts
@@ -1237,8 +1297,9 @@ Config: `inputs.overseerr[].requestCounts` (`enabled`, `intervalSeconds`) · Sou
 | `movies` | field | number | Movie requests |
 | `tv` | field | number | TV requests |
 | `declined` | field | number | Declined requests |
+| `completed` | field | number | Completed requests; omitted when Seerr does not report it |
 
-All fields default to `0` when absent.
+Fields other than `completed` default to `0` when absent.
 
 ### type = Issues_Counts
 
@@ -1258,17 +1319,21 @@ All fields default to `0` when absent.
 
 ### type = Requests
 
-Config: `inputs.overseerr[].latestRequests` (`enabled`, `count`, `intervalSeconds`) · Source: `/api/v1/request` (`take=count`, `sort=added`), then `/api/v1/tv/{tvId}` or `/api/v1/movie/{movieId}` for the title. Requests without a TMDB id or whose title cannot be fetched are skipped.
+Config: `inputs.overseerr[].latestRequests` (`enabled`, `count`, `intervalSeconds`) · Source: `/api/v1/request` (`take=count`, `sort=added`), then `/api/v1/tv/{tvId}` or `/api/v1/movie/{movieId}` once per title (cached; a failed lookup is retried on the next poll). A request without a TMDB id, or whose title cannot be fetched, is written with the title `unknown`.
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
 | `request_type` | tag | number | `0` TV, `1` movie |
 | `status` | tag | number | Request status: `1` pending approval, `2` approved, `3` declined (pinned spec); Seerr also uses `4` failed, `5` completed |
-| `media_status` | tag | number | Media availability: `1` unknown, `2` pending, `3` processing, `4` partially available, `5` available, `6` deleted (`0` when absent) |
-| `title` | tag | string | Media title from TV/movie details |
-| `requested_user` | tag | string | Requester display name (`Unknown` when absent) |
+| `media_status` | tag | number | Media availability: `1` unknown, `2` pending, `3` processing, `4` partially available, `5` available, `6` blocklisted, `7` deleted (`0` when absent) |
+| `media_status_4k` | tag | number | 4K media availability, same values as `media_status` (`unknown` when absent) |
+| `media_type` | tag | string | `movie` or `tv` |
+| `is_4k` | tag | number | `1` for a 4K request, else `0` |
+| `title` | tag | string | Media title from TV/movie details (`unknown` when it cannot be fetched) |
+| `requested_user` | tag | string | Requester display name, never the e-mail Seerr falls back to (user name, Plex user name, else `user_<id>`); `Unknown` when absent |
 | `requested_date` | tag | string | Request creation date, empty string when absent |
-| `hash` | field | string | MD5 of media details id + title |
+| `hash` | field | string | MD5 of TMDB id + title |
+| `seasons` | field | number | TV: requested seasons |
 
 ### type = ServerInfo
 
@@ -1281,6 +1346,100 @@ Config: `inputs.overseerr[].serverInfo` (`enabled`, `intervalSeconds`, default d
 | `update_available` | field | number | Update available: `1` yes, `0` no; omitted when the service does not report it |
 | `commits_behind` | field | number | Commits behind the latest version; omitted when Seerr skips the version check |
 | `restart_pending` | field | number | Restart required: `1` yes, `0` no; omitted when the service does not report it |
+
+### type = RequestTotals
+
+Config: `inputs.overseerr[].totals` (`enabled`, `intervalSeconds`, default disabled, 300) · Source: `/api/v1/request?filter=…&take=1` (`pageInfo.results`).
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `failed` | field | number | Requests whose sending to Sonarr/Radarr failed |
+| `unavailable` | field | number | Requests whose media is not available |
+| `deleted` | field | number | Requests whose media was deleted |
+
+### type = MediaTotals
+
+Config: `inputs.overseerr[].totals` · Source: `/api/v1/media?filter=…&take=1` (`pageInfo.results`).
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `total` | field | number | All media known to Seerr |
+| `available` | field | number | Available |
+| `partially_available` | field | number | Partially available |
+| `all_available` | field | number | Available or partially available |
+| `processing` | field | number | Processing |
+| `pending` | field | number | Pending |
+
+### type = Job
+
+Config: `inputs.overseerr[].status` (`enabled`, `intervalSeconds`, default disabled, 300) · Source: `/api/v1/settings/jobs`. One point per scheduled job.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `job_id` | tag | string | Job id |
+| `job_type` | tag | string | `process` or `command` |
+| `interval` | tag | string | `short`, `long` or `fixed` |
+| `name` | field | string | Job name |
+| `running` | field | number | `1` while running, else `0` |
+| `next_run_seconds` | field | number | Seconds until the next run; omitted when unknown |
+
+### type = Cache
+
+Config: `inputs.overseerr[].status` · Source: `/api/v1/settings/cache`.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `tmdb_image_size`, `tmdb_images` | field | number | TMDB image cache size (bytes) and image count |
+| `avatar_image_size`, `avatar_images` | field | number | Avatar image cache size (bytes) and image count |
+| `dns_size`, `dns_max_size` | field | number | DNS cache entries and capacity |
+| `dns_hits`, `dns_misses`, `dns_failures`, `dns_ipv4_fallbacks` | field | number | DNS cache counters |
+| `dns_hit_rate` | field | float | DNS cache hit rate (0-1) |
+
+### type = ApiCache
+
+Config: `inputs.overseerr[].status` · Source: `/api/v1/settings/cache` (`apiCaches`). One point per API cache.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `cache_id` | tag | string | Cache id (`tmdb`, `radarr`, …) |
+| `name` | field | string | Cache name |
+| `hits`, `misses` | field | number | Cache hits and misses |
+| `keys` | field | number | Cached keys |
+| `key_size`, `value_size` | field | number | Size of keys and values (bytes) |
+
+### type = Status
+
+Config: `inputs.overseerr[].status` · Source: `/api/v1/settings/about`, `/api/v1/status/appdata`. The appdata path is never written.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `total_requests` | field | number | All requests |
+| `total_media_items` | field | number | All media items |
+| `appdata` | field | number | `1` if the appdata volume is mounted, else `0` |
+| `appdata_permissions` | field | number | `1` if Seerr can write to it, else `0` |
+
+### type = User
+
+Config: `inputs.overseerr[].users` (`enabled`, `intervalSeconds`, default disabled, 3600) · Source: `/api/v1/user?sort=requests` (paged), `/api/v1/user/{userId}/quota`. One point per user; e-mail addresses, tokens and avatars are never written.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `user_id` | tag | number | Seerr user id |
+| `display_name` | tag | string | Display name, never the e-mail Seerr falls back to (user name, Plex user name, else `user_<id>`) |
+| `user_type` | tag | number | Seerr user type |
+| `requests` | field | number | Requests made by the user |
+| `movie_quota_limit`, `movie_quota_days` | field | number | Movie quota: requests allowed per number of days; omitted without quota |
+| `movie_quota_used`, `movie_quota_remaining` | field | number | Movie requests used and left in the quota window |
+| `movie_quota_restricted` | field | number | `1` when the user reached the movie quota, else `0` |
+| `tv_quota_*` | field | number | Same for TV (seasons) |
+
+### type = Users
+
+Config: `inputs.overseerr[].users` · Source: `/api/v1/user`.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `users` | field | number | Users |
 
 ## Bazarr
 
@@ -1302,11 +1461,22 @@ Config: `inputs.bazarr[].wanted` (`enabled`, `intervalSeconds`) · Source: `/api
 | `languageCode` | tag | string | 3-letter language code (`unknown` when absent) |
 | `forced` | tag | number | `1` if the missing subtitle is forced, else `0` |
 | `hi` | tag | number | `1` if the missing subtitle is hearing-impaired, else `0` |
+| `tags` | tag | string | Bazarr tags of the movie/series, sorted and comma-joined; `none` without tag |
+| `series_type` | tag | string | `standard`, `anime` or `daily`; `episode` only |
 | `hash` | field | string | MD5 of server id + movie/episode id + language code |
+
+### type = WantedTotal
+
+Config: `inputs.bazarr[].wanted` · Source: `total` of `/api/movies/wanted` and `/api/episodes/wanted`. Counts every wanted item, while `Wanted` points stop at the first 1000 items.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `movies` | field | number | Movies with missing subtitles |
+| `episodes` | field | number | Episodes with missing subtitles |
 
 ### type = History
 
-Config: `inputs.bazarr[].history` (`enabled`, `intervalSeconds`) · Source: `/api/movies/history`, `/api/episodes/history` (`length=100`). Timestamp: `parsed_timestamp` of the history item (Bazarr local time, `MM/DD/YY HH:MM:SS` or 4-digit year); collection time if it cannot be parsed. The tag set depends on `mediaType`.
+Config: `inputs.bazarr[].history` (`enabled`, `intervalSeconds`) · Source: `/api/movies/history`, `/api/episodes/history` (pages of 100, newest first). Event points: each history entry is written once, when it is newer than the last one written (the mark is kept in `DATA_FOLDER` across restarts; entries made while Varken was stopped are not backfilled). Pages are read until one reaches the mark, up to 10 pages (1000 entries) per poll; older entries beyond the cap are not written (logged at info). Timestamp: `parsed_timestamp` of the entry (Bazarr local time, `MM/DD/YY HH:MM:SS` or 4-digit year, the C locale layout), read in Varken's time zone, plus milliseconds taken from `hash` so two entries of the same second stay distinct. Run Varken with the same `TZ` as Bazarr: otherwise times are shifted by the difference, and entries written just after an upgrade can fall below the mark. Entries of the hour repeated when daylight saving time ends are below the mark and are not written. An entry whose date cannot be parsed (another locale) is skipped, with a warning logged once. The tag set depends on `mediaType`.
 
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
@@ -1322,8 +1492,13 @@ Config: `inputs.bazarr[].history` (`enabled`, `intervalSeconds`) · Source: `/ap
 | `languageCode` | tag | string | 3-letter language code (`unknown` when absent) |
 | `provider` | tag | string | Subtitle provider (`unknown` when absent) |
 | `action` | tag | number | Bazarr history action code, as sent |
-| `hash` | field | string | MD5 of server id + movie/episode id + language code + action + `parsed_timestamp` |
+| `forced` | tag | number | `1` for a forced subtitle, else `0` |
+| `hi` | tag | number | `1` for a hearing-impaired subtitle, else `0` |
+| `hash` | field | string | MD5 of server id + movie/episode id + action + language code + provider + subtitle id + `parsed_timestamp` |
 | `score_percent` | field | number | Match score parsed from `"92.5%"`; omitted when missing or unparsable |
+| `upgradable` | field | number | `1` if Bazarr may still upgrade the subtitle, else `0` |
+| `blacklisted` | field | number | `1` if the subtitle is blacklisted, else `0` |
+| `matches`, `dont_matches` | field | number | Release properties the subtitle matched / did not match |
 
 ### type = ServerInfo
 
@@ -1337,3 +1512,88 @@ Config: `inputs.bazarr[].serverInfo` (`enabled`, `intervalSeconds`, default disa
 | `radarr_version` | tag | string | Version of the connected Radarr (`unknown` when absent) |
 | `uptime_seconds` | field | number | Seconds since `start_time`; omitted when unknown |
 | `health_issues` | field | number | Number of health issues |
+
+### type = Badges
+
+Config: `inputs.bazarr[].status` (`enabled`, `intervalSeconds`, default disabled, 300) · Source: `/api/badges`.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `wanted_episodes`, `wanted_movies` | field | number | Missing subtitles (languages) of episodes and movies |
+| `throttled_providers` | field | number | Providers currently throttled |
+| `health_issues` | field | number | Health issues |
+| `announcements` | field | number | Announcements not dismissed |
+| `sonarr_signalr`, `radarr_signalr` | field | number | `1` while the SignalR feed from Sonarr/Radarr is connected, else `0` |
+
+### type = Provider
+
+Config: `inputs.bazarr[].status` · Source: `/api/providers`. One point per enabled provider.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `provider` | tag | string | Provider name |
+| `status` | tag | string | `Good`, or the throttling reason (`TooManyRequests`, `AuthenticationError`, …) |
+| `throttled` | field | number | `1` while throttled, else `0` |
+
+### type = Task
+
+Config: `inputs.bazarr[].status` · Source: `/api/system/tasks`. One point per scheduled task.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `task_id` | tag | string | Task id |
+| `task_name` | tag | string | Task name |
+| `interval` | tag | string | Schedule as Bazarr words it (`every 6 hours`, `every day at 4:00`, …) |
+| `running` | field | number | `1` while running, else `0` |
+
+### type = Jobs
+
+Config: `inputs.bazarr[].status` · Source: `/api/system/jobs`.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `pending`, `running`, `failed`, `completed` | field | number | Jobs in each queue |
+
+### type = Releases
+
+Config: `inputs.bazarr[].status` · Source: `/api/system/releases`.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `latest` | tag | string | Latest release of Bazarr's branch (`unknown` when Bazarr lists none) |
+| `releases` | field | number | Releases Bazarr lists (the last 5 on `master`) |
+| `releases_behind` | field | number | Releases published after the running one; omitted when the running build is not in the list |
+
+### type = HistoryStats
+
+Config: `inputs.bazarr[].stats` (`enabled`, `intervalSeconds`, default disabled, 3600) · Source: `/api/history/stats?timeFrame=week`. One point per day at 00:00 UTC of Bazarr's local date, written once the day after it ends (downloads still running at midnight, Bazarr's time zone); days completed before Varken started are not backfilled.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `episodes` | field | number | Subtitles downloaded, upgraded or manually added for episodes that day |
+| `movies` | field | number | Same for movies |
+
+### type = Languages
+
+Config: `inputs.bazarr[].stats` · Source: `/api/system/languages`.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `enabled` | field | number | Languages enabled in Bazarr |
+| `total` | field | number | Languages Bazarr knows |
+
+### type = Library
+
+Config: `inputs.bazarr[].library` (`enabled`, `intervalDays`, default disabled, 1) · Source: `/api/movies`, `/api/series`. One point per media type.
+
+| Key | Kind | Type | Meaning |
+|-----|------|------|---------|
+| `media_type` | tag | string | `movie` or `series` |
+| `items` | field | number | Movies or series |
+| `monitored` | field | number | Monitored ones |
+| `missing_subtitles_items` | field | number | `movie`: movies with at least one missing subtitle |
+| `missing_subtitles` | field | number | `movie`: missing subtitles (languages) |
+| `subtitles` | field | number | `movie`: subtitle files |
+| `ended` | field | number | `series`: ended series |
+| `episode_files` | field | number | `series`: episode files |
+| `episodes_missing_subtitles` | field | number | `series`: episodes with missing subtitles |

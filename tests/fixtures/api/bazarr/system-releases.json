@@ -1,0 +1,31 @@
+{
+  "data": [
+    {
+      "body": [
+        "Fixed provider throttling"
+      ],
+      "name": "v1.6.3",
+      "date": "2026-11-20",
+      "prerelease": false,
+      "current": false
+    },
+    {
+      "body": [
+        "Added history statistics"
+      ],
+      "name": "v1.6.2",
+      "date": "2026-10-02",
+      "prerelease": false,
+      "current": true
+    },
+    {
+      "body": [
+        "Initial 1.6 release"
+      ],
+      "name": "v1.6.1",
+      "date": "2026-08-14",
+      "prerelease": false,
+      "current": false
+    }
+  ]
+}

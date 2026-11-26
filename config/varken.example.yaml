@@ -230,6 +230,15 @@ inputs:
   #     serverInfo:
   #       enabled: true
   #       intervalSeconds: 300
+  #     status:
+  #       enabled: true
+  #       intervalSeconds: 300
+  #     stats:
+  #       enabled: true
+  #       intervalSeconds: 3600
+  #     library:
+  #       enabled: true
+  #       intervalDays: 1
 
   # ---------------------------------------------------------------------------
   # Media Servers
@@ -376,6 +385,12 @@ inputs:
   #     serverInfo:
   #       enabled: true
   #       intervalSeconds: 300
+  #     totals:
+  #       enabled: true
+  #       intervalSeconds: 300
+  #     users:
+  #       enabled: true
+  #       intervalSeconds: 3600
 
   # Overseerr
   # overseerr:
@@ -393,6 +408,15 @@ inputs:
   #     serverInfo:
   #       enabled: true
   #       intervalSeconds: 300
+  #     status:
+  #       enabled: true
+  #       intervalSeconds: 300
+  #     totals:
+  #       enabled: true
+  #       intervalSeconds: 300
+  #     users:
+  #       enabled: true
+  #       intervalSeconds: 3600
 
 # =============================================================================
 # CIRCUIT BREAKER - Error recovery configuration (optional)

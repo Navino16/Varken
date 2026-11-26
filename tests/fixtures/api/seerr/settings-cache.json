@@ -1,0 +1,47 @@
+{
+  "apiCaches": [
+    {
+      "id": "tmdb",
+      "name": "TMDb API",
+      "stats": {
+        "hits": 1520,
+        "misses": 310,
+        "keys": 284,
+        "ksize": 11360,
+        "vsize": 2390112
+      }
+    },
+    {
+      "id": "radarr",
+      "name": "Radarr API",
+      "stats": {
+        "hits": 96,
+        "misses": 12,
+        "keys": 4,
+        "ksize": 160,
+        "vsize": 48210
+      }
+    }
+  ],
+  "imageCache": {
+    "tmdb": {
+      "size": 184467200,
+      "imageCount": 1840
+    },
+    "avatar": {
+      "size": 2097152,
+      "imageCount": 12
+    }
+  },
+  "dnsCache": {
+    "stats": {
+      "size": 9,
+      "maxSize": 500,
+      "hits": 1921,
+      "misses": 101,
+      "failures": 0,
+      "ipv4Fallbacks": 2,
+      "hitRate": 0.95
+    }
+  }
+}

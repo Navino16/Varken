@@ -8,7 +8,7 @@
     "language": "en",
     "hasLoggedIn": true,
     "userType": 1,
-    "movieRequestLimit": 0,
+    "movieRequestLimit": 5,
     "episodeRequestLimit": 0,
     "musicRequestLimit": 0,
     "streamingCountry": "US",
@@ -19,17 +19,19 @@
       "nextRequest": "0001-01-01T00:00:00Z"
     },
     "movieRequestQuota": {
-      "hasLimit": false,
-      "limit": 0,
-      "remaining": 0,
-      "nextRequest": "0001-01-01T00:00:00Z"
+      "hasLimit": true,
+      "limit": 5,
+      "remaining": 2,
+      "nextRequest": "2026-11-28T00:00:00Z"
     },
     "musicRequestQuota": {
       "hasLimit": false,
       "limit": 0,
       "remaining": 0,
       "nextRequest": "0001-01-01T00:00:00Z"
-    }
+    },
+    "movieRequestLimitType": 2,
+    "password": "hunter2"
   },
   {
     "id": "8d4e2f6a-1c3b-4a5d-8e9f-0a1b2c3d4e5f",

@@ -51,6 +51,9 @@ describe('OverseerrPlugin', () => {
     requestCounts: { enabled: true, intervalSeconds: 300 },
     latestRequests: { enabled: true, intervalSeconds: 60, count: 10 },
     serverInfo: { enabled: false, intervalSeconds: 300 },
+    status: { enabled: false, intervalSeconds: 300 },
+    totals: { enabled: false, intervalSeconds: 300 },
+    users: { enabled: false, intervalSeconds: 3600 },
   };
 
   beforeEach(() => {
@@ -137,6 +140,7 @@ describe('OverseerrPlugin', () => {
         movies: 30,
         tv: 12,
         declined: 1,
+        completed: 31,
       });
     });
 
@@ -209,7 +213,7 @@ describe('OverseerrPlugin', () => {
       expect(point.tags).toMatchObject({ title: 'Dune: Part Two', requested_user: 'Unknown', media_status: 0 });
     });
 
-    it('should skip requests without media tmdbId', async () => {
+    it('keeps requests without media tmdbId under an unknown title', async () => {
       const page = loadFixture<RequestPage>('seerr/request');
       const [dune, severance] = page.results ?? [];
       const { tmdbId: _tmdbId, ...mediaWithoutTmdb } = severance.media ?? {};
@@ -217,7 +221,7 @@ describe('OverseerrPlugin', () => {
 
       const requests = (await plugin.collect()).filter((p) => p.tags.type === 'Requests');
 
-      expect(requests.map((p) => p.tags.title)).toEqual(['Dune: Part Two']);
+      expect(requests.map((p) => p.tags.title)).toEqual(['Dune: Part Two', 'unknown']);
       expect(client.get).not.toHaveBeenCalledWith(expect.stringMatching(/^\/api\/v1\/tv\//), expect.anything());
     });
 
@@ -239,9 +243,9 @@ describe('OverseerrPlugin', () => {
       client.fail('/api/v1/movie/{movieId}', new Error('Movie details error'));
       client.fail('/api/v1/tv/{tvId}', new Error('TV details error'));
 
-      const points = await plugin.collect();
+      const requests = (await plugin.collect()).filter((p) => p.tags.type === 'Requests');
 
-      expect(points.map((p) => p.tags.type)).toEqual(['Request_Counts', 'Issues_Counts']);
+      expect(requests.map((p) => p.tags.title)).toEqual(['unknown', 'unknown', 'unknown']);
     });
 
     it('should collect successful requests even when one fails in parallel', async () => {
@@ -254,7 +258,7 @@ describe('OverseerrPlugin', () => {
 
       const titles = (await plugin.collect()).filter((p) => p.tags.type === 'Requests').map((p) => p.tags.title);
 
-      expect(titles).toEqual(['Dune: Part Two', 'Severance']);
+      expect(titles).toEqual(['Dune: Part Two', 'Severance', 'unknown']);
     });
 
     it('should generate deterministic hash IDs', async () => {
@@ -279,7 +283,7 @@ describe('OverseerrPlugin', () => {
       expect(dune?.tags).toMatchObject({ status: 2, media_status: 5, requested_user: 'alice' });
     });
 
-    it('should skip requests whose details have no title', async () => {
+    it('keeps requests whose details have no title under an unknown title', async () => {
       client.override('/api/v1/tv/{tvId}', () => {
         const { name: _name, ...severance } = loadFixture<components['schemas']['TvDetails']>('seerr/tv');
         return severance;
@@ -287,8 +291,7 @@ describe('OverseerrPlugin', () => {
 
       const titles = (await plugin.collect()).filter((p) => p.tags.type === 'Requests').map((p) => p.tags.title);
 
-      expect(titles).not.toContain('Severance');
-      expect(titles).toHaveLength(2);
+      expect(titles).toEqual(['Dune: Part Two', 'unknown', 'Arrival']);
     });
   });
 
