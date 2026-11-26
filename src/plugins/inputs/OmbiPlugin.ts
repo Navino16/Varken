@@ -3,12 +3,20 @@ import type { PluginMetadata, DataPoint, ScheduleConfig } from '../../types/plug
 import type { OmbiConfig } from '../../types/inputs/ombi.types';
 import type { components, paths } from '../../types/generated/ombi';
 import { booleanFlags } from './utils/flags';
+import { pickNumbers } from './utils/numbers';
+import { dotnetTime } from './utils/time';
 
 type OmbiMovieRequest = components['schemas']['Ombi.Store.Entities.Requests.MovieRequests'];
 type OmbiTVRequest = components['schemas']['Ombi.Store.Entities.Requests.TvRequests'];
+type OmbiChildRequest = components['schemas']['Ombi.Store.Entities.Requests.ChildRequests'];
+type OmbiAlbumRequest = components['schemas']['Ombi.Store.Entities.Requests.AlbumRequest'];
+type RequestBase = Pick<
+  OmbiChildRequest,
+  'approved' | 'available' | 'denied' | 'requestedDate' | 'markedAsApproved' | 'markedAsAvailable' | 'requestedUserId' | 'requestedByAlias' | 'source'
+>;
 
 const REQUEST_STATUS = { DENIED: 0, APPROVED: 1, COMPLETED: 2, PENDING: 3 } as const;
-const REQUEST_TYPE = { TV: 0, MOVIE: 1 } as const;
+const REQUEST_TYPE = { TV: 0, MOVIE: 1, MUSIC: 2 } as const;
 
 function getRequestStatus(approved = false, available = false, denied: boolean | null = false): number {
   if (denied) {
@@ -134,6 +142,7 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
             pending: counts.pending ?? 0,
             approved: counts.approved ?? 0,
             available: counts.available ?? 0,
+            ...pickNumbers(counts, { denied: 'denied' }),
           }
         )
       );
@@ -189,31 +198,23 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
   }
 
   /**
-   * Collect all requests (TV and movie) from Ombi
+   * Collect all requests (TV, movie and music) from Ombi
    */
   private async collectAllRequests(): Promise<DataPoint[]> {
     return this.safeFetch('collect Ombi requests', async () => {
-      const points: DataPoint[] = [];
-      // Fetch users and requests in parallel
-      const [userMap, tvRequests, movieRequests] = await Promise.all([
+      const [userMap, tvRequests, movieRequests, albumRequests] = await Promise.all([
         this.fetchUserMap(),
         this.ombi.get('/api/v1/Request/tv'),
         this.ombi.get('/api/v1/Request/movie'),
+        this.ombi.get('/api/v1/request/music'),
       ]);
 
-      for (const request of tvRequests) {
-        const tvPoint = this.processTVRequest(request, userMap);
-        if (tvPoint) {
-          points.push(tvPoint);
-        }
-      }
-
-      for (const request of movieRequests) {
-        const moviePoint = this.processMovieRequest(request, userMap);
-        if (moviePoint) {
-          points.push(moviePoint);
-        }
-      }
+      const tvPoints = tvRequests.flatMap((request) => (request.childRequests ?? []).map((child) => this.tvPoint(request, child, userMap)));
+      const points = [
+        ...tvPoints,
+        ...movieRequests.map((request) => this.moviePoint(request, userMap)),
+        ...albumRequests.map((request) => this.albumPoint(request, userMap)),
+      ];
 
       points.push(
         this.createDataPoint(
@@ -226,12 +227,14 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
             total: tvRequests.length + movieRequests.length,
             movies: movieRequests.length,
             tv_shows: tvRequests.length,
+            tv_requests: tvPoints.length,
+            music: albumRequests.length,
           }
         )
       );
 
       this.logger.info(
-        `Collected ${tvRequests.length} TV and ${movieRequests.length} movie requests from Ombi`
+        `Collected ${tvRequests.length} TV, ${movieRequests.length} movie and ${albumRequests.length} music requests from Ombi`
       );
       return points;
     });
@@ -252,76 +255,77 @@ export class OmbiPlugin extends BaseInputPlugin<OmbiConfig> {
     return alias || 'Unknown';
   }
 
-  /**
-   * Process a TV request into a DataPoint
-   */
-  private processTVRequest(request: OmbiTVRequest, userMap: Map<string, string>): DataPoint | null {
-    if (!request.childRequests?.length) {
-      return null;
+  /** One point per child request: each is a user's request for some seasons of the show. */
+  private tvPoint(request: OmbiTVRequest, child: OmbiChildRequest, userMap: Map<string, string>): DataPoint {
+    const fields: Record<string, number> = pickNumbers(child, { requestedUserPlayedProgress: 'requester_progress' });
+    if (child.seasonRequests) {
+      fields.seasons = child.seasonRequests.length;
+      fields.episodes = child.seasonRequests.reduce((sum, season) => sum + (season.episodes?.length ?? 0), 0);
     }
+    return this.requestPoint(REQUEST_TYPE.TV, request.title, child, userMap, this.hashit(`${request.id}${child.id}${request.tvDbId}${request.title}`), {}, fields);
+  }
 
-    // Get the first child request for user/date info (matching legacy behavior)
-    const childRequest = request.childRequests[0];
-
-    const status = getRequestStatus(childRequest.approved, childRequest.available, childRequest.denied);
-
-    const hashId = this.hashit(`${request.id}${request.tvDbId}${request.title}`);
-    const requestedUser = this.resolveUserName(
-      childRequest.requestedUserId,
-      childRequest.requestedByAlias,
-      userMap
-    );
-    const requestedDate = childRequest.requestedDate || '';
-
-    return this.createDataPoint(
-      'Ombi',
+  private moviePoint(request: OmbiMovieRequest, userMap: Map<string, string>): DataPoint {
+    const status4k = request.has4KRequest ? getRequestStatus(request.approved4K, request.available4K, request.denied4K) : 'none';
+    return this.requestPoint(
+      REQUEST_TYPE.MOVIE,
+      request.title,
+      request,
+      userMap,
+      this.hashit(`${request.id}${request.theMovieDbId}${request.title}`),
+      { status_4k: status4k },
       {
-        type: 'Requests',
-        server: this.config.id,
-        request_type: REQUEST_TYPE.TV,
-        status,
-        title: request.title || 'unknown',
-        requested_user: requestedUser,
-        requested_date: requestedDate,
-      },
-      {
-        hash: hashId,
+        ...pickNumbers(request, { playedByUsersCount: 'played_by_users' }),
+        ...booleanFlags({ watched_by_requester: request.watchedByRequestedUser }),
       }
     );
   }
 
-  /**
-   * Process a movie request into a DataPoint
-   */
-  private processMovieRequest(
-    request: OmbiMovieRequest,
-    userMap: Map<string, string>
-  ): DataPoint | null {
-    const status = getRequestStatus(request.approved, request.available, request.denied);
+  private albumPoint(request: OmbiAlbumRequest, userMap: Map<string, string>): DataPoint {
+    return this.requestPoint(REQUEST_TYPE.MUSIC, request.title, request, userMap, this.hashit(`${request.id}${request.foreignAlbumId}${request.title}`), {}, {});
+  }
 
-    const hashId = this.hashit(`${request.id}${request.theMovieDbId}${request.title}`);
-    const requestedUser = this.resolveUserName(
-      request.requestedUserId,
-      request.requestedByAlias,
-      userMap
-    );
-    const requestedDate = request.requestedDate || '';
-
+  private requestPoint(
+    requestType: number,
+    title: string | null | undefined,
+    request: RequestBase,
+    userMap: Map<string, string>,
+    hash: string,
+    tags: Record<string, string | number>,
+    fields: Record<string, number>
+  ): DataPoint {
     return this.createDataPoint(
       'Ombi',
       {
         type: 'Requests',
         server: this.config.id,
-        request_type: REQUEST_TYPE.MOVIE,
-        status,
-        title: request.title || 'unknown',
-        requested_user: requestedUser,
-        requested_date: requestedDate,
+        request_type: requestType,
+        status: getRequestStatus(request.approved, request.available, request.denied),
+        title: title || 'unknown',
+        requested_user: this.resolveUserName(request.requestedUserId, request.requestedByAlias, userMap),
+        requested_date: request.requestedDate || '',
+        source: request.source ?? 'unknown',
+        ...tags,
       },
-      {
-        hash: hashId,
-      }
+      { hash, ...this.timingFields(request), ...fields }
     );
+  }
+
+  /** Seconds from the request to its approval and availability; Ombi stores DateTime.MinValue for "never". */
+  private timingFields(request: RequestBase): Record<string, number> {
+    const requested = dotnetTime(request.requestedDate);
+    const since = (time: number | undefined): number | undefined =>
+      requested === undefined || time === undefined || time < requested ? undefined : Math.floor((time - requested) / 1000);
+    const fields: Record<string, number> = {};
+    const approve = request.approved ? since(dotnetTime(request.markedAsApproved)) : undefined;
+    const available = request.available ? since(dotnetTime(request.markedAsAvailable)) : undefined;
+    if (approve !== undefined) {
+      fields.approve_seconds = approve;
+    }
+    if (available !== undefined) {
+      fields.available_seconds = available;
+    }
+    return fields;
   }
 
   private async collectServerInfo(): Promise<DataPoint[]> {
