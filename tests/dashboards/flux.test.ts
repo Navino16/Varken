@@ -92,6 +92,12 @@ describe('flux', () => {
     expect(query).toMatch(/keep\(columns: \["name", "sxe", "progress", "sizeleft"\]\)$/);
   });
 
+  it('gives older points lacking a tag an empty one, since pivot needs every row key column', () => {
+    const query = render({ shape: 'latestTable' }, { fields: [num('tv')], tags: ['day', 'rank'] });
+
+    expect(query).toContain('|> map(fn: (r) => ({ r with "day": if exists r["day"] then r["day"] else "", "rank": if exists r["rank"] then r["rank"] else "" }))\n  |> group(columns: ["day", "rank", "_start"])');
+  });
+
   it('caps the latest table grace at a minute', () => {
     expect(render({ shape: 'latestTable' }, { tags: ['name'] }, 1, 300)).toContain('|> range(start: -360s)');
   });

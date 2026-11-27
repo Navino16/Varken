@@ -20,11 +20,7 @@ export function getTranslator(output: OutputKey): Translator {
   return translator;
 }
 
-/** Sources the translator can query for this shape. */
-export function usableSources(translator: Translator, query: Query, sources: ResolvedSource[]): ResolvedSource[] {
-  if (!translator.shapes.has(query.shape)) {
-    return [];
-  }
+function readableStrings(translator: Translator, query: Query, sources: ResolvedSource[]): ResolvedSource[] {
   switch (translator.strings) {
     case 'all':
       return sources;
@@ -33,4 +29,18 @@ export function usableSources(translator: Translator, query: Query, sources: Res
     case 'tables':
       return TABLE_SHAPES.has(query.shape) ? sources : sources.filter((source) => source.spec.fields.every((field) => resultKind(field, query) === 'number'));
   }
+}
+
+/** Sources the translator can query for this shape, without the fields it cannot read. */
+export function usableSources(translator: Translator, query: Query, sources: ResolvedSource[]): ResolvedSource[] {
+  if (!translator.shapes.has(query.shape)) {
+    return [];
+  }
+  const readable = readableStrings(translator, query, sources);
+  if (translator.absentColumns !== 'error') {
+    return readable;
+  }
+  return readable
+    .map((source) => ({ ...source, spec: { ...source.spec, fields: source.spec.fields.filter((field) => !field.optional) } }))
+    .filter((source) => source.spec.fields.length > 0);
 }

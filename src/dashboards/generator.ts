@@ -1,7 +1,8 @@
 import type { VarkenConfig } from '../config/schemas/config.schema';
 import { type BandSpec, type DashboardSpec, type OutputKey, type PanelSpec, type PanelTemplate, type PlexPairing, type ResolvedSource, TABLE_SHAPES, type Variant } from './model';
+import { DETAILED } from './detailed';
 import { OVERVIEW } from './overview';
-import { resolveSources, type SourceContext } from './sources';
+import { MEASUREMENTS, resolveSources, type SourceContext } from './sources';
 import { DATASOURCE_UID, getTranslator, usableSources, type GrafanaTarget, type TargetContext, type Translator } from './translators';
 
 export const MIN_GRAFANA_VERSION = '11.0.0';
@@ -43,7 +44,7 @@ export interface GenerateOptions {
   spec?: DashboardSpec;
 }
 
-const SPECS: Record<DashboardSpec['kind'], DashboardSpec> = { overview: OVERVIEW };
+const SPECS: Record<DashboardSpec['kind'], DashboardSpec> = { overview: OVERVIEW, detailed: DETAILED };
 
 interface Rendered {
   spec: PanelSpec;
@@ -52,9 +53,9 @@ interface Rendered {
   sources: ResolvedSource[];
 }
 
-function choose(panel: PanelSpec, translator: Translator, ctx: SourceContext): Rendered | undefined {
+function choose(panel: PanelSpec, translator: Translator, ctx: SourceContext, server?: number): Rendered | undefined {
   for (const variant of panel.variants) {
-    const resolved = variant.sources.flatMap((source) => resolveSources(source, ctx));
+    const resolved = variant.sources.flatMap((source) => resolveSources(source, ctx, server));
     const sources = usableSources(translator, variant.query, resolved);
     if (sources.length > 0 && (!variant.complete || sources.length === resolved.length)) {
       return { spec: panel, template: { ...panel.grafana, ...variant.grafana }, variant, sources };
@@ -137,6 +138,24 @@ function stretchLines(panels: GrafanaPanel[]): void {
   }
 }
 
+interface Band {
+  spec: BandSpec;
+  title: string;
+  server?: number;
+}
+
+/** A `perInstance` band becomes one band per configured instance of its plugin. */
+function expandBands(spec: DashboardSpec, ctx: SourceContext): Band[] {
+  return spec.bands.flatMap((band): Band[] => {
+    const plugin = band.perInstance;
+    if (!plugin) {
+      return [{ spec: band, title: band.title }];
+    }
+    const instances: { id: number }[] = ctx.config.inputs[plugin] ?? [];
+    return instances.map((instance) => ({ spec: band, title: `${MEASUREMENTS[plugin]} ${instance.id}`, server: instance.id }));
+  });
+}
+
 /** Grafana dashboard JSON of the panels the config feeds, importable through Grafana's import screen. */
 export function generateDashboard(options: GenerateOptions): GrafanaDashboard {
   const translator = getTranslator(options.output);
@@ -145,25 +164,34 @@ export function generateDashboard(options: GenerateOptions): GrafanaDashboard {
   const panels: GrafanaPanel[] = [];
   const flow = new Flow(0);
   const spec = options.spec ?? SPECS[options.kind];
-  for (const band of spec.bands) {
-    const rendered = band.panels.map((panel) => choose(panel, translator, ctx)).filter((r): r is Rendered => r !== undefined);
+  let nextId = 1;
+  for (const band of expandBands(spec, ctx)) {
+    const rendered = band.spec.panels.map((panel) => choose(panel, translator, ctx, band.server)).filter((r): r is Rendered => r !== undefined);
     if (rendered.length === 0) {
       continue;
     }
+    const collapsed = band.spec.collapsed === true;
     flow.newLine();
-    panels.push({ id: panels.length + 1, type: 'row', title: band.title, collapsed: false, gridPos: flow.place(GRID_WIDTH, 1), panels: [] });
+    const row: GrafanaPanel = { id: nextId++, type: 'row', title: band.title, collapsed, gridPos: flow.place(GRID_WIDTH, 1), panels: [] };
     flow.newLine();
+    // Grafana lays a collapsed row's panels out below it, while the next row follows it directly.
+    const panelFlow = collapsed ? new Flow(flow.y) : flow;
     const placed = rendered.map((r, index) => {
       if (index > 0 && rendered[index - 1].template.type === 'stat' && r.template.type !== 'stat') {
-        flow.newLine();
+        panelFlow.newLine();
       }
       const [width, height] = r.variant.size ?? [r.spec.width, r.spec.height];
-      return panelJson(r, band, translator, targetCtx, panels.length + 1 + index, flow.place(width, height));
+      return panelJson(r, band.spec, translator, targetCtx, nextId++, panelFlow.place(width, height));
     });
     stretchLines(placed);
-    panels.push(...placed);
+    if (collapsed) {
+      row.panels = placed;
+      panels.push(row);
+    } else {
+      panels.push(row, ...placed);
+    }
   }
-  const panelTypes = [...new Set(panels.map((panel) => panel.type).filter((type) => type !== 'row'))].sort();
+  const panelTypes = [...new Set(panels.flatMap((panel) => [panel, ...((panel.panels as GrafanaPanel[] | undefined) ?? [])]).map((panel) => panel.type).filter((type) => type !== 'row'))].sort();
   return {
     __inputs: [
       {

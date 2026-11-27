@@ -198,4 +198,4 @@ function sqlTranslator(dialect: SqlDialect): Translator {
 }
 
 export const timescaledb = sqlTranslator(timescale);
-export const questdb = sqlTranslator(quest);
+export const questdb: Translator = { ...sqlTranslator(quest), absentColumns: 'error' };

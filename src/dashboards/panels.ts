@@ -197,12 +197,24 @@ export function pie(): PanelTemplate {
   };
 }
 
-export function hourBars(): PanelTemplate {
+/** Bars per category of `xField` (hour of day, weekday), one series per field. */
+export function categoryBars(xField: string): PanelTemplate {
   return {
     type: 'barchart',
-    options: { xField: 'hour', stacking: 'normal', orientation: 'vertical', showValue: 'never', legend: { displayMode: 'list', placement: 'bottom', showLegend: true } },
+    options: { xField, stacking: 'normal', orientation: 'vertical', showValue: 'never', legend: { displayMode: 'list', placement: 'bottom', showLegend: true } },
     fieldConfig: { defaults: { color: { mode: 'palette-classic' } }, overrides: [] },
-    transformations: [{ id: 'merge', options: {} }, { id: 'sortBy', options: { sort: [{ field: 'hour' }] } }, organize()],
+    transformations: [{ id: 'merge', options: {} }, { id: 'sortBy', options: { sort: [{ field: xField }] } }, organize()],
+  };
+}
+
+export const hourBars = (): PanelTemplate => categoryBars('hour');
+
+/** Latest value of each field of one source, with its name. */
+export function fieldStats(): PanelTemplate {
+  return {
+    type: 'stat',
+    options: { reduceOptions: { values: false, calcs: ['lastNotNull'], fields: '' }, graphMode: 'none', colorMode: 'none', textMode: 'value_and_name', justifyMode: 'auto' },
+    fieldConfig: { defaults: defaults({}), overrides: [] },
   };
 }
 

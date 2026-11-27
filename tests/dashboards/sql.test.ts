@@ -152,4 +152,15 @@ describe('SQL translators', () => {
     expect(getTranslator(translator.output)).toBe(translator);
     expect(translator.datasource).toMatchObject({ pluginId: 'grafana-postgresql-datasource', pluginName: 'PostgreSQL' });
   });
+
+  it('reads no optional field on QuestDB, whose missing columns fail the query', () => {
+    const mixed = source({ fields: [num('size'), { ...num('music'), optional: true }] });
+    const optionalOnly = source({ fields: [{ ...num('music'), optional: true }] });
+    const [stripped] = usableSources(questdb, { shape: 'latestTable' }, [mixed, optionalOnly]);
+
+    expect(questdb.absentColumns).toBe('error');
+    expect(usableSources(questdb, { shape: 'latestTable' }, [mixed, optionalOnly])).toHaveLength(1);
+    expect(stripped.spec.fields).toEqual([num('size')]);
+    expect(usableSources(timescaledb, { shape: 'latestTable' }, [mixed, optionalOnly])).toEqual([mixed, optionalOnly]);
+  });
 });

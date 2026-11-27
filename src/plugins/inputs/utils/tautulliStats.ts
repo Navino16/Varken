@@ -32,7 +32,7 @@ export function graphSnapshotPoints(type: string, categoryTag: string, graph: Gr
   for (const [index, category] of (graph.categories ?? []).entries()) {
     const fields = seriesFields(graph, index);
     if (Object.keys(fields).length > 0) {
-      points.push({ tags: { type, [categoryTag]: category }, fields });
+      points.push({ tags: { type, [categoryTag]: category, rank: index + 1 }, fields });
     }
   }
   return points;

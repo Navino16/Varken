@@ -191,3 +191,69 @@ describe('variants', () => {
     expect(bare.transformations).toEqual([{ id: 'x' }]);
   });
 });
+
+describe('per-instance bands', () => {
+  const ombi: SourceSpec = { ...requests };
+  const detailed = (collapsed: boolean): DashboardSpec => ({
+    kind: 'detailed',
+    title: 'D',
+    bands: [
+      { key: 'sonarr', title: 'Sonarr', perInstance: 'sonarr', collapsed, panels: [panel('a', 12, [queue]), panel('b', 24, [queue], { grafana: { type: 'table' } })] },
+      { key: 'ombi', title: 'Ombi', perInstance: 'ombi', collapsed, panels: [panel('o', 12, [ombi])] },
+    ],
+  });
+  const render = (collapsed = true, inputs = config.inputs): GrafanaPanel[] =>
+    generateDashboard({ kind: 'detailed', output: 'influxdb1', config: { ...config, inputs }, pairedPlex: new Map(), version: '9.9.9', spec: detailed(collapsed) }).panels;
+  const nested = (row: GrafanaPanel): GrafanaPanel[] => (row.panels as GrafanaPanel[] | undefined) ?? [];
+
+  it('gives each configured instance its own collapsed row', () => {
+    const rows = render();
+
+    expect(rows.map((p) => [p.type, p.title, p.collapsed, p.gridPos])).toEqual([
+      ['row', 'Sonarr 1', true, { x: 0, y: 0, w: 24, h: 1 }],
+      ['row', 'Sonarr 2', true, { x: 0, y: 1, w: 24, h: 1 }],
+    ]);
+    expect(nested(rows[0]).map((p) => [p.title, p.gridPos])).toEqual([
+      ['a', { x: 0, y: 1, w: 24, h: 4 }],
+      ['b', { x: 0, y: 5, w: 24, h: 4 }],
+    ]);
+    expect(nested(rows[1]).every((p) => p.gridPos.y >= 2)).toBe(true);
+  });
+
+  it('reads only the row instance', () => {
+    const queries = nested(render()[1]).flatMap((p) => (p.targets ?? []).map((t) => String(t.query)));
+
+    expect(queries).toHaveLength(2);
+    expect(queries.every((q) => q.includes(`"server" = '2'`) && !q.includes(`"server" = '1'`))).toBe(true);
+  });
+
+  it('numbers rows and nested panels once each', () => {
+    const rows = render();
+    const ids = rows.flatMap((row) => [row.id, ...nested(row).map((p) => p.id)]);
+
+    expect(ids).toEqual([1, 2, 3, 4, 5, 6]);
+  });
+
+  it('requires the panel types of collapsed rows', () => {
+    const dashboard = generateDashboard({ kind: 'detailed', output: 'influxdb1', config, pairedPlex: new Map(), version: '9.9.9', spec: detailed(true) });
+
+    expect(dashboard.__requires.filter((r) => (r as { type: string }).type === 'panel').map((r) => (r as { id: string }).id)).toEqual(['stat', 'table']);
+  });
+
+  it('leaves out an instance without enabled collector', () => {
+    const inputs = InputsConfigSchema.parse({ sonarr: [{ id: 1, url: 'http://s.test', apiKey: 'k', queue: { enabled: false } }, { id: 2, url: 'http://t.test', apiKey: 'k', queue: { enabled: true } }] });
+
+    expect(render(true, inputs).map((p) => p.title)).toEqual(['Sonarr 2']);
+  });
+
+  it('keeps the panels of an open row at the top level', () => {
+    expect(render(false).map((p) => [p.type, p.title, p.gridPos.y])).toEqual([
+      ['row', 'Sonarr 1', 0],
+      ['stat', 'a', 1],
+      ['table', 'b', 5],
+      ['row', 'Sonarr 2', 9],
+      ['stat', 'a', 10],
+      ['table', 'b', 14],
+    ]);
+  });
+});

@@ -576,6 +576,7 @@ Config: `inputs.tautulli[].stats` · Source: `get_plays_by_dayofweek`, `get_play
 | Key | Kind | Type | Meaning |
 |-----|------|------|---------|
 | `day` / `hour` / `platform` / `user` | tag | string | Category: day name (`Monday`, ... in the order Tautulli is set to start the week), hour (`00`-`23`), platform, user friendly name (top 10) |
+| `rank` | tag | number | Position of the category in Tautulli's list, from `1`: weekday order, hour, or top-10 rank |
 | `tv`, `movies`, `music`, `live_tv` | field | number | Plays per media type (`PlaysByDayOfWeek`, `PlaysByHourOfDay`) |
 | `direct_play`, `direct_stream`, `transcode` | field | number | Plays per stream type (`StreamTypeBy*`) |
 
