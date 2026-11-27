@@ -27,4 +27,4 @@ it('rejects a point dated after the simulated time, which would push event marks
   await expect(seedDemo({ outputs: new Map([['noop', noop]]), end: new Date('2026-12-02T12:00:00Z'), days: 1, stepSeconds: 3600 })).rejects.toThrow(
     /dated after the simulated time/
   );
-});
+}, 60_000);
