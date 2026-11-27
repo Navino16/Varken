@@ -138,7 +138,9 @@ function series(dialect: SqlDialect, query: Query, source: ResolvedSource): stri
     const metric = legend(dialect, source, field);
     if (query.shape === 'proportion') {
       const group = tags.length > 0 ? ` GROUP BY ${tags.join(', ')}` : '';
-      return `SELECT min(${dialect.time}) AS time, ${metric} AS metric, sum(${dialect.field(field)}) * ${interval} AS value ${where(dialect, source, timeFilter(dialect))}${group}`;
+      // Without rows, the aggregate still yields one row with a null time, which Grafana's series conversion rejects.
+      const select = `SELECT min(${dialect.time}) AS time, ${metric} AS metric, sum(${dialect.field(field)}) * ${interval} AS value ${where(dialect, source, timeFilter(dialect))}${group}`;
+      return `SELECT * FROM (${select}) AS p WHERE time IS NOT NULL`;
     }
     const latest = query.shape === 'latest';
     const every = latest ? `${interval}s` : query.shape === 'timeSeries' && query.bucket === '1d' ? '1d' : '$__interval';

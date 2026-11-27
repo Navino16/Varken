@@ -49,9 +49,9 @@ describe('timescaledb', () => {
     expect(daily).toMatch(/^SELECT time, metric, value FROM \(SELECT time, metric, value - lag\(value\) OVER \(PARTITION BY metric ORDER BY time\) AS value FROM \(SELECT .*\) AS a\) AS d WHERE value >= 0 ORDER BY time$/);
   });
 
-  it('sums each field over the range times the interval for proportions', () => {
+  it('sums each field over the range times the interval for proportions, without a row when the range is empty', () => {
     expect(sql(t, { shape: 'proportion' }, { fields: [num('direct_play_streams', 'Direct play')], legend: '{field}' })).toBe(
-      "SELECT min(time) AS time, 'Direct play' AS metric, sum((fields->>'direct_play_streams')::double precision) * 30 AS value FROM varken_events WHERE measurement = 'Sonarr' AND tags->>'type' = 'Queue' AND tags->>'server' = '1' AND $__timeFilter(time) ORDER BY time"
+      "SELECT * FROM (SELECT min(time) AS time, 'Direct play' AS metric, sum((fields->>'direct_play_streams')::double precision) * 30 AS value FROM varken_events WHERE measurement = 'Sonarr' AND tags->>'type' = 'Queue' AND tags->>'server' = '1' AND $__timeFilter(time)) AS p WHERE time IS NOT NULL ORDER BY time"
     );
   });
 

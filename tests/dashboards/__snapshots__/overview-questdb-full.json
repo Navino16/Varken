@@ -2310,7 +2310,7 @@
             "type": "grafana-postgresql-datasource",
             "uid": "${DS_VARKEN}"
           },
-          "rawSql": "SELECT * FROM (SELECT min(timestamp) AS time, 'Direct play' AS metric, sum(\"direct_play_streams\") * 30 AS value FROM \"Tautulli\" WHERE \"type\" = 'current_stream_stats' AND \"server\" = '1' AND $__timeFilter(timestamp) UNION ALL SELECT min(timestamp) AS time, 'Direct stream' AS metric, sum(\"direct_streams\") * 30 AS value FROM \"Tautulli\" WHERE \"type\" = 'current_stream_stats' AND \"server\" = '1' AND $__timeFilter(timestamp) UNION ALL SELECT min(timestamp) AS time, 'Transcode' AS metric, sum(\"transcode_streams\") * 30 AS value FROM \"Tautulli\" WHERE \"type\" = 'current_stream_stats' AND \"server\" = '1' AND $__timeFilter(timestamp)) AS u ORDER BY time",
+          "rawSql": "SELECT * FROM (SELECT * FROM (SELECT min(timestamp) AS time, 'Direct play' AS metric, sum(\"direct_play_streams\") * 30 AS value FROM \"Tautulli\" WHERE \"type\" = 'current_stream_stats' AND \"server\" = '1' AND $__timeFilter(timestamp)) AS p WHERE time IS NOT NULL UNION ALL SELECT * FROM (SELECT min(timestamp) AS time, 'Direct stream' AS metric, sum(\"direct_streams\") * 30 AS value FROM \"Tautulli\" WHERE \"type\" = 'current_stream_stats' AND \"server\" = '1' AND $__timeFilter(timestamp)) AS p WHERE time IS NOT NULL UNION ALL SELECT * FROM (SELECT min(timestamp) AS time, 'Transcode' AS metric, sum(\"transcode_streams\") * 30 AS value FROM \"Tautulli\" WHERE \"type\" = 'current_stream_stats' AND \"server\" = '1' AND $__timeFilter(timestamp)) AS p WHERE time IS NOT NULL) AS u ORDER BY time",
           "format": "time_series",
           "rawQuery": true,
           "editorMode": "code"
@@ -2321,7 +2321,7 @@
             "type": "grafana-postgresql-datasource",
             "uid": "${DS_VARKEN}"
           },
-          "rawSql": "SELECT * FROM (SELECT min(timestamp) AS time, 'Direct play' AS metric, sum(\"direct_play_streams\") * 30 AS value FROM \"Jellyfin\" WHERE \"type\" = 'current_stream_stats' AND \"server\" = '1' AND $__timeFilter(timestamp) UNION ALL SELECT min(timestamp) AS time, 'Direct stream' AS metric, sum(\"direct_streams\") * 30 AS value FROM \"Jellyfin\" WHERE \"type\" = 'current_stream_stats' AND \"server\" = '1' AND $__timeFilter(timestamp) UNION ALL SELECT min(timestamp) AS time, 'Transcode' AS metric, sum(\"transcode_streams\") * 30 AS value FROM \"Jellyfin\" WHERE \"type\" = 'current_stream_stats' AND \"server\" = '1' AND $__timeFilter(timestamp)) AS u ORDER BY time",
+          "rawSql": "SELECT * FROM (SELECT * FROM (SELECT min(timestamp) AS time, 'Direct play' AS metric, sum(\"direct_play_streams\") * 30 AS value FROM \"Jellyfin\" WHERE \"type\" = 'current_stream_stats' AND \"server\" = '1' AND $__timeFilter(timestamp)) AS p WHERE time IS NOT NULL UNION ALL SELECT * FROM (SELECT min(timestamp) AS time, 'Direct stream' AS metric, sum(\"direct_streams\") * 30 AS value FROM \"Jellyfin\" WHERE \"type\" = 'current_stream_stats' AND \"server\" = '1' AND $__timeFilter(timestamp)) AS p WHERE time IS NOT NULL UNION ALL SELECT * FROM (SELECT min(timestamp) AS time, 'Transcode' AS metric, sum(\"transcode_streams\") * 30 AS value FROM \"Jellyfin\" WHERE \"type\" = 'current_stream_stats' AND \"server\" = '1' AND $__timeFilter(timestamp)) AS p WHERE time IS NOT NULL) AS u ORDER BY time",
           "format": "time_series",
           "rawQuery": true,
           "editorMode": "code"
@@ -2332,7 +2332,7 @@
             "type": "grafana-postgresql-datasource",
             "uid": "${DS_VARKEN}"
           },
-          "rawSql": "SELECT * FROM (SELECT min(timestamp) AS time, 'Direct play' AS metric, sum(\"direct_play_streams\") * 30 AS value FROM \"Emby\" WHERE \"type\" = 'current_stream_stats' AND \"server\" = '1' AND $__timeFilter(timestamp) UNION ALL SELECT min(timestamp) AS time, 'Direct stream' AS metric, sum(\"direct_streams\") * 30 AS value FROM \"Emby\" WHERE \"type\" = 'current_stream_stats' AND \"server\" = '1' AND $__timeFilter(timestamp) UNION ALL SELECT min(timestamp) AS time, 'Transcode' AS metric, sum(\"transcode_streams\") * 30 AS value FROM \"Emby\" WHERE \"type\" = 'current_stream_stats' AND \"server\" = '1' AND $__timeFilter(timestamp)) AS u ORDER BY time",
+          "rawSql": "SELECT * FROM (SELECT * FROM (SELECT min(timestamp) AS time, 'Direct play' AS metric, sum(\"direct_play_streams\") * 30 AS value FROM \"Emby\" WHERE \"type\" = 'current_stream_stats' AND \"server\" = '1' AND $__timeFilter(timestamp)) AS p WHERE time IS NOT NULL UNION ALL SELECT * FROM (SELECT min(timestamp) AS time, 'Direct stream' AS metric, sum(\"direct_streams\") * 30 AS value FROM \"Emby\" WHERE \"type\" = 'current_stream_stats' AND \"server\" = '1' AND $__timeFilter(timestamp)) AS p WHERE time IS NOT NULL UNION ALL SELECT * FROM (SELECT min(timestamp) AS time, 'Transcode' AS metric, sum(\"transcode_streams\") * 30 AS value FROM \"Emby\" WHERE \"type\" = 'current_stream_stats' AND \"server\" = '1' AND $__timeFilter(timestamp)) AS p WHERE time IS NOT NULL) AS u ORDER BY time",
           "format": "time_series",
           "rawQuery": true,
           "editorMode": "code"

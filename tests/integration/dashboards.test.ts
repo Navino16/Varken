@@ -69,6 +69,17 @@ function seededIntervals(inputs: InputsConfig): InputsConfig {
   return inputs;
 }
 
+/** A second instance (id 2) of every service, never seeded: its queries match nothing. */
+function withIdleInstances(inputs: InputsConfig): InputsConfig {
+  const record = inputs as Record<string, { id: number }[] | undefined>;
+  for (const instances of Object.values(record)) {
+    if (instances?.[0]) {
+      instances.push({ ...structuredClone(instances[0]), id: 2 });
+    }
+  }
+  return inputs;
+}
+
 /** Measurement a target reads, whatever its dialect. */
 function measurement(target: GrafanaTarget): string | undefined {
   const text = String(target.query ?? target.expr ?? target.rawSql);
@@ -137,5 +148,24 @@ describe.skipIf(outputs.length === 0)('Overview through Grafana', () => {
     expect(errors).toEqual([]);
     expect(missing).toEqual([]);
     expect(empty.sort()).toEqual(Object.keys(EMPTY_ON_DEMO[output]).sort());
+  }, 300_000);
+
+  it.each(outputs)('returns no error for an instance without data on %s', async (output) => {
+    const global = GlobalConfigSchema.parse({ selfMetrics: { enabled: true, intervalSeconds: SEEDED_STEP_SECONDS } });
+    const config = { inputs: withIdleInstances(seededIntervals(demoInputs())), global };
+    const dashboard = generateDashboard({ kind: 'overview', output, config, pairedPlex: new Map(), version: 'test', timezone: 'Europe/Paris' });
+    const uid = await ensureDatasource(output);
+
+    const errors: string[] = [];
+    for (const panel of dashboard.panels) {
+      for (const target of panel.targets ?? []) {
+        const result = await runTarget(target, uid, panel);
+        if (result.error) {
+          errors.push(`${panel.title}/${measurement(target)}: ${result.error}`);
+        }
+      }
+    }
+
+    expect(errors).toEqual([]);
   }, 300_000);
 });
