@@ -218,6 +218,7 @@ export function weekdayHourMatrix(): PanelTemplate {
       overrides: [
         byName('Day', [
           { id: 'custom.cellOptions', value: { type: 'auto' } },
+          { id: 'custom.width', value: 60 },
           { id: 'mappings', value: [valueMapping(WEEKDAYS)] },
         ]),
       ],

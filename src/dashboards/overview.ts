@@ -305,7 +305,7 @@ const PERIOD: BandSpec = {
       'Plays by hour and weekday',
       [8, 8],
       [
-        { query: { shape: 'timeBuckets' }, sources: plays, size: [16, 9] },
+        { query: { shape: 'timeBuckets' }, sources: plays, size: [24, 10] },
         {
           query: { shape: 'latestTable' },
           size: [8, 8],

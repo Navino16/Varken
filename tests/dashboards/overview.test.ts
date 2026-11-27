@@ -146,7 +146,7 @@ describe('Overview', () => {
     const ids = (template.transformations ?? []).map((t) => (t as { id: string }).id);
 
     expect(buckets.query.shape).toBe('timeBuckets');
-    expect(buckets.size).toEqual([16, 9]);
+    expect(buckets.size).toEqual([24, 10]);
     expect(template.type).toBe('table');
     expect(ids).toEqual(['merge', 'groupBy', 'sortBy', 'groupingToMatrix', 'sortBy', 'organize']);
     expect(JSON.stringify(template)).toContain('"valueField":"count (sum)"');

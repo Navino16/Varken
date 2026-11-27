@@ -2007,8 +2007,8 @@
       "gridPos": {
         "x": 0,
         "y": 44,
-        "w": 16,
-        "h": 9
+        "w": 24,
+        "h": 10
       },
       "datasource": {
         "type": "grafana-postgresql-datasource",
@@ -2074,6 +2074,10 @@
                 "value": {
                   "type": "auto"
                 }
+              },
+              {
+                "id": "custom.width",
+                "value": 60
               },
               {
                 "id": "mappings",
@@ -2191,8 +2195,8 @@
       "type": "table",
       "title": "Most watched",
       "gridPos": {
-        "x": 16,
-        "y": 44,
+        "x": 0,
+        "y": 54,
         "w": 8,
         "h": 8
       },
@@ -2290,8 +2294,8 @@
       "type": "piechart",
       "title": "Direct play vs transcode",
       "gridPos": {
-        "x": 0,
-        "y": 53,
+        "x": 8,
+        "y": 54,
         "w": 8,
         "h": 8
       },
@@ -2410,8 +2414,8 @@
       "type": "table",
       "title": "Recently added",
       "gridPos": {
-        "x": 8,
-        "y": 53,
+        "x": 16,
+        "y": 54,
         "w": 8,
         "h": 8
       },
@@ -2487,9 +2491,9 @@
       "type": "timeseries",
       "title": "Requests per day",
       "gridPos": {
-        "x": 16,
-        "y": 53,
-        "w": 8,
+        "x": 0,
+        "y": 62,
+        "w": 12,
         "h": 8
       },
       "datasource": {
@@ -2564,9 +2568,9 @@
       "type": "timeseries",
       "title": "Subtitles downloaded per day",
       "gridPos": {
-        "x": 0,
-        "y": 61,
-        "w": 24,
+        "x": 12,
+        "y": 62,
+        "w": 12,
         "h": 8
       },
       "datasource": {
