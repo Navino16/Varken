@@ -1072,7 +1072,7 @@
             "type": "prometheus",
             "uid": "${DS_VARKEN}"
           },
-          "expr": "label_set(avg(avg_over_time(Tautulli_stream_count{type=\"current_stream_stats\", server=\"1\"}[$__interval])), \"__name__\", \"stream_count\")",
+          "expr": "label_set(avg(avg_over_time(Tautulli_stream_count{type=\"current_stream_stats\", server=\"1\"}[$__interval] offset -$__interval)), \"__name__\", \"stream_count\")",
           "legendFormat": "Tautulli 1",
           "instant": false,
           "range": true,
@@ -1084,7 +1084,7 @@
             "type": "prometheus",
             "uid": "${DS_VARKEN}"
           },
-          "expr": "label_set(avg(avg_over_time(Jellyfin_stream_count{type=\"current_stream_stats\", server=\"1\"}[$__interval])), \"__name__\", \"stream_count\")",
+          "expr": "label_set(avg(avg_over_time(Jellyfin_stream_count{type=\"current_stream_stats\", server=\"1\"}[$__interval] offset -$__interval)), \"__name__\", \"stream_count\")",
           "legendFormat": "Jellyfin 1",
           "instant": false,
           "range": true,
@@ -1096,7 +1096,7 @@
             "type": "prometheus",
             "uid": "${DS_VARKEN}"
           },
-          "expr": "label_set(avg(avg_over_time(Emby_stream_count{type=\"current_stream_stats\", server=\"1\"}[$__interval])), \"__name__\", \"stream_count\")",
+          "expr": "label_set(avg(avg_over_time(Emby_stream_count{type=\"current_stream_stats\", server=\"1\"}[$__interval] offset -$__interval)), \"__name__\", \"stream_count\")",
           "legendFormat": "Emby 1",
           "instant": false,
           "range": true,
@@ -1166,7 +1166,7 @@
             "type": "prometheus",
             "uid": "${DS_VARKEN}"
           },
-          "expr": "union(label_set(avg(avg_over_time(Tautulli_lan_bandwidth{type=\"current_stream_stats\", server=\"1\"}[$__interval])), \"__name__\", \"LAN\"), label_set(avg(avg_over_time(Tautulli_wan_bandwidth{type=\"current_stream_stats\", server=\"1\"}[$__interval])), \"__name__\", \"WAN\"))",
+          "expr": "union(label_set(avg(avg_over_time(Tautulli_lan_bandwidth{type=\"current_stream_stats\", server=\"1\"}[$__interval] offset -$__interval)), \"__name__\", \"LAN\"), label_set(avg(avg_over_time(Tautulli_wan_bandwidth{type=\"current_stream_stats\", server=\"1\"}[$__interval] offset -$__interval)), \"__name__\", \"WAN\"))",
           "legendFormat": "Tautulli 1 {{__name__}}",
           "instant": false,
           "range": true,
@@ -1237,7 +1237,7 @@
             "type": "prometheus",
             "uid": "${DS_VARKEN}"
           },
-          "expr": "union(label_set(avg(avg_over_time(Plex_process_cpu_percent{type=\"Resources\", server=\"1\"}[$__interval])), \"__name__\", \"CPU\"), label_set(avg(avg_over_time(Plex_process_memory_percent{type=\"Resources\", server=\"1\"}[$__interval])), \"__name__\", \"RAM\"))",
+          "expr": "union(label_set(avg(avg_over_time(Plex_process_cpu_percent{type=\"Resources\", server=\"1\"}[$__interval] offset -$__interval)), \"__name__\", \"CPU\"), label_set(avg(avg_over_time(Plex_process_memory_percent{type=\"Resources\", server=\"1\"}[$__interval] offset -$__interval)), \"__name__\", \"RAM\"))",
           "legendFormat": "Plex 1 {{__name__}}",
           "instant": false,
           "range": true,
@@ -1627,7 +1627,7 @@
             "type": "prometheus",
             "uid": "${DS_VARKEN}"
           },
-          "expr": "label_set(sum by (media_type) (count_over_time(Tautulli_play_duration_seconds{type=\"Play\", server=\"1\"}[1d])), \"__name__\", \"play_duration_seconds\")",
+          "expr": "label_set(sum by (media_type) (count_over_time(Tautulli_play_duration_seconds{type=\"Play\", server=\"1\"}[1d] offset -1d)), \"__name__\", \"play_duration_seconds\")",
           "legendFormat": "{{media_type}} · Tautulli 1",
           "instant": false,
           "range": true,
@@ -2013,7 +2013,7 @@
             "type": "prometheus",
             "uid": "${DS_VARKEN}"
           },
-          "expr": "label_set(clamp_min(max(last_over_time(Overseerr_total{type=\"Request_Counts\", server=\"1\"}[1d])) - max(last_over_time(Overseerr_total{type=\"Request_Counts\", server=\"1\"}[1d] offset 1d)), 0), \"__name__\", \"total\")",
+          "expr": "label_set((max(last_over_time(Overseerr_total{type=\"Request_Counts\", server=\"1\"}[1d] offset -1d)) - max(last_over_time(Overseerr_total{type=\"Request_Counts\", server=\"1\"}[1d]))) >= 0, \"__name__\", \"total\")",
           "legendFormat": "Overseerr 1",
           "instant": false,
           "range": true,
@@ -2026,7 +2026,7 @@
             "type": "prometheus",
             "uid": "${DS_VARKEN}"
           },
-          "expr": "label_set(clamp_min(max(last_over_time(Ombi_total{type=\"Request_Total\", server=\"1\"}[1d])) - max(last_over_time(Ombi_total{type=\"Request_Total\", server=\"1\"}[1d] offset 1d)), 0), \"__name__\", \"total\")",
+          "expr": "label_set((max(last_over_time(Ombi_total{type=\"Request_Total\", server=\"1\"}[1d] offset -1d)) - max(last_over_time(Ombi_total{type=\"Request_Total\", server=\"1\"}[1d]))) >= 0, \"__name__\", \"total\")",
           "legendFormat": "Ombi 1",
           "instant": false,
           "range": true,
@@ -2094,7 +2094,7 @@
             "type": "prometheus",
             "uid": "${DS_VARKEN}"
           },
-          "expr": "union(label_set(sum(sum_over_time(Bazarr_movies{type=\"HistoryStats\", server=\"1\"}[1d])), \"__name__\", \"Movies\"), label_set(sum(sum_over_time(Bazarr_episodes{type=\"HistoryStats\", server=\"1\"}[1d])), \"__name__\", \"Episodes\"))",
+          "expr": "union(label_set(sum(sum_over_time(Bazarr_movies{type=\"HistoryStats\", server=\"1\"}[1d] offset -1d)), \"__name__\", \"Movies\"), label_set(sum(sum_over_time(Bazarr_episodes{type=\"HistoryStats\", server=\"1\"}[1d] offset -1d)), \"__name__\", \"Episodes\"))",
           "legendFormat": "{{__name__}}",
           "instant": false,
           "range": true,

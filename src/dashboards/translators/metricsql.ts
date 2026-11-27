@@ -34,6 +34,9 @@ function combined(agg: Agg, tags: string[], expr: string): string {
 }
 
 function fieldExpr(query: Query, source: ResolvedSource, field: FieldRef): string {
+  if (query.shape !== 'latest' && query.shape !== 'latestTable' && (source.spec.where ?? []).some((f) => f.kind === 'number')) {
+    throw new Error('MetricsQL filters on numbers only within one collection (latest, latestTable)');
+  }
   const agg: Agg = field.agg ?? ('agg' in query ? query.agg : 'last');
   const tags = source.spec.tags ?? [];
   const interval = source.intervalSeconds;
@@ -42,12 +45,13 @@ function fieldExpr(query: Query, source: ResolvedSource, field: FieldRef): strin
       return `last_over_time((${combined(agg, tags, perSeries(source, field, agg, `${interval}s`))})[${3 * interval}s:${interval}s])`;
     case 'timeSeries': {
       const window = query.bucket === '1d' ? '1d' : '$__interval';
-      const current = combined(agg, tags, perSeries(source, field, agg, window));
+      // A range query at t reads (t - w, t]: looking one window ahead labels each bucket by its start, as other dialects do.
+      const current = combined(agg, tags, perSeries(source, field, agg, window, `-${window}`));
       if (query.transform !== 'nonNegativeDifference') {
         return current;
       }
-      const previous = combined(agg, tags, perSeries(source, field, agg, window, window));
-      return `clamp_min(${current} - ${previous}, 0)`;
+      const previous = combined(agg, tags, perSeries(source, field, agg, window));
+      return `(${current} - ${previous}) >= 0`;
     }
     case 'topN':
       return combined(agg, tags, perSeries(source, field, agg, '$__range'));

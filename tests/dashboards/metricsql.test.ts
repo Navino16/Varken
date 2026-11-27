@@ -41,20 +41,20 @@ describe('metricsql', () => {
     expect(render({ shape: 'latest', agg: 'last' }, { fields: [num('a'), num('b')] }).legendFormat).toBe('Sonarr 1 {{__name__}}');
   });
 
-  it('aggregates time buckets of the dashboard interval or of a day', () => {
+  it('aggregates time buckets of the dashboard interval or of a day, each labelled by its start', () => {
     const auto = render({ shape: 'timeSeries', agg: 'mean', bucket: 'auto' }, { fields: [num('lan_bandwidth', 'LAN')] });
     const daily = render({ shape: 'timeSeries', agg: 'count', bucket: '1d' }, { fields: [num('play_duration_seconds')], tags: ['media_type'] });
 
-    expect(auto).toMatchObject({ instant: false, range: true, expr: 'label_set(avg(avg_over_time(Sonarr_lan_bandwidth{type="Queue", server="1"}[$__interval])), "__name__", "LAN")' });
+    expect(auto).toMatchObject({ instant: false, range: true, expr: 'label_set(avg(avg_over_time(Sonarr_lan_bandwidth{type="Queue", server="1"}[$__interval] offset -$__interval)), "__name__", "LAN")' });
     expect(auto.interval).toBeUndefined();
-    expect(daily).toMatchObject({ interval: '1d', expr: 'label_set(sum by (media_type) (count_over_time(Sonarr_play_duration_seconds{type="Queue", server="1"}[1d])), "__name__", "play_duration_seconds")' });
+    expect(daily).toMatchObject({ interval: '1d', expr: 'label_set(sum by (media_type) (count_over_time(Sonarr_play_duration_seconds{type="Queue", server="1"}[1d] offset -1d)), "__name__", "play_duration_seconds")' });
   });
 
-  it('turns daily totals into their non-negative difference', () => {
+  it('turns daily totals into their difference, dropping decreases', () => {
     const target = render({ shape: 'timeSeries', agg: 'last', bucket: '1d', transform: 'nonNegativeDifference' }, { fields: [num('total')] });
 
     expect(target.expr).toBe(
-      'label_set(clamp_min(max(last_over_time(Sonarr_total{type="Queue", server="1"}[1d])) - max(last_over_time(Sonarr_total{type="Queue", server="1"}[1d] offset 1d)), 0), "__name__", "total")'
+      'label_set((max(last_over_time(Sonarr_total{type="Queue", server="1"}[1d] offset -1d)) - max(last_over_time(Sonarr_total{type="Queue", server="1"}[1d]))) >= 0, "__name__", "total")'
     );
   });
 
@@ -95,6 +95,22 @@ describe('metricsql', () => {
       'label_set(last_over_time((max by (plugin) ((last_over_time(Varken_consecutive_errors{type="Collector"}[30s])) and (last_over_time(Varken_circuit_state{type="Collector"}[30s]) > 0)))[90s:30s]), "__name__", "consecutive_errors")'
     );
     expect(String(render({ shape: 'latestTable' }, { where: [{ key: 'throttled', kind: 'number', op: '=', value: 1 }] }).expr)).toContain('Sonarr_throttled{type="Queue", server="1"}[60s]) == 1)');
+  });
+
+  it('refuses number filters over wide windows, where it could only test the last value', () => {
+    const where = [{ key: 'circuit_state', kind: 'number' as const, op: '>' as const, value: 0 }];
+
+    expect(() => render({ shape: 'topN', agg: 'count' }, { where, tags: ['plugin'] })).toThrow('MetricsQL filters on numbers only within one collection (latest, latestTable)');
+    expect(() => render({ shape: 'timeSeries', agg: 'sum', bucket: '1d' }, { where })).toThrow('MetricsQL filters on numbers only within one collection');
+    expect(() => render({ shape: 'proportion' }, { where })).toThrow('MetricsQL filters on numbers only within one collection');
+  });
+
+  it('keeps the rows of two instances apart', () => {
+    const one = String(metricsql.target({ shape: 'topN', agg: 'count' }, source({ tags: ['username'] }, 1), 'A', { timezone: 'UTC' }).expr);
+    const two = String(metricsql.target({ shape: 'topN', agg: 'count' }, source({ tags: ['username'] }, 2), 'B', { timezone: 'UTC' }).expr);
+
+    expect(one).toContain('"varken_source", "Sonarr 1"');
+    expect(two).toContain('"varken_source", "Sonarr 2"');
   });
 
   it('renders tag filters as label matchers', () => {
