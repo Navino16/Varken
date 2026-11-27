@@ -4,13 +4,13 @@ import type { SourceSpec } from '../../src/dashboards/model';
 import { MEASUREMENTS, resolveSources, type SourceContext } from '../../src/dashboards/sources';
 import { getInputPluginRegistry } from '../../src/plugins/inputs';
 
-function context(inputs: Record<string, unknown>, options: { selfMetrics?: boolean; pairedPlex?: number[] } = {}): SourceContext {
+function context(inputs: Record<string, unknown>, options: { selfMetrics?: boolean; pairedPlex?: [number, number[]][] } = {}): SourceContext {
   return {
     config: {
       inputs: InputsConfigSchema.parse(inputs),
       global: GlobalConfigSchema.parse({ selfMetrics: { enabled: options.selfMetrics ?? true, intervalSeconds: 60 } }),
     },
-    pairedPlex: new Set(options.pairedPlex ?? []),
+    pairedPlex: new Map(options.pairedPlex ?? []),
   };
 }
 
@@ -57,19 +57,24 @@ describe('resolveSources', () => {
     expect(resolveSources(geoip, context({ tautulli: [{ ...base, geoip: { enabled: true } }] }))).toHaveLength(1);
   });
 
-  it('leaves paired Plex instances out of streaming sources only', () => {
-    const plex = (id: number): object => ({ id, url: `http://plex-${id}.test`, token: 't', sessions: { enabled: true, intervalSeconds: 30 } });
-    const spec: SourceSpec = { plugin: 'plex', collector: 'sessions', type: 'current_stream_stats', fields: [{ name: 'stream_count', kind: 'number' }] };
-    const ctx = context({ plex: [plex(1), plex(2)] }, { pairedPlex: [1] });
+  it('reads paired Plex from Tautulli only for the data Tautulli collects', () => {
+    const plex = (id: number): object => ({ id, url: `http://plex-${id}.test`, token: 't', sessions: { enabled: true, intervalSeconds: 30 }, history: { enabled: true } });
+    const tautulli = { id: 7, url: 'http://tautulli.test', apiKey: 'k', activity: { enabled: true } };
+    const sessions: SourceSpec = { plugin: 'plex', collector: 'sessions', type: 'current_stream_stats', fields: [{ name: 'stream_count', kind: 'number' }] };
+    const plays: SourceSpec = { plugin: 'plex', collector: 'history', streaming: 'history', type: 'Play', fields: [{ name: 'hash', kind: 'string' }] };
+    const ctx = context({ plex: [plex(1), plex(2)], tautulli: [tautulli] }, { pairedPlex: [[1, [7]]] });
 
-    expect(resolveSources({ ...spec, streaming: true }, ctx).map((s) => s.server)).toEqual([2]);
-    expect(resolveSources(spec, ctx).map((s) => s.server)).toEqual([1, 2]);
+    expect(resolveSources({ ...sessions, streaming: 'activity' }, ctx).map((s) => s.server)).toEqual([2]);
+    expect(resolveSources(sessions, ctx).map((s) => s.server)).toEqual([1, 2]);
+    expect(resolveSources(plays, ctx).map((s) => s.server)).toEqual([1, 2]);
   });
 
-  it('raises the interval to the source minimum', () => {
-    const spec: SourceSpec = { ...queue, minIntervalSeconds: 300 };
+  it('spaces throttled points by whole collector intervals', () => {
+    const spec: SourceSpec = { ...queue, throttleSeconds: 300 };
 
+    expect(resolveSources(spec, context({ sonarr: [sonarr(1, 120)] }))[0].intervalSeconds).toBe(360);
     expect(resolveSources(spec, context({ sonarr: [sonarr(1, 60)] }))[0].intervalSeconds).toBe(300);
+    expect(resolveSources(spec, context({ sonarr: [sonarr(1, 900)] }))[0].intervalSeconds).toBe(900);
   });
 
   it('reads day intervals in seconds', () => {

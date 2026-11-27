@@ -84,7 +84,7 @@ describe('resolvePairedPlex', () => {
   it('pairs the Plex instance whose identifier Tautulli reports', async () => {
     const paired = await resolvePairedPlex({ inputs: inputs({ tautulli: [tautulli], plex: [plex1, plex2] }), global });
 
-    expect([...paired]).toEqual([1]);
+    expect(paired).toEqual(new Map([[1, [1]]]));
     expect(warn).not.toHaveBeenCalled();
   });
 
@@ -108,7 +108,7 @@ describe('resolvePairedPlex', () => {
 
     const paired = await resolvePairedPlex({ inputs: inputs({ tautulli: [tautulli], plex: [plex1, plex2] }), global });
 
-    expect([...paired].sort()).toEqual([1, 2]);
+    expect(paired).toEqual(new Map([[1, [1]], [2, [1]]]));
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('Could not pair Tautulli with Plex (connect ECONNREFUSED); Tautulli takes priority over every Plex instance'));
   });
 });

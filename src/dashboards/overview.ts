@@ -29,7 +29,7 @@ function mediaServers(fields: FieldRef[], legend?: string): SourceSpec[] {
   const common = { type: 'current_stream_stats', fields, ...(legend ? { legend } : {}) };
   return [
     { plugin: 'tautulli', collector: 'activity', ...common },
-    { plugin: 'plex', collector: 'sessions', streaming: true, ...common },
+    { plugin: 'plex', collector: 'sessions', streaming: 'activity', ...common },
     { plugin: 'jellyfin', collector: 'sessions', ...common },
     { plugin: 'emby', collector: 'sessions', ...common },
   ];
@@ -52,8 +52,8 @@ const STAT: [number, number] = [3, 4];
 const queue = (where?: SourceSpec['where']): SourceSpec[] => servarr('queue', { type: 'Queue', fields: [num('size')], ...(where ? { where } : {}) });
 
 const plays: SourceSpec[] = [
-  { plugin: 'tautulli', collector: 'history', type: 'Play', fields: [num('play_duration_seconds')], tags: ['media_type'], legend: '{tag:media_type}' },
-  { plugin: 'plex', collector: 'history', streaming: true, type: 'Play', fields: [str('hash')], tags: ['media_type'], legend: '{tag:media_type}' },
+  { plugin: 'tautulli', collector: 'history', type: 'Play', fields: [num('play_duration_seconds')], tags: ['media_type'], legend: '{tag:media_type} · {source}' },
+  { plugin: 'plex', collector: 'history', streaming: 'history', type: 'Play', fields: [str('hash')], tags: ['media_type'], legend: '{tag:media_type} · {source}' },
   ...(['jellyfin', 'emby'] as const).map(
     (plugin): SourceSpec => ({
       plugin,
@@ -97,7 +97,10 @@ const NOW: BandSpec = {
       'Stuck downloads',
       STAT,
       LATEST_COUNT,
-      queue([{ key: 'tracked_download_status', kind: 'tag', op: '!=', value: 'ok' }]),
+      queue([
+        { key: 'tracked_download_status', kind: 'tag', op: '!=', value: 'ok' },
+        { key: 'tracked_download_status', kind: 'tag', op: '!=', value: 'unknown' },
+      ]),
       stat({ thresholds: [{ color: 'green', value: null }, { color: 'red', value: 1 }] })
     ),
     panel(
@@ -135,7 +138,7 @@ const NOW: BandSpec = {
           (plugin): SourceSpec => ({
             plugin,
             collector: 'sessions',
-            ...(plugin === 'plex' ? { streaming: true } : {}),
+            ...(plugin === 'plex' ? { streaming: 'activity' as const } : {}),
             type: 'Session',
             fields: [num('progress_percent', 'progress')],
             tags: SESSION_TAGS,
@@ -285,9 +288,9 @@ const PERIOD: BandSpec = {
       { shape: 'topN', agg: 'count' },
       [
         { plugin: 'tautulli', collector: 'history', type: 'Play', fields: [num('play_duration_seconds', 'plays')], tags: ['username'] },
-        { plugin: 'plex', collector: 'history', streaming: true, type: 'Play', fields: [str('hash', 'plays')], tags: ['username'] },
+        { plugin: 'plex', collector: 'history', streaming: 'history', type: 'Play', fields: [str('hash', 'plays')], tags: ['username'] },
       ],
-      topTable('username', 'plays', { username: 'User', plays: 'Plays' })
+      topTable(['username'], 'plays', { username: 'User', plays: 'Plays' })
     ),
     variants(
       'plays-by-hour',
@@ -301,7 +304,7 @@ const PERIOD: BandSpec = {
             {
               plugin: 'tautulli',
               collector: 'stats',
-              minIntervalSeconds: 300,
+              throttleSeconds: 300,
               type: 'PlaysByHourOfDay',
               fields: [num('tv'), num('movies'), num('music'), num('live_tv')],
               tags: ['hour'],
@@ -321,13 +324,14 @@ const PERIOD: BandSpec = {
         (plugin): SourceSpec => ({
           plugin,
           collector: 'history',
-          ...(plugin === 'plex' ? { streaming: true } : {}),
+          ...(plugin === 'plex' ? { streaming: 'history' as const } : {}),
           type: 'Play',
           fields: [str('hash', 'plays'), { ...str('title'), agg: 'last' }],
           tags: ['rating_key'],
         })
       ),
-      topTable('title', 'plays', { title: 'Title', plays: 'Plays' }, ['rating_key'])
+      // Plex titles episodes by their own name: grouping by item too keeps same-named episodes of different shows apart.
+      topTable(['rating_key', 'title'], 'plays', { title: 'Title', plays: 'Plays' }, ['rating_key'])
     ),
     panel(
       'direct-vs-transcode',
@@ -342,8 +346,8 @@ const PERIOD: BandSpec = {
       'Recently added',
       [8, 8],
       { shape: 'eventTable', limit: 10 },
-      [{ plugin: 'tautulli', collector: 'stats', minIntervalSeconds: 300, type: 'RecentlyAdded', fields: [str('title')], tags: ['library_name', 'media_type'] }],
-      rowsTable({ rename: { Time: 'Added', title: 'Title', library_name: 'Library', media_type: 'Type' } })
+      [{ plugin: 'tautulli', collector: 'stats', throttleSeconds: 300, type: 'RecentlyAdded', fields: [str('title')], tags: ['library_name', 'media_type'] }],
+      rowsTable({ sortBy: { field: 'Time', desc: true }, limit: 10, rename: { Time: 'Added', title: 'Title', library_name: 'Library', media_type: 'Type' } })
     ),
     panel(
       'requests-per-day',

@@ -54,15 +54,19 @@ function select(query: Query, source: ResolvedSource): { text: string; table: bo
     }
     case 'topN':
       return { text: `SELECT ${fields.map((f) => `${aggregate(f, query.agg)} AS ${alias(f)}`).join(', ')} ${from} AND $timeFilter${byTags}`, table: true };
-    case 'latestTable':
-      // Runs start at least an interval apart, so this window never holds two collections: rows of a changed tag do not double.
-      return { text: `SELECT ${fields.map((f) => `last(${identifier(f.name)}) AS ${alias(f)}`).join(', ')} ${from} AND time > now() - ${interval}s${byTags}`, table: true };
+    case 'latestTable': {
+      // Runs are an interval plus their duration apart: the grace keeps the table from blanking between two runs,
+      // at the cost of a row shown twice for one run when a grouped tag changes.
+      const window = interval + Math.min(interval, 60);
+      return { text: `SELECT ${fields.map((f) => `last(${identifier(f.name)}) AS ${alias(f)}`).join(', ')} ${from} AND time > now() - ${window}s${byTags}`, table: true };
+    }
     case 'eventTable': {
       const columns = [...fields.map((f) => `${identifier(f.name)} AS ${alias(f)}`), ...tags].join(', ');
       return { text: `SELECT ${columns} ${from} AND $timeFilter ORDER BY time DESC LIMIT ${query.limit}`, table: true };
     }
     case 'proportion':
-      return { text: `SELECT ${fields.map((f) => `sum(${identifier(f.name)}) AS ${alias(f)}`).join(', ')} ${from} AND $timeFilter`, table: false };
+      // Snapshot counts times the interval: stream-seconds, so sources collecting at different rates weigh the same.
+      return { text: `SELECT ${fields.map((f) => `sum(${identifier(f.name)}) * ${interval} AS ${alias(f)}`).join(', ')} ${from} AND $timeFilter`, table: false };
     case 'timeBuckets':
       throw new Error('InfluxQL cannot bucket by hour of day or weekday');
   }

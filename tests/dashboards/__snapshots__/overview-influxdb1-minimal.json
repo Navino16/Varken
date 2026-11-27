@@ -76,7 +76,7 @@
       "gridPos": {
         "x": 0,
         "y": 1,
-        "w": 3,
+        "w": 12,
         "h": 4
       },
       "datasource": {
@@ -146,9 +146,9 @@
       "type": "stat",
       "title": "Stuck downloads",
       "gridPos": {
-        "x": 3,
+        "x": 12,
         "y": 1,
-        "w": 3,
+        "w": 12,
         "h": 4
       },
       "datasource": {
@@ -165,7 +165,7 @@
           "rawQuery": true,
           "resultFormat": "time_series",
           "alias": "Sonarr 1",
-          "query": "SELECT last(\"size\") AS \"size\" FROM (SELECT count(\"size\") AS \"size\" FROM \"Sonarr\" WHERE \"type\" = 'Queue' AND \"server\" = '1' AND \"tracked_download_status\" != 'ok' AND time > now() - 90s GROUP BY time(30s) fill(none))"
+          "query": "SELECT last(\"size\") AS \"size\" FROM (SELECT count(\"size\") AS \"size\" FROM \"Sonarr\" WHERE \"type\" = 'Queue' AND \"server\" = '1' AND \"tracked_download_status\" != 'ok' AND \"tracked_download_status\" != 'unknown' AND time > now() - 90s GROUP BY time(30s) fill(none))"
         }
       ],
       "fieldConfig": {
@@ -222,8 +222,8 @@
       "type": "table",
       "title": "Download queue",
       "gridPos": {
-        "x": 6,
-        "y": 1,
+        "x": 0,
+        "y": 5,
         "w": 8,
         "h": 8
       },
@@ -240,7 +240,7 @@
           },
           "rawQuery": true,
           "resultFormat": "table",
-          "query": "SELECT last(\"progress\") AS \"progress\", last(\"sizeleft\") AS \"sizeleft\" FROM \"Sonarr\" WHERE \"type\" = 'Queue' AND \"server\" = '1' AND time > now() - 30s GROUP BY \"name\", \"sxe\", \"tracked_download_status\""
+          "query": "SELECT last(\"progress\") AS \"progress\", last(\"sizeleft\") AS \"sizeleft\" FROM \"Sonarr\" WHERE \"type\" = 'Queue' AND \"server\" = '1' AND time > now() - 60s GROUP BY \"name\", \"sxe\", \"tracked_download_status\""
         }
       ],
       "fieldConfig": {

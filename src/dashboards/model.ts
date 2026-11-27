@@ -26,9 +26,10 @@ export interface SourceSpec {
   collector?: string;
   /** Extra boolean config paths of the instance that must be true (`geoip.enabled`). */
   requires?: string[];
-  /** Plex streaming data: paired instances are read from Tautulli instead (spec §Source priority). */
-  streaming?: boolean;
-  minIntervalSeconds?: number;
+  /** Plex data Tautulli also collects with this collector: skipped for a Plex instance a Tautulli watches with it enabled (spec §Source priority). */
+  streaming?: 'activity' | 'history';
+  /** The collector writes these points at most this often, on its own run boundaries (Tautulli `stats`). */
+  throttleSeconds?: number;
   type: string;
   where?: Filter[];
   fields: FieldRef[];
@@ -86,6 +87,9 @@ export interface DashboardSpec {
   title: string;
   bands: BandSpec[];
 }
+
+/** Plex instance id → ids of the Tautulli instances watching it. */
+export type PlexPairing = ReadonlyMap<number, readonly number[]>;
 
 export interface ResolvedSource {
   spec: SourceSpec;

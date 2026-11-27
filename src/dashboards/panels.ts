@@ -108,7 +108,7 @@ export function namedTable(rename: Record<string, string>): PanelTemplate {
 }
 
 /** Totals per label over every source, largest first. */
-export function topTable(label: string, value: string, rename: Record<string, string>, hide: string[] = []): PanelTemplate {
+export function topTable(labels: string[], value: string, rename: Record<string, string>, hide: string[] = []): PanelTemplate {
   const total = `${value} (sum)`;
   return {
     type: 'table',
@@ -116,7 +116,15 @@ export function topTable(label: string, value: string, rename: Record<string, st
     fieldConfig: { defaults: {}, overrides: [] },
     transformations: [
       { id: 'merge', options: {} },
-      { id: 'groupBy', options: { fields: { [label]: { operation: 'groupby', aggregations: [] }, [value]: { operation: 'aggregate', aggregations: ['sum'] } } } },
+      {
+        id: 'groupBy',
+        options: {
+          fields: {
+            ...Object.fromEntries(labels.map((label) => [label, { operation: 'groupby', aggregations: [] }])),
+            [value]: { operation: 'aggregate', aggregations: ['sum'] },
+          },
+        },
+      },
       ...tail({ sortBy: { field: total, desc: true }, limit: 10 }),
       organize({ ...rename, [total]: rename[value] ?? value }, hide),
     ],

@@ -31,7 +31,7 @@ const SPEC: DashboardSpec = {
       ],
     },
     { key: 'empty', title: 'Empty', panels: [panel('d', 8, [requests])] },
-    { key: 'period', title: 'Period', panels: [panel('e', 8, [queue, queue])] },
+    { key: 'period', title: 'Period', panels: [panel('e', 8, [queue, queue], { grafana: { type: 'timeseries' } })] },
   ],
 };
 
@@ -46,7 +46,7 @@ const config = {
 };
 
 const generate = (): ReturnType<typeof generateDashboard> =>
-  generateDashboard({ kind: 'overview', output: 'influxdb1', config, pairedPlex: new Set(), version: '9.9.9', spec: SPEC });
+  generateDashboard({ kind: 'overview', output: 'influxdb1', config, pairedPlex: new Map(), version: '9.9.9', spec: SPEC });
 
 const byTitle = (title: string): GrafanaPanel => {
   const found = generate().panels.find((p) => p.title === title);
@@ -64,7 +64,7 @@ describe('generateDashboard', () => {
       ['stat', 'b', { x: 12, y: 1, w: 12, h: 4 }],
       ['timeseries', 'Fallback', { x: 0, y: 5, w: 16, h: 4 }],
       ['row', 'Period', { x: 0, y: 9, w: 24, h: 1 }],
-      ['stat', 'e', { x: 0, y: 10, w: 8, h: 4 }],
+      ['timeseries', 'e', { x: 0, y: 10, w: 8, h: 4 }],
     ]);
     expect(generate().panels.map((p) => p.id)).toEqual([1, 2, 3, 4, 5, 6]);
   });
@@ -115,5 +115,22 @@ describe('generateDashboard', () => {
 
     expect(json).not.toContain('sonarr-secret.test');
     expect(json).not.toContain('sonarr-api-key');
+  });
+});
+
+describe('stat lines', () => {
+  it('stretch to the full width when stats are left out', () => {
+    const stats = (n: number): PanelSpec[] => Array.from({ length: n }, (_, i) => ({ ...panel(`s${i}`, 3, i < 5 ? [queue] : [requests]), grafana: { type: 'stat' } }));
+    const spec: DashboardSpec = { kind: 'overview', title: 'Stats', bands: [{ key: 'now', title: 'Now', panels: [...stats(8), panel('table', 16, [queue], { grafana: { type: 'table' } })] }] };
+    const panels = generateDashboard({ kind: 'overview', output: 'influxdb1', config, pairedPlex: new Map(), version: '9.9.9', spec }).panels;
+
+    expect(panels.filter((p) => p.type === 'stat').map((p) => [p.gridPos.x, p.gridPos.w])).toEqual([
+      [0, 5],
+      [5, 5],
+      [10, 5],
+      [15, 5],
+      [20, 4],
+    ]);
+    expect(panels.find((p) => p.type === 'table')?.gridPos).toEqual({ x: 0, y: 5, w: 16, h: 4 });
   });
 });

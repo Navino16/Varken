@@ -489,7 +489,7 @@
           "rawQuery": true,
           "resultFormat": "time_series",
           "alias": "Sonarr 1",
-          "query": "SELECT last(\"size\") AS \"size\" FROM (SELECT count(\"size\") AS \"size\" FROM \"Sonarr\" WHERE \"type\" = 'Queue' AND \"server\" = '1' AND \"tracked_download_status\" != 'ok' AND time > now() - 90s GROUP BY time(30s) fill(none))"
+          "query": "SELECT last(\"size\") AS \"size\" FROM (SELECT count(\"size\") AS \"size\" FROM \"Sonarr\" WHERE \"type\" = 'Queue' AND \"server\" = '1' AND \"tracked_download_status\" != 'ok' AND \"tracked_download_status\" != 'unknown' AND time > now() - 90s GROUP BY time(30s) fill(none))"
         },
         {
           "refId": "B",
@@ -500,7 +500,7 @@
           "rawQuery": true,
           "resultFormat": "time_series",
           "alias": "Radarr 1",
-          "query": "SELECT last(\"size\") AS \"size\" FROM (SELECT count(\"size\") AS \"size\" FROM \"Radarr\" WHERE \"type\" = 'Queue' AND \"server\" = '1' AND \"tracked_download_status\" != 'ok' AND time > now() - 90s GROUP BY time(30s) fill(none))"
+          "query": "SELECT last(\"size\") AS \"size\" FROM (SELECT count(\"size\") AS \"size\" FROM \"Radarr\" WHERE \"type\" = 'Queue' AND \"server\" = '1' AND \"tracked_download_status\" != 'ok' AND \"tracked_download_status\" != 'unknown' AND time > now() - 90s GROUP BY time(30s) fill(none))"
         },
         {
           "refId": "C",
@@ -511,7 +511,7 @@
           "rawQuery": true,
           "resultFormat": "time_series",
           "alias": "Lidarr 1",
-          "query": "SELECT last(\"size\") AS \"size\" FROM (SELECT count(\"size\") AS \"size\" FROM \"Lidarr\" WHERE \"type\" = 'Queue' AND \"server\" = '1' AND \"tracked_download_status\" != 'ok' AND time > now() - 90s GROUP BY time(30s) fill(none))"
+          "query": "SELECT last(\"size\") AS \"size\" FROM (SELECT count(\"size\") AS \"size\" FROM \"Lidarr\" WHERE \"type\" = 'Queue' AND \"server\" = '1' AND \"tracked_download_status\" != 'ok' AND \"tracked_download_status\" != 'unknown' AND time > now() - 90s GROUP BY time(30s) fill(none))"
         },
         {
           "refId": "D",
@@ -522,7 +522,7 @@
           "rawQuery": true,
           "resultFormat": "time_series",
           "alias": "Readarr 1",
-          "query": "SELECT last(\"size\") AS \"size\" FROM (SELECT count(\"size\") AS \"size\" FROM \"Readarr\" WHERE \"type\" = 'Queue' AND \"server\" = '1' AND \"tracked_download_status\" != 'ok' AND time > now() - 90s GROUP BY time(30s) fill(none))"
+          "query": "SELECT last(\"size\") AS \"size\" FROM (SELECT count(\"size\") AS \"size\" FROM \"Readarr\" WHERE \"type\" = 'Queue' AND \"server\" = '1' AND \"tracked_download_status\" != 'ok' AND \"tracked_download_status\" != 'unknown' AND time > now() - 90s GROUP BY time(30s) fill(none))"
         }
       ],
       "fieldConfig": {
@@ -848,7 +848,7 @@
           },
           "rawQuery": true,
           "resultFormat": "table",
-          "query": "SELECT last(\"progress\") AS \"progress\" FROM \"Tautulli\" WHERE \"type\" = 'Session' AND \"server\" = '1' AND time > now() - 30s GROUP BY \"username\", \"title\", \"video_decision\", \"quality\""
+          "query": "SELECT last(\"progress\") AS \"progress\" FROM \"Tautulli\" WHERE \"type\" = 'Session' AND \"server\" = '1' AND time > now() - 60s GROUP BY \"username\", \"title\", \"video_decision\", \"quality\""
         },
         {
           "refId": "B",
@@ -858,7 +858,7 @@
           },
           "rawQuery": true,
           "resultFormat": "table",
-          "query": "SELECT last(\"progress_percent\") AS \"progress\" FROM \"Jellyfin\" WHERE \"type\" = 'Session' AND \"server\" = '1' AND time > now() - 30s GROUP BY \"username\", \"title\", \"video_decision\", \"quality\""
+          "query": "SELECT last(\"progress_percent\") AS \"progress\" FROM \"Jellyfin\" WHERE \"type\" = 'Session' AND \"server\" = '1' AND time > now() - 60s GROUP BY \"username\", \"title\", \"video_decision\", \"quality\""
         },
         {
           "refId": "C",
@@ -868,7 +868,7 @@
           },
           "rawQuery": true,
           "resultFormat": "table",
-          "query": "SELECT last(\"progress_percent\") AS \"progress\" FROM \"Emby\" WHERE \"type\" = 'Session' AND \"server\" = '1' AND time > now() - 30s GROUP BY \"username\", \"title\", \"video_decision\", \"quality\""
+          "query": "SELECT last(\"progress_percent\") AS \"progress\" FROM \"Emby\" WHERE \"type\" = 'Session' AND \"server\" = '1' AND time > now() - 60s GROUP BY \"username\", \"title\", \"video_decision\", \"quality\""
         }
       ],
       "fieldConfig": {
@@ -946,7 +946,7 @@
           },
           "rawQuery": true,
           "resultFormat": "table",
-          "query": "SELECT last(\"lat\") AS \"lat\", last(\"lon\") AS \"lon\" FROM \"Tautulli\" WHERE \"type\" = 'Session' AND \"server\" = '1' AND time > now() - 30s GROUP BY \"full_location\", \"username\""
+          "query": "SELECT last(\"lat\") AS \"lat\", last(\"lon\") AS \"lon\" FROM \"Tautulli\" WHERE \"type\" = 'Session' AND \"server\" = '1' AND time > now() - 60s GROUP BY \"full_location\", \"username\""
         }
       ],
       "fieldConfig": {
@@ -1254,7 +1254,7 @@
           },
           "rawQuery": true,
           "resultFormat": "table",
-          "query": "SELECT last(\"progress\") AS \"progress\", last(\"sizeleft\") AS \"sizeleft\" FROM \"Sonarr\" WHERE \"type\" = 'Queue' AND \"server\" = '1' AND time > now() - 30s GROUP BY \"name\", \"sxe\", \"tracked_download_status\""
+          "query": "SELECT last(\"progress\") AS \"progress\", last(\"sizeleft\") AS \"sizeleft\" FROM \"Sonarr\" WHERE \"type\" = 'Queue' AND \"server\" = '1' AND time > now() - 60s GROUP BY \"name\", \"sxe\", \"tracked_download_status\""
         },
         {
           "refId": "B",
@@ -1264,7 +1264,7 @@
           },
           "rawQuery": true,
           "resultFormat": "table",
-          "query": "SELECT last(\"progress\") AS \"progress\", last(\"sizeleft\") AS \"sizeleft\" FROM \"Radarr\" WHERE \"type\" = 'Queue' AND \"server\" = '1' AND time > now() - 30s GROUP BY \"name\", \"tracked_download_status\""
+          "query": "SELECT last(\"progress\") AS \"progress\", last(\"sizeleft\") AS \"sizeleft\" FROM \"Radarr\" WHERE \"type\" = 'Queue' AND \"server\" = '1' AND time > now() - 60s GROUP BY \"name\", \"tracked_download_status\""
         },
         {
           "refId": "C",
@@ -1274,7 +1274,7 @@
           },
           "rawQuery": true,
           "resultFormat": "table",
-          "query": "SELECT last(\"progress\") AS \"progress\", last(\"sizeleft\") AS \"sizeleft\" FROM \"Lidarr\" WHERE \"type\" = 'Queue' AND \"server\" = '1' AND time > now() - 30s GROUP BY \"name\", \"tracked_download_status\""
+          "query": "SELECT last(\"progress\") AS \"progress\", last(\"sizeleft\") AS \"sizeleft\" FROM \"Lidarr\" WHERE \"type\" = 'Queue' AND \"server\" = '1' AND time > now() - 60s GROUP BY \"name\", \"tracked_download_status\""
         },
         {
           "refId": "D",
@@ -1284,7 +1284,7 @@
           },
           "rawQuery": true,
           "resultFormat": "table",
-          "query": "SELECT last(\"progress\") AS \"progress\", last(\"sizeleft\") AS \"sizeleft\" FROM \"Readarr\" WHERE \"type\" = 'Queue' AND \"server\" = '1' AND time > now() - 30s GROUP BY \"name\", \"tracked_download_status\""
+          "query": "SELECT last(\"progress\") AS \"progress\", last(\"sizeleft\") AS \"sizeleft\" FROM \"Readarr\" WHERE \"type\" = 'Queue' AND \"server\" = '1' AND time > now() - 60s GROUP BY \"name\", \"tracked_download_status\""
         }
       ],
       "fieldConfig": {
@@ -1374,7 +1374,7 @@
           },
           "rawQuery": true,
           "resultFormat": "table",
-          "query": "SELECT last(\"hash\") AS \"hash\" FROM \"Sonarr\" WHERE \"type\" = 'Future' AND \"server\" = '1' AND time > now() - 300s GROUP BY \"name\", \"sxe\", \"airsUTC\", \"downloaded\""
+          "query": "SELECT last(\"hash\") AS \"hash\" FROM \"Sonarr\" WHERE \"type\" = 'Future' AND \"server\" = '1' AND time > now() - 360s GROUP BY \"name\", \"sxe\", \"airsUTC\", \"downloaded\""
         },
         {
           "refId": "B",
@@ -1384,7 +1384,7 @@
           },
           "rawQuery": true,
           "resultFormat": "table",
-          "query": "SELECT last(\"hash\") AS \"hash\" FROM \"Sonarr\" WHERE \"type\" = 'Missing' AND \"server\" = '1' AND time > now() - 300s GROUP BY \"name\", \"sxe\", \"airsUTC\", \"downloaded\""
+          "query": "SELECT last(\"hash\") AS \"hash\" FROM \"Sonarr\" WHERE \"type\" = 'Missing' AND \"server\" = '1' AND time > now() - 360s GROUP BY \"name\", \"sxe\", \"airsUTC\", \"downloaded\""
         }
       ],
       "fieldConfig": {
@@ -1486,7 +1486,7 @@
           },
           "rawQuery": true,
           "resultFormat": "table",
-          "query": "SELECT last(\"hash\") AS \"hash\" FROM \"Overseerr\" WHERE \"type\" = 'Requests' AND \"server\" = '1' AND time > now() - 300s GROUP BY \"title\", \"requested_user\", \"requested_date\", \"status\""
+          "query": "SELECT last(\"hash\") AS \"hash\" FROM \"Overseerr\" WHERE \"type\" = 'Requests' AND \"server\" = '1' AND time > now() - 360s GROUP BY \"title\", \"requested_user\", \"requested_date\", \"status\""
         }
       ],
       "fieldConfig": {
@@ -1836,7 +1836,7 @@
           },
           "rawQuery": true,
           "resultFormat": "time_series",
-          "alias": "$tag_media_type",
+          "alias": "$tag_media_type · Tautulli 1",
           "query": "SELECT count(\"play_duration_seconds\") AS \"play_duration_seconds\" FROM \"Tautulli\" WHERE \"type\" = 'Play' AND \"server\" = '1' AND $timeFilter GROUP BY time(1d), \"media_type\" fill(none)"
         },
         {
@@ -2017,7 +2017,7 @@
           },
           "rawQuery": true,
           "resultFormat": "table",
-          "query": "SELECT last(\"tv\") AS \"tv\", last(\"movies\") AS \"movies\", last(\"music\") AS \"music\", last(\"live_tv\") AS \"live_tv\" FROM \"Tautulli\" WHERE \"type\" = 'PlaysByHourOfDay' AND \"server\" = '1' AND time > now() - 300s GROUP BY \"hour\""
+          "query": "SELECT last(\"tv\") AS \"tv\", last(\"movies\") AS \"movies\", last(\"music\") AS \"music\", last(\"live_tv\") AS \"live_tv\" FROM \"Tautulli\" WHERE \"type\" = 'PlaysByHourOfDay' AND \"server\" = '1' AND time > now() - 360s GROUP BY \"hour\""
         }
       ],
       "fieldConfig": {
@@ -2109,6 +2109,10 @@
           "id": "groupBy",
           "options": {
             "fields": {
+              "rating_key": {
+                "operation": "groupby",
+                "aggregations": []
+              },
               "title": {
                 "operation": "groupby",
                 "aggregations": []
@@ -2184,7 +2188,7 @@
           "rawQuery": true,
           "resultFormat": "time_series",
           "alias": "$col",
-          "query": "SELECT sum(\"direct_play_streams\") AS \"Direct play\", sum(\"direct_streams\") AS \"Direct stream\", sum(\"transcode_streams\") AS \"Transcode\" FROM \"Tautulli\" WHERE \"type\" = 'current_stream_stats' AND \"server\" = '1' AND $timeFilter"
+          "query": "SELECT sum(\"direct_play_streams\") * 30 AS \"Direct play\", sum(\"direct_streams\") * 30 AS \"Direct stream\", sum(\"transcode_streams\") * 30 AS \"Transcode\" FROM \"Tautulli\" WHERE \"type\" = 'current_stream_stats' AND \"server\" = '1' AND $timeFilter"
         },
         {
           "refId": "B",
@@ -2195,7 +2199,7 @@
           "rawQuery": true,
           "resultFormat": "time_series",
           "alias": "$col",
-          "query": "SELECT sum(\"direct_play_streams\") AS \"Direct play\", sum(\"direct_streams\") AS \"Direct stream\", sum(\"transcode_streams\") AS \"Transcode\" FROM \"Jellyfin\" WHERE \"type\" = 'current_stream_stats' AND \"server\" = '1' AND $timeFilter"
+          "query": "SELECT sum(\"direct_play_streams\") * 30 AS \"Direct play\", sum(\"direct_streams\") * 30 AS \"Direct stream\", sum(\"transcode_streams\") * 30 AS \"Transcode\" FROM \"Jellyfin\" WHERE \"type\" = 'current_stream_stats' AND \"server\" = '1' AND $timeFilter"
         },
         {
           "refId": "C",
@@ -2206,7 +2210,7 @@
           "rawQuery": true,
           "resultFormat": "time_series",
           "alias": "$col",
-          "query": "SELECT sum(\"direct_play_streams\") AS \"Direct play\", sum(\"direct_streams\") AS \"Direct stream\", sum(\"transcode_streams\") AS \"Transcode\" FROM \"Emby\" WHERE \"type\" = 'current_stream_stats' AND \"server\" = '1' AND $timeFilter"
+          "query": "SELECT sum(\"direct_play_streams\") * 30 AS \"Direct play\", sum(\"direct_streams\") * 30 AS \"Direct stream\", sum(\"transcode_streams\") * 30 AS \"Transcode\" FROM \"Emby\" WHERE \"type\" = 'current_stream_stats' AND \"server\" = '1' AND $timeFilter"
         }
       ],
       "fieldConfig": {
@@ -2318,6 +2322,23 @@
         {
           "id": "merge",
           "options": {}
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "Time",
+                "desc": true
+              }
+            ]
+          }
+        },
+        {
+          "id": "limit",
+          "options": {
+            "limitField": 10
+          }
         },
         {
           "id": "organize",

@@ -6,7 +6,10 @@ export interface GrafanaTarget {
   [key: string]: unknown;
 }
 
-/** Renders the panel queries of one output's query language. */
+/**
+ * Renders the panel queries of one output's query language. Panel transformations rely on the frames a target
+ * returns: time series named by the source legend, table columns named by field aliases and tag keys.
+ */
 export interface Translator {
   output: OutputKey;
   datasource: { pluginId: string; pluginName: string; label: string };

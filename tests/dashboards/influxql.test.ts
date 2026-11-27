@@ -50,11 +50,11 @@ describe('influxql', () => {
     expect(target.query).toBe(`SELECT count("hash") AS "plays", last("title") AS "title" FROM "Sonarr" WHERE "type" = 'Queue' AND "server" = '1' AND $timeFilter GROUP BY "rating_key"`);
   });
 
-  it('lists the rows of the latest collection only', () => {
+  it('lists the latest collection, with a grace for the run duration', () => {
     const target = render({ shape: 'latestTable' }, { fields: [{ name: 'progress', kind: 'number' }], tags: ['name', 'sxe'] }, 1, 60);
 
     expect(target.resultFormat).toBe('table');
-    expect(target.query).toBe(`SELECT last("progress") AS "progress" FROM "Sonarr" WHERE "type" = 'Queue' AND "server" = '1' AND time > now() - 60s GROUP BY "name", "sxe"`);
+    expect(target.query).toBe(`SELECT last("progress") AS "progress" FROM "Sonarr" WHERE "type" = 'Queue' AND "server" = '1' AND time > now() - 120s GROUP BY "name", "sxe"`);
   });
 
   it('lists the most recent events', () => {
@@ -68,7 +68,13 @@ describe('influxql', () => {
     const target = render({ shape: 'proportion' }, { fields: [{ name: 'direct_play_streams', kind: 'number', as: 'Direct play' }, { name: 'transcode_streams', kind: 'number', as: 'Transcode' }], legend: '{field}' });
 
     expect(target).toMatchObject({ resultFormat: 'time_series', alias: '$col' });
-    expect(target.query).toBe(`SELECT sum("direct_play_streams") AS "Direct play", sum("transcode_streams") AS "Transcode" FROM "Sonarr" WHERE "type" = 'Queue' AND "server" = '1' AND $timeFilter`);
+    expect(target.query).toBe(
+      `SELECT sum("direct_play_streams") * 30 AS "Direct play", sum("transcode_streams") * 30 AS "Transcode" FROM "Sonarr" WHERE "type" = 'Queue' AND "server" = '1' AND $timeFilter`
+    );
+  });
+
+  it('caps the latest table grace at a minute', () => {
+    expect(render({ shape: 'latestTable' }, {}, 1, 300).query).toContain('time > now() - 360s');
   });
 
   it('renders filters on tags and numeric fields', () => {
