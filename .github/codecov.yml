@@ -3,3 +3,9 @@ ignore:
   - "src/types/**/*"
   - "**/*.d.ts"
 github_checks: false
+coverage:
+  status:
+    project:
+      default:
+        target: 80%
+        threshold: 2%
