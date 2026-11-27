@@ -288,6 +288,22 @@ outputs:
 
 > **TimescaleDB schema:** Varken creates a single `varken_events` hypertable on first run. Columns: `time TIMESTAMPTZ`, `measurement TEXT`, `tags JSONB`, `fields JSONB`. Query in Grafana with `tags->>'server'` / `(fields->>'queue_size')::int`. If the TimescaleDB extension isn't installed, the plugin falls back to a plain PostgreSQL table (logs a warning).
 
+> **VictoriaMetrics label limit:** Tautulli sessions carry 45 tags, over VictoriaMetrics' default of 40 labels per series, and VictoriaMetrics drops such series without an error. Start it with `-maxLabelsPerTimeseries=64`.
+
+#### Grafana datasource per output
+
+The generated dashboards query the database Varken writes to, through one Grafana datasource of this type:
+
+| Output | Grafana datasource | Settings |
+|--------|--------------------|----------|
+| InfluxDB 1.x | InfluxDB, query language **InfluxQL** | URL, database, user and password |
+| InfluxDB 2.x | InfluxDB, query language **Flux** | URL, organization, **default bucket** (the dashboards read it) and token |
+| VictoriaMetrics | Prometheus | URL of VictoriaMetrics (`http://victoriametrics:8428`) |
+| QuestDB | PostgreSQL | Host `questdb:8812` (PostgreSQL wire protocol), database `qdb`, user `admin`, password `quest` by default, TLS disabled |
+| TimescaleDB | PostgreSQL, **TimescaleDB** toggle on | Host, database, user and password of the Varken output |
+
+String fields do not exist in VictoriaMetrics, so the panels listing titles or messages (recently added, latest requests, calendar, most watched) are left out of its dashboards. QuestDB creates a column the first time a point carries it: a panel reading a column no point has written yet shows an error until that data arrives.
+
 See [`config/varken.example.yaml`](config/varken.example.yaml) for the complete list of supported options.
 
 ### Global Settings

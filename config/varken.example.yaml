@@ -54,7 +54,7 @@ outputs:
   #   ssl: false
   #   verifySsl: false
 
-  # VictoriaMetrics
+  # VictoriaMetrics (start it with -maxLabelsPerTimeseries=64: Tautulli sessions carry 45 tags)
   # victoriametrics:
   #   url: "localhost"
   #   port: 8428
