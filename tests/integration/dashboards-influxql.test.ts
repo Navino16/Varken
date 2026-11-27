@@ -18,6 +18,32 @@ const EMPTY_ON_DEMO: Record<string, string> = {
 
 const SEEDED_STEP_SECONDS = 3600;
 
+/** Names produced by the transformations themselves, not by the queries. */
+const PRODUCED = /^(Field|Total|Last \*|Healthy)$|\(sum\)$/;
+
+interface Transformation {
+  id: string;
+  options: {
+    renameByName?: Record<string, string>;
+    fields?: Record<string, unknown>;
+    sort?: { field: string }[];
+    byField?: string;
+    binary?: { left: string; right: string };
+  };
+}
+
+/** Field names a panel's transformations match: the queries must return them. */
+function referencedNames(transformations: Transformation[] = []): string[] {
+  const names = transformations.flatMap(({ options }) => [
+    ...Object.keys(options.renameByName ?? {}),
+    ...Object.keys(options.fields ?? {}),
+    ...(options.sort ?? []).map((sort) => sort.field),
+    ...(options.byField ? [options.byField] : []),
+    ...(options.binary ? [options.binary.left, options.binary.right] : []),
+  ]);
+  return [...new Set(names)].filter((name) => !PRODUCED.test(name));
+}
+
 /** Every collector at the seeded step: one collection per step, as the seeder writes them. */
 function seededIntervals(inputs: InputsConfig): InputsConfig {
   const visit = (value: unknown): void => {
@@ -46,24 +72,30 @@ describe.skipIf(!reachable)('Overview on InfluxDB 1', () => {
       await Promise.all([...outputs.values()].map((output) => output.shutdown()));
     }
     const global = GlobalConfigSchema.parse({ selfMetrics: { enabled: true, intervalSeconds: SEEDED_STEP_SECONDS } });
-    const dashboard = generateDashboard({ kind: 'overview', output: 'influxdb1', config: { inputs: seededIntervals(demoInputs()), global }, pairedPlex: new Set(), version: 'test' });
+    const dashboard = generateDashboard({ kind: 'overview', output: 'influxdb1', config: { inputs: seededIntervals(demoInputs()), global }, pairedPlex: new Map(), version: 'test' });
     const uid = await ensureDatasource('influxdb1');
 
     const errors: string[] = [];
     const empty: string[] = [];
+    const missing: string[] = [];
     for (const panel of dashboard.panels) {
+      const returned = new Set<string>();
       for (const target of panel.targets ?? []) {
         const name = `${panel.title}/${/FROM "([^"]+)"/.exec(String(target.query))?.[1]}`;
         const result = await runTarget(target, uid, panel);
+        result.names.forEach((n) => returned.add(n));
         if (result.error) {
           errors.push(`${name}: ${result.error}`);
         } else if (result.rows === 0) {
           empty.push(name);
         }
       }
+      const referenced = referencedNames(panel.transformations as Transformation[] | undefined);
+      missing.push(...referenced.filter((n) => !returned.has(n)).map((n) => `${panel.title}: ${n}`));
     }
 
     expect(errors).toEqual([]);
+    expect(missing).toEqual([]);
     expect(empty.sort()).toEqual(Object.keys(EMPTY_ON_DEMO).sort());
   }, 300_000);
 });

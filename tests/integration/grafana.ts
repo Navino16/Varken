@@ -31,11 +31,19 @@ export async function ensureDatasource(output: OutputType): Promise<string> {
 }
 
 interface Frame {
+  schema: { fields: { name: string; config?: { displayNameFromDS?: string } }[] };
   data: { values: unknown[][] };
 }
 
-/** Runs one panel target through Grafana as the panel would; `rows` counts rows holding a non-null value besides the first column. */
-export async function runTarget(target: GrafanaTarget, uid: string, panel: { timeFrom?: string; interval?: string }): Promise<{ error?: string; rows: number }> {
+/**
+ * Runs one panel target through Grafana as the panel would. `rows` counts rows holding a non-null value besides the first
+ * column; `names` are the field names and display names the panel transformations can match.
+ */
+export async function runTarget(
+  target: GrafanaTarget,
+  uid: string,
+  panel: { timeFrom?: string; interval?: string }
+): Promise<{ error?: string; rows: number; names: string[] }> {
   const intervalMs = panel.interval ? Number.parseInt(panel.interval, 10) * 1000 : 60_000;
   const response = await api.post<{ results: Record<string, { error?: string; frames?: Frame[] }> }>(
     '/api/ds/query',
@@ -51,7 +59,8 @@ export async function runTarget(target: GrafanaTarget, uid: string, panel: { tim
     const columns = values.slice(1);
     return sum + (values[0] ?? []).filter((_value, row) => columns.some((column) => column[row] !== null && column[row] !== undefined)).length;
   }, 0);
-  return { error: result?.error ?? (response.status === 200 ? undefined : `HTTP ${response.status}`), rows };
+  const names = (result?.frames ?? []).flatMap((frame) => frame.schema.fields.flatMap((field) => [field.name, field.config?.displayNameFromDS ?? field.name]));
+  return { error: result?.error ?? (response.status === 200 ? undefined : `HTTP ${response.status}`), rows, names };
 }
 
 /** Imports a generated dashboard into the test Grafana with its datasource bound; returns its URL path. */
