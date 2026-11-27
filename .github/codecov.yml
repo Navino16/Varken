@@ -2,3 +2,4 @@
 ignore:
   - "src/types/**/*"
   - "**/*.d.ts"
+github_checks: false
