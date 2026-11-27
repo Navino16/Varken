@@ -125,7 +125,9 @@ function table(query: Query, source: ResolvedSource): string {
     : [];
   const columns = [...(events ? ['Time'] : []), ...tags, ...fields.map(alias)];
   const order = events ? ['rename(columns: {_time: "Time"})', 'sort(columns: ["Time"], desc: true)', `limit(n: ${query.limit})`] : [];
-  return `${body}${pipe([`group(columns: ${list([...tags, '_start'])})`, `pivot(rowKey: ${list(rowKey)}, columnKey: ["_field"], valueColumn: "_value")`, ...back, 'group()', ...order, `keep(columns: ${list(columns)})`])}`;
+  // A tag missing from some points (written before it existed) would be missing from the pivot's row key.
+  const fill = tags.length > 0 ? [`map(fn: (r) => ({ r with ${tags.map((tag) => `${literal(tag)}: if exists ${column(tag)} then ${column(tag)} else ""`).join(', ')} }))`] : [];
+  return `${body}${pipe([...fill, `group(columns: ${list([...tags, '_start'])})`, `pivot(rowKey: ${list(rowKey)}, columnKey: ["_field"], valueColumn: "_value")`, ...back, 'group()', ...order, `keep(columns: ${list(columns)})`])}`;
 }
 
 function buckets(source: ResolvedSource): string {
