@@ -50,6 +50,9 @@ export type Query =
 
 export type Shape = Query['shape'];
 
+/** Shapes rendered as tables: columns named by field aliases and tag keys. */
+export const TABLE_SHAPES: ReadonlySet<Shape> = new Set(['topN', 'latestTable', 'eventTable', 'timeBuckets']);
+
 export interface PanelTemplate {
   type: string;
   title?: string;
@@ -62,6 +65,10 @@ export interface Variant {
   query: Query;
   sources: SourceSpec[];
   grafana?: Partial<PanelTemplate>;
+  /** Rendered only when the output can read every resolved source. */
+  complete?: boolean;
+  /** Overrides the panel's width and height. */
+  size?: [number, number];
 }
 
 export interface PanelSpec {

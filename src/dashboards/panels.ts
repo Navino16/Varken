@@ -206,8 +206,40 @@ export function hourBars(): PanelTemplate {
   };
 }
 
-export function heatmap(): PanelTemplate {
-  return { type: 'heatmap', options: { calculate: false, color: { mode: 'scheme', scheme: 'Blues' } }, fieldConfig: { defaults: {}, overrides: [] } };
+const WEEKDAYS: Record<string, string> = { 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat', 7: 'Sun' };
+
+/** Counts per weekday (rows) and hour (columns) as coloured cells: the core heatmap panel needs a time axis. */
+export function weekdayHourMatrix(): PanelTemplate {
+  return {
+    type: 'table',
+    options: { showHeader: true, cellHeight: 'sm' },
+    fieldConfig: {
+      defaults: { custom: { align: 'center', cellOptions: { type: 'color-background', mode: 'gradient' } }, color: { mode: 'continuous-BlPu' } },
+      overrides: [
+        byName('Day', [
+          { id: 'custom.cellOptions', value: { type: 'auto' } },
+          { id: 'mappings', value: [valueMapping(WEEKDAYS)] },
+        ]),
+      ],
+    },
+    transformations: [
+      { id: 'merge', options: {} },
+      {
+        id: 'groupBy',
+        options: {
+          fields: {
+            weekday: { operation: 'groupby', aggregations: [] },
+            hour: { operation: 'groupby', aggregations: [] },
+            count: { operation: 'aggregate', aggregations: ['sum'] },
+          },
+        },
+      },
+      { id: 'sortBy', options: { sort: [{ field: 'hour' }] } },
+      { id: 'groupingToMatrix', options: { columnField: 'hour', rowField: 'weekday', valueField: 'count (sum)', emptyValue: 'zero' } },
+      { id: 'sortBy', options: { sort: [{ field: 'weekday\\hour' }] } },
+      { id: 'organize', options: { renameByName: { 'weekday\\hour': 'Day' } } },
+    ],
+  };
 }
 
 export const unitOverride = (name: string, unit: string): object => byName(name, [{ id: 'unit', value: unit }]);

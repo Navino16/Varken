@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { GlobalConfigSchema, InputsConfigSchema, type InputsConfig } from '../../src/config/schemas/config.schema';
 import { generateDashboard, type GrafanaDashboard, type GrafanaPanel } from '../../src/dashboards';
+import { OVERVIEW } from '../../src/dashboards/overview';
 import { demoInputs } from '../demo/config';
 
 const global = GlobalConfigSchema.parse({});
@@ -129,5 +130,35 @@ describe('Overview', () => {
   it('drops the period band without a period source', () => {
     expect(overview(minimal).panels.some((p) => p.type === 'row' && p.title === 'Over the period')).toBe(false);
     expect(overview(demoInputs()).panels.filter((p) => p.type === 'row').map((p) => p.title)).toEqual(['Now', 'Over the period']);
+  });
+
+  const spec = (key: string): (typeof OVERVIEW.bands)[number]['panels'][number] => {
+    const found = OVERVIEW.bands.flatMap((band) => band.panels).find((p) => p.key === key);
+    if (!found) throw new Error(`no panel ${key}`);
+    return found;
+  };
+
+  it('draws hour by weekday as a matrix, wider than its fallback', () => {
+    const plays = spec('plays-by-hour');
+    const [buckets, fallback] = plays.variants;
+    const template = { ...plays.grafana, ...buckets.grafana };
+    const ids = (template.transformations ?? []).map((t) => (t as { id: string }).id);
+
+    expect(buckets.query.shape).toBe('timeBuckets');
+    expect(buckets.size).toEqual([16, 9]);
+    expect(template.type).toBe('table');
+    expect(ids).toEqual(['merge', 'groupBy', 'sortBy', 'groupingToMatrix', 'sortBy', 'organize']);
+    expect(JSON.stringify(template)).toContain('"valueField":"count (sum)"');
+    expect(fallback.size).toEqual([8, 8]);
+  });
+
+  it('counts health messages where the output cannot return them', () => {
+    const [messages, counts] = spec('health-alerts').variants;
+    const healthIssue = (variant: typeof messages): unknown => variant.sources.find((s) => s.type === 'HealthIssue')?.fields;
+
+    expect(messages.complete).toBe(true);
+    expect(healthIssue(messages)).toEqual([{ name: 'message', kind: 'string' }]);
+    expect(healthIssue(counts)).toEqual([{ name: 'message', kind: 'string', agg: 'count' }]);
+    expect(counts.sources.length).toBe(messages.sources.length);
   });
 });
