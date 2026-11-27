@@ -10,6 +10,8 @@ export interface FieldRef {
   kind: 'number' | 'string';
   as?: string;
   agg?: Agg;
+  /** Written only by some server setups (a library type, a quota): the column may never exist. */
+  optional?: boolean;
 }
 
 export const num = (name: string, as?: string): FieldRef => ({ name, kind: 'number', ...(as ? { as } : {}) });
@@ -62,6 +64,8 @@ export interface PanelTemplate {
   options?: object;
   fieldConfig?: object;
   transformations?: object[];
+  /** Relative window replacing the dashboard range for this panel (Grafana `timeFrom`). */
+  timeFrom?: string;
 }
 
 export interface Variant {

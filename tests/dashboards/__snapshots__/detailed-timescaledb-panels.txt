@@ -90,7 +90,7 @@ Tautulli 1 | Plays | table | 1
 Tautulli 1 | Recently added per day | timeseries | 1
 Tautulli 1 | Recently added | table | 1
 Tautulli 1 | Plays per day (Tautulli graphs) | timeseries | 1
-Tautulli 1 | Plays per month | timeseries | 1
+Tautulli 1 | Plays per month (last 12 months) | timeseries | 1
 Tautulli 1 | Plays by stream type | timeseries | 1
 Tautulli 1 | Concurrent streams | timeseries | 1
 Tautulli 1 | Plays by hour of day (30 days) | barchart | 1

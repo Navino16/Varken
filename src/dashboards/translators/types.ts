@@ -20,6 +20,8 @@ export interface Translator {
   shapes: ReadonlySet<Shape>;
   /** Where string results can be returned: `tables` keeps them to table shapes (SQL), `none` drops string fields (VictoriaMetrics). */
   strings: 'all' | 'tables' | 'none';
+  /** `error`: a query naming a column no point ever carried fails (QuestDB), so optional fields are not read. */
+  absentColumns?: 'error';
   /** Put before the panel's own transformations when the query has a table shape. */
   tableTransformations?: object[];
   target(query: Query, source: ResolvedSource, refId: string, ctx: TargetContext): GrafanaTarget;

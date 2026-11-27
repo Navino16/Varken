@@ -65,7 +65,7 @@ Tautulli 1 | Bandwidth | timeseries | 1
 Tautulli 1 | Now playing | table | 1
 Tautulli 1 | Plays per day | timeseries | 1
 Tautulli 1 | Plays per day (Tautulli graphs) | timeseries | 1
-Tautulli 1 | Plays per month | timeseries | 1
+Tautulli 1 | Plays per month (last 12 months) | timeseries | 1
 Tautulli 1 | Plays by stream type | timeseries | 1
 Tautulli 1 | Concurrent streams | timeseries | 1
 Tautulli 1 | Plays by hour of day (30 days) | barchart | 1

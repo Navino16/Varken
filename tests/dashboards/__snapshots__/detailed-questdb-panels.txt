@@ -90,7 +90,7 @@ Tautulli 1 | Plays | table | 1
 Tautulli 1 | Recently added per day | timeseries | 1
 Tautulli 1 | Recently added | table | 1
 Tautulli 1 | Plays per day (Tautulli graphs) | timeseries | 1
-Tautulli 1 | Plays per month | timeseries | 1
+Tautulli 1 | Plays per month (last 12 months) | timeseries | 1
 Tautulli 1 | Plays by stream type | timeseries | 1
 Tautulli 1 | Concurrent streams | timeseries | 1
 Tautulli 1 | Plays by hour of day (30 days) | barchart | 1
@@ -121,7 +121,6 @@ Plex 1 | Updates | table | 1
 Plex 1 | Server | table | 1
 Plex 1 | Libraries | table | 1
 Plex 1 | Live TV | timeseries | 1
-Plex 1 | Recordings | table | 1
 Plex 1 | Inventory | stat | 1
 Plex 1 | Devices | table | 1
 Jellyfin 1 | Streams | timeseries | 1
@@ -133,7 +132,6 @@ Jellyfin 1 | Tasks | timeseries | 1
 Jellyfin 1 | Plugins | timeseries | 1
 Jellyfin 1 | Scheduled tasks | table | 1
 Jellyfin 1 | Installed plugins | table | 1
-Jellyfin 1 | Storage | table | 1
 Jellyfin 1 | Libraries | table | 1
 Jellyfin 1 | Live TV | timeseries | 1
 Jellyfin 1 | Server | table | 1

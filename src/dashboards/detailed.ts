@@ -65,7 +65,7 @@ function seriesPanel(plugin: Plugin, point: PointSpec, key: string): PanelSpec {
     width: point.size?.[0] ?? 12,
     height: point.size?.[1] ?? 8,
     variants: [{ query: { shape: 'timeSeries', agg: point.agg ?? 'mean', bucket: 'auto' }, sources: [source(plugin, point, { ...(tags ? { tags } : {}), legend })] }],
-    grafana: point.grafana ?? template,
+    grafana: { ...(point.grafana ?? template), ...(point.timeFrom ? { timeFrom: point.timeFrom } : {}) },
   };
 }
 
@@ -98,7 +98,7 @@ function tablePanel(plugin: Plugin, point: PointSpec, key: string): PanelSpec {
   const numbers = point.fields.filter((field) => field.kind === 'number');
   // VictoriaMetrics drops string fields: it still gets the numbers of the point.
   if (numbers.length > 0 && numbers.length < point.fields.length) {
-    variants.push({ query: { shape: 'latestTable' }, sources: [source(plugin, point, { ...tags, fields: numbers })] });
+    variants.push({ query: { shape: 'latestTable' }, sources: [source(plugin, point, { ...tags, fields: numbers })], grafana: point.grafana ?? tableTemplate({ ...point, fields: numbers }) });
   }
   return { key, title: point.title, width: point.size?.[0] ?? 24, height: point.size?.[1] ?? 8, variants, grafana: point.grafana ?? tableTemplate(point) };
 }

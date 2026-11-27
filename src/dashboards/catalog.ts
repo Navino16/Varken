@@ -24,6 +24,8 @@ export interface PointSpec {
   agg?: Agg;
   legend?: string;
   grafana?: PanelTemplate;
+  /** Window of a gauge whose points are sparser than the dashboard range. */
+  timeFrom?: string;
 }
 
 type Plugin = InputKey | 'varken';
@@ -31,11 +33,14 @@ type Servarr = 'sonarr' | 'radarr' | 'readarr' | 'lidarr';
 
 const nums = (...names: string[]): FieldRef[] => names.map((name) => num(name));
 const seconds = (...names: string[]): Record<string, string> => Object.fromEntries(names.map((name) => [name, 's']));
+const optional = (field: FieldRef): FieldRef => ({ ...field, optional: true });
+const optionals = (...names: string[]): FieldRef[] => names.map((name) => optional(num(name)));
 const HASH = str('hash');
 const SERVER_INFO_SIZE: [number, number] = [12, 5];
 
-function serverInfo(collector: string, tags: string[], fields: string[], units: Record<string, string> = {}): PointSpec {
-  return { type: 'ServerInfo', title: 'Server', collector, view: 'table', tags, fields: [num('reachable'), ...nums(...fields)], units, size: SERVER_INFO_SIZE };
+/** `optionalFields`: omitted when the service does not report them. */
+function serverInfo(collector: string, tags: string[], fields: string[], units: Record<string, string> = {}, optionalFields: string[] = []): PointSpec {
+  return { type: 'ServerInfo', title: 'Server', collector, view: 'table', tags, fields: [num('reachable'), ...nums(...fields), ...optionals(...optionalFields)], units, size: SERVER_INFO_SIZE };
 }
 
 const healthPoints = (): PointSpec[] => [
@@ -249,7 +254,7 @@ const PROWLARR: PointSpec[] = [
     collector: 'status',
     view: 'table',
     tags: ['indexerId'],
-    fields: nums('disabled', 'disabled_for_seconds', 'most_recent_failure_age_seconds', 'initial_failure_age_seconds'),
+    fields: [...nums('disabled', 'most_recent_failure_age_seconds', 'initial_failure_age_seconds'), ...optionals('disabled_for_seconds')],
     units: seconds('disabled_for_seconds', 'most_recent_failure_age_seconds', 'initial_failure_age_seconds'),
     size: [12, 6],
   },
@@ -304,7 +309,7 @@ const REQUEST_COLUMNS = ['requested_date', 'title', 'media_type', 'requested_use
 const quotas = (...kinds: string[]): string[] => kinds.flatMap((kind) => [`${kind}_quota_limit`, `${kind}_quota_remaining`]);
 
 const OMBI: PointSpec[] = [
-  { type: 'Request_Counts', title: 'Request counts', collector: 'requestCounts', view: 'series', fields: nums('pending', 'approved', 'available', 'denied') },
+  { type: 'Request_Counts', title: 'Request counts', collector: 'requestCounts', view: 'series', fields: [...nums('pending', 'approved', 'available'), ...optionals('denied')] },
   { type: 'Request_Total', title: 'Request totals', collector: 'requestCounts', view: 'series', fields: nums('total', 'movies', 'tv_shows', 'tv_requests', 'music') },
   {
     type: 'Requests',
@@ -326,15 +331,15 @@ const OMBI: PointSpec[] = [
     collector: 'users',
     view: 'table',
     tags: ['username', 'user_type'],
-    fields: nums('has_logged_in', 'last_login_age_seconds', ...quotas('movie', 'episode', 'music')),
+    fields: [...nums('has_logged_in'), ...optionals('last_login_age_seconds', ...quotas('movie', 'episode', 'music'))],
     units: seconds('last_login_age_seconds'),
   },
 
-  serverInfo('serverInfo', ['version', 'branch'], ['update_available']),
+  serverInfo('serverInfo', ['version', 'branch'], [], {}, ['update_available']),
 ];
 
 const OVERSEERR: PointSpec[] = [
-  { type: 'Request_Counts', title: 'Requests by status', collector: 'requestCounts', view: 'series', fields: nums('pending', 'approved', 'processing', 'available', 'declined', 'completed') },
+  { type: 'Request_Counts', title: 'Requests by status', collector: 'requestCounts', view: 'series', fields: [...nums('pending', 'approved', 'processing', 'available', 'declined'), ...optionals('completed')] },
   { type: 'Request_Counts', title: 'Requests by type', collector: 'requestCounts', view: 'series', fields: nums('total', 'movies', 'tv') },
   { type: 'Issues_Counts', title: 'Issues', collector: 'requestCounts', view: 'series', fields: nums('open', 'closed', 'video', 'audio', 'subtitles', 'others') },
   { type: 'RequestTotals', title: 'Request problems', collector: 'totals', view: 'series', fields: nums('failed', 'unavailable', 'deleted') },
@@ -384,17 +389,18 @@ const OVERSEERR: PointSpec[] = [
 
 
 
-  serverInfo('serverInfo', ['version'], ['update_available', 'commits_behind', 'restart_pending']),
+  serverInfo('serverInfo', ['version'], [], {}, ['update_available', 'commits_behind', 'restart_pending']),
   {
     type: 'User',
     title: 'User quotas',
     collector: 'users',
     view: 'table',
     tags: ['display_name', 'user_type'],
-    fields: nums('requests', ...['movie', 'tv'].flatMap((kind) => ['limit', 'days', 'used', 'remaining', 'restricted'].map((part) => `${kind}_quota_${part}`))),
+    fields: [num('requests'), ...optionals(...['movie', 'tv'].flatMap((kind) => ['limit', 'days', 'used', 'remaining', 'restricted'].map((part) => `${kind}_quota_${part}`)))],
   },];
 
-const PLAYS = ['tv', 'movies', 'music', 'live_tv'];
+/** A server without music or Live TV libraries has no `music` / `live_tv` field. */
+const PLAYS: FieldRef[] = [...nums('tv', 'movies'), ...optionals('music', 'live_tv')];
 const STREAM_TYPES = ['direct_play', 'direct_stream', 'transcode'];
 const KBITS = (...names: string[]): Record<string, string> => Object.fromEntries(names.map((name) => [name, 'Kbits']));
 const SESSION_TAGS = ['username', 'title', 'media_type', 'platform', 'product', 'quality'];
@@ -438,8 +444,8 @@ const TAUTULLI: PointSpec[] = [
     tags: ['library_name', 'media_type'],
     fields: [str('title'), num('year')],
   },
-  { type: 'PlaysByDate', title: 'Plays per day (Tautulli graphs)', collector: 'stats', view: 'series', fields: nums(...PLAYS, 'total') },
-  { type: 'PlaysByMonth', title: 'Plays per month', collector: 'stats', view: 'series', fields: nums(...PLAYS) },
+  { type: 'PlaysByDate', title: 'Plays per day (Tautulli graphs)', collector: 'stats', view: 'series', fields: [...PLAYS, num('total')] },
+  { type: 'PlaysByMonth', title: 'Plays per month (last 12 months)', collector: 'stats', view: 'series', fields: PLAYS, timeFrom: '1y' },
   { type: 'PlaysByStreamType', title: 'Plays by stream type', collector: 'stats', view: 'series', fields: nums(...STREAM_TYPES) },
   { type: 'ConcurrentStreams', title: 'Concurrent streams', collector: 'stats', view: 'series', fields: nums(...STREAM_TYPES, 'max_concurrent_streams') },
   {
@@ -449,11 +455,11 @@ const TAUTULLI: PointSpec[] = [
     throttleSeconds: STATS_THROTTLE,
     view: 'table',
     tags: ['hour'],
-    fields: nums(...PLAYS),
+    fields: PLAYS,
     size: [12, 8],
     grafana: categoryBars('hour'),
   },
-  { type: 'PlaysByDayOfWeek', title: 'Plays by weekday (30 days)', collector: 'stats', throttleSeconds: STATS_THROTTLE, view: 'table', tags: ['day'], fields: nums(...PLAYS), size: [12, 8] },
+  { type: 'PlaysByDayOfWeek', title: 'Plays by weekday (30 days)', collector: 'stats', throttleSeconds: STATS_THROTTLE, view: 'table', tags: ['day'], fields: PLAYS, size: [12, 8] },
   { type: 'StreamTypeByPlatform', title: 'Stream types by platform (30 days)', collector: 'stats', throttleSeconds: STATS_THROTTLE, view: 'table', tags: ['platform'], fields: nums(...STREAM_TYPES), size: [12, 8] },
   { type: 'StreamTypeByUser', title: 'Stream types by user (30 days)', collector: 'stats', throttleSeconds: STATS_THROTTLE, view: 'table', tags: ['user'], fields: nums(...STREAM_TYPES), size: [12, 8] },
   {
@@ -463,7 +469,7 @@ const TAUTULLI: PointSpec[] = [
     throttleSeconds: STATS_THROTTLE,
     view: 'table',
     tags: ['stat_id', 'rank'],
-    fields: [str('title'), ...nums('plays', 'duration_seconds', 'users_watched', 'count', 'last_play_age_seconds')],
+    fields: [str('title'), ...nums('plays', 'duration_seconds', 'last_play_age_seconds'), ...optionals('users_watched', 'count')],
     units: seconds('duration_seconds', 'last_play_age_seconds'),
   },
   {
@@ -472,7 +478,7 @@ const TAUTULLI: PointSpec[] = [
     collector: 'stats',
     view: 'table',
     tags: ['section_name', 'section_type'],
-    fields: nums('total', 'seasons', 'episodes', 'artists', 'albums', 'tracks', 'is_active'),
+    fields: [...nums('total', 'is_active'), ...optionals('seasons', 'episodes', 'artists', 'albums', 'tracks')],
     size: [12, 8],
   },
   {
@@ -504,7 +510,7 @@ const TAUTULLI: PointSpec[] = [
     fields: nums('plays', 'duration_seconds', 'last_accessed_age_seconds', 'plays_30d', 'watch_seconds_30d', 'media_items', 'file_size', 'media_info_age_seconds'),
     units: { ...seconds('duration_seconds', 'last_accessed_age_seconds', 'watch_seconds_30d', 'media_info_age_seconds'), file_size: 'bytes' },
   },
-  serverInfo('serverInfo', ['version', 'branch', 'pms_version'], ['update_available', 'pms_update_available', 'pms_plexpass']),
+  serverInfo('serverInfo', ['version', 'branch', 'pms_version'], ['pms_plexpass'], {}, ['update_available', 'pms_update_available']),
 ];
 
 const PLEX: PointSpec[] = [
@@ -544,18 +550,18 @@ const PLEX: PointSpec[] = [
     size: [12, 6],
   },
   { type: 'Updater', title: 'Updates', collector: 'status', view: 'table', tags: ['state', 'version'], fields: nums('can_install', 'checked_age_seconds', 'releases'), units: seconds('checked_age_seconds'), size: [12, 8] },
-  serverInfo('serverInfo', ['version', 'platform', 'remote_access'], ['update_available', 'active_transcodes']),
+  serverInfo('serverInfo', ['version', 'platform', 'remote_access'], ['update_available'], {}, ['active_transcodes']),
   {
     type: 'library_stats',
     title: 'Libraries',
     collector: 'libraries',
     view: 'table',
     tags: ['section_name', 'section_type'],
-    fields: nums('total', 'seasons', 'episodes', 'albums', 'tracks', 'added_7d', 'locations', 'refreshing', 'scanned_age_seconds'),
+    fields: [...nums('total', 'added_7d', 'locations', 'refreshing', 'scanned_age_seconds'), ...optionals('seasons', 'episodes', 'albums', 'tracks')],
     units: seconds('scanned_age_seconds'),
   },
-  { type: 'LiveTv', title: 'Live TV', collector: 'liveTv', view: 'series', fields: nums('sessions', 'recordings_scheduled', 'recordings_in_progress', 'recordings_failed') },
-  { type: 'Recording', title: 'Recordings', collector: 'liveTv', view: 'table', tags: ['grab_id', 'provider'], fields: [num('present'), num('percent')], units: { percent: 'percent' }, size: [12, 8] },
+  { type: 'LiveTv', title: 'Live TV', collector: 'liveTv', view: 'series', fields: [num('sessions'), ...optionals('recordings_scheduled', 'recordings_in_progress', 'recordings_failed')] },
+  { type: 'Recording', title: 'Recordings', collector: 'liveTv', view: 'table', tags: ['grab_id', 'provider'], fields: optionals('present', 'percent'), units: { percent: 'percent' }, size: [12, 8] },
   { type: 'Inventory', title: 'Inventory', collector: 'inventory', view: 'stats', fields: nums('accounts', 'devices') },
   { type: 'Device', title: 'Devices', collector: 'inventory', view: 'table', tags: ['device_name', 'platform'], fields: nums('present', 'created_age_days') },
 ];
@@ -595,7 +601,7 @@ function mediaServerPoints(plugin: 'jellyfin' | 'emby'): PointSpec[] {
             collector: 'status',
             view: 'table',
             tags: ['folder', 'library', 'path', 'storage_type'],
-            fields: nums('free_bytes', 'used_bytes', 'used_percent'),
+            fields: optionals('free_bytes', 'used_bytes', 'used_percent'),
             units: { free_bytes: 'bytes', used_bytes: 'bytes', used_percent: 'percent' },
             size: [12, 8],
           } satisfies PointSpec,
@@ -619,7 +625,7 @@ function mediaServerPoints(plugin: 'jellyfin' | 'emby'): PointSpec[] {
       fields: nums('recordings', 'recordings_in_progress', 'timers', 'recordings_scheduled', 'recordings_failed', 'next_recording_in_seconds'),
       units: { next_recording_in_seconds: 's' },
     },
-    serverInfo('serverInfo', ['version'], [...(jellyfin ? [] : ['update_available']), 'restart_pending', 'shutting_down', ...(jellyfin ? [] : ['maintenance_mode'])]),
+    serverInfo('serverInfo', ['version'], [], {}, [...(jellyfin ? [] : ['update_available']), 'restart_pending', 'shutting_down', ...(jellyfin ? [] : ['maintenance_mode'])]),
     { type: 'item_counts', title: 'Items', collector: 'libraries', view: 'stats', fields: nums('movies', 'series', 'episodes', 'artists', 'albums', 'songs', 'books', 'box_sets', 'total') },
     { type: 'Users', title: 'User counts', collector: 'inventory', view: 'stats', fields: nums('users', 'admins', 'disabled', 'active_24h', 'active_30d') },
     { type: 'Devices', title: 'Device counts', collector: 'inventory', view: 'stats', fields: nums('devices', 'active_24h') },

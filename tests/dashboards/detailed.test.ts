@@ -48,6 +48,17 @@ describe('pointPanels', () => {
     expect(overrides(panel.grafana.fieldConfig)).toEqual([{ matcher: { id: 'byName', options: 'size' }, properties: [{ id: 'unit', value: 'bytes' }] }]);
   });
 
+  it('gives a gauge its own time window when its points are sparser than the dashboard range', () => {
+    const [panel] = pointPanels('tautulli', { type: 'PlaysByMonth', title: 'Plays per month', collector: 'stats', view: 'series', fields: [num('tv')], timeFrom: '1y' });
+    const dashboard = full('influxdb1');
+    const rendered = rows(dashboard)
+      .flatMap(([, panels]) => panels)
+      .find((p) => p.title === 'Plays per month (last 12 months)');
+
+    expect(panel.grafana.timeFrom).toBe('1y');
+    expect(rendered?.timeFrom).toBe('1y');
+  });
+
   it('shows slow counts as named stats', () => {
     const [panel] = pointPanels('sonarr', { type: 'Library', title: 'Library', collector: 'library', view: 'stats', fields: [num('series'), num('size_on_disk')], units: { size_on_disk: 'bytes' } });
 
@@ -74,6 +85,7 @@ describe('pointPanels', () => {
     expect(panel.variants.map((v) => v.query)).toEqual([{ shape: 'latestTable' }, { shape: 'latestTable' }]);
     expect(panel.variants[0].sources[0]).toMatchObject({ tags: ['name', 'tracked_download_status'], fields: point.fields });
     expect(panel.variants[1].sources[0].fields).toEqual([num('sizeleft')]);
+    expect(Object.keys(organize(panel.variants[1].grafana?.transformations).renameByName)).toEqual(['name', 'tracked_download_status', 'sizeleft']);
     expect(steps.excludeByName).toMatchObject({ hash: true });
     expect(steps.renameByName).toEqual({ name: 'Name', tracked_download_status: 'Tracked download status', sizeleft: 'Sizeleft', message: 'Message' });
     expect(overrides(panel.grafana.fieldConfig).map((o) => [o.matcher.options, o.properties[0].id])).toEqual([

@@ -5472,24 +5472,12 @@
               },
               "rawQuery": true,
               "resultFormat": "table",
-              "query": "SELECT last(\"disabled\") AS \"disabled\", last(\"disabled_for_seconds\") AS \"disabled_for_seconds\", last(\"most_recent_failure_age_seconds\") AS \"most_recent_failure_age_seconds\", last(\"initial_failure_age_seconds\") AS \"initial_failure_age_seconds\" FROM \"Prowlarr\" WHERE \"type\" = 'IndexerStatus' AND \"server\" = '1' AND time > now() - 360s GROUP BY \"indexerId\""
+              "query": "SELECT last(\"disabled\") AS \"disabled\", last(\"most_recent_failure_age_seconds\") AS \"most_recent_failure_age_seconds\", last(\"initial_failure_age_seconds\") AS \"initial_failure_age_seconds\", last(\"disabled_for_seconds\") AS \"disabled_for_seconds\" FROM \"Prowlarr\" WHERE \"type\" = 'IndexerStatus' AND \"server\" = '1' AND time > now() - 360s GROUP BY \"indexerId\""
             }
           ],
           "fieldConfig": {
             "defaults": {},
             "overrides": [
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "Disabled for seconds"
-                },
-                "properties": [
-                  {
-                    "id": "unit",
-                    "value": "s"
-                  }
-                ]
-              },
               {
                 "matcher": {
                   "id": "byName",
@@ -5506,6 +5494,18 @@
                 "matcher": {
                   "id": "byName",
                   "options": "Initial failure age seconds"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "s"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Disabled for seconds"
                 },
                 "properties": [
                   {
@@ -5534,16 +5534,16 @@
                 "indexByName": {
                   "indexerId": 0,
                   "disabled": 1,
-                  "disabled_for_seconds": 2,
-                  "most_recent_failure_age_seconds": 3,
-                  "initial_failure_age_seconds": 4
+                  "most_recent_failure_age_seconds": 2,
+                  "initial_failure_age_seconds": 3,
+                  "disabled_for_seconds": 4
                 },
                 "renameByName": {
                   "indexerId": "Indexer id",
                   "disabled": "Disabled",
-                  "disabled_for_seconds": "Disabled for seconds",
                   "most_recent_failure_age_seconds": "Most recent failure age seconds",
-                  "initial_failure_age_seconds": "Initial failure age seconds"
+                  "initial_failure_age_seconds": "Initial failure age seconds",
+                  "disabled_for_seconds": "Disabled for seconds"
                 }
               }
             }
@@ -7589,7 +7589,7 @@
         {
           "id": 100,
           "type": "timeseries",
-          "title": "Plays per month",
+          "title": "Plays per month (last 12 months)",
           "gridPos": {
             "x": 12,
             "y": 39,
@@ -7651,6 +7651,7 @@
               "sort": "desc"
             }
           },
+          "timeFrom": "1y",
           "interval": "30s"
         },
         {
@@ -8067,7 +8068,7 @@
               },
               "rawQuery": true,
               "resultFormat": "table",
-              "query": "SELECT last(\"title\") AS \"title\", last(\"plays\") AS \"plays\", last(\"duration_seconds\") AS \"duration_seconds\", last(\"users_watched\") AS \"users_watched\", last(\"count\") AS \"count\", last(\"last_play_age_seconds\") AS \"last_play_age_seconds\" FROM \"Tautulli\" WHERE \"type\" = 'HomeStat' AND \"server\" = '1' AND time > now() - 360s GROUP BY \"stat_id\", \"rank\""
+              "query": "SELECT last(\"title\") AS \"title\", last(\"plays\") AS \"plays\", last(\"duration_seconds\") AS \"duration_seconds\", last(\"last_play_age_seconds\") AS \"last_play_age_seconds\", last(\"users_watched\") AS \"users_watched\", last(\"count\") AS \"count\" FROM \"Tautulli\" WHERE \"type\" = 'HomeStat' AND \"server\" = '1' AND time > now() - 360s GROUP BY \"stat_id\", \"rank\""
             }
           ],
           "fieldConfig": {
@@ -8120,9 +8121,9 @@
                   "title": 2,
                   "plays": 3,
                   "duration_seconds": 4,
-                  "users_watched": 5,
-                  "count": 6,
-                  "last_play_age_seconds": 7
+                  "last_play_age_seconds": 5,
+                  "users_watched": 6,
+                  "count": 7
                 },
                 "renameByName": {
                   "stat_id": "Stat id",
@@ -8130,9 +8131,9 @@
                   "title": "Title",
                   "plays": "Plays",
                   "duration_seconds": "Duration seconds",
+                  "last_play_age_seconds": "Last play age seconds",
                   "users_watched": "Users watched",
-                  "count": "Count",
-                  "last_play_age_seconds": "Last play age seconds"
+                  "count": "Count"
                 }
               }
             }
@@ -8161,7 +8162,7 @@
               },
               "rawQuery": true,
               "resultFormat": "table",
-              "query": "SELECT last(\"total\") AS \"total\", last(\"seasons\") AS \"seasons\", last(\"episodes\") AS \"episodes\", last(\"artists\") AS \"artists\", last(\"albums\") AS \"albums\", last(\"tracks\") AS \"tracks\", last(\"is_active\") AS \"is_active\" FROM \"Tautulli\" WHERE \"type\" = 'library_stats' AND \"server\" = '1' AND time > now() - 60s GROUP BY \"section_name\", \"section_type\""
+              "query": "SELECT last(\"total\") AS \"total\", last(\"is_active\") AS \"is_active\", last(\"seasons\") AS \"seasons\", last(\"episodes\") AS \"episodes\", last(\"artists\") AS \"artists\", last(\"albums\") AS \"albums\", last(\"tracks\") AS \"tracks\" FROM \"Tautulli\" WHERE \"type\" = 'library_stats' AND \"server\" = '1' AND time > now() - 60s GROUP BY \"section_name\", \"section_type\""
             }
           ],
           "fieldConfig": {
@@ -8187,23 +8188,23 @@
                   "section_name": 0,
                   "section_type": 1,
                   "total": 2,
-                  "seasons": 3,
-                  "episodes": 4,
-                  "artists": 5,
-                  "albums": 6,
-                  "tracks": 7,
-                  "is_active": 8
+                  "is_active": 3,
+                  "seasons": 4,
+                  "episodes": 5,
+                  "artists": 6,
+                  "albums": 7,
+                  "tracks": 8
                 },
                 "renameByName": {
                   "section_name": "Section name",
                   "section_type": "Section type",
                   "total": "Total",
+                  "is_active": "Is active",
                   "seasons": "Seasons",
                   "episodes": "Episodes",
                   "artists": "Artists",
                   "albums": "Albums",
-                  "tracks": "Tracks",
-                  "is_active": "Is active"
+                  "tracks": "Tracks"
                 }
               }
             }
@@ -8610,7 +8611,7 @@
               },
               "rawQuery": true,
               "resultFormat": "table",
-              "query": "SELECT last(\"reachable\") AS \"reachable\", last(\"update_available\") AS \"update_available\", last(\"pms_update_available\") AS \"pms_update_available\", last(\"pms_plexpass\") AS \"pms_plexpass\" FROM \"Tautulli\" WHERE \"type\" = 'ServerInfo' AND \"server\" = '1' AND time > now() - 360s GROUP BY \"version\", \"branch\", \"pms_version\""
+              "query": "SELECT last(\"reachable\") AS \"reachable\", last(\"pms_plexpass\") AS \"pms_plexpass\", last(\"update_available\") AS \"update_available\", last(\"pms_update_available\") AS \"pms_update_available\" FROM \"Tautulli\" WHERE \"type\" = 'ServerInfo' AND \"server\" = '1' AND time > now() - 360s GROUP BY \"version\", \"branch\", \"pms_version\""
             }
           ],
           "fieldConfig": {
@@ -8637,17 +8638,17 @@
                   "version": 0,
                   "branch": 1,
                   "pms_version": 2,
-                  "update_available": 3,
-                  "pms_update_available": 4,
-                  "pms_plexpass": 5
+                  "pms_plexpass": 3,
+                  "update_available": 4,
+                  "pms_update_available": 5
                 },
                 "renameByName": {
                   "version": "Version",
                   "branch": "Branch",
                   "pms_version": "Pms version",
+                  "pms_plexpass": "Pms plexpass",
                   "update_available": "Update available",
-                  "pms_update_available": "Pms update available",
-                  "pms_plexpass": "Pms plexpass"
+                  "pms_update_available": "Pms update available"
                 }
               }
             }
@@ -9783,7 +9784,7 @@
               },
               "rawQuery": true,
               "resultFormat": "table",
-              "query": "SELECT last(\"total\") AS \"total\", last(\"seasons\") AS \"seasons\", last(\"episodes\") AS \"episodes\", last(\"albums\") AS \"albums\", last(\"tracks\") AS \"tracks\", last(\"added_7d\") AS \"added_7d\", last(\"locations\") AS \"locations\", last(\"refreshing\") AS \"refreshing\", last(\"scanned_age_seconds\") AS \"scanned_age_seconds\" FROM \"Plex\" WHERE \"type\" = 'library_stats' AND \"server\" = '1' AND time > now() - 60s GROUP BY \"section_name\", \"section_type\""
+              "query": "SELECT last(\"total\") AS \"total\", last(\"added_7d\") AS \"added_7d\", last(\"locations\") AS \"locations\", last(\"refreshing\") AS \"refreshing\", last(\"scanned_age_seconds\") AS \"scanned_age_seconds\", last(\"seasons\") AS \"seasons\", last(\"episodes\") AS \"episodes\", last(\"albums\") AS \"albums\", last(\"tracks\") AS \"tracks\" FROM \"Plex\" WHERE \"type\" = 'library_stats' AND \"server\" = '1' AND time > now() - 60s GROUP BY \"section_name\", \"section_type\""
             }
           ],
           "fieldConfig": {
@@ -9822,27 +9823,27 @@
                   "section_name": 0,
                   "section_type": 1,
                   "total": 2,
-                  "seasons": 3,
-                  "episodes": 4,
-                  "albums": 5,
-                  "tracks": 6,
-                  "added_7d": 7,
-                  "locations": 8,
-                  "refreshing": 9,
-                  "scanned_age_seconds": 10
+                  "added_7d": 3,
+                  "locations": 4,
+                  "refreshing": 5,
+                  "scanned_age_seconds": 6,
+                  "seasons": 7,
+                  "episodes": 8,
+                  "albums": 9,
+                  "tracks": 10
                 },
                 "renameByName": {
                   "section_name": "Section name",
                   "section_type": "Section type",
                   "total": "Total",
-                  "seasons": "Seasons",
-                  "episodes": "Episodes",
-                  "albums": "Albums",
-                  "tracks": "Tracks",
                   "added_7d": "Added 7d",
                   "locations": "Locations",
                   "refreshing": "Refreshing",
-                  "scanned_age_seconds": "Scanned age seconds"
+                  "scanned_age_seconds": "Scanned age seconds",
+                  "seasons": "Seasons",
+                  "episodes": "Episodes",
+                  "albums": "Albums",
+                  "tracks": "Tracks"
                 }
               }
             }
