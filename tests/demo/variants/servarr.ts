@@ -11,9 +11,9 @@ type QueueStatus = components['schemas']['QueueStatusResource'];
 
 const API: Record<Servarr, string> = { sonarr: '/api/v3', radarr: '/api/v3', lidarr: '/api/v1', readarr: '/api/v1', prowlarr: '/api/v1' };
 
-/** Downloads in the queue this hour, at most the fixture's records so clones never share their tags. */
+/** Downloads in the queue this hour: at least one, at most the fixture's records so clones never share their tags. */
 function queueSize(service: Servarr, records: number): number {
-  return Math.floor(random(`${service}|queue|${Math.floor(Date.now() / HOUR)}`) * (records + 1));
+  return 1 + Math.floor(random(`${service}|queue|${Math.floor(Date.now() / HOUR)}`) * records);
 }
 
 export function servarrVariants(service: Servarr, client: ContractHttpClient): void {
@@ -37,9 +37,11 @@ export function servarrVariants(service: Servarr, client: ContractHttpClient): v
     const records = page.records ?? [];
     const size = queueSize(service, records.length);
     const now = Date.now();
+    const stalled = Math.floor(now / HOUR) % 2 === 0;
     page.records = records.slice(0, size).map((record, k) => ({
       ...record,
       estimatedCompletionTime: new Date(now + (k + 1) * 20 * 60_000).toISOString(),
+      ...(stalled && k === 0 ? { trackedDownloadStatus: 'warning' as const } : {}),
     }));
     page.totalRecords = size;
     return page;

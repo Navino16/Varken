@@ -169,7 +169,7 @@ services:
       - all
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:13.3.2
     container_name: varken-grafana
     ports:
       - "3000:3000"
