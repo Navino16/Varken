@@ -78,7 +78,7 @@ describe('generateDashboard', () => {
   });
 
   it('pins fixed-window panels to the last 24 hours', () => {
-    expect(byTitle('a')).toMatchObject({ timeFrom: '24h', hideTimeOverride: false });
+    expect(byTitle('a')).toMatchObject({ timeFrom: '24h', hideTimeOverride: true });
     expect(byTitle('e').timeFrom).toBeUndefined();
   });
 

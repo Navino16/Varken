@@ -68,8 +68,16 @@ interface TableOptions {
   overrides?: object[];
 }
 
+/** Columns in the order of `rename`, whatever order the merged frames come in. */
 function organize(rename: Record<string, string> = {}, hide: string[] = []): object {
-  return { id: 'organize', options: { excludeByName: Object.fromEntries(['Time', ...hide].map((name) => [name, true])), renameByName: rename } };
+  return {
+    id: 'organize',
+    options: {
+      excludeByName: Object.fromEntries([...('Time' in rename ? [] : ['Time']), ...hide].map((name) => [name, true])),
+      indexByName: Object.fromEntries(Object.keys(rename).map((name, index) => [name, index])),
+      renameByName: rename,
+    },
+  };
 }
 
 function tail({ sortBy, limit }: TableOptions): object[] {
@@ -168,12 +176,15 @@ export function geomap(): PanelTemplate {
 export function pie(): PanelTemplate {
   return {
     type: 'piechart',
-    options: { reduceOptions: { values: true, calcs: [], fields: '/Total/' }, pieType: 'donut', legend: { displayMode: 'list', placement: 'right', showLegend: true, values: ['percent'] } },
+    options: { reduceOptions: { values: false, calcs: ['lastNotNull'], fields: '' }, pieType: 'pie', legend: { displayMode: 'list', placement: 'right', showLegend: true, values: ['percent'] } },
     fieldConfig: { defaults: { unit: 'none', color: { mode: 'palette-classic' } }, overrides: [] },
     transformations: [
       { id: 'reduce', options: { mode: 'seriesToRows', reducers: ['sum'] } },
       { id: 'groupBy', options: { fields: { Field: { operation: 'groupby', aggregations: [] }, Total: { operation: 'aggregate', aggregations: ['sum'] } } } },
-      organize({ 'Total (sum)': 'Total' }),
+      {
+        id: 'rowsToFields',
+        options: { mappings: [{ fieldName: 'Field', handlerKey: 'field.name' }, { fieldName: 'Total (sum)', handlerKey: 'field.value' }] },
+      },
     ],
   };
 }

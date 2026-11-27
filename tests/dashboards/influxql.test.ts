@@ -50,11 +50,11 @@ describe('influxql', () => {
     expect(target.query).toBe(`SELECT count("hash") AS "plays", last("title") AS "title" FROM "Sonarr" WHERE "type" = 'Queue' AND "server" = '1' AND $timeFilter GROUP BY "rating_key"`);
   });
 
-  it('lists the latest row per tag combination over two intervals', () => {
+  it('lists the rows of the latest collection only', () => {
     const target = render({ shape: 'latestTable' }, { fields: [{ name: 'progress', kind: 'number' }], tags: ['name', 'sxe'] }, 1, 60);
 
     expect(target.resultFormat).toBe('table');
-    expect(target.query).toBe(`SELECT last("progress") AS "progress" FROM "Sonarr" WHERE "type" = 'Queue' AND "server" = '1' AND time > now() - 120s GROUP BY "name", "sxe"`);
+    expect(target.query).toBe(`SELECT last("progress") AS "progress" FROM "Sonarr" WHERE "type" = 'Queue' AND "server" = '1' AND time > now() - 60s GROUP BY "name", "sxe"`);
   });
 
   it('lists the most recent events', () => {
@@ -104,6 +104,7 @@ describe('influxql', () => {
   it('cannot express time bucketing', () => {
     expect(influxql.shapes.has('timeBuckets')).toBe(false);
     expect(usableSources(influxql, { shape: 'timeBuckets' }, [source({})])).toEqual([]);
+    expect(() => influxql.target({ shape: 'timeBuckets' }, source({}), 'A')).toThrow('InfluxQL cannot bucket by hour of day or weekday');
   });
 });
 

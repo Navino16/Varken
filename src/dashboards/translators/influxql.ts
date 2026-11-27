@@ -55,7 +55,8 @@ function select(query: Query, source: ResolvedSource): { text: string; table: bo
     case 'topN':
       return { text: `SELECT ${fields.map((f) => `${aggregate(f, query.agg)} AS ${alias(f)}`).join(', ')} ${from} AND $timeFilter${byTags}`, table: true };
     case 'latestTable':
-      return { text: `SELECT ${fields.map((f) => `last(${identifier(f.name)}) AS ${alias(f)}`).join(', ')} ${from} AND time > now() - ${2 * interval}s${byTags}`, table: true };
+      // Runs start at least an interval apart, so this window never holds two collections: rows of a changed tag do not double.
+      return { text: `SELECT ${fields.map((f) => `last(${identifier(f.name)}) AS ${alias(f)}`).join(', ')} ${from} AND time > now() - ${interval}s${byTags}`, table: true };
     case 'eventTable': {
       const columns = [...fields.map((f) => `${identifier(f.name)} AS ${alias(f)}`), ...tags].join(', ');
       return { text: `SELECT ${columns} ${from} AND $timeFilter ORDER BY time DESC LIMIT ${query.limit}`, table: true };

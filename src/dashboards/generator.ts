@@ -104,7 +104,7 @@ function panelJson(rendered: Rendered, band: BandSpec, translator: Translator, i
   }
   if (band.fixedWindow) {
     panel.timeFrom = band.fixedWindow;
-    panel.hideTimeOverride = false;
+    panel.hideTimeOverride = true;
   }
   return panel;
 }

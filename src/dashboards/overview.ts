@@ -204,7 +204,7 @@ const NOW: BandSpec = {
       rowsTable({
         hide: ['hash'],
         sortBy: { field: 'airsUTC' },
-        rename: { name: 'Series', sxe: 'Episode', airsUTC: 'Airs', downloaded: 'Downloaded' },
+        rename: { airsUTC: 'Airs', name: 'Series', sxe: 'Episode', downloaded: 'Downloaded' },
         overrides: [mappingOverride('Downloaded', { '0': 'no', '1': 'yes' })],
       })
     ),
@@ -343,7 +343,7 @@ const PERIOD: BandSpec = {
       [8, 8],
       { shape: 'eventTable', limit: 10 },
       [{ plugin: 'tautulli', collector: 'stats', minIntervalSeconds: 300, type: 'RecentlyAdded', fields: [str('title')], tags: ['library_name', 'media_type'] }],
-      rowsTable({ rename: { title: 'Title', library_name: 'Library', media_type: 'Type' } })
+      rowsTable({ rename: { Time: 'Added', title: 'Title', library_name: 'Library', media_type: 'Type' } })
     ),
     panel(
       'requests-per-day',
