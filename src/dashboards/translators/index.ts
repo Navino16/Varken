@@ -1,11 +1,16 @@
-import type { OutputKey, Query, ResolvedSource } from '../model';
+import { type OutputKey, type Query, type ResolvedSource, TABLE_SHAPES } from '../model';
+import { flux } from './flux';
 import { influxql } from './influxql';
+import { resultKind } from './kinds';
+import { metricsql } from './metricsql';
+import { questdb, timescaledb } from './sql';
 import type { Translator } from './types';
 
-export type { GrafanaTarget, Translator } from './types';
+export { resultKind } from './kinds';
+export type { GrafanaTarget, TargetContext, Translator } from './types';
 export { DATASOURCE_UID } from './types';
 
-const TRANSLATORS: Partial<Record<OutputKey, Translator>> = { influxdb1: influxql };
+const TRANSLATORS: Record<OutputKey, Translator> = { influxdb1: influxql, influxdb2: flux, victoriametrics: metricsql, questdb, timescaledb };
 
 export function getTranslator(output: OutputKey): Translator {
   const translator = TRANSLATORS[output];
@@ -20,5 +25,12 @@ export function usableSources(translator: Translator, query: Query, sources: Res
   if (!translator.shapes.has(query.shape)) {
     return [];
   }
-  return translator.stringFields ? sources : sources.filter((source) => source.spec.fields.every((field) => field.kind !== 'string'));
+  switch (translator.strings) {
+    case 'all':
+      return sources;
+    case 'none':
+      return sources.filter((source) => source.spec.fields.every((field) => field.kind !== 'string'));
+    case 'tables':
+      return TABLE_SHAPES.has(query.shape) ? sources : sources.filter((source) => source.spec.fields.every((field) => resultKind(field, query) === 'number'));
+  }
 }

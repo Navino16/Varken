@@ -1,14 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import { GlobalConfigSchema, InputsConfigSchema, type InputsConfig } from '../../src/config/schemas/config.schema';
 import { generateDashboard, type GrafanaDashboard, type GrafanaPanel } from '../../src/dashboards';
+import type { OutputKey } from '../../src/dashboards/model';
+import { OVERVIEW } from '../../src/dashboards/overview';
 import { demoInputs } from '../demo/config';
 
 const global = GlobalConfigSchema.parse({});
 
-function overview(inputs: InputsConfig, pairedPlex: number[] = [], options: { selfMetrics?: boolean } = {}): GrafanaDashboard {
+function overview(inputs: InputsConfig, pairedPlex: number[] = [], options: { selfMetrics?: boolean; output?: OutputKey } = {}): GrafanaDashboard {
   const pairs = new Map(pairedPlex.map((id): [number, number[]] => [id, (inputs.tautulli ?? []).map((t) => t.id)]));
   const config = { inputs, global: { ...global, selfMetrics: { ...global.selfMetrics, enabled: options.selfMetrics ?? true } } };
-  return generateDashboard({ kind: 'overview', output: 'influxdb1', config, pairedPlex: pairs, version: '9.9.9' });
+  return generateDashboard({ kind: 'overview', output: options.output ?? 'influxdb1', config, pairedPlex: pairs, version: '9.9.9' });
 }
 
 function panel(dashboard: GrafanaDashboard, title: string): GrafanaPanel | undefined {
@@ -42,7 +44,7 @@ describe('Overview', () => {
       ['Now', { x: 0, y: 0, w: 24, h: 1 }],
       ['Downloads', { x: 0, y: 1, w: 12, h: 4 }],
       ['Stuck downloads', { x: 12, y: 1, w: 12, h: 4 }],
-      ['Download queue', { x: 0, y: 5, w: 8, h: 8 }],
+      ['Download queue', { x: 0, y: 5, w: 24, h: 8 }],
     ]);
     await expect(`${JSON.stringify(dashboard, null, 2)}\n`).toMatchFileSnapshot('__snapshots__/overview-influxdb1-minimal.json');
   });
@@ -129,5 +131,75 @@ describe('Overview', () => {
   it('drops the period band without a period source', () => {
     expect(overview(minimal).panels.some((p) => p.type === 'row' && p.title === 'Over the period')).toBe(false);
     expect(overview(demoInputs()).panels.filter((p) => p.type === 'row').map((p) => p.title)).toEqual(['Now', 'Over the period']);
+  });
+
+  const spec = (key: string): (typeof OVERVIEW.bands)[number]['panels'][number] => {
+    const found = OVERVIEW.bands.flatMap((band) => band.panels).find((p) => p.key === key);
+    if (!found) throw new Error(`no panel ${key}`);
+    return found;
+  };
+
+  it('draws hour by weekday as a matrix, wider than its fallback', () => {
+    const plays = spec('plays-by-hour');
+    const [buckets, fallback] = plays.variants;
+    const template = { ...plays.grafana, ...buckets.grafana };
+    const ids = (template.transformations ?? []).map((t) => (t as { id: string }).id);
+
+    expect(buckets.query.shape).toBe('timeBuckets');
+    expect(buckets.size).toEqual([24, 10]);
+    expect(template.type).toBe('table');
+    expect(ids).toEqual(['merge', 'groupBy', 'sortBy', 'groupingToMatrix', 'sortBy', 'organize']);
+    expect(JSON.stringify(template)).toContain('"valueField":"count (sum)"');
+    expect(fallback.size).toEqual([8, 8]);
+  });
+
+  it('counts health messages where the output cannot return them', () => {
+    const [messages, counts] = spec('health-alerts').variants;
+    const healthIssue = (variant: typeof messages): unknown => variant.sources.find((s) => s.type === 'HealthIssue')?.fields;
+
+    expect(messages.complete).toBe(true);
+    expect(healthIssue(messages)).toEqual([{ name: 'message', kind: 'string' }]);
+    expect(healthIssue(counts)).toEqual([{ name: 'message', kind: 'string', agg: 'count' }]);
+    expect(counts.sources.length).toBe(messages.sources.length);
+  });
+
+  describe.each(['influxdb2', 'victoriametrics', 'timescaledb', 'questdb'] as const)('on %s', (output) => {
+    it('matches the full and minimal snapshots', async () => {
+      await expect(`${JSON.stringify(overview(demoInputs(), [1], { output }), null, 2)}\n`).toMatchFileSnapshot(`__snapshots__/overview-${output}-full.json`);
+      await expect(`${JSON.stringify(overview(minimal, [], { selfMetrics: false, output }), null, 2)}\n`).toMatchFileSnapshot(`__snapshots__/overview-${output}-minimal.json`);
+    });
+
+    it('fills every line of the full dashboard', () => {
+      const lines = new Map<number, number>();
+      for (const p of overview(demoInputs(), [1], { output }).panels) {
+        lines.set(p.gridPos.y, (lines.get(p.gridPos.y) ?? 0) + p.gridPos.w);
+      }
+
+      expect([...lines.values()].every((width) => width === 24)).toBe(true);
+    });
+  });
+
+  it('leaves string panels out of VictoriaMetrics and joins its table labels', () => {
+    const dashboard = overview(demoInputs(), [1], { output: 'victoriametrics' });
+    const titles = dashboard.panels.map((p) => p.title);
+    const first = (title: string): unknown => (panel(dashboard, title)?.transformations as { id: string }[] | undefined)?.[0]?.id;
+
+    for (const title of ['Recently added', 'Latest requests', 'This week', 'Most watched']) {
+      expect(titles, title).not.toContain(title);
+    }
+    expect(panel(dashboard, 'Health alerts')?.targets?.some((t) => String(t.expr).includes('_message'))).toBe(false);
+    expect(panel(dashboard, 'Health alerts')?.targets?.length).toBe(2);
+    expect(first('Now playing')).toBe('joinByLabels');
+    expect(first('Top users')).toBe('joinByLabels');
+    expect(first('Streams')).toBe('reduce');
+    expect(titles).toContain('Plays by hour of day (last 30 days)');
+  });
+
+  it.each(['timescaledb', 'questdb'] as const)('counts health messages on %s', (output) => {
+    const alerts = panel(overview(demoInputs(), [1], { output }), 'Health alerts');
+    const sql = (alerts?.targets ?? []).map((t) => String(t.rawSql));
+
+    expect(sql.length).toBe(7);
+    expect(sql.filter((q) => q.includes("'HealthIssue'")).every((q) => /count\((fields->>'message'|"message")\)/.test(q))).toBe(true);
   });
 });

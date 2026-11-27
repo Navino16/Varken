@@ -3,7 +3,6 @@ import {
   barGauge,
   geomap,
   healthStat,
-  heatmap,
   hourBars,
   mappingOverride,
   namedTable,
@@ -13,6 +12,7 @@ import {
   timeseries,
   topTable,
   unitOverride,
+  weekdayHourMatrix,
 } from './panels';
 
 const num = (name: string, as?: string): FieldRef => ({ name, kind: 'number', ...(as ? { as } : {}) });
@@ -75,6 +75,39 @@ const requestsTable = (statuses: Record<string, string>): PanelTemplate =>
     rename: { title: 'Title', requested_user: 'User', requested_date: 'Requested', status: 'Status' },
     overrides: [mappingOverride('Status', statuses)],
   });
+
+/** Every health problem as one named series; `message` is the HealthIssue detail. */
+function healthAlerts(message: FieldRef): SourceSpec[] {
+  return [
+    ...[...SERVARR, 'prowlarr' as const].map(
+      (plugin): SourceSpec => ({
+        plugin,
+        collector: 'status',
+        type: 'HealthIssue',
+        fields: [message],
+        tags: ['level', 'source'],
+        legend: '{source} · {tag:level} · {tag:source}',
+      })
+    ),
+    {
+      plugin: 'bazarr',
+      collector: 'status',
+      type: 'Provider',
+      where: [{ key: 'throttled', kind: 'number', op: '=', value: 1 }],
+      fields: [num('throttled')],
+      tags: ['provider', 'status'],
+      legend: '{source} · {tag:provider} · {tag:status}',
+    },
+    {
+      plugin: 'varken',
+      type: 'Collector',
+      where: [{ key: 'circuit_state', kind: 'number', op: '>', value: 0 }],
+      fields: [num('consecutive_errors')],
+      tags: ['plugin', 'server', 'collector'],
+      legend: 'Varken · {tag:plugin} {tag:server} · {tag:collector} circuit',
+    },
+  ];
+}
 
 const NOW: BandSpec = {
   key: 'now',
@@ -237,39 +270,14 @@ const NOW: BandSpec = {
       servarr('status', { type: 'RootFolder', fields: [num('free_bytes')], tags: ['path'], legend: '{source} {tag:path}' }),
       barGauge('bytes')
     ),
-    panel(
+    variants(
       'health-alerts',
       'Health alerts',
       [16, 7],
-      LATEST_LAST,
       [
-        ...[...SERVARR, 'prowlarr' as const].map(
-          (plugin): SourceSpec => ({
-            plugin,
-            collector: 'status',
-            type: 'HealthIssue',
-            fields: [str('message')],
-            tags: ['level', 'source'],
-            legend: '{source} · {tag:level} · {tag:source}',
-          })
-        ),
-        {
-          plugin: 'bazarr',
-          collector: 'status',
-          type: 'Provider',
-          where: [{ key: 'throttled', kind: 'number', op: '=', value: 1 }],
-          fields: [num('throttled')],
-          tags: ['provider', 'status'],
-          legend: '{source} · {tag:provider} · {tag:status}',
-        },
-        {
-          plugin: 'varken',
-          type: 'Collector',
-          where: [{ key: 'circuit_state', kind: 'number', op: '>', value: 0 }],
-          fields: [num('consecutive_errors')],
-          tags: ['plugin', 'server', 'collector'],
-          legend: 'Varken · {tag:plugin} {tag:server} · {tag:collector} circuit',
-        },
+        { query: LATEST_LAST, sources: healthAlerts(str('message')), complete: true },
+        // SQL cannot return strings as series: the alert is still listed, its detail is a count.
+        { query: LATEST_LAST, sources: healthAlerts({ ...str('message'), agg: 'count' }) },
       ],
       namedTable({ Field: 'Alert', 'Last *': 'Detail' })
     ),
@@ -297,9 +305,10 @@ const PERIOD: BandSpec = {
       'Plays by hour and weekday',
       [8, 8],
       [
-        { query: { shape: 'timeBuckets' }, sources: plays },
+        { query: { shape: 'timeBuckets' }, sources: plays, size: [24, 10] },
         {
           query: { shape: 'latestTable' },
+          size: [8, 8],
           sources: [
             {
               plugin: 'tautulli',
@@ -313,7 +322,7 @@ const PERIOD: BandSpec = {
           grafana: { ...hourBars(), title: 'Plays by hour of day (last 30 days)' },
         },
       ],
-      heatmap()
+      weekdayHourMatrix()
     ),
     panel(
       'most-watched',

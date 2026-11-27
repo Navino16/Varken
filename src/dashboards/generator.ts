@@ -1,8 +1,8 @@
 import type { VarkenConfig } from '../config/schemas/config.schema';
-import type { BandSpec, DashboardSpec, OutputKey, PanelSpec, PanelTemplate, PlexPairing, ResolvedSource, Variant } from './model';
+import { type BandSpec, type DashboardSpec, type OutputKey, type PanelSpec, type PanelTemplate, type PlexPairing, type ResolvedSource, TABLE_SHAPES, type Variant } from './model';
 import { OVERVIEW } from './overview';
 import { resolveSources, type SourceContext } from './sources';
-import { DATASOURCE_UID, getTranslator, usableSources, type GrafanaTarget, type Translator } from './translators';
+import { DATASOURCE_UID, getTranslator, usableSources, type GrafanaTarget, type TargetContext, type Translator } from './translators';
 
 export const MIN_GRAFANA_VERSION = '11.0.0';
 const GRID_WIDTH = 24;
@@ -37,6 +37,8 @@ export interface GenerateOptions {
   config: Pick<VarkenConfig, 'inputs' | 'global'>;
   pairedPlex: PlexPairing;
   version: string;
+  /** Time zone of hour-of-day and weekday buckets; defaults to UTC. */
+  timezone?: string;
   /** Defaults to the dashboard of `kind`. */
   spec?: DashboardSpec;
 }
@@ -54,7 +56,7 @@ function choose(panel: PanelSpec, translator: Translator, ctx: SourceContext): R
   for (const variant of panel.variants) {
     const resolved = variant.sources.flatMap((source) => resolveSources(source, ctx));
     const sources = usableSources(translator, variant.query, resolved);
-    if (sources.length > 0) {
+    if (sources.length > 0 && (!variant.complete || sources.length === resolved.length)) {
       return { spec: panel, template: { ...panel.grafana, ...variant.grafana }, variant, sources };
     }
   }
@@ -86,18 +88,21 @@ class Flow {
   }
 }
 
-function panelJson(rendered: Rendered, band: BandSpec, translator: Translator, id: number, gridPos: GrafanaPanel['gridPos']): GrafanaPanel {
+function panelJson(rendered: Rendered, band: BandSpec, translator: Translator, ctx: TargetContext, id: number, gridPos: GrafanaPanel['gridPos']): GrafanaPanel {
   const { template, variant, sources } = rendered;
-  const { type, title, ...grafana } = template;
+  const { type, title, transformations, ...grafana } = template;
+  const prelude = TABLE_SHAPES.has(variant.query.shape) ? (translator.tableTransformations ?? []) : [];
+  const allTransformations = [...prelude, ...(transformations ?? [])];
   const panel: GrafanaPanel = {
     id,
     type,
     title: title ?? rendered.spec.title,
     gridPos,
     datasource: { type: translator.datasource.pluginId, uid: DATASOURCE_UID },
-    targets: sources.map((source, index) => translator.target(variant.query, source, refId(index))),
+    targets: sources.map((source, index) => translator.target(variant.query, source, refId(index), ctx)),
     fieldConfig: { defaults: {}, overrides: [] },
     ...grafana,
+    ...(allTransformations.length > 0 ? { transformations: allTransformations } : {}),
   };
   if (variant.query.shape === 'timeSeries' && variant.query.bucket === 'auto') {
     panel.interval = `${Math.max(...sources.map((source) => source.intervalSeconds))}s`;
@@ -109,20 +114,23 @@ function panelJson(rendered: Rendered, band: BandSpec, translator: Translator, i
   return panel;
 }
 
-/** A line of stats left short by omitted ones shares the full width. */
-function stretchStatLines(panels: GrafanaPanel[]): void {
+/** A line left short by omitted panels shares the full width, in proportion to the panels' widths. */
+function stretchLines(panels: GrafanaPanel[]): void {
   const lines = new Map<number, GrafanaPanel[]>();
   for (const panel of panels) {
     lines.set(panel.gridPos.y, [...(lines.get(panel.gridPos.y) ?? []), panel]);
   }
   for (const line of lines.values()) {
     const used = line.reduce((sum, panel) => sum + panel.gridPos.w, 0);
-    if (used >= GRID_WIDTH || !line.every((panel) => panel.type === 'stat')) {
+    if (used >= GRID_WIDTH) {
       continue;
     }
+    const widths = line.map((panel) => Math.floor((panel.gridPos.w * GRID_WIDTH) / used));
+    let spare = GRID_WIDTH - widths.reduce((sum, w) => sum + w, 0);
     let x = 0;
     line.forEach((panel, index) => {
-      const w = Math.floor(GRID_WIDTH / line.length) + (index < GRID_WIDTH % line.length ? 1 : 0);
+      const w = widths[index] + (spare > 0 ? 1 : 0);
+      spare -= 1;
       panel.gridPos = { ...panel.gridPos, x, w };
       x += w;
     });
@@ -133,6 +141,7 @@ function stretchStatLines(panels: GrafanaPanel[]): void {
 export function generateDashboard(options: GenerateOptions): GrafanaDashboard {
   const translator = getTranslator(options.output);
   const ctx: SourceContext = { config: options.config, pairedPlex: options.pairedPlex };
+  const targetCtx: TargetContext = { timezone: options.timezone ?? 'UTC' };
   const panels: GrafanaPanel[] = [];
   const flow = new Flow(0);
   const spec = options.spec ?? SPECS[options.kind];
@@ -148,9 +157,10 @@ export function generateDashboard(options: GenerateOptions): GrafanaDashboard {
       if (index > 0 && rendered[index - 1].template.type === 'stat' && r.template.type !== 'stat') {
         flow.newLine();
       }
-      return panelJson(r, band, translator, panels.length + 1 + index, flow.place(r.spec.width, r.spec.height));
+      const [width, height] = r.variant.size ?? [r.spec.width, r.spec.height];
+      return panelJson(r, band, translator, targetCtx, panels.length + 1 + index, flow.place(width, height));
     });
-    stretchStatLines(placed);
+    stretchLines(placed);
     panels.push(...placed);
   }
   const panelTypes = [...new Set(panels.map((panel) => panel.type).filter((type) => type !== 'row'))].sort();

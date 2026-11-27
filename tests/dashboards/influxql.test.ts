@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { FieldRef, Query, ResolvedSource, SourceSpec } from '../../src/dashboards/model';
+import type { FieldRef, OutputKey, Query, ResolvedSource, SourceSpec } from '../../src/dashboards/model';
 import { getTranslator, usableSources, type Translator } from '../../src/dashboards/translators';
 import { influxql } from '../../src/dashboards/translators/influxql';
 
@@ -11,7 +11,7 @@ function source(spec: Partial<SourceSpec>, id: number | null = 1, intervalSecond
 }
 
 const render = (query: Query, spec: Partial<SourceSpec>, server?: number | null, interval?: number): Record<string, unknown> =>
-  influxql.target(query, source(spec, server, interval), 'A');
+  influxql.target(query, source(spec, server, interval), 'A', { timezone: 'UTC' });
 
 describe('influxql', () => {
   it('reads the latest collection of an instance', () => {
@@ -110,24 +110,39 @@ describe('influxql', () => {
   it('cannot express time bucketing', () => {
     expect(influxql.shapes.has('timeBuckets')).toBe(false);
     expect(usableSources(influxql, { shape: 'timeBuckets' }, [source({})])).toEqual([]);
-    expect(() => influxql.target({ shape: 'timeBuckets' }, source({}), 'A')).toThrow('InfluxQL cannot bucket by hour of day or weekday');
+    expect(() => influxql.target({ shape: 'timeBuckets' }, source({}), 'A', { timezone: 'UTC' })).toThrow('InfluxQL cannot bucket by hour of day or weekday');
   });
 });
 
 describe('usableSources', () => {
+  const numeric = source({});
+  const strings = source({ fields: [{ name: 'hash', kind: 'string' }] });
+
+  it('keeps every source when the output stores strings', () => {
+    expect(influxql.strings).toBe('all');
+    expect(usableSources(influxql, { shape: 'latest', agg: 'last' }, [numeric, strings])).toEqual([numeric, strings]);
+  });
+
   it('drops sources reading a string field when the output drops strings', () => {
-    const numeric = source({});
-    const strings = source({ fields: [{ name: 'hash', kind: 'string' }] });
-    const noStrings: Translator = { ...influxql, stringFields: false };
+    const noStrings: Translator = { ...influxql, strings: 'none' };
 
     expect(usableSources(noStrings, { shape: 'latest', agg: 'count' }, [numeric, strings])).toEqual([numeric]);
-    expect(usableSources(influxql, { shape: 'latest', agg: 'count' }, [numeric, strings])).toEqual([numeric, strings]);
+    expect(usableSources(noStrings, { shape: 'latestTable' }, [numeric, strings])).toEqual([numeric]);
+  });
+
+  it('keeps string results to tables when the output returns strings in tables only', () => {
+    const tables: Translator = { ...influxql, strings: 'tables' };
+    const counted = source({ fields: [{ name: 'hash', kind: 'string', agg: 'count' }] });
+
+    expect(usableSources(tables, { shape: 'latest', agg: 'last' }, [numeric, strings, counted])).toEqual([numeric, counted]);
+    expect(usableSources(tables, { shape: 'latest', agg: 'count' }, [numeric, strings])).toEqual([numeric, strings]);
+    expect(usableSources(tables, { shape: 'latestTable' }, [numeric, strings])).toEqual([numeric, strings]);
   });
 });
 
 describe('getTranslator', () => {
-  it('knows InfluxDB 1 only', () => {
+  it('knows the InfluxDB 1 translator and rejects unknown outputs', () => {
     expect(getTranslator('influxdb1')).toBe(influxql);
-    expect(() => getTranslator('questdb')).toThrow('No dashboard translator for output questdb');
+    expect(() => getTranslator('graphite' as OutputKey)).toThrow('No dashboard translator for output graphite');
   });
 });

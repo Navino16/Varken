@@ -76,7 +76,7 @@ export const influxql: Translator = {
   output: 'influxdb1',
   datasource: { pluginId: 'influxdb', pluginName: 'InfluxDB', label: 'Varken (InfluxDB 1)' },
   shapes: new Set(['latest', 'timeSeries', 'topN', 'latestTable', 'eventTable', 'proportion']),
-  stringFields: true,
+  strings: 'all',
   target(query: Query, source: ResolvedSource, refId: string): GrafanaTarget {
     const { text, table } = select(query, source);
     return {

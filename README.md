@@ -288,6 +288,22 @@ outputs:
 
 > **TimescaleDB schema:** Varken creates a single `varken_events` hypertable on first run. Columns: `time TIMESTAMPTZ`, `measurement TEXT`, `tags JSONB`, `fields JSONB`. Query in Grafana with `tags->>'server'` / `(fields->>'queue_size')::int`. If the TimescaleDB extension isn't installed, the plugin falls back to a plain PostgreSQL table (logs a warning).
 
+> **VictoriaMetrics label limit:** Tautulli sessions carry 45 tags, over VictoriaMetrics' default of 40 labels per series, and VictoriaMetrics drops such series without an error. Start it with `-maxLabelsPerTimeseries=64`.
+
+#### Grafana datasource per output
+
+The generated dashboards query the database Varken writes to, through one Grafana datasource of this type:
+
+| Output | Grafana datasource | Settings |
+|--------|--------------------|----------|
+| InfluxDB 1.x | InfluxDB, query language **InfluxQL** | URL, database, user and password |
+| InfluxDB 2.x | InfluxDB, query language **Flux** | URL, organization, **default bucket** (the dashboards read it) and token |
+| VictoriaMetrics | Prometheus | URL of VictoriaMetrics (`http://victoriametrics:8428`) |
+| QuestDB | PostgreSQL | Host `questdb:8812` (PostgreSQL wire protocol), database `qdb`, user `admin`, password `quest` by default, TLS disabled |
+| TimescaleDB | PostgreSQL, **TimescaleDB** toggle on | Host, database, user and password of the Varken output |
+
+String fields do not exist in VictoriaMetrics, so its dashboards leave out what only strings carry: the panels listing titles (recently added, latest requests, calendar, most watched), the *arr and Prowlarr health messages, and the plays of Plex, Jellyfin and Emby (their play points hold only strings; Tautulli plays still count). QuestDB creates a table the first time a measurement is written and a column the first time a point carries it: until then, a panel reading it shows an error.
+
 See [`config/varken.example.yaml`](config/varken.example.yaml) for the complete list of supported options.
 
 ### Global Settings

@@ -1,5 +1,9 @@
 import type { OutputKey, Query, ResolvedSource, Shape } from '../model';
 
+export interface TargetContext {
+  timezone: string;
+}
+
 export interface GrafanaTarget {
   refId: string;
   datasource: { type: string; uid: string };
@@ -14,9 +18,11 @@ export interface Translator {
   output: OutputKey;
   datasource: { pluginId: string; pluginName: string; label: string };
   shapes: ReadonlySet<Shape>;
-  /** False when the output drops string fields (VictoriaMetrics). */
-  stringFields: boolean;
-  target(query: Query, source: ResolvedSource, refId: string): GrafanaTarget;
+  /** Where string results can be returned: `tables` keeps them to table shapes (SQL), `none` drops string fields (VictoriaMetrics). */
+  strings: 'all' | 'tables' | 'none';
+  /** Put before the panel's own transformations when the query has a table shape. */
+  tableTransformations?: object[];
+  target(query: Query, source: ResolvedSource, refId: string, ctx: TargetContext): GrafanaTarget;
 }
 
 // biome-ignore lint/suspicious/noTemplateCurlyInString: Grafana's import placeholder, not a template

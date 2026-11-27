@@ -1,7 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { GlobalConfigSchema, InputsConfigSchema } from '../../src/config/schemas/config.schema';
 import { generateDashboard, MIN_GRAFANA_VERSION, type GrafanaPanel } from '../../src/dashboards/generator';
 import type { DashboardSpec, PanelSpec, SourceSpec } from '../../src/dashboards/model';
+import { influxql } from '../../src/dashboards/translators/influxql';
 
 const queue: SourceSpec = { plugin: 'sonarr', collector: 'queue', type: 'Queue', fields: [{ name: 'size', kind: 'number' }] };
 const requests: SourceSpec = { plugin: 'ombi', collector: 'requestCounts', type: 'Request_Counts', fields: [{ name: 'pending', kind: 'number' }] };
@@ -62,9 +63,9 @@ describe('generateDashboard', () => {
       ['row', 'Now', { x: 0, y: 0, w: 24, h: 1 }],
       ['stat', 'a', { x: 0, y: 1, w: 12, h: 4 }],
       ['stat', 'b', { x: 12, y: 1, w: 12, h: 4 }],
-      ['timeseries', 'Fallback', { x: 0, y: 5, w: 16, h: 4 }],
+      ['timeseries', 'Fallback', { x: 0, y: 5, w: 24, h: 4 }],
       ['row', 'Period', { x: 0, y: 9, w: 24, h: 1 }],
-      ['timeseries', 'e', { x: 0, y: 10, w: 8, h: 4 }],
+      ['timeseries', 'e', { x: 0, y: 10, w: 24, h: 4 }],
     ]);
     expect(generate().panels.map((p) => p.id)).toEqual([1, 2, 3, 4, 5, 6]);
   });
@@ -118,6 +119,18 @@ describe('generateDashboard', () => {
   });
 });
 
+describe('short lines', () => {
+  it('widen their panels in proportion', () => {
+    const spec: DashboardSpec = { kind: 'overview', title: 'L', bands: [{ key: 'b', title: 'B', panels: [panel('x', 8, [queue], { grafana: { type: 'table' } }), panel('y', 4, [queue], { grafana: { type: 'table' } })] }] };
+    const panels = generateDashboard({ kind: 'overview', output: 'influxdb1', config, pairedPlex: new Map(), version: '9.9.9', spec }).panels.slice(1);
+
+    expect(panels.map((p) => [p.gridPos.x, p.gridPos.w])).toEqual([
+      [0, 16],
+      [16, 8],
+    ]);
+  });
+});
+
 describe('stat lines', () => {
   it('stretch to the full width when stats are left out', () => {
     const stats = (n: number): PanelSpec[] => Array.from({ length: n }, (_, i) => ({ ...panel(`s${i}`, 3, i < 5 ? [queue] : [requests]), grafana: { type: 'stat' } }));
@@ -131,6 +144,50 @@ describe('stat lines', () => {
       [15, 5],
       [20, 4],
     ]);
-    expect(panels.find((p) => p.type === 'table')?.gridPos).toEqual({ x: 0, y: 5, w: 16, h: 4 });
+    expect(panels.find((p) => p.type === 'table')?.gridPos).toEqual({ x: 0, y: 5, w: 24, h: 4 });
+  });
+});
+
+describe('variants', () => {
+  const hashes: SourceSpec = { ...queue, fields: [{ name: 'hash', kind: 'string' }] };
+  const render = (variants: PanelSpec['variants']): GrafanaPanel[] => {
+    const spec: DashboardSpec = { kind: 'overview', title: 'V', bands: [{ key: 'b', title: 'B', panels: [panel('p', 8, [], { variants })] }] };
+    return generateDashboard({ kind: 'overview', output: 'influxdb1', config, pairedPlex: new Map(), version: '9.9.9', spec }).panels.slice(1);
+  };
+  const original = { strings: influxql.strings, tableTransformations: influxql.tableTransformations };
+
+  afterEach(() => {
+    Object.assign(influxql, original);
+  });
+
+  it('skips a complete variant when the output cannot read one of its sources', () => {
+    influxql.strings = 'none';
+    const variants = (complete: boolean): PanelSpec['variants'] => [
+      { query: { shape: 'latest', agg: 'last' }, sources: [queue, hashes], complete, grafana: { title: 'All' } },
+      { query: { shape: 'latest', agg: 'count' }, sources: [queue], grafana: { title: 'Fallback' } },
+    ];
+
+    expect(render(variants(true)).map((p) => [p.title, p.targets?.length])).toEqual([['Fallback', 2]]);
+    expect(render(variants(false)).map((p) => [p.title, p.targets?.length])).toEqual([['All', 2]]);
+  });
+
+  it('sizes the panel from the rendered variant', () => {
+    const sized = panel('sized', 8, [], { variants: [{ query: { shape: 'latest', agg: 'last' }, sources: [queue], size: [16, 9] }], grafana: { type: 'timeseries' } });
+    const spec: DashboardSpec = { kind: 'overview', title: 'S', bands: [{ key: 'b', title: 'B', panels: [sized, panel('next', 8, [queue], { grafana: { type: 'table' } })] }] };
+    const [p] = generateDashboard({ kind: 'overview', output: 'influxdb1', config, pairedPlex: new Map(), version: '9.9.9', spec }).panels.slice(1);
+
+    expect(p.gridPos).toMatchObject({ w: 16, h: 9 });
+  });
+
+  it('puts the translator table transformations before the panel ones on table shapes only', () => {
+    influxql.tableTransformations = [{ id: 'x' }];
+    const own = { type: 'table', transformations: [{ id: 'merge' }] };
+    const [table] = render([{ query: { shape: 'latestTable' }, sources: [queue], grafana: own }]);
+    const [series] = render([{ query: { shape: 'latest', agg: 'last' }, sources: [queue], grafana: own }]);
+    const [bare] = render([{ query: { shape: 'topN', agg: 'count' }, sources: [queue], grafana: { type: 'table' } }]);
+
+    expect(table.transformations).toEqual([{ id: 'x' }, { id: 'merge' }]);
+    expect(series.transformations).toEqual([{ id: 'merge' }]);
+    expect(bare.transformations).toEqual([{ id: 'x' }]);
   });
 });
