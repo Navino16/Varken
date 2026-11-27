@@ -1,4 +1,4 @@
-import type { BandSpec, DashboardSpec, FieldRef, PanelSpec, PanelTemplate, Query, SourceSpec, Variant } from './model';
+import { type BandSpec, type DashboardSpec, type FieldRef, num, type PanelSpec, type PanelTemplate, type Query, type SourceSpec, str, type Variant } from './model';
 import {
   barGauge,
   geomap,
@@ -14,9 +14,6 @@ import {
   unitOverride,
   weekdayHourMatrix,
 } from './panels';
-
-const num = (name: string, as?: string): FieldRef => ({ name, kind: 'number', ...(as ? { as } : {}) });
-const str = (name: string, as?: string): FieldRef => ({ name, kind: 'string', ...(as ? { as } : {}) });
 
 const SERVARR = ['sonarr', 'radarr', 'lidarr', 'readarr'] as const;
 

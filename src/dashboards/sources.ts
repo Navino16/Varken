@@ -37,8 +37,8 @@ function readByTautulli(plexId: number, collector: 'activity' | 'history', ctx: 
   return (ctx.config.inputs.tautulli ?? []).some((tautulli) => watchers.has(tautulli.id) && tautulli[collector].enabled);
 }
 
-/** One source per configured instance that writes the spec's points. */
-export function resolveSources(spec: SourceSpec, ctx: SourceContext): ResolvedSource[] {
+/** One source per configured instance that writes the spec's points; only instance `server` when given. */
+export function resolveSources(spec: SourceSpec, ctx: SourceContext, server?: number): ResolvedSource[] {
   const measurement = MEASUREMENTS[spec.plugin];
   if (spec.plugin === 'varken') {
     const selfMetrics = ctx.config.global.selfMetrics;
@@ -46,6 +46,9 @@ export function resolveSources(spec: SourceSpec, ctx: SourceContext): ResolvedSo
   }
   const instances: { id: number }[] = ctx.config.inputs[spec.plugin] ?? [];
   return instances.flatMap((instance) => {
+    if (server !== undefined && instance.id !== server) {
+      return [];
+    }
     const schedule = valueAt(instance, spec.collector ?? '') as Schedule | undefined;
     if (schedule?.enabled !== true || !(spec.requires ?? []).every((path) => valueAt(instance, path) === true)) {
       return [];

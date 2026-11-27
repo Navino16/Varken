@@ -41,6 +41,17 @@ describe('resolveSources', () => {
     ]);
   });
 
+  it('keeps only the requested instance', () => {
+    expect(resolveSources(queue, context({ sonarr: [sonarr(1, 30), sonarr(2, 120)] }), 2).map((s) => s.label)).toEqual(['Sonarr 2']);
+    expect(resolveSources(queue, context({ sonarr: [sonarr(1, 30)] }), 3)).toEqual([]);
+  });
+
+  it('reads Varken self-metrics whatever instance is requested', () => {
+    const spec: SourceSpec = { plugin: 'varken', type: 'Status', fields: [{ name: 'collectors', kind: 'number' }] };
+
+    expect(resolveSources(spec, context({ sonarr: [sonarr(1, 30)] }), 2)).toHaveLength(1);
+  });
+
   it('skips instances whose collector is disabled', () => {
     expect(resolveSources(queue, context({ sonarr: [sonarr(1, 30, false)] }))).toEqual([]);
   });

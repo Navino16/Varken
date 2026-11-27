@@ -12,6 +12,9 @@ export interface FieldRef {
   agg?: Agg;
 }
 
+export const num = (name: string, as?: string): FieldRef => ({ name, kind: 'number', ...(as ? { as } : {}) });
+export const str = (name: string, as?: string): FieldRef => ({ name, kind: 'string', ...(as ? { as } : {}) });
+
 export interface Filter {
   key: string;
   kind: 'tag' | 'number';
@@ -86,11 +89,15 @@ export interface BandSpec {
   title: string;
   /** Panels ignore the time picker and show this window. */
   fixedWindow?: '24h';
+  /** Repeated for each configured instance of the plugin, its sources restricted to that instance. */
+  perInstance?: InputKey;
+  /** Panels nested in the row, queried only once it is opened. */
+  collapsed?: boolean;
   panels: PanelSpec[];
 }
 
 export interface DashboardSpec {
-  kind: 'overview';
+  kind: 'overview' | 'detailed';
   title: string;
   bands: BandSpec[];
 }
