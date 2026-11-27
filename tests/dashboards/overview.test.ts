@@ -58,6 +58,12 @@ describe('Overview', () => {
     expect([...lines.values()].every((width) => width === 24)).toBe(true);
   });
 
+  it('leaves health messages out of QuestDB, where a healthy server never creates their column', () => {
+    const alerts = panel(overview(demoInputs(), [1], { output: 'questdb' }), 'Health alerts');
+
+    expect(alerts?.targets?.map((t) => /FROM "([^"]+)"/.exec(String(t.rawSql))?.[1])).toEqual(['Bazarr', 'Varken']);
+  });
+
   it('excludes paired Plex from streaming panels', () => {
     const paired = overview(demoInputs(), [1]);
 
@@ -158,8 +164,8 @@ describe('Overview', () => {
     const healthIssue = (variant: typeof messages): unknown => variant.sources.find((s) => s.type === 'HealthIssue')?.fields;
 
     expect(messages.complete).toBe(true);
-    expect(healthIssue(messages)).toEqual([{ name: 'message', kind: 'string' }]);
-    expect(healthIssue(counts)).toEqual([{ name: 'message', kind: 'string', agg: 'count' }]);
+    expect(healthIssue(messages)).toEqual([{ name: 'message', kind: 'string', optional: true }]);
+    expect(healthIssue(counts)).toEqual([{ name: 'message', kind: 'string', agg: 'count', optional: true }]);
     expect(counts.sources.length).toBe(messages.sources.length);
   });
 
@@ -195,11 +201,11 @@ describe('Overview', () => {
     expect(titles).toContain('Plays by hour of day (last 30 days)');
   });
 
-  it.each(['timescaledb', 'questdb'] as const)('counts health messages on %s', (output) => {
-    const alerts = panel(overview(demoInputs(), [1], { output }), 'Health alerts');
+  it('counts health messages on timescaledb', () => {
+    const alerts = panel(overview(demoInputs(), [1], { output: 'timescaledb' }), 'Health alerts');
     const sql = (alerts?.targets ?? []).map((t) => String(t.rawSql));
 
     expect(sql.length).toBe(7);
-    expect(sql.filter((q) => q.includes("'HealthIssue'")).every((q) => /count\((fields->>'message'|"message")\)/.test(q))).toBe(true);
+    expect(sql.filter((q) => q.includes("'HealthIssue'")).every((q) => /count\(fields->>'message'\)/.test(q))).toBe(true);
   });
 });

@@ -273,6 +273,29 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^total_count$",
+                "renamePattern": "Total count"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^count$",
+                "renamePattern": "Count"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^unknown_count$",
+                "renamePattern": "Unknown count"
+              }
+            }
+          ],
           "interval": "300s"
         },
         {
@@ -340,6 +363,29 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^missing$",
+                "renamePattern": "Missing"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^cutoff_unmet$",
+                "renamePattern": "Cutoff unmet"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^blocklist$",
+                "renamePattern": "Blocklist"
+              }
+            }
+          ],
           "interval": "900s"
         },
         {
@@ -721,6 +767,29 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^errors$",
+                "renamePattern": "Errors"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^warnings$",
+                "renamePattern": "Warnings"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^notices$",
+                "renamePattern": "Notices"
+              }
+            }
+          ],
           "interval": "300s"
         },
         {
@@ -755,7 +824,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Free bytes"
+                  "options": "Free"
                 },
                 "properties": [
                   {
@@ -767,7 +836,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Total bytes"
+                  "options": "Total"
                 },
                 "properties": [
                   {
@@ -779,7 +848,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Used percent"
+                  "options": "Used"
                 },
                 "properties": [
                   {
@@ -815,9 +884,9 @@
                 "renameByName": {
                   "path": "Path",
                   "label": "Label",
-                  "free_bytes": "Free bytes",
-                  "total_bytes": "Total bytes",
-                  "used_percent": "Used percent"
+                  "free_bytes": "Free",
+                  "total_bytes": "Total",
+                  "used_percent": "Used"
                 }
               }
             }
@@ -926,7 +995,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Last execution age seconds"
+                  "options": "Last execution"
                 },
                 "properties": [
                   {
@@ -938,7 +1007,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Last duration seconds"
+                  "options": "Last duration"
                 },
                 "properties": [
                   {
@@ -950,7 +1019,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Next execution in seconds"
+                  "options": "Next execution in"
                 },
                 "properties": [
                   {
@@ -986,9 +1055,9 @@
                 "renameByName": {
                   "name": "Name",
                   "interval_minutes": "Interval minutes",
-                  "last_execution_age_seconds": "Last execution age seconds",
-                  "last_duration_seconds": "Last duration seconds",
-                  "next_execution_in_seconds": "Next execution in seconds"
+                  "last_execution_age_seconds": "Last execution",
+                  "last_duration_seconds": "Last duration",
+                  "next_execution_in_seconds": "Next execution in"
                 }
               }
             }
@@ -1026,7 +1095,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Free bytes"
+                  "options": "Free"
                 },
                 "properties": [
                   {
@@ -1061,7 +1130,7 @@
                 "renameByName": {
                   "path": "Path",
                   "accessible": "Accessible",
-                  "free_bytes": "Free bytes",
+                  "free_bytes": "Free",
                   "unmapped_folders": "Unmapped folders"
                 }
               }
@@ -1100,7 +1169,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Uptime seconds"
+                  "options": "Uptime"
                 },
                 "properties": [
                   {
@@ -1140,7 +1209,7 @@
                   "version": "Version",
                   "branch": "Branch",
                   "update_available": "Update available",
-                  "uptime_seconds": "Uptime seconds",
+                  "uptime_seconds": "Uptime",
                   "health_errors": "Health errors",
                   "health_warnings": "Health warnings",
                   "health_notices": "Health notices"
@@ -1195,7 +1264,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "size_on_disk"
+                  "options": "Size on disk"
                 },
                 "properties": [
                   {
@@ -1218,7 +1287,58 @@
             "colorMode": "none",
             "textMode": "value_and_name",
             "justifyMode": "auto"
-          }
+          },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^series$",
+                "renamePattern": "Series"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^series_monitored$",
+                "renamePattern": "Series monitored"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^series_ended$",
+                "renamePattern": "Series ended"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^episodes$",
+                "renamePattern": "Episodes"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^episode_files$",
+                "renamePattern": "Episode files"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^total_episodes$",
+                "renamePattern": "Total episodes"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^size_on_disk$",
+                "renamePattern": "Size on disk"
+              }
+            }
+          ]
         },
         {
           "id": 16,
@@ -1525,6 +1645,29 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^total_count$",
+                "renamePattern": "Total count"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^count$",
+                "renamePattern": "Count"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^unknown_count$",
+                "renamePattern": "Unknown count"
+              }
+            }
+          ],
           "interval": "300s"
         },
         {
@@ -1592,6 +1735,29 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^missing$",
+                "renamePattern": "Missing"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^cutoff_unmet$",
+                "renamePattern": "Cutoff unmet"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^blocklist$",
+                "renamePattern": "Blocklist"
+              }
+            }
+          ],
           "interval": "900s"
         },
         {
@@ -1905,6 +2071,29 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^errors$",
+                "renamePattern": "Errors"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^warnings$",
+                "renamePattern": "Warnings"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^notices$",
+                "renamePattern": "Notices"
+              }
+            }
+          ],
           "interval": "300s"
         },
         {
@@ -1939,7 +2128,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Free bytes"
+                  "options": "Free"
                 },
                 "properties": [
                   {
@@ -1951,7 +2140,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Total bytes"
+                  "options": "Total"
                 },
                 "properties": [
                   {
@@ -1963,7 +2152,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Used percent"
+                  "options": "Used"
                 },
                 "properties": [
                   {
@@ -1999,9 +2188,9 @@
                 "renameByName": {
                   "path": "Path",
                   "label": "Label",
-                  "free_bytes": "Free bytes",
-                  "total_bytes": "Total bytes",
-                  "used_percent": "Used percent"
+                  "free_bytes": "Free",
+                  "total_bytes": "Total",
+                  "used_percent": "Used"
                 }
               }
             }
@@ -2110,7 +2299,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Last execution age seconds"
+                  "options": "Last execution"
                 },
                 "properties": [
                   {
@@ -2122,7 +2311,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Last duration seconds"
+                  "options": "Last duration"
                 },
                 "properties": [
                   {
@@ -2134,7 +2323,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Next execution in seconds"
+                  "options": "Next execution in"
                 },
                 "properties": [
                   {
@@ -2170,9 +2359,9 @@
                 "renameByName": {
                   "name": "Name",
                   "interval_minutes": "Interval minutes",
-                  "last_execution_age_seconds": "Last execution age seconds",
-                  "last_duration_seconds": "Last duration seconds",
-                  "next_execution_in_seconds": "Next execution in seconds"
+                  "last_execution_age_seconds": "Last execution",
+                  "last_duration_seconds": "Last duration",
+                  "next_execution_in_seconds": "Next execution in"
                 }
               }
             }
@@ -2210,7 +2399,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Free bytes"
+                  "options": "Free"
                 },
                 "properties": [
                   {
@@ -2245,7 +2434,7 @@
                 "renameByName": {
                   "path": "Path",
                   "accessible": "Accessible",
-                  "free_bytes": "Free bytes",
+                  "free_bytes": "Free",
                   "unmapped_folders": "Unmapped folders"
                 }
               }
@@ -2284,7 +2473,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Uptime seconds"
+                  "options": "Uptime"
                 },
                 "properties": [
                   {
@@ -2324,7 +2513,7 @@
                   "version": "Version",
                   "branch": "Branch",
                   "update_available": "Update available",
-                  "uptime_seconds": "Uptime seconds",
+                  "uptime_seconds": "Uptime",
                   "health_errors": "Health errors",
                   "health_warnings": "Health warnings",
                   "health_notices": "Health notices"
@@ -2379,7 +2568,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "size_on_disk"
+                  "options": "Size on disk"
                 },
                 "properties": [
                   {
@@ -2402,7 +2591,44 @@
             "colorMode": "none",
             "textMode": "value_and_name",
             "justifyMode": "auto"
-          }
+          },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^movies$",
+                "renamePattern": "Movies"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^movies_monitored$",
+                "renamePattern": "Movies monitored"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^movies_with_file$",
+                "renamePattern": "Movies with file"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^size_on_disk$",
+                "renamePattern": "Size on disk"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^collections$",
+                "renamePattern": "Collections"
+              }
+            }
+          ]
         },
         {
           "id": 31,
@@ -2672,6 +2898,29 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^total_count$",
+                "renamePattern": "Total count"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^count$",
+                "renamePattern": "Count"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^unknown_count$",
+                "renamePattern": "Unknown count"
+              }
+            }
+          ],
           "interval": "300s"
         },
         {
@@ -2739,6 +2988,29 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^missing$",
+                "renamePattern": "Missing"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^cutoff_unmet$",
+                "renamePattern": "Cutoff unmet"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^blocklist$",
+                "renamePattern": "Blocklist"
+              }
+            }
+          ],
           "interval": "900s"
         },
         {
@@ -3060,6 +3332,29 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^errors$",
+                "renamePattern": "Errors"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^warnings$",
+                "renamePattern": "Warnings"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^notices$",
+                "renamePattern": "Notices"
+              }
+            }
+          ],
           "interval": "300s"
         },
         {
@@ -3094,7 +3389,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Free bytes"
+                  "options": "Free"
                 },
                 "properties": [
                   {
@@ -3106,7 +3401,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Total bytes"
+                  "options": "Total"
                 },
                 "properties": [
                   {
@@ -3118,7 +3413,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Used percent"
+                  "options": "Used"
                 },
                 "properties": [
                   {
@@ -3154,9 +3449,9 @@
                 "renameByName": {
                   "path": "Path",
                   "label": "Label",
-                  "free_bytes": "Free bytes",
-                  "total_bytes": "Total bytes",
-                  "used_percent": "Used percent"
+                  "free_bytes": "Free",
+                  "total_bytes": "Total",
+                  "used_percent": "Used"
                 }
               }
             }
@@ -3265,7 +3560,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Last execution age seconds"
+                  "options": "Last execution"
                 },
                 "properties": [
                   {
@@ -3277,7 +3572,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Last duration seconds"
+                  "options": "Last duration"
                 },
                 "properties": [
                   {
@@ -3289,7 +3584,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Next execution in seconds"
+                  "options": "Next execution in"
                 },
                 "properties": [
                   {
@@ -3325,9 +3620,9 @@
                 "renameByName": {
                   "name": "Name",
                   "interval_minutes": "Interval minutes",
-                  "last_execution_age_seconds": "Last execution age seconds",
-                  "last_duration_seconds": "Last duration seconds",
-                  "next_execution_in_seconds": "Next execution in seconds"
+                  "last_execution_age_seconds": "Last execution",
+                  "last_duration_seconds": "Last duration",
+                  "next_execution_in_seconds": "Next execution in"
                 }
               }
             }
@@ -3365,7 +3660,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Free bytes"
+                  "options": "Free"
                 },
                 "properties": [
                   {
@@ -3377,7 +3672,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Total bytes"
+                  "options": "Total"
                 },
                 "properties": [
                   {
@@ -3414,8 +3709,8 @@
                   "path": "Path",
                   "name": "Name",
                   "accessible": "Accessible",
-                  "free_bytes": "Free bytes",
-                  "total_bytes": "Total bytes"
+                  "free_bytes": "Free",
+                  "total_bytes": "Total"
                 }
               }
             }
@@ -3453,7 +3748,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Uptime seconds"
+                  "options": "Uptime"
                 },
                 "properties": [
                   {
@@ -3493,7 +3788,7 @@
                   "version": "Version",
                   "branch": "Branch",
                   "update_available": "Update available",
-                  "uptime_seconds": "Uptime seconds",
+                  "uptime_seconds": "Uptime",
                   "health_errors": "Health errors",
                   "health_warnings": "Health warnings",
                   "health_notices": "Health notices"
@@ -3548,7 +3843,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "size_on_disk"
+                  "options": "Size on disk"
                 },
                 "properties": [
                   {
@@ -3571,7 +3866,51 @@
             "colorMode": "none",
             "textMode": "value_and_name",
             "justifyMode": "auto"
-          }
+          },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^authors$",
+                "renamePattern": "Authors"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^authors_monitored$",
+                "renamePattern": "Authors monitored"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^books$",
+                "renamePattern": "Books"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^book_files$",
+                "renamePattern": "Book files"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^total_books$",
+                "renamePattern": "Total books"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^size_on_disk$",
+                "renamePattern": "Size on disk"
+              }
+            }
+          ]
         },
         {
           "id": 46,
@@ -3874,6 +4213,29 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^total_count$",
+                "renamePattern": "Total count"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^count$",
+                "renamePattern": "Count"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^unknown_count$",
+                "renamePattern": "Unknown count"
+              }
+            }
+          ],
           "interval": "300s"
         },
         {
@@ -3941,6 +4303,29 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^missing$",
+                "renamePattern": "Missing"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^cutoff_unmet$",
+                "renamePattern": "Cutoff unmet"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^blocklist$",
+                "renamePattern": "Blocklist"
+              }
+            }
+          ],
           "interval": "900s"
         },
         {
@@ -4264,6 +4649,29 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^errors$",
+                "renamePattern": "Errors"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^warnings$",
+                "renamePattern": "Warnings"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^notices$",
+                "renamePattern": "Notices"
+              }
+            }
+          ],
           "interval": "300s"
         },
         {
@@ -4298,7 +4706,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Free bytes"
+                  "options": "Free"
                 },
                 "properties": [
                   {
@@ -4310,7 +4718,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Total bytes"
+                  "options": "Total"
                 },
                 "properties": [
                   {
@@ -4322,7 +4730,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Used percent"
+                  "options": "Used"
                 },
                 "properties": [
                   {
@@ -4358,9 +4766,9 @@
                 "renameByName": {
                   "path": "Path",
                   "label": "Label",
-                  "free_bytes": "Free bytes",
-                  "total_bytes": "Total bytes",
-                  "used_percent": "Used percent"
+                  "free_bytes": "Free",
+                  "total_bytes": "Total",
+                  "used_percent": "Used"
                 }
               }
             }
@@ -4469,7 +4877,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Last execution age seconds"
+                  "options": "Last execution"
                 },
                 "properties": [
                   {
@@ -4481,7 +4889,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Last duration seconds"
+                  "options": "Last duration"
                 },
                 "properties": [
                   {
@@ -4493,7 +4901,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Next execution in seconds"
+                  "options": "Next execution in"
                 },
                 "properties": [
                   {
@@ -4529,9 +4937,9 @@
                 "renameByName": {
                   "name": "Name",
                   "interval_minutes": "Interval minutes",
-                  "last_execution_age_seconds": "Last execution age seconds",
-                  "last_duration_seconds": "Last duration seconds",
-                  "next_execution_in_seconds": "Next execution in seconds"
+                  "last_execution_age_seconds": "Last execution",
+                  "last_duration_seconds": "Last duration",
+                  "next_execution_in_seconds": "Next execution in"
                 }
               }
             }
@@ -4569,7 +4977,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Free bytes"
+                  "options": "Free"
                 },
                 "properties": [
                   {
@@ -4581,7 +4989,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Total bytes"
+                  "options": "Total"
                 },
                 "properties": [
                   {
@@ -4618,8 +5026,8 @@
                   "path": "Path",
                   "name": "Name",
                   "accessible": "Accessible",
-                  "free_bytes": "Free bytes",
-                  "total_bytes": "Total bytes"
+                  "free_bytes": "Free",
+                  "total_bytes": "Total"
                 }
               }
             }
@@ -4657,7 +5065,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Uptime seconds"
+                  "options": "Uptime"
                 },
                 "properties": [
                   {
@@ -4697,7 +5105,7 @@
                   "version": "Version",
                   "branch": "Branch",
                   "update_available": "Update available",
-                  "uptime_seconds": "Uptime seconds",
+                  "uptime_seconds": "Uptime",
                   "health_errors": "Health errors",
                   "health_warnings": "Health warnings",
                   "health_notices": "Health notices"
@@ -4752,7 +5160,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "size_on_disk"
+                  "options": "Size on disk"
                 },
                 "properties": [
                   {
@@ -4775,7 +5183,58 @@
             "colorMode": "none",
             "textMode": "value_and_name",
             "justifyMode": "auto"
-          }
+          },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^artists$",
+                "renamePattern": "Artists"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^artists_monitored$",
+                "renamePattern": "Artists monitored"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^albums$",
+                "renamePattern": "Albums"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^tracks$",
+                "renamePattern": "Tracks"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^track_files$",
+                "renamePattern": "Track files"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^total_tracks$",
+                "renamePattern": "Total tracks"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^size_on_disk$",
+                "renamePattern": "Size on disk"
+              }
+            }
+          ]
         },
         {
           "id": 61,
@@ -5447,6 +5906,29 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^errors$",
+                "renamePattern": "Errors"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^warnings$",
+                "renamePattern": "Warnings"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^notices$",
+                "renamePattern": "Notices"
+              }
+            }
+          ],
           "interval": "300s"
         },
         {
@@ -5481,7 +5963,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Most recent failure age seconds"
+                  "options": "Most recent failure"
                 },
                 "properties": [
                   {
@@ -5493,7 +5975,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Initial failure age seconds"
+                  "options": "Initial failure"
                 },
                 "properties": [
                   {
@@ -5505,7 +5987,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Disabled for seconds"
+                  "options": "Disabled for"
                 },
                 "properties": [
                   {
@@ -5541,9 +6023,9 @@
                 "renameByName": {
                   "indexerId": "Indexer id",
                   "disabled": "Disabled",
-                  "most_recent_failure_age_seconds": "Most recent failure age seconds",
-                  "initial_failure_age_seconds": "Initial failure age seconds",
-                  "disabled_for_seconds": "Disabled for seconds"
+                  "most_recent_failure_age_seconds": "Most recent failure",
+                  "initial_failure_age_seconds": "Initial failure",
+                  "disabled_for_seconds": "Disabled for"
                 }
               }
             }
@@ -5652,7 +6134,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Last execution age seconds"
+                  "options": "Last execution"
                 },
                 "properties": [
                   {
@@ -5664,7 +6146,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Last duration seconds"
+                  "options": "Last duration"
                 },
                 "properties": [
                   {
@@ -5676,7 +6158,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Next execution in seconds"
+                  "options": "Next execution in"
                 },
                 "properties": [
                   {
@@ -5712,9 +6194,9 @@
                 "renameByName": {
                   "name": "Name",
                   "interval_minutes": "Interval minutes",
-                  "last_execution_age_seconds": "Last execution age seconds",
-                  "last_duration_seconds": "Last duration seconds",
-                  "next_execution_in_seconds": "Next execution in seconds"
+                  "last_execution_age_seconds": "Last execution",
+                  "last_duration_seconds": "Last duration",
+                  "next_execution_in_seconds": "Next execution in"
                 }
               }
             }
@@ -5785,6 +6267,15 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^disabled_indexers$",
+                "renamePattern": "Disabled indexers"
+              }
+            }
+          ],
           "interval": "300s"
         },
         {
@@ -5903,7 +6394,37 @@
             "colorMode": "none",
             "textMode": "value_and_name",
             "justifyMode": "auto"
-          }
+          },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^indexers$",
+                "renamePattern": "Indexers"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^indexers_enabled$",
+                "renamePattern": "Indexers enabled"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^applications$",
+                "renamePattern": "Applications"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^applications_syncing$",
+                "renamePattern": "Applications syncing"
+              }
+            }
+          ]
         },
         {
           "id": 76,
@@ -5937,7 +6458,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Uptime seconds"
+                  "options": "Uptime"
                 },
                 "properties": [
                   {
@@ -5977,7 +6498,7 @@
                   "version": "Version",
                   "branch": "Branch",
                   "update_available": "Update available",
-                  "uptime_seconds": "Uptime seconds",
+                  "uptime_seconds": "Uptime",
                   "health_errors": "Health errors",
                   "health_warnings": "Health warnings",
                   "health_notices": "Health notices"
@@ -6065,6 +6586,22 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^movies$",
+                "renamePattern": "Movies"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^episodes$",
+                "renamePattern": "Episodes"
+              }
+            }
+          ],
           "interval": "30s"
         },
         {
@@ -6132,6 +6669,57 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^wanted_episodes$",
+                "renamePattern": "Wanted episodes"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^wanted_movies$",
+                "renamePattern": "Wanted movies"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^throttled_providers$",
+                "renamePattern": "Throttled providers"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^health_issues$",
+                "renamePattern": "Health issues"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^announcements$",
+                "renamePattern": "Announcements"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^sonarr_signalr$",
+                "renamePattern": "Sonarr signalr"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^radarr_signalr$",
+                "renamePattern": "Radarr signalr"
+              }
+            }
+          ],
           "interval": "300s"
         },
         {
@@ -6462,8 +7050,8 @@
                 ]
               },
               "custom": {
-                "drawStyle": "line",
-                "fillOpacity": 20,
+                "drawStyle": "bars",
+                "fillOpacity": 80,
                 "lineWidth": 1,
                 "spanNulls": true,
                 "stacking": {
@@ -6485,6 +7073,22 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^movies$",
+                "renamePattern": "Movies"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^episodes$",
+                "renamePattern": "Episodes"
+              }
+            }
+          ],
           "interval": "3600s"
         },
         {
@@ -6552,6 +7156,36 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^pending$",
+                "renamePattern": "Pending"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^running$",
+                "renamePattern": "Running"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^failed$",
+                "renamePattern": "Failed"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^completed$",
+                "renamePattern": "Completed"
+              }
+            }
+          ],
           "interval": "300s"
         },
         {
@@ -6799,7 +7433,23 @@
             "colorMode": "none",
             "textMode": "value_and_name",
             "justifyMode": "auto"
-          }
+          },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^enabled$",
+                "renamePattern": "Enabled"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^total$",
+                "renamePattern": "Total"
+              }
+            }
+          ]
         },
         {
           "id": 89,
@@ -6892,7 +7542,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Uptime seconds"
+                  "options": "Uptime"
                 },
                 "properties": [
                   {
@@ -6930,7 +7580,7 @@
                   "version": "Version",
                   "sonarr_version": "Sonarr version",
                   "radarr_version": "Radarr version",
-                  "uptime_seconds": "Uptime seconds",
+                  "uptime_seconds": "Uptime",
                   "health_issues": "Health issues"
                 }
               }
@@ -7016,6 +7666,36 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^stream_count$",
+                "renamePattern": "Stream count"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^transcode_streams$",
+                "renamePattern": "Transcode streams"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^direct_play_streams$",
+                "renamePattern": "Direct play streams"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^direct_streams$",
+                "renamePattern": "Direct streams"
+              }
+            }
+          ],
           "interval": "30s"
         },
         {
@@ -7084,6 +7764,29 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^total_bandwidth$",
+                "renamePattern": "Total bandwidth"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^lan_bandwidth$",
+                "renamePattern": "Lan bandwidth"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^wan_bandwidth$",
+                "renamePattern": "Wan bandwidth"
+              }
+            }
+          ],
           "interval": "30s"
         },
         {
@@ -7561,8 +8264,8 @@
                 ]
               },
               "custom": {
-                "drawStyle": "line",
-                "fillOpacity": 20,
+                "drawStyle": "bars",
+                "fillOpacity": 80,
                 "lineWidth": 1,
                 "spanNulls": true,
                 "stacking": {
@@ -7584,6 +8287,43 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^tv$",
+                "renamePattern": "Tv"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^movies$",
+                "renamePattern": "Movies"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^music$",
+                "renamePattern": "Music"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^live_tv$",
+                "renamePattern": "Live tv"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^total$",
+                "renamePattern": "Total"
+              }
+            }
+          ],
           "interval": "30s"
         },
         {
@@ -7628,8 +8368,8 @@
                 ]
               },
               "custom": {
-                "drawStyle": "line",
-                "fillOpacity": 20,
+                "drawStyle": "bars",
+                "fillOpacity": 80,
                 "lineWidth": 1,
                 "spanNulls": true,
                 "stacking": {
@@ -7652,6 +8392,36 @@
             }
           },
           "timeFrom": "1y",
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^tv$",
+                "renamePattern": "Tv"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^movies$",
+                "renamePattern": "Movies"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^music$",
+                "renamePattern": "Music"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^live_tv$",
+                "renamePattern": "Live tv"
+              }
+            }
+          ],
           "interval": "30s"
         },
         {
@@ -7696,8 +8466,8 @@
                 ]
               },
               "custom": {
-                "drawStyle": "line",
-                "fillOpacity": 20,
+                "drawStyle": "bars",
+                "fillOpacity": 80,
                 "lineWidth": 1,
                 "spanNulls": true,
                 "stacking": {
@@ -7719,6 +8489,29 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^direct_play$",
+                "renamePattern": "Direct play"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^direct_stream$",
+                "renamePattern": "Direct stream"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^transcode$",
+                "renamePattern": "Transcode"
+              }
+            }
+          ],
           "interval": "30s"
         },
         {
@@ -7763,8 +8556,8 @@
                 ]
               },
               "custom": {
-                "drawStyle": "line",
-                "fillOpacity": 20,
+                "drawStyle": "bars",
+                "fillOpacity": 80,
                 "lineWidth": 1,
                 "spanNulls": true,
                 "stacking": {
@@ -7786,6 +8579,36 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^direct_play$",
+                "renamePattern": "Direct play"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^direct_stream$",
+                "renamePattern": "Direct stream"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^transcode$",
+                "renamePattern": "Transcode"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^max_concurrent_streams$",
+                "renamePattern": "Max concurrent streams"
+              }
+            }
+          ],
           "interval": "30s"
         },
         {
@@ -7883,7 +8706,7 @@
               },
               "rawQuery": true,
               "resultFormat": "table",
-              "query": "SELECT last(\"tv\") AS \"tv\", last(\"movies\") AS \"movies\", last(\"music\") AS \"music\", last(\"live_tv\") AS \"live_tv\" FROM \"Tautulli\" WHERE \"type\" = 'PlaysByDayOfWeek' AND \"server\" = '1' AND time > now() - 360s GROUP BY \"day\""
+              "query": "SELECT last(\"tv\") AS \"tv\", last(\"movies\") AS \"movies\", last(\"music\") AS \"music\", last(\"live_tv\") AS \"live_tv\" FROM \"Tautulli\" WHERE \"type\" = 'PlaysByDayOfWeek' AND \"server\" = '1' AND time > now() - 360s GROUP BY \"day\", \"rank\""
             }
           ],
           "fieldConfig": {
@@ -7900,10 +8723,22 @@
               "options": {}
             },
             {
+              "id": "sortBy",
+              "options": {
+                "sort": [
+                  {
+                    "field": "rank",
+                    "desc": false
+                  }
+                ]
+              }
+            },
+            {
               "id": "organize",
               "options": {
                 "excludeByName": {
-                  "Time": true
+                  "Time": true,
+                  "rank": true
                 },
                 "indexByName": {
                   "day": 0,
@@ -8077,7 +8912,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Duration seconds"
+                  "options": "Duration"
                 },
                 "properties": [
                   {
@@ -8089,7 +8924,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Last play age seconds"
+                  "options": "Last play"
                 },
                 "properties": [
                   {
@@ -8130,8 +8965,8 @@
                   "rank": "Rank",
                   "title": "Title",
                   "plays": "Plays",
-                  "duration_seconds": "Duration seconds",
-                  "last_play_age_seconds": "Last play age seconds",
+                  "duration_seconds": "Duration",
+                  "last_play_age_seconds": "Last play",
                   "users_watched": "Users watched",
                   "count": "Count"
                 }
@@ -8342,7 +9177,37 @@
             "colorMode": "none",
             "textMode": "value_and_name",
             "justifyMode": "auto"
-          }
+          },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^users$",
+                "renamePattern": "Users"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^active$",
+                "renamePattern": "Active"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^seen_24h$",
+                "renamePattern": "Seen 24h"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^seen_30d$",
+                "renamePattern": "Seen 30d"
+              }
+            }
+          ]
         },
         {
           "id": 111,
@@ -8376,7 +9241,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Duration seconds"
+                  "options": "Duration"
                 },
                 "properties": [
                   {
@@ -8388,7 +9253,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Last seen age seconds"
+                  "options": "Last seen"
                 },
                 "properties": [
                   {
@@ -8442,8 +9307,8 @@
                   "username": "Username",
                   "friendly_name": "Friendly name",
                   "plays": "Plays",
-                  "duration_seconds": "Duration seconds",
-                  "last_seen_age_seconds": "Last seen age seconds",
+                  "duration_seconds": "Duration",
+                  "last_seen_age_seconds": "Last seen",
                   "plays_1d": "Plays 1d",
                   "plays_7d": "Plays 7d",
                   "plays_30d": "Plays 30d",
@@ -8486,7 +9351,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Duration seconds"
+                  "options": "Duration"
                 },
                 "properties": [
                   {
@@ -8498,7 +9363,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Last accessed age seconds"
+                  "options": "Last accessed"
                 },
                 "properties": [
                   {
@@ -8534,7 +9399,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Media info age seconds"
+                  "options": "Media info"
                 },
                 "properties": [
                   {
@@ -8576,13 +9441,13 @@
                   "section_name": "Section name",
                   "section_type": "Section type",
                   "plays": "Plays",
-                  "duration_seconds": "Duration seconds",
-                  "last_accessed_age_seconds": "Last accessed age seconds",
+                  "duration_seconds": "Duration",
+                  "last_accessed_age_seconds": "Last accessed",
                   "plays_30d": "Plays 30d",
                   "watch_seconds_30d": "Watch seconds 30d",
                   "media_items": "Media items",
                   "file_size": "File size",
-                  "media_info_age_seconds": "Media info age seconds"
+                  "media_info_age_seconds": "Media info"
                 }
               }
             }
@@ -8733,6 +9598,50 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^stream_count$",
+                "renamePattern": "Stream count"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^transcode_streams$",
+                "renamePattern": "Transcode streams"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^direct_play_streams$",
+                "renamePattern": "Direct play streams"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^direct_streams$",
+                "renamePattern": "Direct streams"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^lan_streams$",
+                "renamePattern": "Lan streams"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^wan_streams$",
+                "renamePattern": "Wan streams"
+              }
+            }
+          ],
           "interval": "30s"
         },
         {
@@ -8801,6 +9710,29 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^total_bandwidth$",
+                "renamePattern": "Total bandwidth"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^lan_bandwidth$",
+                "renamePattern": "Lan bandwidth"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^wan_bandwidth$",
+                "renamePattern": "Wan bandwidth"
+              }
+            }
+          ],
           "interval": "30s"
         },
         {
@@ -9115,12 +10047,42 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^host_cpu_percent$",
+                "renamePattern": "Host cpu"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^host_memory_percent$",
+                "renamePattern": "Host memory"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^process_cpu_percent$",
+                "renamePattern": "Process cpu"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^process_memory_percent$",
+                "renamePattern": "Process memory"
+              }
+            }
+          ],
           "interval": "300s"
         },
         {
           "id": 121,
           "type": "timeseries",
-          "title": "Bandwidth per network",
+          "title": "Bandwidth per day",
           "gridPos": {
             "x": 12,
             "y": 32,
@@ -9141,7 +10103,7 @@
               "rawQuery": true,
               "resultFormat": "time_series",
               "alias": "$tag_network",
-              "query": "SELECT sum(\"bytes\") AS \"bytes\" FROM \"Plex\" WHERE \"type\" = 'Bandwidth' AND \"server\" = '1' AND $timeFilter GROUP BY time($__interval), \"network\" fill(none)"
+              "query": "SELECT sum(\"bytes\") AS \"bytes\" FROM \"Plex\" WHERE \"type\" = 'Bandwidth' AND \"server\" = '1' AND $timeFilter GROUP BY time(1d), \"network\" fill(none)"
             }
           ],
           "fieldConfig": {
@@ -9160,8 +10122,8 @@
                 ]
               },
               "custom": {
-                "drawStyle": "line",
-                "fillOpacity": 20,
+                "drawStyle": "bars",
+                "fillOpacity": 80,
                 "lineWidth": 1,
                 "spanNulls": true,
                 "stacking": {
@@ -9182,8 +10144,7 @@
               "mode": "multi",
               "sort": "desc"
             }
-          },
-          "interval": "300s"
+          }
         },
         {
           "id": 122,
@@ -9250,6 +10211,50 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^count$",
+                "renamePattern": "Count"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^video_transcodes$",
+                "renamePattern": "Video transcodes"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^audio_transcodes$",
+                "renamePattern": "Audio transcodes"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^hw_decoding$",
+                "renamePattern": "Hw decoding"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^hw_encoding$",
+                "renamePattern": "Hw encoding"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^throttled$",
+                "renamePattern": "Throttled"
+              }
+            }
+          ],
           "interval": "300s"
         },
         {
@@ -9378,6 +10383,15 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^count$",
+                "renamePattern": "Count"
+              }
+            }
+          ],
           "interval": "300s"
         },
         {
@@ -9518,6 +10532,15 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^count$",
+                "renamePattern": "Count"
+              }
+            }
+          ],
           "interval": "300s"
         },
         {
@@ -9564,7 +10587,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Remaining seconds"
+                  "options": "Remaining"
                 },
                 "properties": [
                   {
@@ -9614,7 +10637,7 @@
                   "rating_key": "Rating key",
                   "progress": "Progress",
                   "speed": "Speed",
-                  "remaining_seconds": "Remaining seconds",
+                  "remaining_seconds": "Remaining",
                   "size": "Size"
                 }
               }
@@ -9653,7 +10676,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Checked age seconds"
+                  "options": "Checked"
                 },
                 "properties": [
                   {
@@ -9690,7 +10713,7 @@
                   "state": "State",
                   "version": "Version",
                   "can_install": "Can install",
-                  "checked_age_seconds": "Checked age seconds",
+                  "checked_age_seconds": "Checked",
                   "releases": "Releases"
                 }
               }
@@ -9793,7 +10816,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Scanned age seconds"
+                  "options": "Scanned"
                 },
                 "properties": [
                   {
@@ -9839,7 +10862,7 @@
                   "added_7d": "Added 7d",
                   "locations": "Locations",
                   "refreshing": "Refreshing",
-                  "scanned_age_seconds": "Scanned age seconds",
+                  "scanned_age_seconds": "Scanned",
                   "seasons": "Seasons",
                   "episodes": "Episodes",
                   "albums": "Albums",
@@ -9914,6 +10937,36 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^sessions$",
+                "renamePattern": "Sessions"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^recordings_scheduled$",
+                "renamePattern": "Recordings scheduled"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^recordings_in_progress$",
+                "renamePattern": "Recordings in progress"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^recordings_failed$",
+                "renamePattern": "Recordings failed"
+              }
+            }
+          ],
           "interval": "300s"
         },
         {
@@ -10045,7 +11098,23 @@
             "colorMode": "none",
             "textMode": "value_and_name",
             "justifyMode": "auto"
-          }
+          },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^accounts$",
+                "renamePattern": "Accounts"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^devices$",
+                "renamePattern": "Devices"
+              }
+            }
+          ]
         },
         {
           "id": 134,
@@ -10186,6 +11255,50 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^stream_count$",
+                "renamePattern": "Stream count"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^transcode_streams$",
+                "renamePattern": "Transcode streams"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^direct_play_streams$",
+                "renamePattern": "Direct play streams"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^direct_streams$",
+                "renamePattern": "Direct streams"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^lan_streams$",
+                "renamePattern": "Lan streams"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^wan_streams$",
+                "renamePattern": "Wan streams"
+              }
+            }
+          ],
           "interval": "30s"
         },
         {
@@ -10253,6 +11366,29 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^connected_clients$",
+                "renamePattern": "Connected clients"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^connected_users$",
+                "renamePattern": "Connected users"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^streaming_users$",
+                "renamePattern": "Streaming users"
+              }
+            }
+          ],
           "interval": "30s"
         },
         {
@@ -10278,7 +11414,7 @@
               },
               "rawQuery": true,
               "resultFormat": "table",
-              "query": "SELECT last(\"progress_percent\") AS \"progress\", last(\"stream_bitrate\") AS \"stream_bitrate\" FROM \"Jellyfin\" WHERE \"type\" = 'Session' AND \"server\" = '1' AND time > now() - 60s GROUP BY \"username\", \"title\", \"media_type\", \"platform\", \"product\", \"quality\", \"video_decision\", \"play_method\", \"network\", \"hw_acceleration\", \"transcode_reasons\""
+              "query": "SELECT last(\"progress_percent\") AS \"progress\", last(\"stream_bitrate\") AS \"stream_bitrate\" FROM \"Jellyfin\" WHERE \"type\" = 'Session' AND \"server\" = '1' AND time > now() - 60s GROUP BY \"username\", \"title\", \"media_type\", \"platform\", \"product\", \"quality\", \"video_decision\", \"play_method\", \"network\", \"transcode_reasons\", \"hw_acceleration\""
             }
           ],
           "fieldConfig": {
@@ -10335,8 +11471,8 @@
                   "video_decision": 6,
                   "play_method": 7,
                   "network": 8,
-                  "hw_acceleration": 9,
-                  "transcode_reasons": 10,
+                  "transcode_reasons": 9,
+                  "hw_acceleration": 10,
                   "progress": 11,
                   "stream_bitrate": 12
                 },
@@ -10350,8 +11486,8 @@
                   "video_decision": "Video decision",
                   "play_method": "Play method",
                   "network": "Network",
-                  "hw_acceleration": "Hw acceleration",
                   "transcode_reasons": "Transcode reasons",
+                  "hw_acceleration": "Hw acceleration",
                   "progress": "Progress",
                   "stream_bitrate": "Stream bitrate"
                 }
@@ -10570,6 +11706,22 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^running$",
+                "renamePattern": "Running"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^failed$",
+                "renamePattern": "Failed"
+              }
+            }
+          ],
           "interval": "300s"
         },
         {
@@ -10637,6 +11789,29 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^plugins$",
+                "renamePattern": "Plugins"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^plugins_active$",
+                "renamePattern": "Plugins active"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^plugins_failing$",
+                "renamePattern": "Plugins failing"
+              }
+            }
+          ],
           "interval": "300s"
         },
         {
@@ -10683,7 +11858,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Last execution age seconds"
+                  "options": "Last execution"
                 },
                 "properties": [
                   {
@@ -10695,7 +11870,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Last duration seconds"
+                  "options": "Last duration"
                 },
                 "properties": [
                   {
@@ -10736,8 +11911,8 @@
                   "state": "State",
                   "last_status": "Last status",
                   "progress": "Progress",
-                  "last_execution_age_seconds": "Last execution age seconds",
-                  "last_duration_seconds": "Last duration seconds"
+                  "last_execution_age_seconds": "Last execution",
+                  "last_duration_seconds": "Last duration"
                 }
               }
             }
@@ -10835,7 +12010,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Free bytes"
+                  "options": "Free"
                 },
                 "properties": [
                   {
@@ -10847,7 +12022,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Used bytes"
+                  "options": "Used"
                 },
                 "properties": [
                   {
@@ -10859,7 +12034,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Used percent"
+                  "options": "Used"
                 },
                 "properties": [
                   {
@@ -10899,9 +12074,9 @@
                   "library": "Library",
                   "path": "Path",
                   "storage_type": "Storage type",
-                  "free_bytes": "Free bytes",
-                  "used_bytes": "Used bytes",
-                  "used_percent": "Used percent"
+                  "free_bytes": "Free",
+                  "used_bytes": "Used",
+                  "used_percent": "Used"
                 }
               }
             }
@@ -11039,7 +12214,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "next_recording_in_seconds"
+                  "options": "Next recording in"
                 },
                 "properties": [
                   {
@@ -11061,6 +12236,50 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^recordings$",
+                "renamePattern": "Recordings"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^recordings_in_progress$",
+                "renamePattern": "Recordings in progress"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^timers$",
+                "renamePattern": "Timers"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^recordings_scheduled$",
+                "renamePattern": "Recordings scheduled"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^recordings_failed$",
+                "renamePattern": "Recordings failed"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^next_recording_in_seconds$",
+                "renamePattern": "Next recording in"
+              }
+            }
+          ],
           "interval": "300s"
         },
         {
@@ -11179,7 +12398,72 @@
             "colorMode": "none",
             "textMode": "value_and_name",
             "justifyMode": "auto"
-          }
+          },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^movies$",
+                "renamePattern": "Movies"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^series$",
+                "renamePattern": "Series"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^episodes$",
+                "renamePattern": "Episodes"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^artists$",
+                "renamePattern": "Artists"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^albums$",
+                "renamePattern": "Albums"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^songs$",
+                "renamePattern": "Songs"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^books$",
+                "renamePattern": "Books"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^box_sets$",
+                "renamePattern": "Box sets"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^total$",
+                "renamePattern": "Total"
+              }
+            }
+          ]
         },
         {
           "id": 150,
@@ -11237,7 +12521,44 @@
             "colorMode": "none",
             "textMode": "value_and_name",
             "justifyMode": "auto"
-          }
+          },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^users$",
+                "renamePattern": "Users"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^admins$",
+                "renamePattern": "Admins"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^disabled$",
+                "renamePattern": "Disabled"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^active_24h$",
+                "renamePattern": "Active 24h"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^active_30d$",
+                "renamePattern": "Active 30d"
+              }
+            }
+          ]
         },
         {
           "id": 151,
@@ -11295,7 +12616,23 @@
             "colorMode": "none",
             "textMode": "value_and_name",
             "justifyMode": "auto"
-          }
+          },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^devices$",
+                "renamePattern": "Devices"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^active_24h$",
+                "renamePattern": "Active 24h"
+              }
+            }
+          ]
         },
         {
           "id": 152,
@@ -11329,7 +12666,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Last activity age seconds"
+                  "options": "Last activity"
                 },
                 "properties": [
                   {
@@ -11341,7 +12678,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Last login age seconds"
+                  "options": "Last login"
                 },
                 "properties": [
                   {
@@ -11383,8 +12720,8 @@
                   "is_disabled": "Is disabled",
                   "is_hidden": "Is hidden",
                   "has_password": "Has password",
-                  "last_activity_age_seconds": "Last activity age seconds",
-                  "last_login_age_seconds": "Last login age seconds"
+                  "last_activity_age_seconds": "Last activity",
+                  "last_login_age_seconds": "Last login"
                 }
               }
             }
@@ -11422,7 +12759,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Last activity age seconds"
+                  "options": "Last activity"
                 },
                 "properties": [
                   {
@@ -11461,7 +12798,7 @@
                   "app_name": "App name",
                   "app_version": "App version",
                   "last_user": "Last user",
-                  "last_activity_age_seconds": "Last activity age seconds"
+                  "last_activity_age_seconds": "Last activity"
                 }
               }
             }
@@ -11546,6 +12883,50 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^stream_count$",
+                "renamePattern": "Stream count"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^transcode_streams$",
+                "renamePattern": "Transcode streams"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^direct_play_streams$",
+                "renamePattern": "Direct play streams"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^direct_streams$",
+                "renamePattern": "Direct streams"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^lan_streams$",
+                "renamePattern": "Lan streams"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^wan_streams$",
+                "renamePattern": "Wan streams"
+              }
+            }
+          ],
           "interval": "30s"
         },
         {
@@ -11613,6 +12994,29 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^connected_clients$",
+                "renamePattern": "Connected clients"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^connected_users$",
+                "renamePattern": "Connected users"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^streaming_users$",
+                "renamePattern": "Streaming users"
+              }
+            }
+          ],
           "interval": "30s"
         },
         {
@@ -11638,7 +13042,7 @@
               },
               "rawQuery": true,
               "resultFormat": "table",
-              "query": "SELECT last(\"progress_percent\") AS \"progress\", last(\"stream_bitrate\") AS \"stream_bitrate\", last(\"transcode_cpu_percent\") AS \"transcoder_cpu\" FROM \"Emby\" WHERE \"type\" = 'Session' AND \"server\" = '1' AND time > now() - 60s GROUP BY \"username\", \"title\", \"media_type\", \"platform\", \"product\", \"quality\", \"video_decision\", \"play_method\", \"network\""
+              "query": "SELECT last(\"progress_percent\") AS \"progress\", last(\"stream_bitrate\") AS \"stream_bitrate\", last(\"transcode_cpu_percent\") AS \"transcoder_cpu\", last(\"video_decoder_hw\") AS \"video_decoder_hw\", last(\"video_encoder_hw\") AS \"video_encoder_hw\" FROM \"Emby\" WHERE \"type\" = 'Session' AND \"server\" = '1' AND time > now() - 60s GROUP BY \"username\", \"title\", \"media_type\", \"platform\", \"product\", \"quality\", \"video_decision\", \"play_method\", \"network\", \"transcode_reasons\""
             }
           ],
           "fieldConfig": {
@@ -11707,9 +13111,12 @@
                   "video_decision": 6,
                   "play_method": 7,
                   "network": 8,
-                  "progress": 9,
-                  "stream_bitrate": 10,
-                  "transcoder_cpu": 11
+                  "transcode_reasons": 9,
+                  "progress": 10,
+                  "stream_bitrate": 11,
+                  "transcoder_cpu": 12,
+                  "video_decoder_hw": 13,
+                  "video_encoder_hw": 14
                 },
                 "renameByName": {
                   "username": "Username",
@@ -11721,9 +13128,12 @@
                   "video_decision": "Video decision",
                   "play_method": "Play method",
                   "network": "Network",
+                  "transcode_reasons": "Transcode reasons",
                   "progress": "Progress",
                   "stream_bitrate": "Stream bitrate",
-                  "transcoder_cpu": "Transcoder cpu"
+                  "transcoder_cpu": "Transcoder cpu",
+                  "video_decoder_hw": "Video decoder hw",
+                  "video_encoder_hw": "Video encoder hw"
                 }
               }
             }
@@ -11940,6 +13350,22 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^running$",
+                "renamePattern": "Running"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^failed$",
+                "renamePattern": "Failed"
+              }
+            }
+          ],
           "interval": "300s"
         },
         {
@@ -12007,6 +13433,15 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^plugins$",
+                "renamePattern": "Plugins"
+              }
+            }
+          ],
           "interval": "300s"
         },
         {
@@ -12053,7 +13488,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Last execution age seconds"
+                  "options": "Last execution"
                 },
                 "properties": [
                   {
@@ -12065,7 +13500,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Last duration seconds"
+                  "options": "Last duration"
                 },
                 "properties": [
                   {
@@ -12106,8 +13541,8 @@
                   "state": "State",
                   "last_status": "Last status",
                   "progress": "Progress",
-                  "last_execution_age_seconds": "Last execution age seconds",
-                  "last_duration_seconds": "Last duration seconds"
+                  "last_execution_age_seconds": "Last execution",
+                  "last_duration_seconds": "Last duration"
                 }
               }
             }
@@ -12303,7 +13738,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "next_recording_in_seconds"
+                  "options": "Next recording in"
                 },
                 "properties": [
                   {
@@ -12325,6 +13760,50 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^recordings$",
+                "renamePattern": "Recordings"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^recordings_in_progress$",
+                "renamePattern": "Recordings in progress"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^timers$",
+                "renamePattern": "Timers"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^recordings_scheduled$",
+                "renamePattern": "Recordings scheduled"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^recordings_failed$",
+                "renamePattern": "Recordings failed"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^next_recording_in_seconds$",
+                "renamePattern": "Next recording in"
+              }
+            }
+          ],
           "interval": "300s"
         },
         {
@@ -12447,7 +13926,72 @@
             "colorMode": "none",
             "textMode": "value_and_name",
             "justifyMode": "auto"
-          }
+          },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^movies$",
+                "renamePattern": "Movies"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^series$",
+                "renamePattern": "Series"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^episodes$",
+                "renamePattern": "Episodes"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^artists$",
+                "renamePattern": "Artists"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^albums$",
+                "renamePattern": "Albums"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^songs$",
+                "renamePattern": "Songs"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^books$",
+                "renamePattern": "Books"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^box_sets$",
+                "renamePattern": "Box sets"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^total$",
+                "renamePattern": "Total"
+              }
+            }
+          ]
         },
         {
           "id": 168,
@@ -12505,7 +14049,44 @@
             "colorMode": "none",
             "textMode": "value_and_name",
             "justifyMode": "auto"
-          }
+          },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^users$",
+                "renamePattern": "Users"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^admins$",
+                "renamePattern": "Admins"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^disabled$",
+                "renamePattern": "Disabled"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^active_24h$",
+                "renamePattern": "Active 24h"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^active_30d$",
+                "renamePattern": "Active 30d"
+              }
+            }
+          ]
         },
         {
           "id": 169,
@@ -12563,7 +14144,23 @@
             "colorMode": "none",
             "textMode": "value_and_name",
             "justifyMode": "auto"
-          }
+          },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^devices$",
+                "renamePattern": "Devices"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^active_24h$",
+                "renamePattern": "Active 24h"
+              }
+            }
+          ]
         },
         {
           "id": 170,
@@ -12597,7 +14194,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Last activity age seconds"
+                  "options": "Last activity"
                 },
                 "properties": [
                   {
@@ -12609,7 +14206,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Last login age seconds"
+                  "options": "Last login"
                 },
                 "properties": [
                   {
@@ -12651,8 +14248,8 @@
                   "is_disabled": "Is disabled",
                   "is_hidden": "Is hidden",
                   "has_password": "Has password",
-                  "last_activity_age_seconds": "Last activity age seconds",
-                  "last_login_age_seconds": "Last login age seconds"
+                  "last_activity_age_seconds": "Last activity",
+                  "last_login_age_seconds": "Last login"
                 }
               }
             }
@@ -12690,7 +14287,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Last activity age seconds"
+                  "options": "Last activity"
                 },
                 "properties": [
                   {
@@ -12729,7 +14326,7 @@
                   "app_name": "App name",
                   "app_version": "App version",
                   "last_user": "Last user",
-                  "last_activity_age_seconds": "Last activity age seconds"
+                  "last_activity_age_seconds": "Last activity"
                 }
               }
             }
@@ -12814,6 +14411,36 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^pending$",
+                "renamePattern": "Pending"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^approved$",
+                "renamePattern": "Approved"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^available$",
+                "renamePattern": "Available"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^denied$",
+                "renamePattern": "Denied"
+              }
+            }
+          ],
           "interval": "30s"
         },
         {
@@ -12881,6 +14508,43 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^total$",
+                "renamePattern": "Total"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^movies$",
+                "renamePattern": "Movies"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^tv_shows$",
+                "renamePattern": "Tv shows"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^tv_requests$",
+                "renamePattern": "Tv requests"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^music$",
+                "renamePattern": "Music"
+              }
+            }
+          ],
           "interval": "30s"
         },
         {
@@ -13075,6 +14739,29 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^pending$",
+                "renamePattern": "Pending"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^in_progress$",
+                "renamePattern": "In progress"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^resolved$",
+                "renamePattern": "Resolved"
+              }
+            }
+          ],
           "interval": "30s"
         },
         {
@@ -13142,6 +14829,29 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^movie_requests_30d$",
+                "renamePattern": "Movie requests 30d"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^tv_requests_30d$",
+                "renamePattern": "Tv requests 30d"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^completed_tv_30d$",
+                "renamePattern": "Completed tv 30d"
+              }
+            }
+          ],
           "interval": "300s"
         },
         {
@@ -13276,6 +14986,22 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^users$",
+                "renamePattern": "Users"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^logged_in_30d$",
+                "renamePattern": "Logged in 30d"
+              }
+            }
+          ],
           "interval": "3600s"
         },
         {
@@ -13310,7 +15036,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Last login age seconds"
+                  "options": "Last login"
                 },
                 "properties": [
                   {
@@ -13352,7 +15078,7 @@
                   "username": "Username",
                   "user_type": "User type",
                   "has_logged_in": "Has logged in",
-                  "last_login_age_seconds": "Last login age seconds",
+                  "last_login_age_seconds": "Last login",
                   "movie_quota_limit": "Movie quota limit",
                   "movie_quota_remaining": "Movie quota remaining",
                   "episode_quota_limit": "Episode quota limit",
@@ -13503,6 +15229,50 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^pending$",
+                "renamePattern": "Pending"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^approved$",
+                "renamePattern": "Approved"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^processing$",
+                "renamePattern": "Processing"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^available$",
+                "renamePattern": "Available"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^declined$",
+                "renamePattern": "Declined"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^completed$",
+                "renamePattern": "Completed"
+              }
+            }
+          ],
           "interval": "30s"
         },
         {
@@ -13570,6 +15340,29 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^total$",
+                "renamePattern": "Total"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^movies$",
+                "renamePattern": "Movies"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^tv$",
+                "renamePattern": "Tv"
+              }
+            }
+          ],
           "interval": "30s"
         },
         {
@@ -13637,6 +15430,50 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^open$",
+                "renamePattern": "Open"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^closed$",
+                "renamePattern": "Closed"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^video$",
+                "renamePattern": "Video"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^audio$",
+                "renamePattern": "Audio"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^subtitles$",
+                "renamePattern": "Subtitles"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^others$",
+                "renamePattern": "Others"
+              }
+            }
+          ],
           "interval": "30s"
         },
         {
@@ -13704,6 +15541,29 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^failed$",
+                "renamePattern": "Failed"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^unavailable$",
+                "renamePattern": "Unavailable"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^deleted$",
+                "renamePattern": "Deleted"
+              }
+            }
+          ],
           "interval": "300s"
         },
         {
@@ -13904,6 +15764,50 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^total$",
+                "renamePattern": "Total"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^available$",
+                "renamePattern": "Available"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^partially_available$",
+                "renamePattern": "Partially available"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^all_available$",
+                "renamePattern": "All available"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^processing$",
+                "renamePattern": "Processing"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^pending$",
+                "renamePattern": "Pending"
+              }
+            }
+          ],
           "interval": "300s"
         },
         {
@@ -13971,6 +15875,36 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^dns_hits$",
+                "renamePattern": "Dns hits"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^dns_misses$",
+                "renamePattern": "Dns misses"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^dns_failures$",
+                "renamePattern": "Dns failures"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^dns_ipv4_fallbacks$",
+                "renamePattern": "Dns ipv4 fallbacks"
+              }
+            }
+          ],
           "interval": "300s"
         },
         {
@@ -14189,7 +16123,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "tmdb_image_size"
+                  "options": "Tmdb image size"
                 },
                 "properties": [
                   {
@@ -14201,7 +16135,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "avatar_image_size"
+                  "options": "Avatar image size"
                 },
                 "properties": [
                   {
@@ -14213,7 +16147,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "dns_hit_rate"
+                  "options": "Dns hit rate"
                 },
                 "properties": [
                   {
@@ -14236,7 +16170,58 @@
             "colorMode": "none",
             "textMode": "value_and_name",
             "justifyMode": "auto"
-          }
+          },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^tmdb_images$",
+                "renamePattern": "Tmdb images"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^tmdb_image_size$",
+                "renamePattern": "Tmdb image size"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^avatar_images$",
+                "renamePattern": "Avatar images"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^avatar_image_size$",
+                "renamePattern": "Avatar image size"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^dns_size$",
+                "renamePattern": "Dns size"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^dns_max_size$",
+                "renamePattern": "Dns max size"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^dns_hit_rate$",
+                "renamePattern": "Dns hit rate"
+              }
+            }
+          ]
         },
         {
           "id": 193,
@@ -14294,7 +16279,37 @@
             "colorMode": "none",
             "textMode": "value_and_name",
             "justifyMode": "auto"
-          }
+          },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^total_requests$",
+                "renamePattern": "Total requests"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^total_media_items$",
+                "renamePattern": "Total media items"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^appdata$",
+                "renamePattern": "Appdata"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^appdata_permissions$",
+                "renamePattern": "Appdata permissions"
+              }
+            }
+          ]
         },
         {
           "id": 194,
@@ -14361,6 +16376,15 @@
               "sort": "desc"
             }
           },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^users$",
+                "renamePattern": "Users"
+              }
+            }
+          ],
           "interval": "3600s"
         },
         {
@@ -14564,7 +16588,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "uptime_seconds"
+                  "options": "Uptime"
                 },
                 "properties": [
                   {
@@ -14587,7 +16611,37 @@
             "colorMode": "none",
             "textMode": "value_and_name",
             "justifyMode": "auto"
-          }
+          },
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^uptime_seconds$",
+                "renamePattern": "Uptime"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^collectors$",
+                "renamePattern": "Collectors"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^collectors_open$",
+                "renamePattern": "Collectors open"
+              }
+            },
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "^outputs$",
+                "renamePattern": "Outputs"
+              }
+            }
+          ]
         },
         {
           "id": 199,
@@ -14621,7 +16675,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Duration seconds"
+                  "options": "Duration"
                 },
                 "properties": [
                   {
@@ -14633,7 +16687,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Interval seconds"
+                  "options": "Interval"
                 },
                 "properties": [
                   {
@@ -14645,7 +16699,7 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "Last success age seconds"
+                  "options": "Last success"
                 },
                 "properties": [
                   {
@@ -14721,11 +16775,11 @@
                   "runs": "Runs",
                   "errors": "Errors",
                   "points": "Points",
-                  "duration_seconds": "Duration seconds",
+                  "duration_seconds": "Duration",
                   "circuit_state": "Circuit state",
                   "consecutive_errors": "Consecutive errors",
-                  "interval_seconds": "Interval seconds",
-                  "last_success_age_seconds": "Last success age seconds"
+                  "interval_seconds": "Interval",
+                  "last_success_age_seconds": "Last success"
                 }
               }
             }
@@ -14734,7 +16788,7 @@
         {
           "id": 200,
           "type": "timeseries",
-          "title": "Collector runs and errors",
+          "title": "Collector runs and errors per day",
           "gridPos": {
             "x": 0,
             "y": 25,
@@ -14755,7 +16809,7 @@
               "rawQuery": true,
               "resultFormat": "time_series",
               "alias": "$tag_plugin · $col",
-              "query": "SELECT sum(\"runs\") AS \"runs\", sum(\"errors\") AS \"errors\" FROM \"Varken\" WHERE \"type\" = 'Collector' AND $timeFilter GROUP BY time($__interval), \"plugin\" fill(none)"
+              "query": "SELECT sum(\"runs\") AS \"runs\", sum(\"errors\") AS \"errors\" FROM \"Varken\" WHERE \"type\" = 'Collector' AND $timeFilter GROUP BY time(1d), \"plugin\" fill(none)"
             }
           ],
           "fieldConfig": {
@@ -14773,8 +16827,8 @@
                 ]
               },
               "custom": {
-                "drawStyle": "line",
-                "fillOpacity": 20,
+                "drawStyle": "bars",
+                "fillOpacity": 80,
                 "lineWidth": 1,
                 "spanNulls": true,
                 "stacking": {
@@ -14795,8 +16849,7 @@
               "mode": "multi",
               "sort": "desc"
             }
-          },
-          "interval": "60s"
+          }
         },
         {
           "id": 201,
@@ -14869,7 +16922,7 @@
         {
           "id": 202,
           "type": "timeseries",
-          "title": "Output writes",
+          "title": "Output writes per day",
           "gridPos": {
             "x": 0,
             "y": 33,
@@ -14890,7 +16943,7 @@
               "rawQuery": true,
               "resultFormat": "time_series",
               "alias": "$tag_output · $col",
-              "query": "SELECT sum(\"writes\") AS \"writes\", sum(\"write_errors\") AS \"write_errors\", sum(\"points\") AS \"points\" FROM \"Varken\" WHERE \"type\" = 'Output' AND $timeFilter GROUP BY time($__interval), \"output\" fill(none)"
+              "query": "SELECT sum(\"writes\") AS \"writes\", sum(\"write_errors\") AS \"write_errors\", sum(\"points\") AS \"points\" FROM \"Varken\" WHERE \"type\" = 'Output' AND $timeFilter GROUP BY time(1d), \"output\" fill(none)"
             }
           ],
           "fieldConfig": {
@@ -14908,8 +16961,8 @@
                 ]
               },
               "custom": {
-                "drawStyle": "line",
-                "fillOpacity": 20,
+                "drawStyle": "bars",
+                "fillOpacity": 80,
                 "lineWidth": 1,
                 "spanNulls": true,
                 "stacking": {
@@ -14930,8 +16983,7 @@
               "mode": "multi",
               "sort": "desc"
             }
-          },
-          "interval": "60s"
+          }
         }
       ]
     }

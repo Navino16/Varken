@@ -7,7 +7,6 @@ Sonarr 1 | History per day | timeseries | 1
 Sonarr 1 | History | table | 1
 Sonarr 1 | Health checks | timeseries | 1
 Sonarr 1 | Disks | table | 1
-Sonarr 1 | Health issues | table | 1
 Sonarr 1 | Scheduled tasks | table | 1
 Sonarr 1 | Root folders | table | 1
 Sonarr 1 | Server | table | 1
@@ -21,7 +20,6 @@ Radarr 1 | History per day | timeseries | 1
 Radarr 1 | History | table | 1
 Radarr 1 | Health checks | timeseries | 1
 Radarr 1 | Disks | table | 1
-Radarr 1 | Health issues | table | 1
 Radarr 1 | Scheduled tasks | table | 1
 Radarr 1 | Root folders | table | 1
 Radarr 1 | Server | table | 1
@@ -35,7 +33,6 @@ Readarr 1 | History per day | timeseries | 1
 Readarr 1 | History | table | 1
 Readarr 1 | Health checks | timeseries | 1
 Readarr 1 | Disks | table | 1
-Readarr 1 | Health issues | table | 1
 Readarr 1 | Scheduled tasks | table | 1
 Readarr 1 | Root folders | table | 1
 Readarr 1 | Server | table | 1
@@ -49,7 +46,6 @@ Lidarr 1 | History per day | timeseries | 1
 Lidarr 1 | History | table | 1
 Lidarr 1 | Health checks | timeseries | 1
 Lidarr 1 | Disks | table | 1
-Lidarr 1 | Health issues | table | 1
 Lidarr 1 | Scheduled tasks | table | 1
 Lidarr 1 | Root folders | table | 1
 Lidarr 1 | Server | table | 1
@@ -62,8 +58,6 @@ Prowlarr 1 | Hosts | table | 1
 Prowlarr 1 | Grabs per day | timeseries | 1
 Prowlarr 1 | Grabs | table | 1
 Prowlarr 1 | Health checks | timeseries | 1
-Prowlarr 1 | Indexer failures | table | 1
-Prowlarr 1 | Health issues | table | 1
 Prowlarr 1 | Scheduled tasks | table | 1
 Prowlarr 1 | Disabled indexers | timeseries | 1
 Prowlarr 1 | Synced applications | table | 1
@@ -110,13 +104,11 @@ Plex 1 | Now playing | table | 1
 Plex 1 | Plays per day | timeseries | 1
 Plex 1 | Plays | table | 1
 Plex 1 | CPU / RAM | timeseries | 1
-Plex 1 | Bandwidth per network | timeseries | 1
+Plex 1 | Bandwidth per day | timeseries | 1
 Plex 1 | Transcoder | timeseries | 1
 Plex 1 | Butler tasks | table | 1
 Plex 1 | Server activities | timeseries | 1
-Plex 1 | Running activities | table | 1
 Plex 1 | Background transcodes | timeseries | 1
-Plex 1 | Running background transcodes | table | 1
 Plex 1 | Updates | table | 1
 Plex 1 | Server | table | 1
 Plex 1 | Libraries | table | 1
@@ -182,6 +174,6 @@ Overseerr 1 | Server | table | 1
 Overseerr 1 | User quotas | table | 1
 Varken | Varken | stat | 1
 Varken | Collectors | table | 1
-Varken | Collector runs and errors | timeseries | 1
+Varken | Collector runs and errors per day | timeseries | 1
 Varken | Collection duration | timeseries | 1
-Varken | Output writes | timeseries | 1
+Varken | Output writes per day | timeseries | 1

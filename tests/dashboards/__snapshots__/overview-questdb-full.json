@@ -1702,68 +1702,13 @@
             "type": "grafana-postgresql-datasource",
             "uid": "${DS_VARKEN}"
           },
-          "rawSql": "SELECT timestamp_floor('300s', timestamp) AS time, concat('Sonarr 1 · ', \"level\", ' · ', \"source\") AS metric, count(\"message\") AS value FROM \"Sonarr\" WHERE \"type\" = 'HealthIssue' AND \"server\" = '1' AND timestamp > dateadd('s', -900, now()) GROUP BY 1, \"level\", \"source\" ORDER BY time",
-          "format": "time_series",
-          "rawQuery": true,
-          "editorMode": "code"
-        },
-        {
-          "refId": "B",
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "${DS_VARKEN}"
-          },
-          "rawSql": "SELECT timestamp_floor('300s', timestamp) AS time, concat('Radarr 1 · ', \"level\", ' · ', \"source\") AS metric, count(\"message\") AS value FROM \"Radarr\" WHERE \"type\" = 'HealthIssue' AND \"server\" = '1' AND timestamp > dateadd('s', -900, now()) GROUP BY 1, \"level\", \"source\" ORDER BY time",
-          "format": "time_series",
-          "rawQuery": true,
-          "editorMode": "code"
-        },
-        {
-          "refId": "C",
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "${DS_VARKEN}"
-          },
-          "rawSql": "SELECT timestamp_floor('300s', timestamp) AS time, concat('Lidarr 1 · ', \"level\", ' · ', \"source\") AS metric, count(\"message\") AS value FROM \"Lidarr\" WHERE \"type\" = 'HealthIssue' AND \"server\" = '1' AND timestamp > dateadd('s', -900, now()) GROUP BY 1, \"level\", \"source\" ORDER BY time",
-          "format": "time_series",
-          "rawQuery": true,
-          "editorMode": "code"
-        },
-        {
-          "refId": "D",
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "${DS_VARKEN}"
-          },
-          "rawSql": "SELECT timestamp_floor('300s', timestamp) AS time, concat('Readarr 1 · ', \"level\", ' · ', \"source\") AS metric, count(\"message\") AS value FROM \"Readarr\" WHERE \"type\" = 'HealthIssue' AND \"server\" = '1' AND timestamp > dateadd('s', -900, now()) GROUP BY 1, \"level\", \"source\" ORDER BY time",
-          "format": "time_series",
-          "rawQuery": true,
-          "editorMode": "code"
-        },
-        {
-          "refId": "E",
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "${DS_VARKEN}"
-          },
-          "rawSql": "SELECT timestamp_floor('300s', timestamp) AS time, concat('Prowlarr 1 · ', \"level\", ' · ', \"source\") AS metric, count(\"message\") AS value FROM \"Prowlarr\" WHERE \"type\" = 'HealthIssue' AND \"server\" = '1' AND timestamp > dateadd('s', -900, now()) GROUP BY 1, \"level\", \"source\" ORDER BY time",
-          "format": "time_series",
-          "rawQuery": true,
-          "editorMode": "code"
-        },
-        {
-          "refId": "F",
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "${DS_VARKEN}"
-          },
           "rawSql": "SELECT timestamp_floor('300s', timestamp) AS time, concat('Bazarr 1 · ', \"provider\", ' · ', \"status\") AS metric, last(\"throttled\") AS value FROM \"Bazarr\" WHERE \"type\" = 'Provider' AND \"server\" = '1' AND \"throttled\" = 1 AND timestamp > dateadd('s', -900, now()) GROUP BY 1, \"provider\", \"status\" ORDER BY time",
           "format": "time_series",
           "rawQuery": true,
           "editorMode": "code"
         },
         {
-          "refId": "G",
+          "refId": "B",
           "datasource": {
             "type": "grafana-postgresql-datasource",
             "uid": "${DS_VARKEN}"

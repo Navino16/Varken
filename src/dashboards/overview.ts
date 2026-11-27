@@ -272,9 +272,10 @@ const NOW: BandSpec = {
       'Health alerts',
       [16, 7],
       [
-        { query: LATEST_LAST, sources: healthAlerts(str('message')), complete: true },
+        // `message` only exists once a check failed: optional, so QuestDB never names a missing column.
+        { query: LATEST_LAST, sources: healthAlerts({ ...str('message'), optional: true }), complete: true },
         // SQL cannot return strings as series: the alert is still listed, its detail is a count.
-        { query: LATEST_LAST, sources: healthAlerts({ ...str('message'), agg: 'count' }) },
+        { query: LATEST_LAST, sources: healthAlerts({ ...str('message'), agg: 'count', optional: true }) },
       ],
       namedTable({ Field: 'Alert', 'Last *': 'Detail' })
     ),

@@ -110,7 +110,7 @@ Plex 1 | Now playing | table | 1
 Plex 1 | Plays per day | timeseries | 1
 Plex 1 | Plays | table | 1
 Plex 1 | CPU / RAM | timeseries | 1
-Plex 1 | Bandwidth per network | timeseries | 1
+Plex 1 | Bandwidth per day | timeseries | 1
 Plex 1 | Transcoder | timeseries | 1
 Plex 1 | Butler tasks | table | 1
 Plex 1 | Server activities | timeseries | 1
@@ -184,6 +184,6 @@ Overseerr 1 | Server | table | 1
 Overseerr 1 | User quotas | table | 1
 Varken | Varken | stat | 1
 Varken | Collectors | table | 1
-Varken | Collector runs and errors | timeseries | 1
+Varken | Collector runs and errors per day | timeseries | 1
 Varken | Collection duration | timeseries | 1
-Varken | Output writes | timeseries | 1
+Varken | Output writes per day | timeseries | 1

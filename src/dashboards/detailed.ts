@@ -17,8 +17,9 @@ const LABELS: Record<string, string> = {
   Missing_Available: 'Not released',
 };
 
+/** Sentence-case title of a column; a unit suffix is dropped since the column's unit formats the value. */
 export function columnLabel(key: string): string {
-  const words = key
+  const words = (key.replace(/_(age_seconds|seconds|bytes|percent)$/, '') || key)
     .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
     .replaceAll('_', ' ')
     .toLowerCase();
@@ -52,41 +53,64 @@ function withOverrides(template: PanelTemplate, extra: object[]): PanelTemplate 
   return { ...template, fieldConfig: { ...fieldConfig, overrides: [...fieldConfig.overrides, ...extra] } };
 }
 
+/** Series named `{field}` get their readable label; a series named after tags keeps its name. */
+function fieldNames(point: PointSpec, legend: string): { name: (key: string) => string; transformations: object[] } {
+  if (legend !== '{field}') {
+    return { name: (key: string): string => key, transformations: [] };
+  }
+  const transformations = point.fields
+    .map(alias)
+    .filter((key) => columnLabel(key) !== key)
+    .map((key) => ({ id: 'renameByRegex', options: { regex: `^${key}$`, renamePattern: columnLabel(key) } }));
+  return { name: columnLabel, transformations };
+}
+
+function withTransformations(template: PanelTemplate, transformations: object[]): PanelTemplate {
+  const all = [...(template.transformations ?? []), ...transformations];
+  return all.length > 0 ? { ...template, transformations: all } : template;
+}
+
 function seriesPanel(plugin: Plugin, point: PointSpec, key: string): PanelSpec {
   const tags = point.tags ?? (point.by ? [point.by] : undefined);
   const legend = point.legend ?? (point.by ? (point.fields.length === 1 ? `{tag:${point.by}}` : `{tag:${point.by}} · {field}`) : '{field}');
+  const names = fieldNames(point, legend);
   const units = point.fields.map((field) => point.units?.[alias(field)]);
   const shared = units.every((unit) => unit === units[0]) ? units[0] : undefined;
+  const bars = point.bars === true || point.bucket === '1d';
   // Series named after a tag cannot be matched by field name: such panels keep one unit for every field.
-  const template = shared ? timeseries({ unit: shared }) : withOverrides(timeseries(), unitOverrides(point, (name) => name));
+  const template = shared ? timeseries({ unit: shared, bars }) : withOverrides(timeseries({ bars }), unitOverrides(point, names.name));
   return {
     key,
     title: point.title,
     width: point.size?.[0] ?? 12,
     height: point.size?.[1] ?? 8,
-    variants: [{ query: { shape: 'timeSeries', agg: point.agg ?? 'mean', bucket: 'auto' }, sources: [source(plugin, point, { ...(tags ? { tags } : {}), legend })] }],
-    grafana: { ...(point.grafana ?? template), ...(point.timeFrom ? { timeFrom: point.timeFrom } : {}) },
+    variants: [{ query: { shape: 'timeSeries', agg: point.agg ?? 'mean', bucket: point.bucket ?? 'auto' }, sources: [source(plugin, point, { ...(tags ? { tags } : {}), legend })] }],
+    grafana: { ...withTransformations(point.grafana ?? template, names.transformations), ...(point.timeFrom ? { timeFrom: point.timeFrom } : {}) },
   };
 }
 
 function statsPanel(plugin: Plugin, point: PointSpec, key: string): PanelSpec {
+  const legend = point.legend ?? '{field}';
+  const names = fieldNames(point, legend);
   return {
     key,
     title: point.title,
     width: point.size?.[0] ?? 12,
     height: point.size?.[1] ?? 4,
-    variants: [{ query: { shape: 'latest', agg: 'last' }, sources: [source(plugin, point, { legend: point.legend ?? '{field}' })] }],
-    grafana: point.grafana ?? withOverrides(fieldStats(), unitOverrides(point, (name) => name)),
+    variants: [{ query: { shape: 'latest', agg: 'last' }, sources: [source(plugin, point, { legend })] }],
+    grafana: withTransformations(point.grafana ?? withOverrides(fieldStats(), unitOverrides(point, names.name)), names.transformations),
   };
 }
 
 function tableTemplate(point: PointSpec, options: { time?: boolean; sortBy?: { field: string; desc?: boolean }; limit?: number } = {}): PanelTemplate {
-  const columns = [...(options.time ? ['Time'] : []), ...(point.tags ?? []), ...point.fields.map(alias).filter((name) => !HIDDEN.has(name))];
+  const hidden = new Set([...HIDDEN, ...(point.hide ?? [])]);
+  const columns = [...(options.time ? ['Time'] : []), ...(point.tags ?? []), ...point.fields.map(alias)].filter((name) => !hidden.has(name));
   const mappings = Object.entries(point.mappings ?? {}).map(([column, values]) => mappingOverride(columnLabel(column), values));
+  const sortBy = options.sortBy ?? (point.sortBy ? { field: point.sortBy } : undefined);
   return rowsTable({
     rename: Object.fromEntries(columns.map((column) => [column, columnLabel(column)])),
-    hide: point.fields.map(alias).filter((name) => HIDDEN.has(name)),
-    ...(options.sortBy ? { sortBy: options.sortBy } : {}),
+    hide: [...(point.tags ?? []), ...point.fields.map(alias)].filter((name) => hidden.has(name)),
+    ...(sortBy ? { sortBy } : {}),
     ...(options.limit ? { limit: options.limit } : {}),
     overrides: [...unitOverrides(point, columnLabel), ...mappings],
   });
@@ -127,6 +151,16 @@ function eventPanels(plugin: Plugin, point: PointSpec, key: string): PanelSpec[]
 
 /** Panels of one point type, by the rule of its view (plan 06 « Views per point type »). */
 export function pointPanels(plugin: Plugin, point: PointSpec): PanelSpec[] {
+  const panels = viewPanels(plugin, point);
+  if (!point.alsoCollector) {
+    return panels;
+  }
+  // Variants of the second collector come last: with both enabled, the first one's points are read once.
+  const others = viewPanels(plugin, { ...point, collector: point.alsoCollector });
+  return panels.map((panel, index) => ({ ...panel, variants: [...panel.variants, ...others[index].variants] }));
+}
+
+function viewPanels(plugin: Plugin, point: PointSpec): PanelSpec[] {
   const key = `${plugin}-${point.type}-${point.title}`;
   switch (point.view) {
     case 'series':
