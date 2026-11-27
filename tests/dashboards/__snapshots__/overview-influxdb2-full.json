@@ -114,7 +114,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -90s)\n  |> filter(fn: (r) => r._measurement == \"Tautulli\" and r[\"type\"] == \"current_stream_stats\" and r[\"server\"] == \"1\" and (r._field == \"stream_count\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"stream_count\")\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: 30s, fn: last, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Tautulli 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -90s)\n  |> filter(fn: (r) => r._measurement == \"Tautulli\" and r[\"type\"] == \"current_stream_stats\" and r[\"server\"] == \"1\" and (r._field == \"stream_count\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"stream_count\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: 30s, fn: last, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Tautulli 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         },
         {
           "refId": "B",
@@ -122,7 +122,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -90s)\n  |> filter(fn: (r) => r._measurement == \"Jellyfin\" and r[\"type\"] == \"current_stream_stats\" and r[\"server\"] == \"1\" and (r._field == \"stream_count\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"stream_count\")\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: 30s, fn: last, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Jellyfin 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -90s)\n  |> filter(fn: (r) => r._measurement == \"Jellyfin\" and r[\"type\"] == \"current_stream_stats\" and r[\"server\"] == \"1\" and (r._field == \"stream_count\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"stream_count\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: 30s, fn: last, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Jellyfin 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         },
         {
           "refId": "C",
@@ -130,7 +130,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -90s)\n  |> filter(fn: (r) => r._measurement == \"Emby\" and r[\"type\"] == \"current_stream_stats\" and r[\"server\"] == \"1\" and (r._field == \"stream_count\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"stream_count\")\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: 30s, fn: last, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Emby 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -90s)\n  |> filter(fn: (r) => r._measurement == \"Emby\" and r[\"type\"] == \"current_stream_stats\" and r[\"server\"] == \"1\" and (r._field == \"stream_count\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"stream_count\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: 30s, fn: last, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Emby 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         }
       ],
       "fieldConfig": {
@@ -199,7 +199,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -90s)\n  |> filter(fn: (r) => r._measurement == \"Tautulli\" and r[\"type\"] == \"current_stream_stats\" and r[\"server\"] == \"1\" and (r._field == \"transcode_streams\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"transcode_streams\")\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: 30s, fn: last, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Tautulli 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -90s)\n  |> filter(fn: (r) => r._measurement == \"Tautulli\" and r[\"type\"] == \"current_stream_stats\" and r[\"server\"] == \"1\" and (r._field == \"transcode_streams\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"transcode_streams\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: 30s, fn: last, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Tautulli 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         },
         {
           "refId": "B",
@@ -207,7 +207,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -90s)\n  |> filter(fn: (r) => r._measurement == \"Jellyfin\" and r[\"type\"] == \"current_stream_stats\" and r[\"server\"] == \"1\" and (r._field == \"transcode_streams\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"transcode_streams\")\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: 30s, fn: last, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Jellyfin 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -90s)\n  |> filter(fn: (r) => r._measurement == \"Jellyfin\" and r[\"type\"] == \"current_stream_stats\" and r[\"server\"] == \"1\" and (r._field == \"transcode_streams\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"transcode_streams\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: 30s, fn: last, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Jellyfin 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         },
         {
           "refId": "C",
@@ -215,7 +215,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -90s)\n  |> filter(fn: (r) => r._measurement == \"Emby\" and r[\"type\"] == \"current_stream_stats\" and r[\"server\"] == \"1\" and (r._field == \"transcode_streams\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"transcode_streams\")\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: 30s, fn: last, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Emby 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -90s)\n  |> filter(fn: (r) => r._measurement == \"Emby\" and r[\"type\"] == \"current_stream_stats\" and r[\"server\"] == \"1\" and (r._field == \"transcode_streams\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"transcode_streams\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: 30s, fn: last, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Emby 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         }
       ],
       "fieldConfig": {
@@ -284,7 +284,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -90s)\n  |> filter(fn: (r) => r._measurement == \"Tautulli\" and r[\"type\"] == \"current_stream_stats\" and r[\"server\"] == \"1\" and (r._field == \"total_bandwidth\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"total_bandwidth\")\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: 30s, fn: last, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Tautulli 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -90s)\n  |> filter(fn: (r) => r._measurement == \"Tautulli\" and r[\"type\"] == \"current_stream_stats\" and r[\"server\"] == \"1\" and (r._field == \"total_bandwidth\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"total_bandwidth\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: 30s, fn: last, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Tautulli 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         }
       ],
       "fieldConfig": {
@@ -354,7 +354,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -90s)\n  |> filter(fn: (r) => r._measurement == \"Sonarr\" and r[\"type\"] == \"Queue\" and r[\"server\"] == \"1\" and (r._field == \"size\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"size\")\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: 30s, fn: count, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Sonarr 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -90s)\n  |> filter(fn: (r) => r._measurement == \"Sonarr\" and r[\"type\"] == \"Queue\" and r[\"server\"] == \"1\" and (r._field == \"size\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"size\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: 30s, fn: count, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Sonarr 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         },
         {
           "refId": "B",
@@ -362,7 +362,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -90s)\n  |> filter(fn: (r) => r._measurement == \"Radarr\" and r[\"type\"] == \"Queue\" and r[\"server\"] == \"1\" and (r._field == \"size\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"size\")\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: 30s, fn: count, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Radarr 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -90s)\n  |> filter(fn: (r) => r._measurement == \"Radarr\" and r[\"type\"] == \"Queue\" and r[\"server\"] == \"1\" and (r._field == \"size\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"size\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: 30s, fn: count, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Radarr 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         },
         {
           "refId": "C",
@@ -370,7 +370,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -90s)\n  |> filter(fn: (r) => r._measurement == \"Lidarr\" and r[\"type\"] == \"Queue\" and r[\"server\"] == \"1\" and (r._field == \"size\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"size\")\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: 30s, fn: count, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Lidarr 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -90s)\n  |> filter(fn: (r) => r._measurement == \"Lidarr\" and r[\"type\"] == \"Queue\" and r[\"server\"] == \"1\" and (r._field == \"size\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"size\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: 30s, fn: count, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Lidarr 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         },
         {
           "refId": "D",
@@ -378,7 +378,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -90s)\n  |> filter(fn: (r) => r._measurement == \"Readarr\" and r[\"type\"] == \"Queue\" and r[\"server\"] == \"1\" and (r._field == \"size\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"size\")\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: 30s, fn: count, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Readarr 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -90s)\n  |> filter(fn: (r) => r._measurement == \"Readarr\" and r[\"type\"] == \"Queue\" and r[\"server\"] == \"1\" and (r._field == \"size\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"size\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: 30s, fn: count, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Readarr 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         }
       ],
       "fieldConfig": {
@@ -447,7 +447,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -90s)\n  |> filter(fn: (r) => r._measurement == \"Sonarr\" and r[\"type\"] == \"Queue\" and r[\"server\"] == \"1\" and (not exists r[\"tracked_download_status\"] or r[\"tracked_download_status\"] != \"ok\") and (not exists r[\"tracked_download_status\"] or r[\"tracked_download_status\"] != \"unknown\") and (r._field == \"size\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"size\")\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: 30s, fn: count, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Sonarr 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -90s)\n  |> filter(fn: (r) => r._measurement == \"Sonarr\" and r[\"type\"] == \"Queue\" and r[\"server\"] == \"1\" and (not exists r[\"tracked_download_status\"] or r[\"tracked_download_status\"] != \"ok\") and (not exists r[\"tracked_download_status\"] or r[\"tracked_download_status\"] != \"unknown\") and (r._field == \"size\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"size\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: 30s, fn: count, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Sonarr 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         },
         {
           "refId": "B",
@@ -455,7 +455,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -90s)\n  |> filter(fn: (r) => r._measurement == \"Radarr\" and r[\"type\"] == \"Queue\" and r[\"server\"] == \"1\" and (not exists r[\"tracked_download_status\"] or r[\"tracked_download_status\"] != \"ok\") and (not exists r[\"tracked_download_status\"] or r[\"tracked_download_status\"] != \"unknown\") and (r._field == \"size\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"size\")\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: 30s, fn: count, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Radarr 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -90s)\n  |> filter(fn: (r) => r._measurement == \"Radarr\" and r[\"type\"] == \"Queue\" and r[\"server\"] == \"1\" and (not exists r[\"tracked_download_status\"] or r[\"tracked_download_status\"] != \"ok\") and (not exists r[\"tracked_download_status\"] or r[\"tracked_download_status\"] != \"unknown\") and (r._field == \"size\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"size\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: 30s, fn: count, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Radarr 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         },
         {
           "refId": "C",
@@ -463,7 +463,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -90s)\n  |> filter(fn: (r) => r._measurement == \"Lidarr\" and r[\"type\"] == \"Queue\" and r[\"server\"] == \"1\" and (not exists r[\"tracked_download_status\"] or r[\"tracked_download_status\"] != \"ok\") and (not exists r[\"tracked_download_status\"] or r[\"tracked_download_status\"] != \"unknown\") and (r._field == \"size\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"size\")\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: 30s, fn: count, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Lidarr 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -90s)\n  |> filter(fn: (r) => r._measurement == \"Lidarr\" and r[\"type\"] == \"Queue\" and r[\"server\"] == \"1\" and (not exists r[\"tracked_download_status\"] or r[\"tracked_download_status\"] != \"ok\") and (not exists r[\"tracked_download_status\"] or r[\"tracked_download_status\"] != \"unknown\") and (r._field == \"size\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"size\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: 30s, fn: count, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Lidarr 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         },
         {
           "refId": "D",
@@ -471,7 +471,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -90s)\n  |> filter(fn: (r) => r._measurement == \"Readarr\" and r[\"type\"] == \"Queue\" and r[\"server\"] == \"1\" and (not exists r[\"tracked_download_status\"] or r[\"tracked_download_status\"] != \"ok\") and (not exists r[\"tracked_download_status\"] or r[\"tracked_download_status\"] != \"unknown\") and (r._field == \"size\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"size\")\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: 30s, fn: count, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Readarr 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -90s)\n  |> filter(fn: (r) => r._measurement == \"Readarr\" and r[\"type\"] == \"Queue\" and r[\"server\"] == \"1\" and (not exists r[\"tracked_download_status\"] or r[\"tracked_download_status\"] != \"ok\") and (not exists r[\"tracked_download_status\"] or r[\"tracked_download_status\"] != \"unknown\") and (r._field == \"size\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"size\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: 30s, fn: count, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Readarr 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         }
       ],
       "fieldConfig": {
@@ -544,7 +544,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -90s)\n  |> filter(fn: (r) => r._measurement == \"Overseerr\" and r[\"type\"] == \"Request_Counts\" and r[\"server\"] == \"1\" and (r._field == \"pending\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"pending\")\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: 30s, fn: last, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Overseerr 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -90s)\n  |> filter(fn: (r) => r._measurement == \"Overseerr\" and r[\"type\"] == \"Request_Counts\" and r[\"server\"] == \"1\" and (r._field == \"pending\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"pending\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: 30s, fn: last, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Overseerr 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         },
         {
           "refId": "B",
@@ -552,7 +552,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -90s)\n  |> filter(fn: (r) => r._measurement == \"Ombi\" and r[\"type\"] == \"Request_Counts\" and r[\"server\"] == \"1\" and (r._field == \"pending\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"pending\")\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: 30s, fn: last, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Ombi 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -90s)\n  |> filter(fn: (r) => r._measurement == \"Ombi\" and r[\"type\"] == \"Request_Counts\" and r[\"server\"] == \"1\" and (r._field == \"pending\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"pending\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: 30s, fn: last, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Ombi 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         }
       ],
       "fieldConfig": {
@@ -621,7 +621,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -90s)\n  |> filter(fn: (r) => r._measurement == \"Bazarr\" and r[\"type\"] == \"WantedTotal\" and r[\"server\"] == \"1\" and (r._field == \"movies\" or r._field == \"episodes\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"movies\")\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: 30s, fn: last, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Bazarr 1 movies\" }))\nf1 = data\n  |> filter(fn: (r) => r._field == \"episodes\")\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: 30s, fn: last, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Bazarr 1 episodes\" }))\nunion(tables: [f0, f1])\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -90s)\n  |> filter(fn: (r) => r._measurement == \"Bazarr\" and r[\"type\"] == \"WantedTotal\" and r[\"server\"] == \"1\" and (r._field == \"movies\" or r._field == \"episodes\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"movies\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: 30s, fn: last, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Bazarr 1 movies\" }))\nf1 = data\n  |> filter(fn: (r) => r._field == \"episodes\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: 30s, fn: last, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Bazarr 1 episodes\" }))\nunion(tables: [f0, f1])\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         }
       ],
       "fieldConfig": {
@@ -690,7 +690,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -180s)\n  |> filter(fn: (r) => r._measurement == \"Varken\" and r[\"type\"] == \"Status\" and (r._field == \"collectors\" or r._field == \"collectors_open\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"collectors\")\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: 60s, fn: last, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"collectors\" }))\nf1 = data\n  |> filter(fn: (r) => r._field == \"collectors_open\")\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: 60s, fn: last, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"collectors_open\" }))\nunion(tables: [f0, f1])\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -180s)\n  |> filter(fn: (r) => r._measurement == \"Varken\" and r[\"type\"] == \"Status\" and (r._field == \"collectors\" or r._field == \"collectors_open\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"collectors\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: 60s, fn: last, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"collectors\" }))\nf1 = data\n  |> filter(fn: (r) => r._field == \"collectors_open\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: 60s, fn: last, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"collectors_open\" }))\nunion(tables: [f0, f1])\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         }
       ],
       "fieldConfig": {
@@ -783,7 +783,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -60s)\n  |> filter(fn: (r) => r._measurement == \"Tautulli\" and r[\"type\"] == \"Session\" and r[\"server\"] == \"1\" and (r._field == \"progress\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"progress\")\n  |> group(columns: [\"username\", \"title\", \"video_decision\", \"quality\", \"_field\", \"_start\"])\n  |> last()\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"progress\" }))\nf0\n  |> group(columns: [\"username\", \"title\", \"video_decision\", \"quality\", \"_start\"])\n  |> pivot(rowKey: [\"username\", \"title\", \"video_decision\", \"quality\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> group()\n  |> keep(columns: [\"username\", \"title\", \"video_decision\", \"quality\", \"progress\"])"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -60s)\n  |> filter(fn: (r) => r._measurement == \"Tautulli\" and r[\"type\"] == \"Session\" and r[\"server\"] == \"1\" and (r._field == \"progress\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"progress\")\n  |> group(columns: [\"username\", \"title\", \"video_decision\", \"quality\", \"_field\", \"_start\"])\n  |> sort(columns: [\"_time\"])\n  |> last()\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"progress\" }))\nf0\n  |> group(columns: [\"username\", \"title\", \"video_decision\", \"quality\", \"_start\"])\n  |> pivot(rowKey: [\"username\", \"title\", \"video_decision\", \"quality\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> group()\n  |> keep(columns: [\"username\", \"title\", \"video_decision\", \"quality\", \"progress\"])"
         },
         {
           "refId": "B",
@@ -791,7 +791,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -60s)\n  |> filter(fn: (r) => r._measurement == \"Jellyfin\" and r[\"type\"] == \"Session\" and r[\"server\"] == \"1\" and (r._field == \"progress_percent\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"progress_percent\")\n  |> group(columns: [\"username\", \"title\", \"video_decision\", \"quality\", \"_field\", \"_start\"])\n  |> last()\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"progress\" }))\nf0\n  |> group(columns: [\"username\", \"title\", \"video_decision\", \"quality\", \"_start\"])\n  |> pivot(rowKey: [\"username\", \"title\", \"video_decision\", \"quality\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> group()\n  |> keep(columns: [\"username\", \"title\", \"video_decision\", \"quality\", \"progress\"])"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -60s)\n  |> filter(fn: (r) => r._measurement == \"Jellyfin\" and r[\"type\"] == \"Session\" and r[\"server\"] == \"1\" and (r._field == \"progress_percent\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"progress_percent\")\n  |> group(columns: [\"username\", \"title\", \"video_decision\", \"quality\", \"_field\", \"_start\"])\n  |> sort(columns: [\"_time\"])\n  |> last()\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"progress\" }))\nf0\n  |> group(columns: [\"username\", \"title\", \"video_decision\", \"quality\", \"_start\"])\n  |> pivot(rowKey: [\"username\", \"title\", \"video_decision\", \"quality\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> group()\n  |> keep(columns: [\"username\", \"title\", \"video_decision\", \"quality\", \"progress\"])"
         },
         {
           "refId": "C",
@@ -799,7 +799,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -60s)\n  |> filter(fn: (r) => r._measurement == \"Emby\" and r[\"type\"] == \"Session\" and r[\"server\"] == \"1\" and (r._field == \"progress_percent\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"progress_percent\")\n  |> group(columns: [\"username\", \"title\", \"video_decision\", \"quality\", \"_field\", \"_start\"])\n  |> last()\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"progress\" }))\nf0\n  |> group(columns: [\"username\", \"title\", \"video_decision\", \"quality\", \"_start\"])\n  |> pivot(rowKey: [\"username\", \"title\", \"video_decision\", \"quality\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> group()\n  |> keep(columns: [\"username\", \"title\", \"video_decision\", \"quality\", \"progress\"])"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -60s)\n  |> filter(fn: (r) => r._measurement == \"Emby\" and r[\"type\"] == \"Session\" and r[\"server\"] == \"1\" and (r._field == \"progress_percent\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"progress_percent\")\n  |> group(columns: [\"username\", \"title\", \"video_decision\", \"quality\", \"_field\", \"_start\"])\n  |> sort(columns: [\"_time\"])\n  |> last()\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"progress\" }))\nf0\n  |> group(columns: [\"username\", \"title\", \"video_decision\", \"quality\", \"_start\"])\n  |> pivot(rowKey: [\"username\", \"title\", \"video_decision\", \"quality\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> group()\n  |> keep(columns: [\"username\", \"title\", \"video_decision\", \"quality\", \"progress\"])"
         }
       ],
       "fieldConfig": {
@@ -875,7 +875,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -60s)\n  |> filter(fn: (r) => r._measurement == \"Tautulli\" and r[\"type\"] == \"Session\" and r[\"server\"] == \"1\" and (r._field == \"lat\" or r._field == \"lon\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"lat\")\n  |> group(columns: [\"full_location\", \"username\", \"_field\", \"_start\"])\n  |> last()\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"lat\" }))\nf1 = data\n  |> filter(fn: (r) => r._field == \"lon\")\n  |> group(columns: [\"full_location\", \"username\", \"_field\", \"_start\"])\n  |> last()\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"lon\" }))\nunion(tables: [f0, f1])\n  |> group(columns: [\"full_location\", \"username\", \"_start\"])\n  |> pivot(rowKey: [\"full_location\", \"username\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> group()\n  |> keep(columns: [\"full_location\", \"username\", \"lat\", \"lon\"])"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -60s)\n  |> filter(fn: (r) => r._measurement == \"Tautulli\" and r[\"type\"] == \"Session\" and r[\"server\"] == \"1\" and (r._field == \"lat\" or r._field == \"lon\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"lat\")\n  |> group(columns: [\"full_location\", \"username\", \"_field\", \"_start\"])\n  |> sort(columns: [\"_time\"])\n  |> last()\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"lat\" }))\nf1 = data\n  |> filter(fn: (r) => r._field == \"lon\")\n  |> group(columns: [\"full_location\", \"username\", \"_field\", \"_start\"])\n  |> sort(columns: [\"_time\"])\n  |> last()\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"lon\" }))\nunion(tables: [f0, f1])\n  |> group(columns: [\"full_location\", \"username\", \"_start\"])\n  |> pivot(rowKey: [\"full_location\", \"username\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> group()\n  |> keep(columns: [\"full_location\", \"username\", \"lat\", \"lon\"])"
         }
       ],
       "fieldConfig": {
@@ -950,7 +950,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Tautulli\" and r[\"type\"] == \"current_stream_stats\" and r[\"server\"] == \"1\" and (r._field == \"stream_count\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"stream_count\")\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false, timeSrc: \"_start\")\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Tautulli 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Tautulli\" and r[\"type\"] == \"current_stream_stats\" and r[\"server\"] == \"1\" and (r._field == \"stream_count\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"stream_count\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false, timeSrc: \"_start\")\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Tautulli 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         },
         {
           "refId": "B",
@@ -958,7 +958,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Jellyfin\" and r[\"type\"] == \"current_stream_stats\" and r[\"server\"] == \"1\" and (r._field == \"stream_count\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"stream_count\")\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false, timeSrc: \"_start\")\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Jellyfin 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Jellyfin\" and r[\"type\"] == \"current_stream_stats\" and r[\"server\"] == \"1\" and (r._field == \"stream_count\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"stream_count\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false, timeSrc: \"_start\")\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Jellyfin 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         },
         {
           "refId": "C",
@@ -966,7 +966,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Emby\" and r[\"type\"] == \"current_stream_stats\" and r[\"server\"] == \"1\" and (r._field == \"stream_count\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"stream_count\")\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false, timeSrc: \"_start\")\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Emby 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Emby\" and r[\"type\"] == \"current_stream_stats\" and r[\"server\"] == \"1\" and (r._field == \"stream_count\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"stream_count\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false, timeSrc: \"_start\")\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Emby 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         }
       ],
       "fieldConfig": {
@@ -1032,7 +1032,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Tautulli\" and r[\"type\"] == \"current_stream_stats\" and r[\"server\"] == \"1\" and (r._field == \"lan_bandwidth\" or r._field == \"wan_bandwidth\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"lan_bandwidth\")\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false, timeSrc: \"_start\")\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Tautulli 1 LAN\" }))\nf1 = data\n  |> filter(fn: (r) => r._field == \"wan_bandwidth\")\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false, timeSrc: \"_start\")\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Tautulli 1 WAN\" }))\nunion(tables: [f0, f1])\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Tautulli\" and r[\"type\"] == \"current_stream_stats\" and r[\"server\"] == \"1\" and (r._field == \"lan_bandwidth\" or r._field == \"wan_bandwidth\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"lan_bandwidth\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false, timeSrc: \"_start\")\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Tautulli 1 LAN\" }))\nf1 = data\n  |> filter(fn: (r) => r._field == \"wan_bandwidth\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false, timeSrc: \"_start\")\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Tautulli 1 WAN\" }))\nunion(tables: [f0, f1])\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         }
       ],
       "fieldConfig": {
@@ -1099,7 +1099,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Plex\" and r[\"type\"] == \"Resources\" and r[\"server\"] == \"1\" and (r._field == \"process_cpu_percent\" or r._field == \"process_memory_percent\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"process_cpu_percent\")\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false, timeSrc: \"_start\")\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Plex 1 CPU\" }))\nf1 = data\n  |> filter(fn: (r) => r._field == \"process_memory_percent\")\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false, timeSrc: \"_start\")\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Plex 1 RAM\" }))\nunion(tables: [f0, f1])\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Plex\" and r[\"type\"] == \"Resources\" and r[\"server\"] == \"1\" and (r._field == \"process_cpu_percent\" or r._field == \"process_memory_percent\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"process_cpu_percent\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false, timeSrc: \"_start\")\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Plex 1 CPU\" }))\nf1 = data\n  |> filter(fn: (r) => r._field == \"process_memory_percent\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false, timeSrc: \"_start\")\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Plex 1 RAM\" }))\nunion(tables: [f0, f1])\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         }
       ],
       "fieldConfig": {
@@ -1166,7 +1166,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -60s)\n  |> filter(fn: (r) => r._measurement == \"Sonarr\" and r[\"type\"] == \"Queue\" and r[\"server\"] == \"1\" and (r._field == \"progress\" or r._field == \"sizeleft\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"progress\")\n  |> group(columns: [\"name\", \"sxe\", \"tracked_download_status\", \"_field\", \"_start\"])\n  |> last()\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"progress\" }))\nf1 = data\n  |> filter(fn: (r) => r._field == \"sizeleft\")\n  |> group(columns: [\"name\", \"sxe\", \"tracked_download_status\", \"_field\", \"_start\"])\n  |> last()\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"sizeleft\" }))\nunion(tables: [f0, f1])\n  |> group(columns: [\"name\", \"sxe\", \"tracked_download_status\", \"_start\"])\n  |> pivot(rowKey: [\"name\", \"sxe\", \"tracked_download_status\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> group()\n  |> keep(columns: [\"name\", \"sxe\", \"tracked_download_status\", \"progress\", \"sizeleft\"])"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -60s)\n  |> filter(fn: (r) => r._measurement == \"Sonarr\" and r[\"type\"] == \"Queue\" and r[\"server\"] == \"1\" and (r._field == \"progress\" or r._field == \"sizeleft\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"progress\")\n  |> group(columns: [\"name\", \"sxe\", \"tracked_download_status\", \"_field\", \"_start\"])\n  |> sort(columns: [\"_time\"])\n  |> last()\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"progress\" }))\nf1 = data\n  |> filter(fn: (r) => r._field == \"sizeleft\")\n  |> group(columns: [\"name\", \"sxe\", \"tracked_download_status\", \"_field\", \"_start\"])\n  |> sort(columns: [\"_time\"])\n  |> last()\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"sizeleft\" }))\nunion(tables: [f0, f1])\n  |> group(columns: [\"name\", \"sxe\", \"tracked_download_status\", \"_start\"])\n  |> pivot(rowKey: [\"name\", \"sxe\", \"tracked_download_status\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> group()\n  |> keep(columns: [\"name\", \"sxe\", \"tracked_download_status\", \"progress\", \"sizeleft\"])"
         },
         {
           "refId": "B",
@@ -1174,7 +1174,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -60s)\n  |> filter(fn: (r) => r._measurement == \"Radarr\" and r[\"type\"] == \"Queue\" and r[\"server\"] == \"1\" and (r._field == \"progress\" or r._field == \"sizeleft\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"progress\")\n  |> group(columns: [\"name\", \"tracked_download_status\", \"_field\", \"_start\"])\n  |> last()\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"progress\" }))\nf1 = data\n  |> filter(fn: (r) => r._field == \"sizeleft\")\n  |> group(columns: [\"name\", \"tracked_download_status\", \"_field\", \"_start\"])\n  |> last()\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"sizeleft\" }))\nunion(tables: [f0, f1])\n  |> group(columns: [\"name\", \"tracked_download_status\", \"_start\"])\n  |> pivot(rowKey: [\"name\", \"tracked_download_status\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> group()\n  |> keep(columns: [\"name\", \"tracked_download_status\", \"progress\", \"sizeleft\"])"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -60s)\n  |> filter(fn: (r) => r._measurement == \"Radarr\" and r[\"type\"] == \"Queue\" and r[\"server\"] == \"1\" and (r._field == \"progress\" or r._field == \"sizeleft\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"progress\")\n  |> group(columns: [\"name\", \"tracked_download_status\", \"_field\", \"_start\"])\n  |> sort(columns: [\"_time\"])\n  |> last()\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"progress\" }))\nf1 = data\n  |> filter(fn: (r) => r._field == \"sizeleft\")\n  |> group(columns: [\"name\", \"tracked_download_status\", \"_field\", \"_start\"])\n  |> sort(columns: [\"_time\"])\n  |> last()\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"sizeleft\" }))\nunion(tables: [f0, f1])\n  |> group(columns: [\"name\", \"tracked_download_status\", \"_start\"])\n  |> pivot(rowKey: [\"name\", \"tracked_download_status\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> group()\n  |> keep(columns: [\"name\", \"tracked_download_status\", \"progress\", \"sizeleft\"])"
         },
         {
           "refId": "C",
@@ -1182,7 +1182,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -60s)\n  |> filter(fn: (r) => r._measurement == \"Lidarr\" and r[\"type\"] == \"Queue\" and r[\"server\"] == \"1\" and (r._field == \"progress\" or r._field == \"sizeleft\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"progress\")\n  |> group(columns: [\"name\", \"tracked_download_status\", \"_field\", \"_start\"])\n  |> last()\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"progress\" }))\nf1 = data\n  |> filter(fn: (r) => r._field == \"sizeleft\")\n  |> group(columns: [\"name\", \"tracked_download_status\", \"_field\", \"_start\"])\n  |> last()\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"sizeleft\" }))\nunion(tables: [f0, f1])\n  |> group(columns: [\"name\", \"tracked_download_status\", \"_start\"])\n  |> pivot(rowKey: [\"name\", \"tracked_download_status\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> group()\n  |> keep(columns: [\"name\", \"tracked_download_status\", \"progress\", \"sizeleft\"])"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -60s)\n  |> filter(fn: (r) => r._measurement == \"Lidarr\" and r[\"type\"] == \"Queue\" and r[\"server\"] == \"1\" and (r._field == \"progress\" or r._field == \"sizeleft\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"progress\")\n  |> group(columns: [\"name\", \"tracked_download_status\", \"_field\", \"_start\"])\n  |> sort(columns: [\"_time\"])\n  |> last()\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"progress\" }))\nf1 = data\n  |> filter(fn: (r) => r._field == \"sizeleft\")\n  |> group(columns: [\"name\", \"tracked_download_status\", \"_field\", \"_start\"])\n  |> sort(columns: [\"_time\"])\n  |> last()\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"sizeleft\" }))\nunion(tables: [f0, f1])\n  |> group(columns: [\"name\", \"tracked_download_status\", \"_start\"])\n  |> pivot(rowKey: [\"name\", \"tracked_download_status\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> group()\n  |> keep(columns: [\"name\", \"tracked_download_status\", \"progress\", \"sizeleft\"])"
         },
         {
           "refId": "D",
@@ -1190,7 +1190,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -60s)\n  |> filter(fn: (r) => r._measurement == \"Readarr\" and r[\"type\"] == \"Queue\" and r[\"server\"] == \"1\" and (r._field == \"progress\" or r._field == \"sizeleft\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"progress\")\n  |> group(columns: [\"name\", \"tracked_download_status\", \"_field\", \"_start\"])\n  |> last()\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"progress\" }))\nf1 = data\n  |> filter(fn: (r) => r._field == \"sizeleft\")\n  |> group(columns: [\"name\", \"tracked_download_status\", \"_field\", \"_start\"])\n  |> last()\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"sizeleft\" }))\nunion(tables: [f0, f1])\n  |> group(columns: [\"name\", \"tracked_download_status\", \"_start\"])\n  |> pivot(rowKey: [\"name\", \"tracked_download_status\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> group()\n  |> keep(columns: [\"name\", \"tracked_download_status\", \"progress\", \"sizeleft\"])"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -60s)\n  |> filter(fn: (r) => r._measurement == \"Readarr\" and r[\"type\"] == \"Queue\" and r[\"server\"] == \"1\" and (r._field == \"progress\" or r._field == \"sizeleft\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"progress\")\n  |> group(columns: [\"name\", \"tracked_download_status\", \"_field\", \"_start\"])\n  |> sort(columns: [\"_time\"])\n  |> last()\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"progress\" }))\nf1 = data\n  |> filter(fn: (r) => r._field == \"sizeleft\")\n  |> group(columns: [\"name\", \"tracked_download_status\", \"_field\", \"_start\"])\n  |> sort(columns: [\"_time\"])\n  |> last()\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"sizeleft\" }))\nunion(tables: [f0, f1])\n  |> group(columns: [\"name\", \"tracked_download_status\", \"_start\"])\n  |> pivot(rowKey: [\"name\", \"tracked_download_status\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> group()\n  |> keep(columns: [\"name\", \"tracked_download_status\", \"progress\", \"sizeleft\"])"
         }
       ],
       "fieldConfig": {
@@ -1278,7 +1278,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -360s)\n  |> filter(fn: (r) => r._measurement == \"Sonarr\" and r[\"type\"] == \"Future\" and r[\"server\"] == \"1\" and (r._field == \"hash\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"hash\")\n  |> group(columns: [\"name\", \"sxe\", \"airsUTC\", \"downloaded\", \"_field\", \"_start\"])\n  |> last()\n  |> map(fn: (r) => ({ r with _field: \"hash\" }))\nf0\n  |> group(columns: [\"name\", \"sxe\", \"airsUTC\", \"downloaded\", \"_start\"])\n  |> pivot(rowKey: [\"name\", \"sxe\", \"airsUTC\", \"downloaded\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> group()\n  |> keep(columns: [\"name\", \"sxe\", \"airsUTC\", \"downloaded\", \"hash\"])"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -360s)\n  |> filter(fn: (r) => r._measurement == \"Sonarr\" and r[\"type\"] == \"Future\" and r[\"server\"] == \"1\" and (r._field == \"hash\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"hash\")\n  |> group(columns: [\"name\", \"sxe\", \"airsUTC\", \"downloaded\", \"_field\", \"_start\"])\n  |> sort(columns: [\"_time\"])\n  |> last()\n  |> map(fn: (r) => ({ r with _field: \"hash\" }))\nf0\n  |> group(columns: [\"name\", \"sxe\", \"airsUTC\", \"downloaded\", \"_start\"])\n  |> pivot(rowKey: [\"name\", \"sxe\", \"airsUTC\", \"downloaded\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> group()\n  |> keep(columns: [\"name\", \"sxe\", \"airsUTC\", \"downloaded\", \"hash\"])"
         },
         {
           "refId": "B",
@@ -1286,7 +1286,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -360s)\n  |> filter(fn: (r) => r._measurement == \"Sonarr\" and r[\"type\"] == \"Missing\" and r[\"server\"] == \"1\" and (r._field == \"hash\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"hash\")\n  |> group(columns: [\"name\", \"sxe\", \"airsUTC\", \"downloaded\", \"_field\", \"_start\"])\n  |> last()\n  |> map(fn: (r) => ({ r with _field: \"hash\" }))\nf0\n  |> group(columns: [\"name\", \"sxe\", \"airsUTC\", \"downloaded\", \"_start\"])\n  |> pivot(rowKey: [\"name\", \"sxe\", \"airsUTC\", \"downloaded\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> group()\n  |> keep(columns: [\"name\", \"sxe\", \"airsUTC\", \"downloaded\", \"hash\"])"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -360s)\n  |> filter(fn: (r) => r._measurement == \"Sonarr\" and r[\"type\"] == \"Missing\" and r[\"server\"] == \"1\" and (r._field == \"hash\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"hash\")\n  |> group(columns: [\"name\", \"sxe\", \"airsUTC\", \"downloaded\", \"_field\", \"_start\"])\n  |> sort(columns: [\"_time\"])\n  |> last()\n  |> map(fn: (r) => ({ r with _field: \"hash\" }))\nf0\n  |> group(columns: [\"name\", \"sxe\", \"airsUTC\", \"downloaded\", \"_start\"])\n  |> pivot(rowKey: [\"name\", \"sxe\", \"airsUTC\", \"downloaded\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> group()\n  |> keep(columns: [\"name\", \"sxe\", \"airsUTC\", \"downloaded\", \"hash\"])"
         }
       ],
       "fieldConfig": {
@@ -1386,7 +1386,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -360s)\n  |> filter(fn: (r) => r._measurement == \"Overseerr\" and r[\"type\"] == \"Requests\" and r[\"server\"] == \"1\" and (r._field == \"hash\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"hash\")\n  |> group(columns: [\"title\", \"requested_user\", \"requested_date\", \"status\", \"_field\", \"_start\"])\n  |> last()\n  |> map(fn: (r) => ({ r with _field: \"hash\" }))\nf0\n  |> group(columns: [\"title\", \"requested_user\", \"requested_date\", \"status\", \"_start\"])\n  |> pivot(rowKey: [\"title\", \"requested_user\", \"requested_date\", \"status\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> group()\n  |> keep(columns: [\"title\", \"requested_user\", \"requested_date\", \"status\", \"hash\"])"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -360s)\n  |> filter(fn: (r) => r._measurement == \"Overseerr\" and r[\"type\"] == \"Requests\" and r[\"server\"] == \"1\" and (r._field == \"hash\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"hash\")\n  |> group(columns: [\"title\", \"requested_user\", \"requested_date\", \"status\", \"_field\", \"_start\"])\n  |> sort(columns: [\"_time\"])\n  |> last()\n  |> map(fn: (r) => ({ r with _field: \"hash\" }))\nf0\n  |> group(columns: [\"title\", \"requested_user\", \"requested_date\", \"status\", \"_start\"])\n  |> pivot(rowKey: [\"title\", \"requested_user\", \"requested_date\", \"status\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> group()\n  |> keep(columns: [\"title\", \"requested_user\", \"requested_date\", \"status\", \"hash\"])"
         }
       ],
       "fieldConfig": {
@@ -1504,7 +1504,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -900s)\n  |> filter(fn: (r) => r._measurement == \"Sonarr\" and r[\"type\"] == \"RootFolder\" and r[\"server\"] == \"1\" and (r._field == \"free_bytes\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"free_bytes\")\n  |> group(columns: [\"path\", \"_field\"])\n  |> aggregateWindow(every: 300s, fn: last, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Sonarr 1 \" + r[\"path\"] }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -900s)\n  |> filter(fn: (r) => r._measurement == \"Sonarr\" and r[\"type\"] == \"RootFolder\" and r[\"server\"] == \"1\" and (r._field == \"free_bytes\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"free_bytes\")\n  |> group(columns: [\"path\", \"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: 300s, fn: last, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Sonarr 1 \" + r[\"path\"] }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         },
         {
           "refId": "B",
@@ -1512,7 +1512,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -900s)\n  |> filter(fn: (r) => r._measurement == \"Radarr\" and r[\"type\"] == \"RootFolder\" and r[\"server\"] == \"1\" and (r._field == \"free_bytes\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"free_bytes\")\n  |> group(columns: [\"path\", \"_field\"])\n  |> aggregateWindow(every: 300s, fn: last, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Radarr 1 \" + r[\"path\"] }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -900s)\n  |> filter(fn: (r) => r._measurement == \"Radarr\" and r[\"type\"] == \"RootFolder\" and r[\"server\"] == \"1\" and (r._field == \"free_bytes\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"free_bytes\")\n  |> group(columns: [\"path\", \"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: 300s, fn: last, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Radarr 1 \" + r[\"path\"] }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         },
         {
           "refId": "C",
@@ -1520,7 +1520,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -900s)\n  |> filter(fn: (r) => r._measurement == \"Lidarr\" and r[\"type\"] == \"RootFolder\" and r[\"server\"] == \"1\" and (r._field == \"free_bytes\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"free_bytes\")\n  |> group(columns: [\"path\", \"_field\"])\n  |> aggregateWindow(every: 300s, fn: last, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Lidarr 1 \" + r[\"path\"] }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -900s)\n  |> filter(fn: (r) => r._measurement == \"Lidarr\" and r[\"type\"] == \"RootFolder\" and r[\"server\"] == \"1\" and (r._field == \"free_bytes\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"free_bytes\")\n  |> group(columns: [\"path\", \"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: 300s, fn: last, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Lidarr 1 \" + r[\"path\"] }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         },
         {
           "refId": "D",
@@ -1528,7 +1528,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -900s)\n  |> filter(fn: (r) => r._measurement == \"Readarr\" and r[\"type\"] == \"RootFolder\" and r[\"server\"] == \"1\" and (r._field == \"free_bytes\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"free_bytes\")\n  |> group(columns: [\"path\", \"_field\"])\n  |> aggregateWindow(every: 300s, fn: last, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Readarr 1 \" + r[\"path\"] }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -900s)\n  |> filter(fn: (r) => r._measurement == \"Readarr\" and r[\"type\"] == \"RootFolder\" and r[\"server\"] == \"1\" and (r._field == \"free_bytes\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"free_bytes\")\n  |> group(columns: [\"path\", \"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: 300s, fn: last, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Readarr 1 \" + r[\"path\"] }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         }
       ],
       "fieldConfig": {
@@ -1585,7 +1585,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -900s)\n  |> filter(fn: (r) => r._measurement == \"Sonarr\" and r[\"type\"] == \"HealthIssue\" and r[\"server\"] == \"1\" and (r._field == \"message\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"message\")\n  |> group(columns: [\"level\", \"source\", \"_field\"])\n  |> aggregateWindow(every: 300s, fn: last, createEmpty: false)\n  |> map(fn: (r) => ({ r with _field: \"Sonarr 1 · \" + r[\"level\"] + \" · \" + r[\"source\"] }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -900s)\n  |> filter(fn: (r) => r._measurement == \"Sonarr\" and r[\"type\"] == \"HealthIssue\" and r[\"server\"] == \"1\" and (r._field == \"message\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"message\")\n  |> group(columns: [\"level\", \"source\", \"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: 300s, fn: last, createEmpty: false)\n  |> map(fn: (r) => ({ r with _field: \"Sonarr 1 · \" + r[\"level\"] + \" · \" + r[\"source\"] }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         },
         {
           "refId": "B",
@@ -1593,7 +1593,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -900s)\n  |> filter(fn: (r) => r._measurement == \"Radarr\" and r[\"type\"] == \"HealthIssue\" and r[\"server\"] == \"1\" and (r._field == \"message\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"message\")\n  |> group(columns: [\"level\", \"source\", \"_field\"])\n  |> aggregateWindow(every: 300s, fn: last, createEmpty: false)\n  |> map(fn: (r) => ({ r with _field: \"Radarr 1 · \" + r[\"level\"] + \" · \" + r[\"source\"] }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -900s)\n  |> filter(fn: (r) => r._measurement == \"Radarr\" and r[\"type\"] == \"HealthIssue\" and r[\"server\"] == \"1\" and (r._field == \"message\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"message\")\n  |> group(columns: [\"level\", \"source\", \"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: 300s, fn: last, createEmpty: false)\n  |> map(fn: (r) => ({ r with _field: \"Radarr 1 · \" + r[\"level\"] + \" · \" + r[\"source\"] }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         },
         {
           "refId": "C",
@@ -1601,7 +1601,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -900s)\n  |> filter(fn: (r) => r._measurement == \"Lidarr\" and r[\"type\"] == \"HealthIssue\" and r[\"server\"] == \"1\" and (r._field == \"message\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"message\")\n  |> group(columns: [\"level\", \"source\", \"_field\"])\n  |> aggregateWindow(every: 300s, fn: last, createEmpty: false)\n  |> map(fn: (r) => ({ r with _field: \"Lidarr 1 · \" + r[\"level\"] + \" · \" + r[\"source\"] }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -900s)\n  |> filter(fn: (r) => r._measurement == \"Lidarr\" and r[\"type\"] == \"HealthIssue\" and r[\"server\"] == \"1\" and (r._field == \"message\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"message\")\n  |> group(columns: [\"level\", \"source\", \"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: 300s, fn: last, createEmpty: false)\n  |> map(fn: (r) => ({ r with _field: \"Lidarr 1 · \" + r[\"level\"] + \" · \" + r[\"source\"] }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         },
         {
           "refId": "D",
@@ -1609,7 +1609,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -900s)\n  |> filter(fn: (r) => r._measurement == \"Readarr\" and r[\"type\"] == \"HealthIssue\" and r[\"server\"] == \"1\" and (r._field == \"message\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"message\")\n  |> group(columns: [\"level\", \"source\", \"_field\"])\n  |> aggregateWindow(every: 300s, fn: last, createEmpty: false)\n  |> map(fn: (r) => ({ r with _field: \"Readarr 1 · \" + r[\"level\"] + \" · \" + r[\"source\"] }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -900s)\n  |> filter(fn: (r) => r._measurement == \"Readarr\" and r[\"type\"] == \"HealthIssue\" and r[\"server\"] == \"1\" and (r._field == \"message\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"message\")\n  |> group(columns: [\"level\", \"source\", \"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: 300s, fn: last, createEmpty: false)\n  |> map(fn: (r) => ({ r with _field: \"Readarr 1 · \" + r[\"level\"] + \" · \" + r[\"source\"] }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         },
         {
           "refId": "E",
@@ -1617,7 +1617,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -900s)\n  |> filter(fn: (r) => r._measurement == \"Prowlarr\" and r[\"type\"] == \"HealthIssue\" and r[\"server\"] == \"1\" and (r._field == \"message\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"message\")\n  |> group(columns: [\"level\", \"source\", \"_field\"])\n  |> aggregateWindow(every: 300s, fn: last, createEmpty: false)\n  |> map(fn: (r) => ({ r with _field: \"Prowlarr 1 · \" + r[\"level\"] + \" · \" + r[\"source\"] }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: -900s)\n  |> filter(fn: (r) => r._measurement == \"Prowlarr\" and r[\"type\"] == \"HealthIssue\" and r[\"server\"] == \"1\" and (r._field == \"message\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"message\")\n  |> group(columns: [\"level\", \"source\", \"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: 300s, fn: last, createEmpty: false)\n  |> map(fn: (r) => ({ r with _field: \"Prowlarr 1 · \" + r[\"level\"] + \" · \" + r[\"source\"] }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         },
         {
           "refId": "F",
@@ -1625,7 +1625,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "import \"experimental\"\ndata = from(bucket: v.defaultBucket)\n  |> range(start: -900s)\n  |> filter(fn: (r) => r._measurement == \"Bazarr\" and r[\"type\"] == \"Provider\" and r[\"server\"] == \"1\" and (r._field == \"throttled\"))\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> filter(fn: (r) => exists r[\"throttled\"] and float(v: r[\"throttled\"]) == 1.0)\n  |> experimental.unpivot()\nf0 = data\n  |> filter(fn: (r) => r._field == \"throttled\")\n  |> group(columns: [\"provider\", \"status\", \"_field\"])\n  |> aggregateWindow(every: 300s, fn: last, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Bazarr 1 · \" + r[\"provider\"] + \" · \" + r[\"status\"] }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "import \"experimental\"\ndata = from(bucket: v.defaultBucket)\n  |> range(start: -900s)\n  |> filter(fn: (r) => r._measurement == \"Bazarr\" and r[\"type\"] == \"Provider\" and r[\"server\"] == \"1\" and (r._field == \"throttled\"))\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> filter(fn: (r) => exists r[\"throttled\"] and float(v: r[\"throttled\"]) == 1.0)\n  |> experimental.unpivot()\nf0 = data\n  |> filter(fn: (r) => r._field == \"throttled\")\n  |> group(columns: [\"provider\", \"status\", \"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: 300s, fn: last, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Bazarr 1 · \" + r[\"provider\"] + \" · \" + r[\"status\"] }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         },
         {
           "refId": "G",
@@ -1633,7 +1633,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "import \"experimental\"\ndata = from(bucket: v.defaultBucket)\n  |> range(start: -180s)\n  |> filter(fn: (r) => r._measurement == \"Varken\" and r[\"type\"] == \"Collector\" and (r._field == \"consecutive_errors\" or r._field == \"circuit_state\"))\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> filter(fn: (r) => exists r[\"circuit_state\"] and float(v: r[\"circuit_state\"]) > 0.0)\n  |> experimental.unpivot()\nf0 = data\n  |> filter(fn: (r) => r._field == \"consecutive_errors\")\n  |> group(columns: [\"plugin\", \"server\", \"collector\", \"_field\"])\n  |> aggregateWindow(every: 60s, fn: last, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Varken · \" + r[\"plugin\"] + \" \" + r[\"server\"] + \" · \" + r[\"collector\"] + \" circuit\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "import \"experimental\"\ndata = from(bucket: v.defaultBucket)\n  |> range(start: -180s)\n  |> filter(fn: (r) => r._measurement == \"Varken\" and r[\"type\"] == \"Collector\" and (r._field == \"consecutive_errors\" or r._field == \"circuit_state\"))\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> filter(fn: (r) => exists r[\"circuit_state\"] and float(v: r[\"circuit_state\"]) > 0.0)\n  |> experimental.unpivot()\nf0 = data\n  |> filter(fn: (r) => r._field == \"consecutive_errors\")\n  |> group(columns: [\"plugin\", \"server\", \"collector\", \"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: 60s, fn: last, createEmpty: false)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Varken · \" + r[\"plugin\"] + \" \" + r[\"server\"] + \" · \" + r[\"collector\"] + \" circuit\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         }
       ],
       "fieldConfig": {
@@ -1701,7 +1701,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Tautulli\" and r[\"type\"] == \"Play\" and r[\"server\"] == \"1\" and (r._field == \"play_duration_seconds\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"play_duration_seconds\")\n  |> group(columns: [\"media_type\", \"_field\"])\n  |> aggregateWindow(every: 1d, fn: count, createEmpty: false, timeSrc: \"_start\")\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: r[\"media_type\"] + \" · Tautulli 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Tautulli\" and r[\"type\"] == \"Play\" and r[\"server\"] == \"1\" and (r._field == \"play_duration_seconds\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"play_duration_seconds\")\n  |> group(columns: [\"media_type\", \"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: 1d, fn: count, createEmpty: false, timeSrc: \"_start\")\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: r[\"media_type\"] + \" · Tautulli 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         },
         {
           "refId": "B",
@@ -1709,7 +1709,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Jellyfin\" and r[\"type\"] == \"Activity\" and r[\"server\"] == \"1\" and r[\"activity_type\"] == \"VideoPlayback\" and (r._field == \"hash\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"hash\")\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: 1d, fn: count, createEmpty: false, timeSrc: \"_start\")\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Jellyfin 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Jellyfin\" and r[\"type\"] == \"Activity\" and r[\"server\"] == \"1\" and r[\"activity_type\"] == \"VideoPlayback\" and (r._field == \"hash\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"hash\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: 1d, fn: count, createEmpty: false, timeSrc: \"_start\")\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Jellyfin 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         },
         {
           "refId": "C",
@@ -1717,7 +1717,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Emby\" and r[\"type\"] == \"Activity\" and r[\"server\"] == \"1\" and r[\"activity_type\"] == \"VideoPlayback\" and (r._field == \"hash\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"hash\")\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: 1d, fn: count, createEmpty: false, timeSrc: \"_start\")\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Emby 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Emby\" and r[\"type\"] == \"Activity\" and r[\"server\"] == \"1\" and r[\"activity_type\"] == \"VideoPlayback\" and (r._field == \"hash\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"hash\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: 1d, fn: count, createEmpty: false, timeSrc: \"_start\")\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Emby 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         }
       ],
       "fieldConfig": {
@@ -1780,7 +1780,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Tautulli\" and r[\"type\"] == \"Play\" and r[\"server\"] == \"1\" and (r._field == \"play_duration_seconds\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"play_duration_seconds\")\n  |> group(columns: [\"username\", \"_field\", \"_start\"])\n  |> count()\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"plays\" }))\nf0\n  |> group(columns: [\"username\", \"_start\"])\n  |> pivot(rowKey: [\"username\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> group()\n  |> keep(columns: [\"username\", \"plays\"])"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Tautulli\" and r[\"type\"] == \"Play\" and r[\"server\"] == \"1\" and (r._field == \"play_duration_seconds\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"play_duration_seconds\")\n  |> group(columns: [\"username\", \"_field\", \"_start\"])\n  |> sort(columns: [\"_time\"])\n  |> count()\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"plays\" }))\nf0\n  |> group(columns: [\"username\", \"_start\"])\n  |> pivot(rowKey: [\"username\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> group()\n  |> keep(columns: [\"username\", \"plays\"])"
         }
       ],
       "fieldConfig": {
@@ -2052,7 +2052,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "import \"internal/debug\"\ndata = from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Tautulli\" and r[\"type\"] == \"Play\" and r[\"server\"] == \"1\" and (r._field == \"hash\" or r._field == \"title\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"hash\")\n  |> group(columns: [\"rating_key\", \"_field\", \"_start\"])\n  |> count()\n  |> map(fn: (r) => ({ r with _field: \"plays\", _value: string(v: r._value) }))\nf1 = data\n  |> filter(fn: (r) => r._field == \"title\")\n  |> group(columns: [\"rating_key\", \"_field\", \"_start\"])\n  |> last()\n  |> map(fn: (r) => ({ r with _field: \"title\", _value: string(v: r._value) }))\nunion(tables: [f0, f1])\n  |> group(columns: [\"rating_key\", \"_start\"])\n  |> pivot(rowKey: [\"rating_key\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> map(fn: (r) => ({ r with \"plays\": if exists r[\"plays\"] then float(v: r[\"plays\"]) else debug.null(type: \"float\") }))\n  |> group()\n  |> keep(columns: [\"rating_key\", \"plays\", \"title\"])"
+          "query": "import \"internal/debug\"\ndata = from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Tautulli\" and r[\"type\"] == \"Play\" and r[\"server\"] == \"1\" and (r._field == \"hash\" or r._field == \"title\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"hash\")\n  |> group(columns: [\"rating_key\", \"_field\", \"_start\"])\n  |> sort(columns: [\"_time\"])\n  |> count()\n  |> map(fn: (r) => ({ r with _field: \"plays\", _value: string(v: r._value) }))\nf1 = data\n  |> filter(fn: (r) => r._field == \"title\")\n  |> group(columns: [\"rating_key\", \"_field\", \"_start\"])\n  |> sort(columns: [\"_time\"])\n  |> last()\n  |> map(fn: (r) => ({ r with _field: \"title\", _value: string(v: r._value) }))\nunion(tables: [f0, f1])\n  |> group(columns: [\"rating_key\", \"_start\"])\n  |> pivot(rowKey: [\"rating_key\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> map(fn: (r) => ({ r with \"plays\": if exists r[\"plays\"] then float(v: r[\"plays\"]) else debug.null(type: \"float\") }))\n  |> group()\n  |> keep(columns: [\"rating_key\", \"plays\", \"title\"])"
         }
       ],
       "fieldConfig": {
@@ -2148,7 +2148,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Tautulli\" and r[\"type\"] == \"current_stream_stats\" and r[\"server\"] == \"1\" and (r._field == \"direct_play_streams\" or r._field == \"direct_streams\" or r._field == \"transcode_streams\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"direct_play_streams\")\n  |> group(columns: [\"_field\"])\n  |> sum()\n  |> map(fn: (r) => ({ r with _value: float(v: r._value) * 30.0, _time: v.timeRangeStart }))\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Direct play\" }))\nf1 = data\n  |> filter(fn: (r) => r._field == \"direct_streams\")\n  |> group(columns: [\"_field\"])\n  |> sum()\n  |> map(fn: (r) => ({ r with _value: float(v: r._value) * 30.0, _time: v.timeRangeStart }))\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Direct stream\" }))\nf2 = data\n  |> filter(fn: (r) => r._field == \"transcode_streams\")\n  |> group(columns: [\"_field\"])\n  |> sum()\n  |> map(fn: (r) => ({ r with _value: float(v: r._value) * 30.0, _time: v.timeRangeStart }))\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Transcode\" }))\nunion(tables: [f0, f1, f2])\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Tautulli\" and r[\"type\"] == \"current_stream_stats\" and r[\"server\"] == \"1\" and (r._field == \"direct_play_streams\" or r._field == \"direct_streams\" or r._field == \"transcode_streams\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"direct_play_streams\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> sum()\n  |> map(fn: (r) => ({ r with _value: float(v: r._value) * 30.0, _time: v.timeRangeStart }))\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Direct play\" }))\nf1 = data\n  |> filter(fn: (r) => r._field == \"direct_streams\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> sum()\n  |> map(fn: (r) => ({ r with _value: float(v: r._value) * 30.0, _time: v.timeRangeStart }))\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Direct stream\" }))\nf2 = data\n  |> filter(fn: (r) => r._field == \"transcode_streams\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> sum()\n  |> map(fn: (r) => ({ r with _value: float(v: r._value) * 30.0, _time: v.timeRangeStart }))\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Transcode\" }))\nunion(tables: [f0, f1, f2])\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         },
         {
           "refId": "B",
@@ -2156,7 +2156,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Jellyfin\" and r[\"type\"] == \"current_stream_stats\" and r[\"server\"] == \"1\" and (r._field == \"direct_play_streams\" or r._field == \"direct_streams\" or r._field == \"transcode_streams\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"direct_play_streams\")\n  |> group(columns: [\"_field\"])\n  |> sum()\n  |> map(fn: (r) => ({ r with _value: float(v: r._value) * 30.0, _time: v.timeRangeStart }))\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Direct play\" }))\nf1 = data\n  |> filter(fn: (r) => r._field == \"direct_streams\")\n  |> group(columns: [\"_field\"])\n  |> sum()\n  |> map(fn: (r) => ({ r with _value: float(v: r._value) * 30.0, _time: v.timeRangeStart }))\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Direct stream\" }))\nf2 = data\n  |> filter(fn: (r) => r._field == \"transcode_streams\")\n  |> group(columns: [\"_field\"])\n  |> sum()\n  |> map(fn: (r) => ({ r with _value: float(v: r._value) * 30.0, _time: v.timeRangeStart }))\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Transcode\" }))\nunion(tables: [f0, f1, f2])\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Jellyfin\" and r[\"type\"] == \"current_stream_stats\" and r[\"server\"] == \"1\" and (r._field == \"direct_play_streams\" or r._field == \"direct_streams\" or r._field == \"transcode_streams\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"direct_play_streams\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> sum()\n  |> map(fn: (r) => ({ r with _value: float(v: r._value) * 30.0, _time: v.timeRangeStart }))\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Direct play\" }))\nf1 = data\n  |> filter(fn: (r) => r._field == \"direct_streams\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> sum()\n  |> map(fn: (r) => ({ r with _value: float(v: r._value) * 30.0, _time: v.timeRangeStart }))\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Direct stream\" }))\nf2 = data\n  |> filter(fn: (r) => r._field == \"transcode_streams\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> sum()\n  |> map(fn: (r) => ({ r with _value: float(v: r._value) * 30.0, _time: v.timeRangeStart }))\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Transcode\" }))\nunion(tables: [f0, f1, f2])\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         },
         {
           "refId": "C",
@@ -2164,7 +2164,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Emby\" and r[\"type\"] == \"current_stream_stats\" and r[\"server\"] == \"1\" and (r._field == \"direct_play_streams\" or r._field == \"direct_streams\" or r._field == \"transcode_streams\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"direct_play_streams\")\n  |> group(columns: [\"_field\"])\n  |> sum()\n  |> map(fn: (r) => ({ r with _value: float(v: r._value) * 30.0, _time: v.timeRangeStart }))\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Direct play\" }))\nf1 = data\n  |> filter(fn: (r) => r._field == \"direct_streams\")\n  |> group(columns: [\"_field\"])\n  |> sum()\n  |> map(fn: (r) => ({ r with _value: float(v: r._value) * 30.0, _time: v.timeRangeStart }))\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Direct stream\" }))\nf2 = data\n  |> filter(fn: (r) => r._field == \"transcode_streams\")\n  |> group(columns: [\"_field\"])\n  |> sum()\n  |> map(fn: (r) => ({ r with _value: float(v: r._value) * 30.0, _time: v.timeRangeStart }))\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Transcode\" }))\nunion(tables: [f0, f1, f2])\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Emby\" and r[\"type\"] == \"current_stream_stats\" and r[\"server\"] == \"1\" and (r._field == \"direct_play_streams\" or r._field == \"direct_streams\" or r._field == \"transcode_streams\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"direct_play_streams\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> sum()\n  |> map(fn: (r) => ({ r with _value: float(v: r._value) * 30.0, _time: v.timeRangeStart }))\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Direct play\" }))\nf1 = data\n  |> filter(fn: (r) => r._field == \"direct_streams\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> sum()\n  |> map(fn: (r) => ({ r with _value: float(v: r._value) * 30.0, _time: v.timeRangeStart }))\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Direct stream\" }))\nf2 = data\n  |> filter(fn: (r) => r._field == \"transcode_streams\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> sum()\n  |> map(fn: (r) => ({ r with _value: float(v: r._value) * 30.0, _time: v.timeRangeStart }))\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Transcode\" }))\nunion(tables: [f0, f1, f2])\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         }
       ],
       "fieldConfig": {
@@ -2259,7 +2259,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Tautulli\" and r[\"type\"] == \"RecentlyAdded\" and r[\"server\"] == \"1\" and (r._field == \"title\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"title\")\n  |> group(columns: [\"library_name\", \"media_type\", \"_field\", \"_start\"])\n  |> map(fn: (r) => ({ r with _field: \"title\" }))\nf0\n  |> group(columns: [\"library_name\", \"media_type\", \"_start\"])\n  |> pivot(rowKey: [\"_time\", \"library_name\", \"media_type\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> group()\n  |> rename(columns: {_time: \"Time\"})\n  |> sort(columns: [\"Time\"], desc: true)\n  |> limit(n: 10)\n  |> keep(columns: [\"Time\", \"library_name\", \"media_type\", \"title\"])"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Tautulli\" and r[\"type\"] == \"RecentlyAdded\" and r[\"server\"] == \"1\" and (r._field == \"title\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"title\")\n  |> group(columns: [\"library_name\", \"media_type\", \"_field\", \"_start\"])\n  |> sort(columns: [\"_time\"])\n  |> map(fn: (r) => ({ r with _field: \"title\" }))\nf0\n  |> group(columns: [\"library_name\", \"media_type\", \"_start\"])\n  |> pivot(rowKey: [\"_time\", \"library_name\", \"media_type\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> group()\n  |> rename(columns: {_time: \"Time\"})\n  |> sort(columns: [\"Time\"], desc: true)\n  |> limit(n: 10)\n  |> keep(columns: [\"Time\", \"library_name\", \"media_type\", \"title\"])"
         }
       ],
       "fieldConfig": {
@@ -2333,7 +2333,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Overseerr\" and r[\"type\"] == \"Request_Counts\" and r[\"server\"] == \"1\" and (r._field == \"total\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"total\")\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: 1d, fn: last, createEmpty: false, timeSrc: \"_start\")\n  |> difference(nonNegative: true)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Overseerr 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Overseerr\" and r[\"type\"] == \"Request_Counts\" and r[\"server\"] == \"1\" and (r._field == \"total\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"total\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: 1d, fn: last, createEmpty: false, timeSrc: \"_start\")\n  |> difference(nonNegative: true)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Overseerr 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         },
         {
           "refId": "B",
@@ -2341,7 +2341,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Ombi\" and r[\"type\"] == \"Request_Total\" and r[\"server\"] == \"1\" and (r._field == \"total\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"total\")\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: 1d, fn: last, createEmpty: false, timeSrc: \"_start\")\n  |> difference(nonNegative: true)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Ombi 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Ombi\" and r[\"type\"] == \"Request_Total\" and r[\"server\"] == \"1\" and (r._field == \"total\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"total\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: 1d, fn: last, createEmpty: false, timeSrc: \"_start\")\n  |> difference(nonNegative: true)\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Ombi 1\" }))\nf0\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         }
       ],
       "fieldConfig": {
@@ -2404,7 +2404,7 @@
             "type": "influxdb",
             "uid": "${DS_VARKEN}"
           },
-          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Bazarr\" and r[\"type\"] == \"HistoryStats\" and r[\"server\"] == \"1\" and (r._field == \"movies\" or r._field == \"episodes\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"movies\")\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: 1d, fn: sum, createEmpty: false, timeSrc: \"_start\")\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Movies\" }))\nf1 = data\n  |> filter(fn: (r) => r._field == \"episodes\")\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: 1d, fn: sum, createEmpty: false, timeSrc: \"_start\")\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Episodes\" }))\nunion(tables: [f0, f1])\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
+          "query": "data = from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Bazarr\" and r[\"type\"] == \"HistoryStats\" and r[\"server\"] == \"1\" and (r._field == \"movies\" or r._field == \"episodes\"))\nf0 = data\n  |> filter(fn: (r) => r._field == \"movies\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: 1d, fn: sum, createEmpty: false, timeSrc: \"_start\")\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Movies\" }))\nf1 = data\n  |> filter(fn: (r) => r._field == \"episodes\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: 1d, fn: sum, createEmpty: false, timeSrc: \"_start\")\n  |> toFloat()\n  |> map(fn: (r) => ({ r with _field: \"Episodes\" }))\nunion(tables: [f0, f1])\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {_time: \"Time\"})"
         }
       ],
       "fieldConfig": {

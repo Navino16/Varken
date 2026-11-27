@@ -89,7 +89,7 @@ function streams(query: Query, source: ResolvedSource, groupBy: string[], name: 
   const { fields } = source.spec;
   const defs = fields.map(
     (field, index) =>
-      `f${index} = data${pipe([`filter(fn: (r) => r._field == ${literal(field.name)})`, `group(columns: ${list(groupBy)})`, ...aggregate(query, field, source.intervalSeconds), ...name(field)])}`
+      `f${index} = data${pipe([`filter(fn: (r) => r._field == ${literal(field.name)})`, `group(columns: ${list(groupBy)})`, 'sort(columns: ["_time"])', ...aggregate(query, field, source.intervalSeconds), ...name(field)])}`
   );
   const tables = fields.length === 1 ? 'f0' : `union(tables: [${fields.map((_f, index) => `f${index}`).join(', ')}])`;
   return `${defs.join('\n')}\n${tables}`;

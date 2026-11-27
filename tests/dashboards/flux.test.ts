@@ -29,6 +29,7 @@ describe('flux', () => {
         'f0 = data',
         '  |> filter(fn: (r) => r._field == "size")',
         '  |> group(columns: ["_field"])',
+        '  |> sort(columns: ["_time"])',
         '  |> aggregateWindow(every: 30s, fn: count, createEmpty: false)',
         '  |> toFloat()',
         '  |> map(fn: (r) => ({ r with _field: "Sonarr 1" }))',
@@ -71,7 +72,7 @@ describe('flux', () => {
   it('totals the range per tag value as a table, keeping string and number columns apart', () => {
     const query = render({ shape: 'topN', agg: 'count' }, { fields: [str('hash', 'plays'), { ...str('title'), agg: 'last' }], tags: ['rating_key'] });
 
-    expect(query).toContain('|> group(columns: ["rating_key", "_field", "_start"])\n  |> count()');
+    expect(query).toContain('|> group(columns: ["rating_key", "_field", "_start"])\n  |> sort(columns: ["_time"])\n  |> count()');
     expect(query).toContain('|> last()');
     expect(query).toContain('|> map(fn: (r) => ({ r with _field: "plays", _value: string(v: r._value) }))');
     expect(query).toContain('|> group(columns: ["rating_key", "_start"])\n  |> pivot(rowKey: ["rating_key"], columnKey: ["_field"], valueColumn: "_value")');
