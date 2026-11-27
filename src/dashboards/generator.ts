@@ -114,20 +114,23 @@ function panelJson(rendered: Rendered, band: BandSpec, translator: Translator, c
   return panel;
 }
 
-/** A line of stats left short by omitted ones shares the full width. */
-function stretchStatLines(panels: GrafanaPanel[]): void {
+/** A line left short by omitted panels shares the full width, in proportion to the panels' widths. */
+function stretchLines(panels: GrafanaPanel[]): void {
   const lines = new Map<number, GrafanaPanel[]>();
   for (const panel of panels) {
     lines.set(panel.gridPos.y, [...(lines.get(panel.gridPos.y) ?? []), panel]);
   }
   for (const line of lines.values()) {
     const used = line.reduce((sum, panel) => sum + panel.gridPos.w, 0);
-    if (used >= GRID_WIDTH || !line.every((panel) => panel.type === 'stat')) {
+    if (used >= GRID_WIDTH) {
       continue;
     }
+    const widths = line.map((panel) => Math.floor((panel.gridPos.w * GRID_WIDTH) / used));
+    let spare = GRID_WIDTH - widths.reduce((sum, w) => sum + w, 0);
     let x = 0;
     line.forEach((panel, index) => {
-      const w = Math.floor(GRID_WIDTH / line.length) + (index < GRID_WIDTH % line.length ? 1 : 0);
+      const w = widths[index] + (spare > 0 ? 1 : 0);
+      spare -= 1;
       panel.gridPos = { ...panel.gridPos, x, w };
       x += w;
     });
@@ -157,7 +160,7 @@ export function generateDashboard(options: GenerateOptions): GrafanaDashboard {
       const [width, height] = r.variant.size ?? [r.spec.width, r.spec.height];
       return panelJson(r, band, translator, targetCtx, panels.length + 1 + index, flow.place(width, height));
     });
-    stretchStatLines(placed);
+    stretchLines(placed);
     panels.push(...placed);
   }
   const panelTypes = [...new Set(panels.map((panel) => panel.type).filter((type) => type !== 'row'))].sort();

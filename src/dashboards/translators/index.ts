@@ -1,11 +1,14 @@
-import { type FieldRef, type OutputKey, type Query, type ResolvedSource, TABLE_SHAPES } from '../model';
+import { type OutputKey, type Query, type ResolvedSource, TABLE_SHAPES } from '../model';
+import { flux } from './flux';
 import { influxql } from './influxql';
+import { resultKind } from './kinds';
 import type { Translator } from './types';
 
+export { resultKind } from './kinds';
 export type { GrafanaTarget, TargetContext, Translator } from './types';
 export { DATASOURCE_UID } from './types';
 
-const TRANSLATORS: Partial<Record<OutputKey, Translator>> = { influxdb1: influxql };
+const TRANSLATORS: Partial<Record<OutputKey, Translator>> = { influxdb1: influxql, influxdb2: flux };
 
 export function getTranslator(output: OutputKey): Translator {
   const translator = TRANSLATORS[output];
@@ -28,10 +31,4 @@ export function usableSources(translator: Translator, query: Query, sources: Res
     case 'tables':
       return TABLE_SHAPES.has(query.shape) ? sources : sources.filter((source) => source.spec.fields.every((field) => resultKind(field, query) === 'number'));
   }
-}
-
-/** Kind of the value a field yields once aggregated: a count is always a number. */
-export function resultKind(field: FieldRef, query: Query): 'number' | 'string' {
-  const agg = field.agg ?? ('agg' in query ? query.agg : undefined);
-  return agg === 'count' ? 'number' : field.kind;
 }

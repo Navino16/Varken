@@ -141,7 +141,7 @@ describe('usableSources', () => {
 });
 
 describe('getTranslator', () => {
-  it('knows InfluxDB 1 only', () => {
+  it('knows the InfluxDB 1 translator and rejects unknown outputs', () => {
     expect(getTranslator('influxdb1')).toBe(influxql);
     expect(() => getTranslator('questdb')).toThrow('No dashboard translator for output questdb');
   });

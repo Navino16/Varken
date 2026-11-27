@@ -1,15 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import { GlobalConfigSchema, InputsConfigSchema, type InputsConfig } from '../../src/config/schemas/config.schema';
 import { generateDashboard, type GrafanaDashboard, type GrafanaPanel } from '../../src/dashboards';
+import type { OutputKey } from '../../src/dashboards/model';
 import { OVERVIEW } from '../../src/dashboards/overview';
 import { demoInputs } from '../demo/config';
 
 const global = GlobalConfigSchema.parse({});
 
-function overview(inputs: InputsConfig, pairedPlex: number[] = [], options: { selfMetrics?: boolean } = {}): GrafanaDashboard {
+function overview(inputs: InputsConfig, pairedPlex: number[] = [], options: { selfMetrics?: boolean; output?: OutputKey } = {}): GrafanaDashboard {
   const pairs = new Map(pairedPlex.map((id): [number, number[]] => [id, (inputs.tautulli ?? []).map((t) => t.id)]));
   const config = { inputs, global: { ...global, selfMetrics: { ...global.selfMetrics, enabled: options.selfMetrics ?? true } } };
-  return generateDashboard({ kind: 'overview', output: 'influxdb1', config, pairedPlex: pairs, version: '9.9.9' });
+  return generateDashboard({ kind: 'overview', output: options.output ?? 'influxdb1', config, pairedPlex: pairs, version: '9.9.9' });
 }
 
 function panel(dashboard: GrafanaDashboard, title: string): GrafanaPanel | undefined {
@@ -43,7 +44,7 @@ describe('Overview', () => {
       ['Now', { x: 0, y: 0, w: 24, h: 1 }],
       ['Downloads', { x: 0, y: 1, w: 12, h: 4 }],
       ['Stuck downloads', { x: 12, y: 1, w: 12, h: 4 }],
-      ['Download queue', { x: 0, y: 5, w: 8, h: 8 }],
+      ['Download queue', { x: 0, y: 5, w: 24, h: 8 }],
     ]);
     await expect(`${JSON.stringify(dashboard, null, 2)}\n`).toMatchFileSnapshot('__snapshots__/overview-influxdb1-minimal.json');
   });
@@ -160,5 +161,21 @@ describe('Overview', () => {
     expect(healthIssue(messages)).toEqual([{ name: 'message', kind: 'string' }]);
     expect(healthIssue(counts)).toEqual([{ name: 'message', kind: 'string', agg: 'count' }]);
     expect(counts.sources.length).toBe(messages.sources.length);
+  });
+
+  describe.each(['influxdb2'] as const)('on %s', (output) => {
+    it('matches the full and minimal snapshots', async () => {
+      await expect(`${JSON.stringify(overview(demoInputs(), [1], { output }), null, 2)}\n`).toMatchFileSnapshot(`__snapshots__/overview-${output}-full.json`);
+      await expect(`${JSON.stringify(overview(minimal, [], { selfMetrics: false, output }), null, 2)}\n`).toMatchFileSnapshot(`__snapshots__/overview-${output}-minimal.json`);
+    });
+
+    it('fills every line of the full dashboard', () => {
+      const lines = new Map<number, number>();
+      for (const p of overview(demoInputs(), [1], { output }).panels) {
+        lines.set(p.gridPos.y, (lines.get(p.gridPos.y) ?? 0) + p.gridPos.w);
+      }
+
+      expect([...lines.values()].every((width) => width === 24)).toBe(true);
+    });
   });
 });

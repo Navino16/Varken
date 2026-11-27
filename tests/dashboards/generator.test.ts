@@ -63,9 +63,9 @@ describe('generateDashboard', () => {
       ['row', 'Now', { x: 0, y: 0, w: 24, h: 1 }],
       ['stat', 'a', { x: 0, y: 1, w: 12, h: 4 }],
       ['stat', 'b', { x: 12, y: 1, w: 12, h: 4 }],
-      ['timeseries', 'Fallback', { x: 0, y: 5, w: 16, h: 4 }],
+      ['timeseries', 'Fallback', { x: 0, y: 5, w: 24, h: 4 }],
       ['row', 'Period', { x: 0, y: 9, w: 24, h: 1 }],
-      ['timeseries', 'e', { x: 0, y: 10, w: 8, h: 4 }],
+      ['timeseries', 'e', { x: 0, y: 10, w: 24, h: 4 }],
     ]);
     expect(generate().panels.map((p) => p.id)).toEqual([1, 2, 3, 4, 5, 6]);
   });
@@ -119,6 +119,18 @@ describe('generateDashboard', () => {
   });
 });
 
+describe('short lines', () => {
+  it('widen their panels in proportion', () => {
+    const spec: DashboardSpec = { kind: 'overview', title: 'L', bands: [{ key: 'b', title: 'B', panels: [panel('x', 8, [queue], { grafana: { type: 'table' } }), panel('y', 4, [queue], { grafana: { type: 'table' } })] }] };
+    const panels = generateDashboard({ kind: 'overview', output: 'influxdb1', config, pairedPlex: new Map(), version: '9.9.9', spec }).panels.slice(1);
+
+    expect(panels.map((p) => [p.gridPos.x, p.gridPos.w])).toEqual([
+      [0, 16],
+      [16, 8],
+    ]);
+  });
+});
+
 describe('stat lines', () => {
   it('stretch to the full width when stats are left out', () => {
     const stats = (n: number): PanelSpec[] => Array.from({ length: n }, (_, i) => ({ ...panel(`s${i}`, 3, i < 5 ? [queue] : [requests]), grafana: { type: 'stat' } }));
@@ -132,7 +144,7 @@ describe('stat lines', () => {
       [15, 5],
       [20, 4],
     ]);
-    expect(panels.find((p) => p.type === 'table')?.gridPos).toEqual({ x: 0, y: 5, w: 16, h: 4 });
+    expect(panels.find((p) => p.type === 'table')?.gridPos).toEqual({ x: 0, y: 5, w: 24, h: 4 });
   });
 });
 
@@ -160,7 +172,9 @@ describe('variants', () => {
   });
 
   it('sizes the panel from the rendered variant', () => {
-    const [p] = render([{ query: { shape: 'latest', agg: 'last' }, sources: [queue], size: [16, 9], grafana: { type: 'timeseries' } }]);
+    const sized = panel('sized', 8, [], { variants: [{ query: { shape: 'latest', agg: 'last' }, sources: [queue], size: [16, 9] }], grafana: { type: 'timeseries' } });
+    const spec: DashboardSpec = { kind: 'overview', title: 'S', bands: [{ key: 'b', title: 'B', panels: [sized, panel('next', 8, [queue], { grafana: { type: 'table' } })] }] };
+    const [p] = generateDashboard({ kind: 'overview', output: 'influxdb1', config, pairedPlex: new Map(), version: '9.9.9', spec }).panels.slice(1);
 
     expect(p.gridPos).toMatchObject({ w: 16, h: 9 });
   });
