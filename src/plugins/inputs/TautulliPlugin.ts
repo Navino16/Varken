@@ -94,6 +94,16 @@ export class TautulliPlugin extends BaseInputPlugin<TautulliConfig> {
     }
   }
 
+  /** Machine identifier of the Plex server this Tautulli watches. */
+  async pmsIdentifier(): Promise<string> {
+    const server = await this.api<paths>().get('/api/v2?cmd=get_server_info', { query: { apikey: this.config.apiKey } });
+    const identifier = server.response.data.pms_identifier;
+    if (!identifier) {
+      throw new Error('Tautulli reports no Plex server identifier');
+    }
+    return identifier;
+  }
+
   /**
    * Collect all enabled data from Tautulli
    */

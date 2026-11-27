@@ -110,6 +110,16 @@ export class PlexPlugin extends BaseInputPlugin<PlexConfig> {
     return '/identity';
   }
 
+  /** Identifier Tautulli reports as `pms_identifier` for this server. */
+  async machineIdentifier(): Promise<string> {
+    const identity = await this.plex.get('/identity');
+    const identifier = identity.MediaContainer?.machineIdentifier;
+    if (!identifier) {
+      throw new Error('Plex reports no machine identifier');
+    }
+    return identifier;
+  }
+
   async collect(): Promise<DataPoint[]> {
     const points: DataPoint[] = [];
 
