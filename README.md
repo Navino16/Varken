@@ -302,7 +302,7 @@ The generated dashboards query the database Varken writes to, through one Grafan
 | QuestDB | PostgreSQL | Host `questdb:8812` (PostgreSQL wire protocol), database `qdb`, user `admin`, password `quest` by default, TLS disabled |
 | TimescaleDB | PostgreSQL, **TimescaleDB** toggle on | Host, database, user and password of the Varken output |
 
-String fields do not exist in VictoriaMetrics, so the panels listing titles or messages (recently added, latest requests, calendar, most watched) are left out of its dashboards. QuestDB creates a column the first time a point carries it: a panel reading a column no point has written yet shows an error until that data arrives.
+String fields do not exist in VictoriaMetrics, so its dashboards leave out what only strings carry: the panels listing titles (recently added, latest requests, calendar, most watched), the *arr and Prowlarr health messages, and the plays of Plex, Jellyfin and Emby (their play points hold only strings; Tautulli plays still count). QuestDB creates a table the first time a measurement is written and a column the first time a point carries it: until then, a panel reading it shows an error.
 
 See [`config/varken.example.yaml`](config/varken.example.yaml) for the complete list of supported options.
 
