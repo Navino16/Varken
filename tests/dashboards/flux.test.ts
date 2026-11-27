@@ -75,7 +75,8 @@ describe('flux', () => {
     expect(query).toContain('|> last()');
     expect(query).toContain('|> map(fn: (r) => ({ r with _field: "plays", _value: string(v: r._value) }))');
     expect(query).toContain('|> group(columns: ["rating_key", "_start"])\n  |> pivot(rowKey: ["rating_key"], columnKey: ["_field"], valueColumn: "_value")');
-    expect(query).toContain('|> map(fn: (r) => ({ r with "plays": if exists r["plays"] then float(v: r["plays"]) else 0.0 }))');
+    expect(query.startsWith('import "internal/debug"\n')).toBe(true);
+    expect(query).toContain('|> map(fn: (r) => ({ r with "plays": if exists r["plays"] then float(v: r["plays"]) else debug.null(type: "float") }))');
     expect(query).not.toContain('"title": if exists');
     expect(query).toMatch(/\|> group\(\)\n {2}\|> keep\(columns: \["rating_key", "plays", "title"\]\)$/);
   });
@@ -86,6 +87,7 @@ describe('flux', () => {
     expect(query).toContain('|> range(start: -120s)');
     expect(query).toContain('|> last()\n  |> toFloat()');
     expect(query).not.toContain('string(v:');
+    expect(query).not.toContain('internal/debug');
     expect(query).toMatch(/keep\(columns: \["name", "sxe", "progress", "sizeleft"\]\)$/);
   });
 

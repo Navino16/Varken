@@ -121,7 +121,7 @@ function table(query: Query, source: ResolvedSource): string {
   const back = mixed
     ? fields
         .filter((_field, index) => kinds[index] === 'number')
-        .map((field) => `map(fn: (r) => ({ r with ${literal(alias(field))}: if exists ${column(alias(field))} then float(v: ${column(alias(field))}) else 0.0 }))`)
+        .map((field) => `map(fn: (r) => ({ r with ${literal(alias(field))}: if exists ${column(alias(field))} then float(v: ${column(alias(field))}) else debug.null(type: "float") }))`)
     : [];
   const columns = [...(events ? ['Time'] : []), ...tags, ...fields.map(alias)];
   const order = events ? ['rename(columns: {_time: "Time"})', 'sort(columns: ["Time"], desc: true)', `limit(n: ${query.limit})`] : [];
@@ -145,6 +145,9 @@ function render(query: Query, source: ResolvedSource, ctx: TargetContext): strin
   const imports: string[] = [];
   if ((source.spec.where ?? []).some((f) => f.kind === 'number')) {
     imports.push('import "experimental"');
+  }
+  if (TABLE_SHAPES.has(query.shape) && new Set(source.spec.fields.map((field) => resultKind(field, query))).size > 1) {
+    imports.push('import "internal/debug"');
   }
   if (query.shape === 'timeBuckets') {
     imports.push('import "date"', 'import "timezone"', `option location = timezone.location(name: ${literal(ctx.timezone)})`);
