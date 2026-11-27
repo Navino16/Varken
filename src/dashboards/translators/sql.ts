@@ -27,34 +27,72 @@ interface SqlDialect {
 const timescale: SqlDialect = {
   output: 'timescaledb',
   label: 'Varken (TimescaleDB)',
-  from: (source) => `FROM varken_events WHERE measurement = ${literal(source.measurement)} AND tags->>'type' = ${literal(source.spec.type)}`,
+  from(source: ResolvedSource): string {
+    return `FROM varken_events WHERE measurement = ${literal(source.measurement)} AND tags->>'type' = ${literal(source.spec.type)}`;
+  },
   time: 'time',
-  tag: (key) => `tags->>${literal(key)}`,
-  field: (field) => (field.kind === 'number' ? `(fields->>${literal(field.name)})::double precision` : `fields->>${literal(field.name)}`),
-  window: (seconds) => `time > now() - interval '${seconds} seconds'`,
-  bucket: (every) => `time_bucket(${literal(every)}, time)`,
-  last: (expr) => `last(${expr}, time)`,
-  notEqual: (left, right) => `${left} IS DISTINCT FROM ${right}`,
+  tag(key: string): string {
+    return `tags->>${literal(key)}`;
+  },
+  field(field: FieldRef): string {
+    return field.kind === 'number' ? `(fields->>${literal(field.name)})::double precision` : `fields->>${literal(field.name)}`;
+  },
+  window(seconds: number): string {
+    return `time > now() - interval '${seconds} seconds'`;
+  },
+  bucket(every: string): string {
+    return `time_bucket(${literal(every)}, time)`;
+  },
+  last(expr: string): string {
+    return `last(${expr}, time)`;
+  },
+  notEqual(left: string, right: string): string {
+    return `${left} IS DISTINCT FROM ${right}`;
+  },
   // `||` binds as tightly as `->>`: tag lookups need their parentheses.
-  concat: (parts) => parts.map((part) => (part.startsWith("'") ? part : `(${part})`)).join(' || '),
-  weekday: (timezone) => `extract(isodow from time AT TIME ZONE ${literal(timezone)})::int`,
-  hour: (timezone) => `extract(hour from time AT TIME ZONE ${literal(timezone)})::int`,
+  concat(parts: string[]): string {
+    return parts.map((part) => (part.startsWith("'") ? part : `(${part})`)).join(' || ');
+  },
+  weekday(timezone: string): string {
+    return `extract(isodow from time AT TIME ZONE ${literal(timezone)})::int`;
+  },
+  hour(timezone: string): string {
+    return `extract(hour from time AT TIME ZONE ${literal(timezone)})::int`;
+  },
 };
 
 const quest: SqlDialect = {
   output: 'questdb',
   label: 'Varken (QuestDB)',
-  from: (source) => `FROM ${identifier(source.measurement)} WHERE "type" = ${literal(source.spec.type)}`,
+  from(source: ResolvedSource): string {
+    return `FROM ${identifier(source.measurement)} WHERE "type" = ${literal(source.spec.type)}`;
+  },
   time: 'timestamp',
   tag: identifier,
-  field: (field) => identifier(field.name),
-  window: (seconds) => `timestamp > dateadd('s', -${seconds}, now())`,
-  bucket: (every) => `timestamp_floor(${literal(every)}, timestamp)`,
-  last: (expr) => `last(${expr})`,
-  notEqual: (left, right) => `(${left} != ${right} OR ${left} IS NULL)`,
-  concat: (parts) => `concat(${parts.join(', ')})`,
-  weekday: (timezone) => `day_of_week(to_timezone(timestamp, ${literal(timezone)}))`,
-  hour: (timezone) => `hour(to_timezone(timestamp, ${literal(timezone)}))`,
+  field(field: FieldRef): string {
+    return identifier(field.name);
+  },
+  window(seconds: number): string {
+    return `timestamp > dateadd('s', -${seconds}, now())`;
+  },
+  bucket(every: string): string {
+    return `timestamp_floor(${literal(every)}, timestamp)`;
+  },
+  last(expr: string): string {
+    return `last(${expr})`;
+  },
+  notEqual(left: string, right: string): string {
+    return `(${left} != ${right} OR ${left} IS NULL)`;
+  },
+  concat(parts: string[]): string {
+    return `concat(${parts.join(', ')})`;
+  },
+  weekday(timezone: string): string {
+    return `day_of_week(to_timezone(timestamp, ${literal(timezone)}))`;
+  },
+  hour(timezone: string): string {
+    return `hour(to_timezone(timestamp, ${literal(timezone)}))`;
+  },
 };
 
 const AGGREGATES: Record<Exclude<Agg, 'last'>, string> = { sum: 'sum', count: 'count', mean: 'avg', max: 'max' };
