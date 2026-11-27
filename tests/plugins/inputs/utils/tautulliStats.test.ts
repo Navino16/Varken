@@ -49,8 +49,8 @@ describe('graphSnapshotPoints', () => {
 
   it('emits one snapshot point per category', () => {
     expect(graphSnapshotPoints('PlaysByDayOfWeek', 'day', graph)).toEqual([
-      { tags: { type: 'PlaysByDayOfWeek', day: 'Monday' }, fields: { tv: 5, movies: 1 } },
-      { tags: { type: 'PlaysByDayOfWeek', day: 'Tuesday' }, fields: { tv: 3, movies: 0 } },
+      { tags: { type: 'PlaysByDayOfWeek', day: 'Monday', rank: 1 }, fields: { tv: 5, movies: 1 } },
+      { tags: { type: 'PlaysByDayOfWeek', day: 'Tuesday', rank: 2 }, fields: { tv: 3, movies: 0 } },
     ]);
   });
 
