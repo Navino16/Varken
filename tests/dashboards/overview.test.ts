@@ -163,7 +163,7 @@ describe('Overview', () => {
     expect(counts.sources.length).toBe(messages.sources.length);
   });
 
-  describe.each(['influxdb2'] as const)('on %s', (output) => {
+  describe.each(['influxdb2', 'victoriametrics'] as const)('on %s', (output) => {
     it('matches the full and minimal snapshots', async () => {
       await expect(`${JSON.stringify(overview(demoInputs(), [1], { output }), null, 2)}\n`).toMatchFileSnapshot(`__snapshots__/overview-${output}-full.json`);
       await expect(`${JSON.stringify(overview(minimal, [], { selfMetrics: false, output }), null, 2)}\n`).toMatchFileSnapshot(`__snapshots__/overview-${output}-minimal.json`);
@@ -177,5 +177,21 @@ describe('Overview', () => {
 
       expect([...lines.values()].every((width) => width === 24)).toBe(true);
     });
+  });
+
+  it('leaves string panels out of VictoriaMetrics and joins its table labels', () => {
+    const dashboard = overview(demoInputs(), [1], { output: 'victoriametrics' });
+    const titles = dashboard.panels.map((p) => p.title);
+    const first = (title: string): unknown => (panel(dashboard, title)?.transformations as { id: string }[] | undefined)?.[0]?.id;
+
+    for (const title of ['Recently added', 'Latest requests', 'This week', 'Most watched']) {
+      expect(titles, title).not.toContain(title);
+    }
+    expect(panel(dashboard, 'Health alerts')?.targets?.some((t) => String(t.expr).includes('_message'))).toBe(false);
+    expect(panel(dashboard, 'Health alerts')?.targets?.length).toBe(2);
+    expect(first('Now playing')).toBe('joinByLabels');
+    expect(first('Top users')).toBe('joinByLabels');
+    expect(first('Streams')).toBe('reduce');
+    expect(titles).toContain('Plays by hour of day (last 30 days)');
   });
 });
