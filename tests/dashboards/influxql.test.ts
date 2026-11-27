@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { FieldRef, Query, ResolvedSource, SourceSpec } from '../../src/dashboards/model';
+import type { FieldRef, OutputKey, Query, ResolvedSource, SourceSpec } from '../../src/dashboards/model';
 import { getTranslator, usableSources, type Translator } from '../../src/dashboards/translators';
 import { influxql } from '../../src/dashboards/translators/influxql';
 
@@ -143,6 +143,6 @@ describe('usableSources', () => {
 describe('getTranslator', () => {
   it('knows the InfluxDB 1 translator and rejects unknown outputs', () => {
     expect(getTranslator('influxdb1')).toBe(influxql);
-    expect(() => getTranslator('questdb')).toThrow('No dashboard translator for output questdb');
+    expect(() => getTranslator('graphite' as OutputKey)).toThrow('No dashboard translator for output graphite');
   });
 });

@@ -3,13 +3,14 @@ import { flux } from './flux';
 import { influxql } from './influxql';
 import { resultKind } from './kinds';
 import { metricsql } from './metricsql';
+import { questdb, timescaledb } from './sql';
 import type { Translator } from './types';
 
 export { resultKind } from './kinds';
 export type { GrafanaTarget, TargetContext, Translator } from './types';
 export { DATASOURCE_UID } from './types';
 
-const TRANSLATORS: Partial<Record<OutputKey, Translator>> = { influxdb1: influxql, influxdb2: flux, victoriametrics: metricsql };
+const TRANSLATORS: Record<OutputKey, Translator> = { influxdb1: influxql, influxdb2: flux, victoriametrics: metricsql, questdb, timescaledb };
 
 export function getTranslator(output: OutputKey): Translator {
   const translator = TRANSLATORS[output];

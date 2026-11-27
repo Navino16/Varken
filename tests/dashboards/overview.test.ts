@@ -163,7 +163,7 @@ describe('Overview', () => {
     expect(counts.sources.length).toBe(messages.sources.length);
   });
 
-  describe.each(['influxdb2', 'victoriametrics'] as const)('on %s', (output) => {
+  describe.each(['influxdb2', 'victoriametrics', 'timescaledb', 'questdb'] as const)('on %s', (output) => {
     it('matches the full and minimal snapshots', async () => {
       await expect(`${JSON.stringify(overview(demoInputs(), [1], { output }), null, 2)}\n`).toMatchFileSnapshot(`__snapshots__/overview-${output}-full.json`);
       await expect(`${JSON.stringify(overview(minimal, [], { selfMetrics: false, output }), null, 2)}\n`).toMatchFileSnapshot(`__snapshots__/overview-${output}-minimal.json`);
@@ -193,5 +193,13 @@ describe('Overview', () => {
     expect(first('Top users')).toBe('joinByLabels');
     expect(first('Streams')).toBe('reduce');
     expect(titles).toContain('Plays by hour of day (last 30 days)');
+  });
+
+  it.each(['timescaledb', 'questdb'] as const)('counts health messages on %s', (output) => {
+    const alerts = panel(overview(demoInputs(), [1], { output }), 'Health alerts');
+    const sql = (alerts?.targets ?? []).map((t) => String(t.rawSql));
+
+    expect(sql.length).toBe(7);
+    expect(sql.filter((q) => q.includes("'HealthIssue'")).every((q) => /count\((fields->>'message'|"message")\)/.test(q))).toBe(true);
   });
 });
