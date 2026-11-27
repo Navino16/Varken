@@ -1,5 +1,6 @@
 import type { VarkenConfig } from '../config/schemas/config.schema';
 import { type BandSpec, type DashboardSpec, type OutputKey, type PanelSpec, type PanelTemplate, type PlexPairing, type ResolvedSource, TABLE_SHAPES, type Variant } from './model';
+import { DETAILED } from './detailed';
 import { OVERVIEW } from './overview';
 import { MEASUREMENTS, resolveSources, type SourceContext } from './sources';
 import { DATASOURCE_UID, getTranslator, usableSources, type GrafanaTarget, type TargetContext, type Translator } from './translators';
@@ -43,7 +44,7 @@ export interface GenerateOptions {
   spec?: DashboardSpec;
 }
 
-const SPECS: Record<DashboardSpec['kind'], DashboardSpec> = { overview: OVERVIEW, detailed: { kind: 'detailed', title: 'Varken Detailed', bands: [] } };
+const SPECS: Record<DashboardSpec['kind'], DashboardSpec> = { overview: OVERVIEW, detailed: DETAILED };
 
 interface Rendered {
   spec: PanelSpec;
