@@ -1,9 +1,12 @@
+import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
-import { GlobalConfigSchema, InputsConfigSchema } from '../../src/config/schemas/config.schema';
-import type { PointSpec } from '../../src/dashboards/catalog';
+import { GlobalConfigSchema, InputsConfigSchema, type InputsConfig } from '../../src/config/schemas/config.schema';
+import { CATALOG, type PointSpec } from '../../src/dashboards/catalog';
 import { DETAILED, pointPanels } from '../../src/dashboards/detailed';
-import { generateDashboard, type GrafanaPanel } from '../../src/dashboards/generator';
-import { num, str } from '../../src/dashboards/model';
+import { generateDashboard, type GrafanaDashboard, type GrafanaPanel } from '../../src/dashboards/generator';
+import { num, type OutputKey, str } from '../../src/dashboards/model';
+import { MEASUREMENTS } from '../../src/dashboards/sources';
+import { demoInputs } from '../demo/config';
 
 interface Override {
   matcher: { options: string };
@@ -127,5 +130,83 @@ describe('DETAILED', () => {
     expect(dashboard).toMatchObject({ uid: 'varken-detailed-influxdb1', title: 'Varken Detailed' });
     expect(dashboard.panels.map((p) => p.title)).toEqual(['Ombi 3']);
     expect(nested(dashboard.panels[0]).map((p) => p.title)).toEqual(['Request counts', 'Request totals', 'Requests']);
+  });
+});
+
+type Plugin = keyof typeof MEASUREMENTS;
+
+/** Types named only in the prose of `docs/data-reference.md`, not in a `### type =` heading. */
+const PROSE_TYPES: Partial<Record<Plugin, string[]>> = { prowlarr: ['IndexerStatsWindow', 'UserAgentStats', 'HostStats', 'IndexerStatusSummary'] };
+/** Documented for a shared section but never written by that plugin. */
+const NOT_WRITTEN: Partial<Record<Plugin, Record<string, string>>> = { emby: { Storage: '/System/Info/Storage is a Jellyfin 10.11 endpoint' } };
+
+/** Point types per plugin, from the `## <Service>` sections of the data reference. */
+function documentedTypes(): Map<Plugin, Set<string>> {
+  const types = new Map<Plugin, Set<string>>();
+  let plugins: Plugin[] = [];
+  for (const line of readFileSync('docs/data-reference.md', 'utf8').split('\n')) {
+    if (line.startsWith('## ')) {
+      plugins = (Object.entries(MEASUREMENTS) as [Plugin, string][]).filter(([, name]) => new RegExp(`\\b${name}\\b`).test(line)).map(([key]) => key);
+    }
+    const heading = /^### type = (.+)$/.exec(line);
+    for (const plugin of heading ? plugins : []) {
+      heading?.[1].split(' / ').forEach((type) => types.set(plugin, new Set([...(types.get(plugin) ?? []), type.trim()])));
+    }
+  }
+  for (const [plugin, extra] of Object.entries(PROSE_TYPES) as [Plugin, string[]][]) {
+    extra.forEach((type) => types.get(plugin)?.add(type));
+  }
+  for (const [plugin, skipped] of Object.entries(NOT_WRITTEN) as [Plugin, Record<string, string>][]) {
+    Object.keys(skipped).forEach((type) => types.get(plugin)?.delete(type));
+  }
+  return types;
+}
+
+const OUTPUTS: OutputKey[] = ['influxdb1', 'influxdb2', 'victoriametrics', 'questdb', 'timescaledb'];
+const full = (output: OutputKey, inputs: InputsConfig = demoInputs()): GrafanaDashboard =>
+  generateDashboard({ kind: 'detailed', output, config: { inputs, global: GlobalConfigSchema.parse({}) }, pairedPlex: new Map([[1, [1]]]), version: '9.9.9' });
+const rows = (dashboard: GrafanaDashboard): [GrafanaPanel, GrafanaPanel[]][] => dashboard.panels.map((row) => [row, row.panels as GrafanaPanel[]]);
+
+describe('catalogue', () => {
+  it('covers every documented point type of every plugin, and only those', () => {
+    const documented = documentedTypes();
+
+    for (const plugin of Object.keys(MEASUREMENTS) as Plugin[]) {
+      const catalogued = new Set(CATALOG[plugin].map((point) => point.type));
+      expect([...catalogued].sort(), plugin).toEqual([...(documented.get(plugin) ?? [])].sort());
+    }
+  });
+});
+
+describe('Detailed', () => {
+  it('matches the full snapshot', async () => {
+    await expect(`${JSON.stringify(full('influxdb1'), null, 2)}\n`).toMatchFileSnapshot('__snapshots__/detailed-influxdb1-full.json');
+  });
+
+  it.each(OUTPUTS.slice(1))('matches the panel list on %s', async (output) => {
+    const lines = rows(full(output)).flatMap(([row, panels]) => panels.map((p) => `${row.title} | ${p.title} | ${p.type} | ${p.targets?.length}`));
+
+    await expect(`${lines.join('\n')}\n`).toMatchFileSnapshot(`__snapshots__/detailed-${output}-panels.txt`);
+  });
+
+  it.each(OUTPUTS)('never shows the hash field on %s', (output) => {
+    for (const [row, panels] of rows(full(output))) {
+      for (const p of panels.filter((panel) => JSON.stringify(panel.targets).includes('hash'))) {
+        const shown = p.type === 'table' ? !organize(p.transformations as object[]).excludeByName.hash : p.type !== 'timeseries';
+        expect(shown, `${row.title} / ${p.title}`).toBe(false);
+      }
+    }
+  });
+
+  it('gives a second instance only the panels of its own collectors', () => {
+    const inputs = demoInputs();
+    inputs.sonarr?.push(InputsConfigSchema.parse({ sonarr: [{ id: 2, url: 'http://sonarr-2.test', apiKey: 'k', queue: { enabled: true } }] }).sonarr?.[0] as never);
+    const second = rows(full('influxdb1', inputs)).find(([row]) => row.title === 'Sonarr 2');
+
+    expect(second?.[1].map((p) => p.title)).toEqual(['Download queue']);
+  });
+
+  it('ends with the Varken row', () => {
+    expect(full('influxdb1').panels.map((p) => p.title).at(-1)).toBe('Varken');
   });
 });

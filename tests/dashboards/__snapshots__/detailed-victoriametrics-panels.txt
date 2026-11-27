@@ -1,0 +1,158 @@
+Sonarr 1 | Download queue | table | 1
+Sonarr 1 | Queue | timeseries | 1
+Sonarr 1 | Wanted totals | timeseries | 1
+Sonarr 1 | Health checks | timeseries | 1
+Sonarr 1 | Disks | table | 1
+Sonarr 1 | Scheduled tasks | table | 1
+Sonarr 1 | Root folders | table | 1
+Sonarr 1 | Server | table | 1
+Sonarr 1 | Library | stat | 1
+Sonarr 1 | Series | table | 1
+Radarr 1 | Download queue | table | 1
+Radarr 1 | Queue | timeseries | 1
+Radarr 1 | Wanted totals | timeseries | 1
+Radarr 1 | Health checks | timeseries | 1
+Radarr 1 | Disks | table | 1
+Radarr 1 | Scheduled tasks | table | 1
+Radarr 1 | Root folders | table | 1
+Radarr 1 | Server | table | 1
+Radarr 1 | Library | stat | 1
+Radarr 1 | Collections | table | 1
+Readarr 1 | Download queue | table | 1
+Readarr 1 | Queue | timeseries | 1
+Readarr 1 | Wanted totals | timeseries | 1
+Readarr 1 | Missing books | table | 1
+Readarr 1 | Health checks | timeseries | 1
+Readarr 1 | Disks | table | 1
+Readarr 1 | Scheduled tasks | table | 1
+Readarr 1 | Root folders | table | 1
+Readarr 1 | Server | table | 1
+Readarr 1 | Library | stat | 1
+Readarr 1 | Authors | table | 1
+Lidarr 1 | Download queue | table | 1
+Lidarr 1 | Queue | timeseries | 1
+Lidarr 1 | Wanted totals | timeseries | 1
+Lidarr 1 | Missing albums | table | 1
+Lidarr 1 | Health checks | timeseries | 1
+Lidarr 1 | Disks | table | 1
+Lidarr 1 | Scheduled tasks | table | 1
+Lidarr 1 | Root folders | table | 1
+Lidarr 1 | Server | table | 1
+Lidarr 1 | Library | stat | 1
+Lidarr 1 | Artists | table | 1
+Prowlarr 1 | Indexers | table | 1
+Prowlarr 1 | Indexers · 24 h | table | 1
+Prowlarr 1 | Applications | table | 1
+Prowlarr 1 | Hosts | table | 1
+Prowlarr 1 | Health checks | timeseries | 1
+Prowlarr 1 | Indexer failures | table | 1
+Prowlarr 1 | Scheduled tasks | table | 1
+Prowlarr 1 | Disabled indexers | timeseries | 1
+Prowlarr 1 | Inventory | stat | 1
+Prowlarr 1 | Server | table | 1
+Bazarr 1 | Missing subtitles | timeseries | 1
+Bazarr 1 | Badges | timeseries | 1
+Bazarr 1 | Subtitles downloaded per day | timeseries | 1
+Bazarr 1 | Jobs | timeseries | 1
+Bazarr 1 | Providers | table | 1
+Bazarr 1 | Scheduled tasks | table | 1
+Bazarr 1 | Library | table | 1
+Bazarr 1 | Languages | stat | 1
+Bazarr 1 | Releases | table | 1
+Bazarr 1 | Server | table | 1
+Tautulli 1 | Streams | timeseries | 1
+Tautulli 1 | Bandwidth | timeseries | 1
+Tautulli 1 | Now playing | table | 1
+Tautulli 1 | Plays per day | timeseries | 1
+Tautulli 1 | Plays per day (Tautulli graphs) | timeseries | 1
+Tautulli 1 | Plays per month | timeseries | 1
+Tautulli 1 | Plays by stream type | timeseries | 1
+Tautulli 1 | Concurrent streams | timeseries | 1
+Tautulli 1 | Plays by hour of day (30 days) | barchart | 1
+Tautulli 1 | Plays by weekday (30 days) | table | 1
+Tautulli 1 | Stream types by platform (30 days) | table | 1
+Tautulli 1 | Stream types by user (30 days) | table | 1
+Tautulli 1 | Home stats (30 days) | table | 1
+Tautulli 1 | Libraries | table | 1
+Tautulli 1 | Media info | table | 1
+Tautulli 1 | User counts | stat | 1
+Tautulli 1 | Users | table | 1
+Tautulli 1 | Library usage | table | 1
+Tautulli 1 | Server | table | 1
+Plex 1 | Streams | timeseries | 1
+Plex 1 | Bandwidth | timeseries | 1
+Plex 1 | Now playing | table | 1
+Plex 1 | CPU / RAM | timeseries | 1
+Plex 1 | Bandwidth per network | timeseries | 1
+Plex 1 | Transcoder | timeseries | 1
+Plex 1 | Butler tasks | table | 1
+Plex 1 | Server activities | timeseries | 1
+Plex 1 | Running activities | table | 1
+Plex 1 | Background transcodes | timeseries | 1
+Plex 1 | Running background transcodes | table | 1
+Plex 1 | Updates | table | 1
+Plex 1 | Server | table | 1
+Plex 1 | Libraries | table | 1
+Plex 1 | Live TV | timeseries | 1
+Plex 1 | Recordings | table | 1
+Plex 1 | Inventory | stat | 1
+Plex 1 | Devices | table | 1
+Jellyfin 1 | Streams | timeseries | 1
+Jellyfin 1 | Clients | timeseries | 1
+Jellyfin 1 | Now playing | table | 1
+Jellyfin 1 | Tasks | timeseries | 1
+Jellyfin 1 | Plugins | timeseries | 1
+Jellyfin 1 | Scheduled tasks | table | 1
+Jellyfin 1 | Installed plugins | table | 1
+Jellyfin 1 | Storage | table | 1
+Jellyfin 1 | Libraries | table | 1
+Jellyfin 1 | Live TV | timeseries | 1
+Jellyfin 1 | Server | table | 1
+Jellyfin 1 | Items | stat | 1
+Jellyfin 1 | User counts | stat | 1
+Jellyfin 1 | Device counts | stat | 1
+Jellyfin 1 | Users | table | 1
+Jellyfin 1 | Devices | table | 1
+Emby 1 | Streams | timeseries | 1
+Emby 1 | Clients | timeseries | 1
+Emby 1 | Now playing | table | 1
+Emby 1 | Tasks | timeseries | 1
+Emby 1 | Plugins | timeseries | 1
+Emby 1 | Scheduled tasks | table | 1
+Emby 1 | Installed plugins | table | 1
+Emby 1 | Libraries | table | 1
+Emby 1 | Live TV | timeseries | 1
+Emby 1 | Server | table | 1
+Emby 1 | Items | stat | 1
+Emby 1 | User counts | stat | 1
+Emby 1 | Device counts | stat | 1
+Emby 1 | Users | table | 1
+Emby 1 | Devices | table | 1
+Ombi 1 | Request counts | timeseries | 1
+Ombi 1 | Request totals | timeseries | 1
+Ombi 1 | Requests | table | 1
+Ombi 1 | Issues | timeseries | 1
+Ombi 1 | Last 30 days | timeseries | 1
+Ombi 1 | Requests by status | table | 1
+Ombi 1 | Users | timeseries | 1
+Ombi 1 | User quotas | table | 1
+Ombi 1 | Server | table | 1
+Overseerr 1 | Requests by status | timeseries | 1
+Overseerr 1 | Requests by type | timeseries | 1
+Overseerr 1 | Issues | timeseries | 1
+Overseerr 1 | Request problems | timeseries | 1
+Overseerr 1 | Latest requests | table | 1
+Overseerr 1 | Media | timeseries | 1
+Overseerr 1 | DNS cache | timeseries | 1
+Overseerr 1 | Jobs | table | 1
+Overseerr 1 | API caches | table | 1
+Overseerr 1 | Caches | stat | 1
+Overseerr 1 | Status | stat | 1
+Overseerr 1 | Users | timeseries | 1
+Overseerr 1 | Server | table | 1
+Overseerr 1 | User quotas | table | 1
+Varken | Varken | stat | 1
+Varken | Collectors | table | 1
+Varken | Collector runs and errors | timeseries | 1
+Varken | Collection duration | timeseries | 1
+Varken | Output writes | timeseries | 1

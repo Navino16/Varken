@@ -5,7 +5,7 @@ import { MEASUREMENTS } from './sources';
 
 type Plugin = InputKey | 'varken';
 
-const HIDDEN = new Set(['hash', 'reachable']);
+const HIDDEN = new Set(['hash', 'reachable', 'present', 'installed']);
 const EVENT_LIMIT = 50;
 
 /** Column titles the generic rule (`snake_case` / `camelCase` → sentence) words badly. */
