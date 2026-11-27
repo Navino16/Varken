@@ -6,7 +6,7 @@ export const GRAFANA = { url: 'http://localhost:3000', user: 'admin', password: 
 
 const api = axios.create({ baseURL: GRAFANA.url, auth: { username: GRAFANA.user, password: GRAFANA.password } });
 
-const DATASOURCES: Partial<Record<OutputType, object>> = {
+const DATASOURCES: Record<OutputType, object> = {
   influxdb1: {
     type: 'influxdb',
     access: 'proxy',
@@ -14,6 +14,30 @@ const DATASOURCES: Partial<Record<OutputType, object>> = {
     user: 'varken',
     jsonData: { dbName: 'varken', httpMode: 'POST' },
     secureJsonData: { password: 'varkenpassword' },
+  },
+  influxdb2: {
+    type: 'influxdb',
+    access: 'proxy',
+    url: 'http://varken-influxdb2:8086',
+    jsonData: { version: 'Flux', organization: 'varken', defaultBucket: 'varken' },
+    secureJsonData: { token: 'varken-test-token' },
+  },
+  victoriametrics: { type: 'prometheus', access: 'proxy', url: 'http://varken-victoriametrics:8428', jsonData: { httpMethod: 'POST' } },
+  questdb: {
+    type: 'grafana-postgresql-datasource',
+    access: 'proxy',
+    url: 'varken-questdb:8812',
+    user: 'admin',
+    jsonData: { database: 'qdb', sslmode: 'disable' },
+    secureJsonData: { password: 'quest' },
+  },
+  timescaledb: {
+    type: 'grafana-postgresql-datasource',
+    access: 'proxy',
+    url: 'varken-timescaledb:5432',
+    user: 'varken',
+    jsonData: { database: 'varken', sslmode: 'disable', timescaledb: true },
+    secureJsonData: { password: 'varken' },
   },
 };
 
@@ -31,13 +55,13 @@ export async function ensureDatasource(output: OutputType): Promise<string> {
 }
 
 interface Frame {
-  schema: { fields: { name: string; config?: { displayNameFromDS?: string } }[] };
+  schema: { fields: { name: string; labels?: Record<string, string>; config?: { displayNameFromDS?: string } }[] };
   data: { values: unknown[][] };
 }
 
 /**
  * Runs one panel target through Grafana as the panel would. `rows` counts rows holding a non-null value besides the first
- * column; `names` are the field names and display names the panel transformations can match.
+ * column; `names` are the field names, display names and label keys the panel transformations can match.
  */
 export async function runTarget(
   target: GrafanaTarget,
@@ -59,7 +83,9 @@ export async function runTarget(
     const columns = values.slice(1);
     return sum + (values[0] ?? []).filter((_value, row) => columns.some((column) => column[row] !== null && column[row] !== undefined)).length;
   }, 0);
-  const names = (result?.frames ?? []).flatMap((frame) => frame.schema.fields.flatMap((field) => [field.name, field.config?.displayNameFromDS ?? field.name]));
+  const names = (result?.frames ?? []).flatMap((frame) =>
+    frame.schema.fields.flatMap((field) => [field.name, field.config?.displayNameFromDS ?? field.name, ...Object.keys(field.labels ?? {})])
+  );
   return { error: result?.error ?? (response.status === 200 ? undefined : `HTTP ${response.status}`), rows, names };
 }
 

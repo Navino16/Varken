@@ -110,6 +110,10 @@ services:
     container_name: varken-victoriametrics
     command:
       - -retentionPeriod=1y
+      # Tautulli sessions carry 45 tags; the default limit of 40 labels drops them silently.
+      - -maxLabelsPerTimeseries=64
+      # The demo's last step is written at "now": queries right after seeding must see it.
+      - -search.latencyOffset=0s
     ports:
       - "8428:8428"
     volumes:
